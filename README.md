@@ -5,5 +5,5 @@ reax.lib  the parameter file converted from ffield for usage with GULP
 
 *.gen file is final MD result from siesta or ReaxFF-(GULP), and can be visilized by ASE(command ase gui *.gen)
 
-HBondCage.gif shows a molecular dynamics simulations results with ReaxFF (paramters from machine learning) at temperature of 50 K, which equivalent to a geomentry optimization but using a simulated annealing algorithm..
+HBondCage.gif shows a molecular dynamics simulations results with ReaxFF (paramters from machine learning) at temperature of 50 K, which equivalent to a geomentry optimization but using a simulated annealing algorithm.
 
