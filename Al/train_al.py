@@ -12,8 +12,8 @@ from irff.reaxfflib import read_lib,write_lib
 
 
 direcs = {'alc2f6':'/home/feng/mlff/Al/alc2f6'
-          }
-batch = 50
+          } # can by multi-directories
+batch = 50  # number of frame need to collected from directories.
 
 p,zpe,spec,bonds,offd,angs,torp,hbs= read_lib(libfile='ffield')
 
