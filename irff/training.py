@@ -8,7 +8,7 @@ import numpy as np
 from .reax import ReaxFF
 from .mpnn import MPNN
 from .init_check import Init_Check
-from .dingtalk import send_msg
+# from .dingtalk import send_msg
 import json as js
 
 
@@ -55,7 +55,7 @@ def train(direcs=None,step=5000,batch=None,convergence=0.97,
        ffd = 'ffield_' + str(libstep) +'.json'
 
     if loss==0.0 and accu==0.0:
-       send_msg('-  Warning: the loss is NaN, parameters from %s changed auomatically ...' %ffd)
+       # send_msg('-  Warning: the loss is NaN, parameters from %s changed auomatically ...' %ffd)
        with open(ffd,'r') as fj:
             j = js.load(fj)
             ic = Init_Check(nanv=nanv)
@@ -124,7 +124,7 @@ def train_mpnn(direcs=None,step=5000,batch=None,convergence=0.97,
        ffd = 'ffield_' + str(libstep) +'.json'
 
     if loss==0.0 and accu==0.0:
-       send_msg('-  Warning: the loss is NaN, parameters from %s changed auomatically ...' %ffd)
+       # send_msg('-  Warning: the loss is NaN, parameters from %s changed auomatically ...' %ffd)
        with open(ffd,'r') as fj:
             j = js.load(fj)
             ic = Init_Check(nanv=nanv)

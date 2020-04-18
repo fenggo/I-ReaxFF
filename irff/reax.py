@@ -7,7 +7,7 @@ from .reax_data import get_data
 from .link import links
 from .reaxfflib import read_lib,write_lib
 from .initCheck import Init_Check
-from .dingtalk import send_msg
+# from .dingtalk import send_msg
 from .setRcut import setRcut
 import time
 from ase import Atoms
@@ -1765,7 +1765,7 @@ class ReaxFF(object):
           loss_ = loss - latol
           if np.isnan(loss):
              self.logger.info('NAN error encountered at step %d loss is %f.' %(i,loss/self.nframe))
-             send_msg('NAN error encountered at step %d loss is %f.' %(i,loss/self.nframe))
+             # send_msg('NAN error encountered at step %d loss is %f.' %(i,loss/self.nframe))
              tf.compat.v1.reset_default_graph()
              self.sess.close()
              return 0.0,0.0,accMax,i
