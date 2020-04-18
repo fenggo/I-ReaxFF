@@ -13,4 +13,6 @@ Requirement: the following package need to be installed
 2. Numpy,pip install numpy --user
 3. matplotlib, pip install matplotlib --user
 
+Install this package just run commond in shell "python setup install --user"
+
 An example can be found in director I-ReaxFF/Al
