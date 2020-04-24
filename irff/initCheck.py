@@ -190,9 +190,12 @@ class Init_Check(object):
           if k=='val7': 
              if p[key]>=20.0:
                 p[key] = value(18.0,key)
+          if k=='ovun1': 
+             if p[key]<=0.10:
+                p[key]= value(1.0,key)
           if k=='ovun2': 
-             if p[key]>=10.0:
-                p[key]= value(8.0,key)
+             if p[key]>=0.0:
+                p[key]= value(-3.0,key)
           if k=='ovun4': 
              if p[key]<=0.001:
                 p[key]= value(1.0,key)
@@ -229,6 +232,26 @@ class Init_Check(object):
           if key == 'tor3':
              if p[key]>15.0:
                 p[key] = value(5.0,key)
+
+          if k=='ropi': 
+             bd = key.split('_')[1]
+             b  = bd.split('-')
+             ofd= bd
+             if p[key]<=0.0:
+                p[key]= value(0.98*p['rosi_'+ofd],key)
+                if len(b)==2:
+                   p['bo3_'+bd]= value(-10.0,'bo3_'+bd)
+                   p['bo4_'+bd]= value(0.0,'bo4_'+bd)
+
+          elif k=='ropp': 
+             bd = key.split('_')[1]
+             b  = bd.split('-')
+             ofd= bd
+             if p[key]<=0.0:
+                p[key]= value(0.9*p['rosi_'+ofd],key)
+                if len(b)==2:
+                   p['bo5_'+bd]= value(-10.0,'bo5_'+bd)
+                   p['bo6_'+bd]= value(0.0,'bo6_'+bd)
 
           # if not self.re is None:
           #    if k in ['rosi','ropi','ropp']:

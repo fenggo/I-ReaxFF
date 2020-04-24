@@ -8,7 +8,7 @@ from .link import links
 from .reaxfflib import read_lib,write_lib
 from .initCheck import Init_Check
 # from .dingtalk import send_msg
-from .setRcut import setRcut
+from .RadiusCutOff import setRcut
 import time
 from ase import Atoms
 from ase.io.trajectory import Trajectory
@@ -265,6 +265,7 @@ class ReaxFF(object):
       molecules   = {}
       self.max_e  = {}
       self.cell   = {}
+      self.nbe0   = {}
       self.mols   = []
       self.eself,self.evdw_,self.ecoul_ = {},{},{}
 
@@ -300,6 +301,7 @@ class ReaxFF(object):
              self.ecoul_[mol] = molecules[mol].ecoul  
                   
              self.eself[mol] = molecules[mol].eself    
+             self.nbe0[mol]  = molecules[mol].nbe0   
              self.cell[mol]  = molecules[mol].cell
           else:
              print('-  data status of %s:' %mol,data_.status)
@@ -482,6 +484,8 @@ class ReaxFF(object):
           mols = mol.split('-')[0] 
           if self.atomic:
              mol_ = mol
+             for bd in self.bonds:
+                 self.zpe[mol_] += self.p['be0_'+bd]*self.nbe0[mol][bd]
           else:
              mol_ = mols
           self.E[mol] = tf.add(self.ebond[mol] + 
@@ -669,22 +673,18 @@ class ReaxFF(object):
           i += 1
 
       for mol in self.mols:
-          with tf.compat.v1.name_scope('Elone_'+mol):
-               self.Elone[mol] = tf.gather_nd(self.ELONE,self.atomlink[mol])  
-               self.elone[mol] = tf.reduce_sum(input_tensor=self.Elone[mol],axis=0,name='lonepairenergy')
+          self.Elone[mol] = tf.gather_nd(self.ELONE,self.atomlink[mol])  
+          self.elone[mol] = tf.reduce_sum(input_tensor=self.Elone[mol],axis=0,name='lonepairenergy')
 
-          with tf.compat.v1.name_scope('Eover_'+mol):
-               self.Eover[mol] = tf.gather_nd(self.EOVER,self.atomlink[mol])  
-               self.eover[mol] = tf.reduce_sum(input_tensor=self.Eover[mol],axis=0,name='overenergy')
+          self.Eover[mol] = tf.gather_nd(self.EOVER,self.atomlink[mol])  
+          self.eover[mol] = tf.reduce_sum(input_tensor=self.Eover[mol],axis=0,name='overenergy')
 
-          with tf.compat.v1.name_scope('Eunder_'+mol):
-               self.Eunder[mol] = tf.gather_nd(self.EUNDER,self.atomlink[mol])  
-               self.eunder[mol] = tf.reduce_sum(input_tensor=self.Eunder[mol],axis=0,name='underenergy')
-          
+          self.Eunder[mol] = tf.gather_nd(self.EUNDER,self.atomlink[mol])  
+          self.eunder[mol] = tf.reduce_sum(input_tensor=self.Eunder[mol],axis=0,name='underenergy')
+    
           if self.atomic:
-             with tf.compat.v1.name_scope('zpe_'+mol):
-                  zpe_ = tf.gather_nd(self.EATOM,self.atomlink[mol]) 
-                  self.zpe[mol] = tf.reduce_sum(input_tensor=zpe_,name='zpe') 
+             zpe_ = tf.gather_nd(self.EATOM,self.atomlink[mol]) 
+             self.zpe[mol] = tf.reduce_sum(input_tensor=zpe_,name='zpe') 
 
 
   def get_elone(self,atom,D):
@@ -1228,8 +1228,8 @@ class ReaxFF(object):
                      'gammaw','gamma','mass','chi','mu',
                      'Devdw','rvdw','alfa'] # ,'val','vale','chi','mu','valp', 
 
-      self.p_bond = ['Desi','Depi','Depp','be1','bo5','bo6','ovun1',
-                     'be2','bo3','bo4','bo1','bo2','corr13','ovcorr']
+      self.p_bond = ['Desi','Depi','Depp','bo5','bo6','ovun1',
+                     'be0','be1','be2','bo3','bo4','bo1','bo2','corr13','ovcorr']
 
       self.p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp'] # 
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] # 
@@ -1324,7 +1324,7 @@ class ReaxFF(object):
           elif key=='ovun5':
              self.p[k] = tf.clip_by_value(self.v[k],0.0,999.0*self.unit)
           elif key=='ovun1':
-             self.p[k] = tf.clip_by_value(self.v[k],0.0,99.0)
+             self.p[k] = tf.clip_by_value(self.v[k],0.01,99.0)
           elif key in ['boc4','boc5','vdw1']:
              self.p[k] = tf.clip_by_value(self.v[k],0.00000001,100.0)
           elif key == 'boc3':
@@ -1348,7 +1348,7 @@ class ReaxFF(object):
           elif key=='tor1':
              self.p[k] = tf.clip_by_value(self.v[k],-99.9900,-0.0001)
           elif key== 'ovun2':
-             self.p[k] = tf.clip_by_value(self.v[k],-39.00,39.0)
+             self.p[k] = tf.clip_by_value(self.v[k],-39.00,-0.01)
           elif key in ['tor3','val7']:
              if key in self.punit:
                 self.p[k] = tf.clip_by_value(self.v[k],0.00,48.0*self.unit)
