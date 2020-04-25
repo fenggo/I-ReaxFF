@@ -1005,26 +1005,31 @@ class ReaxFF(object):
 
 
   def get_torsion_energy(self):
-      for tor in self.tors:
-          if self.ntor[tor]>0:
-             self.get_etorsion(tor)
-             self.get_four_conj(tor)
+      if self.optword.find('notor')<0:
+         for tor in self.tors:
+             if self.ntor[tor]>0:
+                self.get_etorsion(tor)
+                self.get_four_conj(tor)
 
-      for mol in self.mols:
-          i = 0
-          for tor in self.tors:
-              if self.ntor[tor]>0:
-                 if len(self.torlink[mol][tor])>0:
-                    etor_ = tf.gather_nd(self.ETOR[tor],self.torlink[mol][tor])
-                    self.Etor[mol] = etor_ if i==0 else tf.concat((self.Etor[mol],etor_),0)
-
-                    Efcon_ = tf.gather_nd(self.Efcon[tor],self.torlink[mol][tor])
-                    self.EFC[mol] = Efcon_ if i==0 else tf.concat((self.EFC[mol],Efcon_),0)
-                    i+=1
-          if mol in self.Etor:
-             self.etor[mol] = tf.reduce_sum(input_tensor=self.Etor[mol],axis=0,name='etor_%s' %mol)
-             self.efcon[mol]= tf.reduce_sum(input_tensor=self.EFC[mol],axis=0,name='efcon_%s' %mol)
-          else:  # no torsion angle
+         for mol in self.mols:
+             i = 0
+             for tor in self.tors:
+                 if self.ntor[tor]>0:
+                    if len(self.torlink[mol][tor])>0:
+                       etor_ = tf.gather_nd(self.ETOR[tor],self.torlink[mol][tor])
+                       self.Etor[mol] = etor_ if i==0 else tf.concat((self.Etor[mol],etor_),0)
+ 
+                       Efcon_ = tf.gather_nd(self.Efcon[tor],self.torlink[mol][tor])
+                       self.EFC[mol] = Efcon_ if i==0 else tf.concat((self.EFC[mol],Efcon_),0)
+                       i+=1
+             if mol in self.Etor:
+                self.etor[mol] = tf.reduce_sum(input_tensor=self.Etor[mol],axis=0,name='etor_%s' %mol)
+                self.efcon[mol]= tf.reduce_sum(input_tensor=self.EFC[mol],axis=0,name='efcon_%s' %mol)
+             else:  # no torsion angle
+                self.etor[mol] = tf.zeros([self.batch])
+                self.efcon[mol]= tf.zeros([self.batch])
+      else:  # do not optimize torsion interaction
+         for mol in self.mols:
              self.etor[mol] = tf.zeros([self.batch])
              self.efcon[mol]= tf.zeros([self.batch])
 
