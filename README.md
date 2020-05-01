@@ -20,4 +20,5 @@ Install this package just run commond in shell "python setup install --user"
 An example usage can be found in director I-ReaxFF/Al
 
 ## Refference
-Computational Materials Science 172 (2020) 109393 
+Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine
+learning, Computational Materials Science 172 (2020) 109393 
