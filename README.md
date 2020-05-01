@@ -18,3 +18,6 @@ Install this package just run commond in shell "python setup install --user"
 
 ## Example
 An example usage can be found in director I-ReaxFF/Al
+
+## Refference
+Computational Materials Science 172 (2020) 109393 
