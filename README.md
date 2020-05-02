@@ -17,7 +17,7 @@ HBondCage.gif shows a molecular dynamics simulations results with ReaxFF (paramt
 Install this package just run commond in shell "python setup install --user"
 
 ## Example
-An example usage can be found in director I-ReaxFF/Al
+An example usage can be found in director I-ReaxFF/example
 
 ## Refference
 Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine
