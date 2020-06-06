@@ -118,16 +118,16 @@ BLACSLIB      = $(BLACSdir)/blacs_MPI-LINUX-0.a
 #TESTINGdir    = $(home)/TESTING
 ```
 Then type : make
-NetCDF编译 
-cd netcdf-4.1.3
- ./configure --disable-dap --disable-netcdf-4 --prefix=/home/feng/siesta/mathlib/netcdf
 
-编译siesta
+## 编译siesta
 将Src/MPI中全部拷到 Obj/MPI中，make
 在Obj文件夹中执行：
 sh ../Src/obj_setup.sh
 ../Src/configure --enable-mpi(详见--help)
-修改 arch.make, 我的：
+
+## 修改 arch.make
+
+添加或修改LIB = 下面的内容
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
 
