@@ -1,0 +1,75 @@
+
+################## Species and atoms ##################
+SystemName       siesta
+SystemLabel      siesta
+NumberOfSpecies   4
+NumberOfAtoms     7
+   
+   
+%block ChemicalSpeciesLabel
+1 6 C
+2 7 N
+3 8 O
+4 1 H
+%endblock ChemicalSpeciesLabel
+   
+   
+SolutionMethod   Diagon # ## OrderN or Diagon
+PAO.BasisSize    DZP     # standard basis set, Like DZ plus polarization
+MaxSCFIterations 500
+SpinPolarized    F
+   
+   
+DM.MixingWeight      0.4   
+DM.NumberPulay       9
+DM.Tolerance         1.d-4
+   
+   
+###################   RunInfo  ###################
+MD.TypeOfRun     Verlet  # CG/FIRE optimize Verlet MD
+MD.VariableCell  false
+MD.TargetStress  0.000000 GPa
+MD.InitialTimeStep    1
+MD.FinalTimeStep      50
+MD.LengthTimeStep     1.000000 fs
+MD.InitialTemperature 300.000000 K 
+MD.MaxForceTol   0.03 eV/Ang 
+MD.UseSaveXV     F 
+MD.UseSaveZM     false 
+   
+   
+################### FUNCTIONAL ###################
+XC.functional    VDW    # Exchange-correlation functional type
+XC.Authors       DRSLL    # Particular parametrization of xc func
+   
+   
+MeshCutoff       200. Ry # Equivalent planewave cutoff for the grid 
+KgridCutoff      8.000000 Ang
+   
+   
+WriteCoorInitial T
+WriteCoorXmol    T
+WriteMDhistory   T
+WriteMullikenPop 1
+WriteForces      T
+   
+###################  GEOMETRY  ###################
+
+LatticeConstant  1.00 Ang
+%block LatticeVectors
+8.0 0.0 0.0
+0.0 8.0 0.0
+0.0 0.0 8.0
+%endblock LatticeVectors
+   
+AtomicCoordinatesFormat Ang
+   
+%block AtomicCoordinatesAndAtomicSpecies
+2.832211923744604 4.195604041715509 4.416216492278323 1
+4.322809221944775 4.083522398779732 4.217527535387142 2
+4.89087670467065 2.986593452138483 4.165733065040069 3
+4.754183313950975 5.259145350847526 4.21768062565175 3
+2.559979873999221 5.180682430672956 4.096872184855719 4
+2.184229237275296 3.498144051241607 4.033402877242514 4
+2.912119636568568 4.231998016826503 5.538650482998835 4
+%endblock AtomicCoordinatesAndAtomicSpecies
