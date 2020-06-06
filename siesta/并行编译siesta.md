@@ -1,10 +1,13 @@
 # 使用gfortran和openmpi并行编译SIESTA
 
 ##安装必要的编译软件
-sudo apt-get install build-essential  
-sudo apt-get install g++
+(默认使用deepin linux系统)
+sudo apt install build-essential  
+sudo apt install g++
+sudo apt install gfortran
 
 ## Openmpi安装
+```
 1 ./configure --prefix=/home/feng/siesta/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
  对于intel ./configure --prefix=/usr/local/openmpi-1.4.3 CC=icc CXX=icpc F77=ifort FC=ifort
 2  make all 
@@ -18,7 +21,7 @@ sudo apt-get install g++
                             which  mpic＋＋
                             which mpif77
                             which mpif90
-
+```
 ## 安装 lapack
 下载：http://www.netlib.org/lapack
 Cd BLAS/Src
