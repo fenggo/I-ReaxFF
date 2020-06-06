@@ -1,15 +1,20 @@
 # 使用gfortran和openmpi并行编译SIESTA
+
+##安装必要的编译软件
+sudo apt-get install build-essential  
+sudo apt-get install g++
+
 ## Openmpi安装
-1. ./configure --prefix=/home/feng/siesta/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
+1 ./configure --prefix=/home/feng/siesta/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
  对于intel ./configure --prefix=/usr/local/openmpi-1.4.3 CC=icc CXX=icpc F77=ifort FC=ifort
-2.  make all 
-3.  make install
-4. 打开 ～/.bashrc 添加环境变量
+2  make all 
+3  make install
+4 打开 ～/.bashrc 添加环境变量
    
    export PATH=/usr/local/openmpi-1.4.3/bin:$PATH
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/openmpi-1.4.3/lib
 
-5. source ~/.bashrc（重新打开终） 并验证    which mpicc
+5 source ~/.bashrc（重新打开终） 并验证    which mpicc
                             which  mpic＋＋
                             which mpif77
                             which mpif90
