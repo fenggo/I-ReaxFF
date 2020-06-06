@@ -20,7 +20,7 @@ Cd BLAS/Src
 make
 cp make.example.inc make.inc
 并修改以下几行：
-BLASLIB      =  /your/path/to/lapack-3.4.2/librefblas.a   # 将要创建一个librefblas.a
+BLASLIB      =  ../../librefblas.a   # 将要创建一个librefblas.a
 LAPACKLIB    =  liblapack.a
 TMGLIB       =  libtmglib.a
 LAPACKELIB   =  liblapacke.a
@@ -32,7 +32,8 @@ http://www.netlib.org/blacs下载MPIBLACS
 在BMAKES文件夹中拷出Bmake.MPI-LINUX Bmake.inc
 
 参见：How do I build BLACS with Open MPI http://www.open-mpi.org/faq/?category=mpi-apps
-修改Bmake.inc
+
+## 修改Bmake.inc
 ```# Section 1:
 # Ensure to use MPI for the communication layer
    COMMLIB = MPI
@@ -67,7 +68,7 @@ Make mpi
 安装 scalapack
 修改SLmake.inc
 参见：http://www.open-mpi.org/faq/?category=mpi-apps
-
+```
 # Make sure you follow the instructions to build BLACS with Open MPI,
 # and put its location in the following.
 
@@ -101,7 +102,9 @@ Make mpi
 
 # You may need to specify the full path to mpif77 / mpicc if they
 # aren't already in your path.
+```
 我改的：
+```
 BLACSdir      = /path to/BLACS/LIB
 BLASLIB       = -L/path to/lapack-3.4.2 -lrefblas
 LAPACKLIB     = -L/path to/lapack-3.4.2 -llapack
@@ -113,6 +116,7 @@ BLACSFINIT    = $(BLACSdir)/blacsF77init_MPI-LINUX-0.a
 BLACSCINIT    = $(BLACSdir)/blacsCinit_MPI-LINUX-0.a
 BLACSLIB      = $(BLACSdir)/blacs_MPI-LINUX-0.a
 #TESTINGdir    = $(home)/TESTING
+```
 Then type : make
 NetCDF编译 
 cd netcdf-4.1.3
