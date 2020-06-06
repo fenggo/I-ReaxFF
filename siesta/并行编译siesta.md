@@ -13,7 +13,8 @@
                             which  mpic＋＋
                             which mpif77
                             which mpif90
-安装 lapack
+
+## 安装 lapack
 下载：http://www.netlib.org/lapack
 Cd BLAS/Src
 make
@@ -25,13 +26,14 @@ TMGLIB       =  libtmglib.a
 LAPACKELIB   =  liblapacke.a
 
 Make
-安装 BLACS
+
+## 安装 BLACS
 http://www.netlib.org/blacs下载MPIBLACS
 在BMAKES文件夹中拷出Bmake.MPI-LINUX Bmake.inc
 
 参见：How do I build BLACS with Open MPI http://www.open-mpi.org/faq/?category=mpi-apps
 修改Bmake.inc
-# Section 1:
+`# Section 1:
 # Ensure to use MPI for the communication layer
    COMMLIB = MPI
 # The MPIINCdir macro is used to link in mpif.h and
@@ -60,6 +62,7 @@ http://www.netlib.org/blacs下载MPIBLACS
    F77LOADFLAGS   = 
    CC             = mpicc
    CCLOADFLAGS    = 
+`
 Make mpi
 安装 scalapack
 修改SLmake.inc
