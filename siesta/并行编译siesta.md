@@ -1,6 +1,6 @@
 # 使用gfortran和openmpi并行编译SIESTA
 
-##安装必要的编译软件
+## 安装必要的编译软件
 (默认使用deepin linux系统)
 ```
 sudo apt install build-essential  
