@@ -19,7 +19,7 @@ sudo apt install gfortran
 3  make install
 4 打开 ～/.bashrc 添加环境变量,用vi打开
 vi ~/.bashrc
-   export PATH=/home/feng/siesta/mathlib/openmpi-gnu:$PATH
+   export PATH=/home/feng/siesta/mathlib/openmpi-gnu/bin:$PATH
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/feng/siesta/mathlib/openmpi-gnu/lib
 
 5 source ~/.bashrc（重新打开终） 并验证    which mpicc
