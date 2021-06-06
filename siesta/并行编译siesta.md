@@ -29,6 +29,7 @@ vi ~/.bashrc
 ```
 ## 安装 lapack
 下载：http://www.netlib.org/lapack
+(ubuntu可用命令安装：sudo apt install libmkl-scalapack-lp64)
 Cd BLAS/Src
 make
 cp make.example.inc make.inc
@@ -44,7 +45,7 @@ Make
 http://www.netlib.org/blacs下载MPIBLACS
 在BMAKES文件夹中拷出Bmake.MPI-LINUX 重命为 Bmake.inc
 
-（也可以用命令安装blacs库：sudo apt install libmkl-blacs-openmpi-lp64）
+（ubuntu 可以用命令安装blacs库：sudo apt install libmkl-blacs-openmpi-lp64）
 
 参见：How do I build BLACS with Open MPI http://www.open-mpi.org/faq/?category=mpi-apps
 
