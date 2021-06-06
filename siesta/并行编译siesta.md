@@ -44,7 +44,10 @@ Make
 http://www.netlib.org/blacs下载MPIBLACS
 在BMAKES文件夹中拷出Bmake.MPI-LINUX 重命为 Bmake.inc
 
+（也可以用命令安装blacs库：sudo apt install libmkl-blacs-openmpi-lp64）
+
 参见：How do I build BLACS with Open MPI http://www.open-mpi.org/faq/?category=mpi-apps
+
 
 ## 修改Bmake.inc
 ```
