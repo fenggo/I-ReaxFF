@@ -42,7 +42,7 @@ Make
 
 ## 安装 BLACS
 http://www.netlib.org/blacs下载MPIBLACS
-在BMAKES文件夹中拷出Bmake.MPI-LINUX Bmake.inc
+在BMAKES文件夹中拷出Bmake.MPI-LINUX 重命为 Bmake.inc
 
 参见：How do I build BLACS with Open MPI http://www.open-mpi.org/faq/?category=mpi-apps
 
