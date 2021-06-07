@@ -71,6 +71,8 @@ COMP_LIBS= dc_lapack.a linalg.a
 
 MPI_INTERFACE=libmpi_f90.a
 MPI_INCLUDE=/home/feng/scisoft/openmpi-gnu/include
+
+```
+
 测试：
 mpirun -np <nproc> siesta < input.fdf > output
-```
