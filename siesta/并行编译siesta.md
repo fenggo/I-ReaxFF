@@ -29,7 +29,7 @@ vi ~/.bashrc
 ```
 
 或用命令安装
-``` sudo apt install openmpi ```
+``` sudo apt install openmpi-bin openmpi-dev ```
 
 ## 安装全部intel MKL数学库
 
