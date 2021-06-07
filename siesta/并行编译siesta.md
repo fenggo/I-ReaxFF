@@ -1,4 +1,4 @@
-# 使用gfortran和openmpi并行编译SIESTA
+# 使用gfortran、openmpi、libmkl并行编译SIESTA
 
 ## SIESTA下载
 https://gitlab.com/siesta-project/siesta
