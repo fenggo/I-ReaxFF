@@ -33,8 +33,7 @@ vi ~/.bashrc
 
 ## 可选择安装全部intel MKL数学库
 
-```sudo apt install libmkl-full-dev libmkl-core libmkl-def libmkl-dev
-```
+``` sudo apt install libmkl-full-dev libmkl-core libmkl-def libmkl-dev ```
 
 ## 安装 lapack
 ```sudo apt install libblas```
