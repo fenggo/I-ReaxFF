@@ -31,7 +31,7 @@ vi ~/.bashrc
 或用命令安装
 ``` sudo apt install openmpi ```
 
-## 可选择安装全部intel MKL数学库
+## 安装全部intel MKL数学库
 
 ``` sudo apt install libmkl-full-dev libmkl-core libmkl-def libmkl-dev ```
 
