@@ -42,7 +42,8 @@ vi ~/.bashrc
 
 ## 安装 BLACS
 ```sudo apt install libmkl-blacs-openmpi-lp64```
-
+查看库的安装位置和名称
+``` ldconfig -p | grep blacs ```
 
 ## 安装 scalapack
 ``` sudo apt install libmkl-scalapack-lp64 ```
