@@ -60,10 +60,12 @@ vi ~/.bashrc
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
 
-BLAS_LIBS=         
-LAPACK_LIBS=     
-BLACS_LIBS=  -lmkl-blacs-openmpi-lp64    
-SCALAPACK_LIBS=  -lmkl-scalapack-lp64 
+BLAS_LIBS=    -lmkl_rt -lmkl_intel_lp64
+LAPACK_LIBS=  -lmkl_rt
+
+BLACS_LIBS= -lmkl_rt -lmkl_core -lmkl_sequential -lmkl_blacs_openmpi_lp64 -lmkl_sequential
+SCALAPACK_LIBS= -lmkl_rt -lmkl_scalapack_lp64  -lmkl_intel_thread
+LIBS = $(COMP_LIBS) $(SCALAPACK_LIBS) $(BLACS_LIBS)  $(BLAS_LIBS)  -lpthread -liomp5
 
 COMP_LIBS= dc_lapack.a linalg.a
 
