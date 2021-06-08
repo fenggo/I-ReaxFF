@@ -27,14 +27,14 @@ vi ~/.bashrc
                             which mpif77
                             which mpif90
 ```
-也可以使用命令安装openmpi
+也可以使用命令安装openmpi, 不建议，推荐下载编译openmpi-2.0版本。
 
 ``` sudo apt install openmpi-bin ```
 
 ## 安装 lapack
 下载：http://www.netlib.org/lapack
 Cd BLAS/Src
-make
+``` make ```
 cp make.example.inc make.inc
 并修改以下几行：
 ```
@@ -72,6 +72,13 @@ BTOPdir = /home/feng/siesta/mathlib/BLACS
    MPIINCdir = $(MPIdir)/include
    MPILIB =
 
+如果使用命令安装openmpi, 
+```
+MPIdir =
+MPIINCdir =/usr/lib/x86_64-linux-gnu/openmpi/include
+```
+
+
 # Section 3:
 # Set these values:
    SYSINC =
@@ -90,10 +97,10 @@ BTOPdir = /home/feng/siesta/mathlib/BLACS
    CC             = mpicc
    CCLOADFLAGS    = 
 ```
-Make mpi
+``` make mpi ```
 
 ## 安装 scalapack
-修改SLmake.inc
+修改SLmake.inc（将SLmake.in.example 拷为SLmake.inc）
 参见：http://www.open-mpi.org/faq/?category=mpi-apps
 
 例如：
@@ -116,6 +123,9 @@ Then type : make
 将Src/MPI中全部拷到 Obj/MPI中，并执行
 
 ```make```
+
+在Obj文件夹中执行：
+sh ../Src/obj_setup.sh
 
 在Obj文件夹中执行：
 sh ../Src/obj_setup.sh
