@@ -61,7 +61,7 @@ FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
 
 BLAS_LIBS=    -lmkl_rt -lmkl_intel_lp64 -lmkl_blas95_lp64
-LAPACK_LIBS=  -lmkl_rt
+LAPACK_LIBS=  -lmkl_rt -lmkl_lapack95_lp64
 
 BLACS_LIBS= -lmkl_rt -lmkl_core -lmkl_sequential -lmkl_blacs_openmpi_lp64 -lmkl_sequential
 SCALAPACK_LIBS= -lmkl_rt -lmkl_scalapack_lp64  -lmkl_intel_thread
