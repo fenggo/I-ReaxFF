@@ -69,11 +69,13 @@ http://www.netlib.org/blacs下载MPIBLACS
    F77LOADFLAGS   = 
    CC             = mpicc
    CCLOADFLAGS    = 
+```
 Make mpi
 安装 scalapack
 修改SLmake.inc
 参见：http://www.open-mpi.org/faq/?category=mpi-apps
 
+```
 # Make sure you follow the instructions to build BLACS with Open MPI,
 # and put its location in the following.
 
@@ -107,7 +109,10 @@ Make mpi
 
 # You may need to specify the full path to mpif77 / mpicc if they
 # aren't already in your path.
+``` 
+
 我改的：
+```
 BLACSdir      = /path to/BLACS/LIB
 BLASLIB       = -L/path to/lapack-3.4.2 -lrefblas
 LAPACKLIB     = -L/path to/lapack-3.4.2 -llapack
@@ -130,6 +135,7 @@ Then type : make
 ``` sh ../Src/obj_setup.sh ```
 ``` ../Src/configure --enable-mpi ``` (详见--help)
 修改 arch.make, 我的：
+
 ```
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
