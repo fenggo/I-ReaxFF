@@ -27,6 +27,10 @@ vi ~/.bashrc
                             which mpif77
                             which mpif90
 ```
+也可以使用命令安装openmpi
+
+``` sudo apt install openmpi-bin ```
+
 ## 安装 lapack
 下载：http://www.netlib.org/lapack
 Cd BLAS/Src
