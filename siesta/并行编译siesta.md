@@ -37,12 +37,17 @@ Cd BLAS/Src
 make
 cp make.example.inc make.inc
 并修改以下几行：
+```
 BLASLIB      =  ../../librefblas.a   # 将要创建一个librefblas.a
 LAPACKLIB    =  liblapack.a
 TMGLIB       =  libtmglib.a
 LAPACKELIB   =  liblapacke.a
+```
+调整 CFLAGS = -O3 为 CFLAGS = -O3 -I$(TOPDIR)/INCLUDE -fno-stack-protector
 
 Make
+
+如果测试出错，终端输入``` ulimit -s 100000 ``` 后重新编译。
 
 ## 安装 BLACS
 http://www.netlib.org/blacs下载MPIBLACS
