@@ -1,24 +1,30 @@
 # I-ReaxFF: stand for Intelligent-Reactive Force Field
 
-ffield: the parameter file from machine learning
-reax.lib  the parameter file converted from ffield for usage with GULP
+- I-ReaxFF is a differentiable ReaxFF framework based on TensorFlow, with which we can get the first and high order derivatives of energies, and also can optimize ReaxFF parameters with integrated optimizers in TensorFlow.
+---
 
-*.gen file is final MD result from siesta or ReaxFF-(GULP), and can be visilized by ASE(command ase gui *.gen)
-
-HBondCage.gif shows a molecular dynamics simulations results with ReaxFF (paramters from machine learning) at temperature of 50 K, which equivalent to a geomentry optimization but using a simulated annealing algorithm.
-
+* ffield,ffield.json: the parameter file for the machine learning potential model.
+* train.ipynb: shows a training example of the IRFF-MPNN model with data sets uploaded in the data directory.
+* GeomentryOptimization.ipynb: shows how to do geometry optimizations with the IRFF-MPNN model.    
+* MolecularDynamics.ipynb: shows how to do molecular dynamics with the IRFF-MPNN model.  
+* StaticCompress.ipynb: shows the computation of the static compression of the solid nitromethane.   
+(The .py files have the same content as .ipynb files, but supplied as runnable python file).   
+To run all test files, just using commond like "python test.py".
 
 ## Requirement
  the following package need to be installed
 1. TensorFlow, pip install tensorflow --user or conda install tensorflow
-2. Numpy,pip install numpy --user
-3. matplotlib, pip install matplotlib --user
+2. PyTorch, conda install pyTorch
+3. Numpy,pip install numpy --user
+4. matplotlib, pip install matplotlib --user
 
-Install this package just run commond in shell "python setup install --user"
+Install this package after download this package and run commond in shell ``` python setup install --user ```. 
+Alternatively, this package can be install without download the package through pip
+``` pip install --user irff ```.
 
-## Example
-An example usage can be found in director I-ReaxFF/example
 
 ## Refference
-Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine
+Feng Guo et.al., Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine
 learning, Computational Materials Science 172 (2020) 109393 
+
+Feng Guo et.al., Machine Leaning Potential: A Neural Network Enhanced Version of Reactive Force Field and Message Passing Neural Network, (submitted)
