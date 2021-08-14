@@ -1,5 +1,3 @@
-sudo apt install quantum-espresso
-
 # 使用gfortran和openmpi并行编译QE
 
 ## QE下载
