@@ -32,5 +32,7 @@ vi ~/.bashrc
 也可以使用命令安装openmpi, 不建议，推荐下载编译openmpi-2.0版本。
 
 ## QE安装
+```
 ./configure
 make all
+```
