@@ -23,7 +23,7 @@ vi ~/.bashrc
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/feng/siesta/mathlib/openmpi-gnu/lib
 
 5 source ~/.bashrc（重新打开终） 并验证    which mpicc
-                            which  mpic＋＋
+                            which  mpicc＋＋
                             which mpif77
                             which mpif90
 ```
@@ -34,3 +34,5 @@ vi ~/.bashrc
 ./configure
 make all
 ```
+###打开 ～/.bashrc 文件（在主目录下，隐藏文件，可用vi打开 ``` vi ~/.bashrc ``` ），并添加下面一行代码：
+export PATH=/QE文件夹的路径/qe/bin:$PATH
