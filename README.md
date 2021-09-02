@@ -24,7 +24,6 @@ Alternatively, this package can be install without download the package through 
 
 
 ## Refference
-Feng Guo et.al., Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine
-learning, Computational Materials Science 172 (2020) 109393 
+Feng Guo et.al., Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine learning, Computational Materials Science 172 (2020) 109393 
 
-Feng Guo et.al., Machine Leaning Potential: A Neural Network Enhanced Version of Reactive Force Field and Message Passing Neural Network, (submitted)
+Feng Guo et.al., ReaxFF-MPNN machine learning potential: a combination of reactive force field and message passing neural networks,Physical Chemistry Chemical Physics, 2021, DOI: 10.1039/D1CP01656C
