@@ -34,6 +34,8 @@ vi ~/.bashrc
 ./configure
 make all
 ```
-###打开 ～/.bashrc 文件（在主目录下，隐藏文件，可用vi打开 ``` vi ~/.bashrc ``` ），并添加下面一行代码：
-
+## 设置环境变量，将qe作为系统软件
+打开 ～/.bashrc 文件（在主目录下，隐藏文件，可用vi打开 ``` vi ~/.bashrc ``` ），并添加下面一行代码：
+```
 export PATH=/QE文件夹的路径/qe-6.8/bin:$PATH
+```
