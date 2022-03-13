@@ -47,6 +47,7 @@ LAPACKELIB   =  liblapacke.a
 
 Make
 
+如果编译出错mismatch，加选项 -fallow-argument-mismatch
 如果测试出错，终端输入``` ulimit -s 100000 ``` 后重新编译。
 
 ## 安装 BLACS
