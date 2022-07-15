@@ -35,7 +35,9 @@ vi ~/.bashrc
 下载：http://www.netlib.org/lapack
 Cd BLAS/Src
 ``` make ```
+
 cp make.example.inc make.inc
+
 并修改以下几行：
 ```
 BLASLIB      =  ../../librefblas.a   # 将要创建一个librefblas.a
