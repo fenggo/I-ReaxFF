@@ -100,6 +100,7 @@ MPIINCdir =/usr/lib/x86_64-linux-gnu/openmpi/include
    CC             = mpicc
    CCLOADFLAGS    = 
 ```
+
 ``` make mpi ```
 
 ## 安装 scalapack
