@@ -1,0 +1,704 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>/media/feng/irnn/I-ReaxFF/irff/reaxfflib.py.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="python">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="delek">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.Statement { color: #8080ff; font-weight: bold; }
+.Type { color: #8080ff; }
+.Comment { color: #c00000; }
+.Constant { color: #008000; }
+.Identifier { color: #008080; }
+.PreProc { color: #c000c0; }
+.Special { color: #ffd7d7; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="PreProc">from</span> __future__ <span class="PreProc">import</span> print_function
+<span class="PreProc">from</span> os <span class="PreProc">import</span> system, getcwd, chdir,listdir
+<span class="PreProc">from</span> os.path <span class="PreProc">import</span> isfile,exists,isdir
+<span class="PreProc">import</span> numpy <span class="Statement">as</span> np
+
+<span class="Comment"># contains modules that write the parameters to ffield or in GULP format .lib file.</span>
+<span class="Comment"># write_ffield, write_lib</span>
+
+
+p_name = [<span class="Constant">'</span><span class="Constant">boc1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">trip4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">trip3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">kc2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">trip2</span><span class="Constant">'</span>,
+         <span class="Constant">'</span><span class="Constant">ovun7</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun8</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">trip1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">swa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">swb</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp1</span><span class="Constant">'</span>,
+         <span class="Constant">'</span><span class="Constant">val9</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val10</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>,
+         <span class="Constant">'</span><span class="Constant">tor3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cutoff</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun4</span><span class="Constant">'</span>,
+         <span class="Constant">'</span><span class="Constant">ovun3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val8</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">acut</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hbtol</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>]
+
+line_spec = []
+line_spec.append([<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">mass</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">gamma</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>])
+line_spec.append([<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">gammaw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">valang</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">chi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">mu</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">atomic</span><span class="Constant">'</span>])
+line_spec.append([<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>])
+line_spec.append([<span class="Constant">'</span><span class="Constant">ovun2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">valboc</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>])
+
+line_bond = []
+line_bond.append([<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">be1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">corr13</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>])
+line_bond.append([<span class="Constant">'</span><span class="Constant">be2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovcorr</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>])
+
+line_offd = [<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>]
+line_ang  = [<span class="Constant">'</span><span class="Constant">theta0</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val7</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val4</span><span class="Constant">'</span>]
+line_tor  = [<span class="Constant">'</span><span class="Constant">V1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>]
+line_hb   = [<span class="Constant">'</span><span class="Constant">rohb</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Dehb</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hb1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hb2</span><span class="Constant">'</span>]
+
+
+<span class="Statement">def</span> <span class="Identifier">read_ffield</span>(p={},zpe=<span class="Identifier">False</span>,libfile=<span class="Constant">'</span><span class="Constant">ffield</span><span class="Constant">'</span>,
+                p_name=p_name,line_spec=line_spec,
+                line_bond=line_bond,line_offd=line_offd,
+                line_ang=line_ang,line_tor=line_tor,line_hb=line_hb):
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  initial variable read from: %s.</span><span class="Constant">'</span> %libfile)
+    <span class="Statement">if</span> isfile(libfile):
+       flib = <span class="Identifier">open</span>(libfile,<span class="Constant">'</span><span class="Constant">r</span><span class="Constant">'</span>)
+       lines= flib.readlines()
+       flib.close()
+       npar = <span class="Identifier">int</span>(lines[<span class="Constant">1</span>].split()[<span class="Constant">0</span>])
+
+       <span class="Statement">if</span> npar&gt;<span class="Identifier">len</span>(p_name):
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">error: npar &gt;39</span><span class="Constant">'</span>)
+          exit()
+
+       zpe_= {}
+       <span class="Statement">if</span> zpe:
+          lin = lines[<span class="Constant">0</span>].split()
+          <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Identifier">int</span>(<span class="Identifier">len</span>(lin)/<span class="Constant">2</span>-<span class="Constant">1</span>)):
+              k = lin[i*<span class="Constant">2</span>+<span class="Constant">1</span>]
+              <span class="Statement">try</span>:
+                 zpe_[k] = <span class="Identifier">float</span>(lin[i*<span class="Constant">2</span>])
+              <span class="Statement">except</span> <span class="Type">ValueError</span>:
+                 zpe_[k] = <span class="Constant">0.0</span>
+
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(npar):
+           pn = p_name[i]
+           p[pn] = <span class="Identifier">float</span>(lines[<span class="Constant">2</span>+i].split()[<span class="Constant">0</span>])
+
+       <span class="Comment"># ---------   parameters for species   ---------</span>
+       nofc   = <span class="Constant">1</span>                 <span class="Comment">#  number of command line</span>
+       nsl    = <span class="Identifier">len</span>(line_spec)
+       nsc    = nsl
+       npar   = npar + <span class="Constant">1</span>
+       nspec  = <span class="Identifier">int</span>(lines[nofc+npar].split()[<span class="Constant">0</span>])
+       spec   = []
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nspec):
+           spec.append(lines[nofc+npar+nsc+i*nsl].split()[<span class="Constant">0</span>]) <span class="Comment"># read in species name in first line</span>
+           <span class="Statement">for</span> il,line <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_spec):
+               ls = <span class="Constant">1</span> <span class="Statement">if</span> il == <span class="Constant">0</span> <span class="Statement">else</span> <span class="Constant">0</span>
+               <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line):
+                   p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+spec[i]] = np.float(lines[nofc+npar+nsc+i*nsl+il].split()[ls+ip])
+
+       <span class="Comment"># ---------  parameters for bonds   ---------</span>
+       bonds = []
+       nbl = <span class="Identifier">len</span>(line_bond)
+       nbc = nbl
+       nbond = <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl].split()[<span class="Constant">0</span>])
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nbond):
+           b1= <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl].split()[<span class="Constant">0</span>])
+           b2= <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl].split()[<span class="Constant">1</span>])
+           bond = spec[b1-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b2-<span class="Constant">1</span>]
+           bonds.append(bond)
+           <span class="Statement">for</span> il,line <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_bond):
+               ls = <span class="Constant">2</span> <span class="Statement">if</span> il == <span class="Constant">0</span> <span class="Statement">else</span> <span class="Constant">0</span>
+               <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line):
+                   p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bond] = np.float(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl+il].split()[ls+ip])
+
+       <span class="Comment"># ---------   parameters for off-diagonal bonds   ---------</span>
+       offd  = []
+       nol   = <span class="Constant">1</span>
+       noc   = nol
+       noffd = <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl].split()[<span class="Constant">0</span>])
+
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(noffd):
+           b1=<span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[<span class="Constant">0</span>])
+           b2=<span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[<span class="Constant">1</span>])
+           bond = spec[b1-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b2-<span class="Constant">1</span>]
+           offd.append(bond)
+           <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_offd):
+               p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bond] = np.float(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[<span class="Constant">2</span>+ip])
+
+       <span class="Comment"># ---------   parameters for angles   ---------</span>
+       angs = []
+       nal  = <span class="Constant">1</span>
+       nac  = nal
+       nang = <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd].split()[<span class="Constant">0</span>])
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nang):
+           l = lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd+nac+i].split()
+           b1,b2,b3  = <span class="Identifier">int</span>(l[<span class="Constant">0</span>]),<span class="Identifier">int</span>(l[<span class="Constant">1</span>]),<span class="Identifier">int</span>(l[<span class="Constant">2</span>])
+           <span class="Comment"># print(l)</span>
+           ang = spec[b1-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b2-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b3-<span class="Constant">1</span>]
+           angr= spec[b3-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b2-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[b1-<span class="Constant">1</span>]
+           <span class="Statement">if</span> (<span class="Statement">not</span> ang <span class="Statement">in</span> angs) <span class="Statement">and</span> (<span class="Statement">not</span> angr <span class="Statement">in</span> angs):
+              angs.append(ang)
+              <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_ang):
+                  p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+ang] = np.float(l[<span class="Constant">3</span>+ip])
+
+       <span class="Comment"># ---------   parameters for torsions   --------- </span>
+       ntl  = <span class="Constant">1</span>
+       ntc  = ntl
+       ntor = <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd+nac+nang].split()[<span class="Constant">0</span>])
+       tors = []
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(ntor):
+           l = lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd+nac+nang+ntc+i].split()
+           b1,b2,b3,b4 = <span class="Identifier">int</span>(l[<span class="Constant">0</span>]),<span class="Identifier">int</span>(l[<span class="Constant">1</span>]),<span class="Identifier">int</span>(l[<span class="Constant">2</span>]),<span class="Identifier">int</span>(l[<span class="Constant">3</span>])
+           e2,e3 = spec[b2-<span class="Constant">1</span>],spec[b3-<span class="Constant">1</span>]
+           e1 = <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span> <span class="Statement">if</span> b1==<span class="Constant">0</span>  <span class="Statement">else</span> spec[b1-<span class="Constant">1</span>]
+           e4 = <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span> <span class="Statement">if</span> b4==<span class="Constant">0</span>  <span class="Statement">else</span> spec[b4-<span class="Constant">1</span>]
+
+           tor  = e1+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e2 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e3 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e4
+           tor1 = e4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e2 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e3 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e1
+           torr = e4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e3 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e2 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e1
+           torr1= e1+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e3 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e2 +<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+e4
+           <span class="Statement">if</span> (<span class="Statement">not</span> tor <span class="Statement">in</span> tors) <span class="Statement">and</span> (<span class="Statement">not</span> torr <span class="Statement">in</span> tors) <span class="Statement">and</span><span class="Special">\</span>
+              (<span class="Statement">not</span> tor1 <span class="Statement">in</span> tors) <span class="Statement">and</span> (<span class="Statement">not</span> torr1 <span class="Statement">in</span> tors):
+              tors.append(tor)
+              <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_tor):
+                  p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = np.float(l[<span class="Constant">4</span>+ip])
+
+       <span class="Comment"># ---------   parameters for HBs   ---------</span>
+       hbs = []
+       nhl = <span class="Constant">1</span>
+       nhc = nhl
+       nhb = <span class="Identifier">int</span>(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd+nac+nang+ntc+ntor].split()[<span class="Constant">0</span>])
+       <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nhb):
+           l = lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+noffd+nac+nang+ntc+ntor+nhc+i].split()
+           hb1,hb2,hb3  = <span class="Identifier">int</span>(l[<span class="Constant">0</span>]),<span class="Identifier">int</span>(l[<span class="Constant">1</span>]),<span class="Identifier">int</span>(l[<span class="Constant">2</span>])
+           hb = spec[hb1-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[hb2-<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> +spec[hb3-<span class="Constant">1</span>]
+           hbs.append(hb)
+           <span class="Statement">for</span> ip,pn <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_hb):
+               p[pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+hb] = np.float(l[<span class="Constant">3</span>+ip])
+    <span class="Statement">else</span>:
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  Error: lib file is not found!</span><span class="Constant">'</span>)
+       p = <span class="Identifier">None</span>
+    <span class="Statement">return</span> p,zpe_,spec,bonds,offd,angs,tors,hbs
+
+
+<span class="Statement">def</span> <span class="Identifier">write_ffield</span>(p,spec,bonds,offd,angs,tors,hbs,zpe=<span class="Identifier">None</span>,libfile=<span class="Constant">'</span><span class="Constant">ffield</span><span class="Constant">'</span>,
+                 p_name=p_name,line_spec=line_spec,
+                 line_bond=line_bond,line_offd=line_offd,
+                 line_ang=line_ang,line_tor=line_tor,line_hb=line_hb,
+                 loss=<span class="Identifier">None</span>,
+                 logo=<span class="Constant">'</span><span class="Constant">!-ReaxFF-Parameter-From-Machine-Learning-Computational-Materials-Science-172-(2020)-109393</span><span class="Constant">'</span>):
+    flib = <span class="Identifier">open</span>(libfile,<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>)
+
+    <span class="Statement">if</span> zpe <span class="Statement">is</span> <span class="Identifier">None</span>:
+       <span class="Statement">if</span> loss <span class="Statement">is</span> <span class="Identifier">None</span>:
+          <span class="Identifier">print</span>(logo, <span class="Identifier">file</span>=flib)
+       <span class="Statement">else</span>:
+          <span class="Identifier">print</span>(logo+<span class="Constant">'</span><span class="Constant">--Loss:%s</span><span class="Constant">'</span> %<span class="Identifier">str</span>(loss),
+                <span class="Identifier">file</span>=flib)
+    <span class="Statement">else</span>:
+       ZPE = <span class="Constant">''</span>
+       <span class="Statement">for</span> key <span class="Statement">in</span> zpe:
+           ZPE += <span class="Identifier">str</span>(zpe[key]) +<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>+key+<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>
+       <span class="Statement">if</span> loss <span class="Statement">is</span> <span class="Identifier">None</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">%s # %s </span><span class="Constant">'</span> %(ZPE,<span class="Constant">'</span><span class="Constant">zpe_energy</span><span class="Constant">'</span>), <span class="Identifier">file</span>=flib)
+       <span class="Statement">else</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">%s # %s </span><span class="Constant">'</span> %(ZPE,<span class="Constant">'</span><span class="Constant">zpe_energy-with-Loss:%s</span><span class="Constant">'</span>) %<span class="Identifier">str</span>(loss), <span class="Identifier">file</span>=flib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">%d         ! Number of general parameters </span><span class="Constant">'</span> %<span class="Identifier">len</span>(p_name), <span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> pn <span class="Statement">in</span> p_name:
+        <span class="Statement">if</span> pn == <span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">%10.4f      ! %s </span><span class="Constant">'</span> %(<span class="Constant">0.0</span>,pn), <span class="Identifier">file</span>=flib)
+        <span class="Statement">else</span>:
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">%10.4f      ! %s </span><span class="Constant">'</span> %(p[pn],pn), <span class="Identifier">file</span>=flib)
+    <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Identifier">len</span>(line_spec)):
+        txt = <span class="Constant">'</span><span class="Constant">%d ! Nr of atoms; atomID;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(spec) <span class="Statement">if</span> i==<span class="Constant">0</span> <span class="Statement">else</span> <span class="Constant">'</span><span class="Constant">            </span><span class="Constant">'</span>
+        <span class="Statement">for</span> ls <span class="Statement">in</span> line_spec[i]:
+            txt += ls + <span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:  <span class="Comment"># atomic species </span>
+        <span class="Statement">for</span> i,line <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_spec):
+            txt = <span class="Constant">'</span><span class="Constant">%2s</span><span class="Constant">'</span> %sp <span class="Statement">if</span> i==<span class="Constant">0</span> <span class="Statement">else</span> <span class="Constant">'</span><span class="Constant">  </span><span class="Constant">'</span>
+            <span class="Statement">for</span> pn <span class="Statement">in</span> line:
+                pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp
+                <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+                   v = <span class="Constant">0.0</span>
+                <span class="Statement">else</span>:
+                   v = p[pn_]
+                txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+            <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Comment"># ---------   parameters for bonds   --------- </span>
+    <span class="Statement">for</span> i,line <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_bond):
+        txt = <span class="Constant">'</span><span class="Constant">%3d  ! Nr of bonds;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(bonds) <span class="Statement">if</span> i==<span class="Constant">0</span>  <span class="Statement">else</span> <span class="Constant">'</span><span class="Constant">                   </span><span class="Constant">'</span>
+        <span class="Statement">for</span> ls <span class="Statement">in</span> line:
+            txt += ls +<span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+    <span class="Statement">for</span> bs <span class="Statement">in</span> bonds:
+        <span class="Statement">for</span> i,line <span class="Statement">in</span> <span class="Identifier">enumerate</span>(line_bond):
+            txt = <span class="Constant">'</span><span class="Constant">%3d%3d</span><span class="Constant">'</span> %(spec.index(bs.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>])+<span class="Constant">1</span>,spec.index(bs.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">1</span>])+<span class="Constant">1</span>) <span class="Statement">if</span> i==<span class="Constant">0</span>  <span class="Statement">else</span> <span class="Constant">'</span><span class="Constant">      </span><span class="Constant">'</span>
+            <span class="Statement">for</span> pn <span class="Statement">in</span> line:
+                pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bs
+                <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+                   v = <span class="Constant">0.0</span>
+                <span class="Statement">else</span>:
+                   <span class="Statement">if</span> pn_ <span class="Statement">in</span> p:
+                      v = p[pn_]
+                   <span class="Statement">else</span>:
+                      v = <span class="Constant">0.0</span> <span class="Comment"># np.random.normal(loc=0.0, scale=0.2, size=0)</span>
+                txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+            <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Comment"># ---------    parameters for off-diagonal bonds   --------- </span>
+    txt = <span class="Constant">'</span><span class="Constant">%3d  ! off-diagonal terms;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(offd)
+    <span class="Statement">for</span> ls <span class="Statement">in</span> line_offd:
+        txt += ls +<span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+    <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> bs <span class="Statement">in</span> offd:
+        b = bs.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Statement">if</span> <span class="Identifier">len</span>(b)==<span class="Constant">1</span>:
+           <span class="Statement">continue</span>
+        <span class="Statement">if</span> b[<span class="Constant">0</span>]==b[<span class="Constant">1</span>]:
+           <span class="Statement">continue</span>
+        txt = <span class="Constant">'</span><span class="Constant">%3d%3d</span><span class="Constant">'</span> %(spec.index(bs.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>])+<span class="Constant">1</span>,spec.index(bs.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">1</span>])+<span class="Constant">1</span>)
+        <span class="Statement">for</span> pn <span class="Statement">in</span> line_offd:
+            pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bs
+            <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+               v = <span class="Constant">0.0</span>
+            <span class="Statement">else</span>:
+               v = p[pn_]
+            txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Comment"># ---------   parameters for angles   ---------</span>
+    txt = <span class="Constant">'</span><span class="Constant">%3d  ! Nr of angles;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(angs)
+    <span class="Statement">for</span> ls <span class="Statement">in</span> line_ang:
+        txt += ls +<span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+    <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> a <span class="Statement">in</span> angs:
+        a_ = a.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        txt = <span class="Constant">'</span><span class="Constant">%3d%3d%3d</span><span class="Constant">'</span> %(spec.index(a_[<span class="Constant">0</span>])+<span class="Constant">1</span>,spec.index(a_[<span class="Constant">1</span>])+<span class="Constant">1</span>,spec.index(a_[<span class="Constant">2</span>])+<span class="Constant">1</span>)
+        <span class="Statement">for</span> pn <span class="Statement">in</span> line_ang:
+            pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+a
+            <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+               v = <span class="Constant">0.0</span>
+            <span class="Statement">else</span>:
+               v = p[pn_]
+            txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Comment"># ---------  parameters for tors   ---------</span>
+    txt = <span class="Constant">'</span><span class="Constant">%3d  ! Nr of torsions;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(tors)
+    <span class="Statement">for</span> ls <span class="Statement">in</span> line_tor:
+        txt += ls +<span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+    <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> a <span class="Statement">in</span> tors:
+        aa = a.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        e1 = spec.index(aa[<span class="Constant">0</span>])+<span class="Constant">1</span> <span class="Statement">if</span> aa[<span class="Constant">0</span>] != <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span> <span class="Statement">else</span> <span class="Constant">0</span>
+        e2 = spec.index(aa[<span class="Constant">1</span>])+<span class="Constant">1</span>
+        e3 = spec.index(aa[<span class="Constant">2</span>])+<span class="Constant">1</span>
+        e4 = spec.index(aa[<span class="Constant">3</span>])+<span class="Constant">1</span> <span class="Statement">if</span> aa[<span class="Constant">3</span>] != <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span> <span class="Statement">else</span> <span class="Constant">0</span>
+        txt = <span class="Constant">'</span><span class="Constant">%3d%3d%3d%3d</span><span class="Constant">'</span> %(e1,e2,e3,e4)
+        <span class="Statement">for</span> pn <span class="Statement">in</span> line_tor:
+            pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+a
+            <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+               v = <span class="Constant">0.0</span>
+            <span class="Statement">else</span>:
+               v = p[pn_]
+            txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Comment"># ---------  parameters for HBs   ---------</span>
+    txt = <span class="Constant">'</span><span class="Constant">%3d  ! Nr of Hbonds;</span><span class="Constant">'</span> %<span class="Identifier">len</span>(hbs)
+    <span class="Statement">for</span> ls <span class="Statement">in</span> line_hb:
+        txt += ls +<span class="Constant">'</span><span class="Constant">; </span><span class="Constant">'</span>
+    <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+
+    <span class="Statement">for</span> a <span class="Statement">in</span> hbs:
+        txt = <span class="Constant">'</span><span class="Constant">%3d%3d%3d</span><span class="Constant">'</span> %(spec.index(a.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>])+<span class="Constant">1</span>,spec.index(a.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">1</span>])+<span class="Constant">1</span>,spec.index(a.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">2</span>])+<span class="Constant">1</span>)
+        <span class="Statement">for</span> pn <span class="Statement">in</span> line_hb:
+            pn_ = pn+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+a
+            <span class="Statement">if</span> pn==<span class="Constant">'</span><span class="Constant">n.u.</span><span class="Constant">'</span>:
+               v = <span class="Constant">0.0</span>
+            <span class="Statement">else</span>:
+               v = p[pn_]
+            txt += <span class="Constant">'</span><span class="Constant">%9.4f</span><span class="Constant">'</span> %v
+        <span class="Identifier">print</span>(txt,<span class="Identifier">file</span>=flib)
+    flib.close()
+
+<span class="Statement">def</span> <span class="Identifier">write_lib</span>(p,spec,bonds,offd,angs,tors,hbs,
+              m=<span class="Identifier">None</span>,mf_layer=(<span class="Constant">6</span>,<span class="Constant">0</span>),be_layer=(<span class="Constant">6</span>,<span class="Constant">0</span>),vdw_layer=(<span class="Constant">6</span>,<span class="Constant">0</span>),
+              libfile=<span class="Constant">'</span><span class="Constant">reax.lib</span><span class="Constant">'</span>,vdwcutoff=<span class="Constant">10.0</span>,coulcutoff=<span class="Constant">10.0</span>):
+    <span class="Constant">'''</span><span class="Constant"> write the force field parameters and weight and bias of neural networks to GULP library file </span><span class="Constant">'''</span>
+    nn = <span class="Identifier">False</span> <span class="Statement">if</span> m <span class="Statement">is</span> <span class="Identifier">None</span> <span class="Statement">else</span> <span class="Identifier">True</span>
+
+    glib = <span class="Identifier">open</span>(libfile,<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">if</span> nn:
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># ReaxFF-nn Machine Learning Potential: </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">else</span>:
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># ReaxFF Parameter From Machine Learning:</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Computational Materials Science 172 (2020) 109393</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Cutoffs for VDW &amp; Coulomb terms</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxFFvdwcutoff      {:12.8f}</span><span class="Constant">'</span>.format(vdwcutoff),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxFFqcutoff        {:12.8f}</span><span class="Constant">'</span>.format(coulcutoff),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Bond order threshold - check anglemin as this is cutof2 given in control file</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxFFtol        {:12.8f}  {:8.8f} {:8.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">cutoff</span><span class="Constant">'</span>]*<span class="Constant">0.01</span>,p[<span class="Constant">'</span><span class="Constant">acut</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">hbtol</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Species independent parameters </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_bond     {:12.8f}  {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">boc1</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">boc2</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_over     {:12.8f}  {:12.8f} {:12.8f}  {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">ovun3</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">ovun4</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">ovun6</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">ovun7</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">ovun8</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_valence  {:12.8f}  {:12.8f} {:12.8f}  {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">val6</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">val8</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">val9</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">val10</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_penalty  {:12.8f}  {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">pen3</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">pen4</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_torsion  {:12.8f}  {:12.8f} {:12.8f}  {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">tor3</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">tor4</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_vdw      {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff0_lonepair {:12.8f}</span><span class="Constant">'</span>.format(p[<span class="Constant">'</span><span class="Constant">lp1</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Species parameters </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_radii</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_valence</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">valboc_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">vale_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">valang_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_over</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">boc3_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">boc4_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">boc5_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">ovun2_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_under kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">ovun5_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_lonepair kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,<span class="Constant">0.5</span>*(p[<span class="Constant">'</span><span class="Constant">vale_</span><span class="Constant">'</span>+sp]-p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+sp]),p[<span class="Constant">'</span><span class="Constant">lp2_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_angle</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">val3_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">val5_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff1_morse kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">alfa_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">Devdw_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">rvdw_</span><span class="Constant">'</span>+sp],p[<span class="Constant">'</span><span class="Constant">gammaw_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Element parameters</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff_chi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">chi_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff_mu</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">mu_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff_gamma</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> sp <span class="Statement">in</span> spec:
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:12.8f}</span><span class="Constant">'</span>.format(sp,p[<span class="Constant">'</span><span class="Constant">gamma_</span><span class="Constant">'</span>+sp]),<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Bond parameters</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+    <span class="Statement">if</span> <span class="Statement">not</span> nn:
+       first = <span class="Identifier">True</span>
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Statement">if</span> p[<span class="Constant">'</span><span class="Constant">corr13_</span><span class="Constant">'</span>+bd]&gt;<span class="Constant">0.001</span> <span class="Statement">and</span> p[<span class="Constant">'</span><span class="Constant">ovcorr_</span><span class="Constant">'</span>+bd]&gt;<span class="Constant">0.001</span>:
+              <span class="Statement">if</span> first: <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bo over bo13</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">elif</span> p[<span class="Constant">'</span><span class="Constant">corr13_</span><span class="Constant">'</span>+bd]&gt;<span class="Constant">0.001</span> <span class="Statement">and</span> p[<span class="Constant">'</span><span class="Constant">ovcorr_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.001</span>:
+              <span class="Statement">if</span> first: <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bo bo13</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">elif</span> p[<span class="Constant">'</span><span class="Constant">corr13_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.001</span> <span class="Statement">and</span> p[<span class="Constant">'</span><span class="Constant">ovcorr_</span><span class="Constant">'</span>+bd]&gt;<span class="Constant">0.001</span>:
+              <span class="Statement">if</span> first: <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bo over</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">elif</span> p[<span class="Constant">'</span><span class="Constant">corr13_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.001</span> <span class="Statement">and</span> p[<span class="Constant">'</span><span class="Constant">ovcorr_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.001</span>:
+              <span class="Statement">if</span> first: <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>],
+                  p[<span class="Constant">'</span><span class="Constant">bo1_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo2_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo3_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo4_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo5_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo6_</span><span class="Constant">'</span>+bd]),
+                  <span class="Identifier">file</span>=glib)
+           first = <span class="Identifier">False</span>
+    <span class="Statement">else</span>:
+       first = <span class="Identifier">True</span>
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Statement">if</span> first:
+              <span class="Comment">#if p['ovcorr_'+bd]&gt;=0.0001:</span>
+              <span class="Comment">#   print('reaxff2_bo over bo13',file=glib) </span>
+              <span class="Comment">#else: </span>
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bo bo13</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>],
+                  p[<span class="Constant">'</span><span class="Constant">bo1_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo2_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo3_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo4_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo5_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">bo6_</span><span class="Constant">'</span>+bd]),
+                  <span class="Identifier">file</span>=glib)
+           first = <span class="Identifier">False</span>
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_bond kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+        b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>],
+              p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">Depi_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">Depp_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">be1_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">be2_</span><span class="Constant">'</span>+bd]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_over</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+        b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:12.8f} </span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>],p[<span class="Constant">'</span><span class="Constant">ovun1_</span><span class="Constant">'</span>+bd]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_morse kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> bd <span class="Statement">in</span> offd:
+        b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>],
+              p[<span class="Constant">'</span><span class="Constant">Devdw_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">alfa_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">rvdw_</span><span class="Constant">'</span>+bd],
+              p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+bd],p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+bd]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Angle parameters</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff3_angle kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> ag <span class="Statement">in</span> angs:
+        a = ag.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(a[<span class="Constant">1</span>],a[<span class="Constant">0</span>],
+              a[<span class="Constant">2</span>],p[<span class="Constant">'</span><span class="Constant">theta0_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">val1_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">val2_</span><span class="Constant">'</span>+ag],
+              p[<span class="Constant">'</span><span class="Constant">val4_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">val7_</span><span class="Constant">'</span>+ag]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff3_penalty kcal </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> ag <span class="Statement">in</span> angs:
+        a = ag.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Comment"># if p['pen1_'+ag]&gt;=0.0001:</span>
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:s} core {:12.8f}</span><span class="Constant">'</span>.format(a[<span class="Constant">1</span>],a[<span class="Constant">0</span>],a[<span class="Constant">2</span>],p[<span class="Constant">'</span><span class="Constant">pen1_</span><span class="Constant">'</span>+ag]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff3_conjugation kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> ag <span class="Statement">in</span> angs:
+        a = ag.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Statement">if</span> <span class="Identifier">abs</span>(p[<span class="Constant">'</span><span class="Constant">coa1_</span><span class="Constant">'</span>+ag])&gt;=<span class="Constant">0.0001</span>:
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(a[<span class="Constant">1</span>],a[<span class="Constant">0</span>],
+                  a[<span class="Constant">2</span>],p[<span class="Constant">'</span><span class="Constant">coa1_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">coa2</span><span class="Constant">'</span>],p[<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>],
+                  p[<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Hydrogen bond parameters </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff3_hbond kcal</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> hb <span class="Statement">in</span> hbs:
+        h = hb.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(h[<span class="Constant">1</span>],h[<span class="Constant">0</span>],
+                  h[<span class="Constant">2</span>],p[<span class="Constant">'</span><span class="Constant">rohb_</span><span class="Constant">'</span>+hb],p[<span class="Constant">'</span><span class="Constant">Dehb_</span><span class="Constant">'</span>+hb],p[<span class="Constant">'</span><span class="Constant">hb1_</span><span class="Constant">'</span>+hb],
+                  p[<span class="Constant">'</span><span class="Constant">hb2_</span><span class="Constant">'</span>+hb]),<span class="Identifier">file</span>=glib)
+
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Torsion parameters </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff4_torsion kcal </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+    <span class="Statement">for</span> ag <span class="Statement">in</span> tors:
+        a = ag.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+        <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:s} core {:s} core {:s} core {:s} core {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}</span><span class="Constant">'</span>.format(a[<span class="Constant">0</span>],
+               a[<span class="Constant">1</span>],a[<span class="Constant">2</span>],a[<span class="Constant">3</span>],p[<span class="Constant">'</span><span class="Constant">V1_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">V2_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">V3_</span><span class="Constant">'</span>+ag],
+               p[<span class="Constant">'</span><span class="Constant">tor1_</span><span class="Constant">'</span>+ag],p[<span class="Constant">'</span><span class="Constant">cot1_</span><span class="Constant">'</span>+ag]),<span class="Identifier">file</span>=glib)
+
+    <span class="Statement">if</span> m <span class="Statement">is</span> <span class="Statement">not</span> <span class="Identifier">None</span>:
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Nerual network weight and bias for Bond-Order</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">mflayer {:d} {:d}</span><span class="Constant">'</span>.format(mf_layer[<span class="Constant">0</span>],mf_layer[<span class="Constant">1</span>]),<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn wi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       shap = <span class="Identifier">len</span>(m[<span class="Constant">'</span><span class="Constant">f1wo_</span><span class="Constant">'</span>+bd][<span class="Constant">0</span>])
+       nin  = <span class="Constant">3</span>
+       nout = shap
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nin):
+               <span class="Statement">if</span> i!=<span class="Constant">0</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+                   <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1wi_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn bi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1bi_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn wo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+               <span class="Statement">if</span> i!=<span class="Constant">0</span> <span class="Statement">and</span> nout&gt;<span class="Constant">1</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+                   <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1wo_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">if</span> nout&gt;<span class="Constant">1</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">if</span> nout==<span class="Constant">1</span>:
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn bo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1bo_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Statement">if</span> mf_layer[<span class="Constant">1</span>]&gt;<span class="Constant">0</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn wh</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">1</span>]):
+                  <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+                      <span class="Statement">if</span> i!=<span class="Constant">0</span>:
+                         <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                      <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+                          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1w_</span><span class="Constant">'</span>+bd][l][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Statement">if</span> mf_layer[<span class="Constant">1</span>]&gt;<span class="Constant">0</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_fnn bh</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">1</span>]):
+                  <span class="Statement">if</span> l!=<span class="Constant">0</span>:
+                     <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">                </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(mf_layer[<span class="Constant">0</span>]):
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">f1b_</span><span class="Constant">'</span>+bd][l][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Nerual network weight and bias for Bond-Energy</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">belayer {:d} {:d}</span><span class="Constant">'</span>.format(be_layer[<span class="Constant">0</span>],be_layer[<span class="Constant">1</span>]),<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn wi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       nin  = <span class="Constant">3</span>
+       nout = <span class="Constant">1</span>
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nin):
+               <span class="Statement">if</span> i!=<span class="Constant">0</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+                   <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fewi_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn bi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">febi_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn wo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+               <span class="Statement">if</span> i!=<span class="Constant">0</span> <span class="Statement">and</span> nout&gt;<span class="Constant">1</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+                   <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fewo_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+               <span class="Statement">if</span> nout&gt;<span class="Constant">1</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">if</span> nout==<span class="Constant">1</span>:
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn bo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+       <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+           b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+               <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">febo_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+           <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Statement">if</span> be_layer[<span class="Constant">1</span>]&gt;<span class="Constant">0</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn wh</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">1</span>]):
+                  <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+                      <span class="Statement">if</span> i!=<span class="Constant">0</span>:
+                         <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                      <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+                          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">few_</span><span class="Constant">'</span>+bd][l][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Statement">if</span> be_layer[<span class="Constant">1</span>]&gt;<span class="Constant">0</span>:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_enn bh</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">1</span>]):
+                  <span class="Statement">if</span> l!=<span class="Constant">0</span>:
+                     <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">                </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(be_layer[<span class="Constant">0</span>]):
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">feb_</span><span class="Constant">'</span>+bd][l][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+       <span class="Statement">if</span> vdw_layer:
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"># Nerual network weight and bias for Vdw Tapre Function</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">#</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">vwlayer {:d} {:d}</span><span class="Constant">'</span>.format(vdw_layer[<span class="Constant">0</span>],vdw_layer[<span class="Constant">1</span>]),<span class="Identifier">file</span>=glib)
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_vnn wi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          nin  = <span class="Constant">1</span>
+          nout = <span class="Constant">1</span>
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(nin):
+                  <span class="Statement">if</span> i!=<span class="Constant">0</span>:
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(vdw_layer[<span class="Constant">0</span>]):
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fvwi_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_vnn bi</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(vdw_layer[<span class="Constant">0</span>]):
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fvbi_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_vnn wo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(vdw_layer[<span class="Constant">0</span>]):
+                  <span class="Statement">if</span> i!=<span class="Constant">0</span> <span class="Statement">and</span> nout&gt;<span class="Constant">1</span>:
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">               </span><span class="Constant">'</span>,end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fvwo_</span><span class="Constant">'</span>+bd][i][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+                  <span class="Statement">if</span> nout&gt;<span class="Constant">1</span>:
+                      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">if</span> nout==<span class="Constant">1</span>:
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">reaxff2_vnn bo</span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+          <span class="Statement">for</span> bd <span class="Statement">in</span> bonds:
+              b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:2s} core {:2s} core</span><span class="Constant">'</span>.format(b[<span class="Constant">0</span>],b[<span class="Constant">1</span>]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(nout):
+                  <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">{:20.16f}</span><span class="Constant">'</span>.format(m[<span class="Constant">'</span><span class="Constant">fvbo_</span><span class="Constant">'</span>+bd][j]),end=<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+              <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant"> </span><span class="Constant">'</span>,<span class="Identifier">file</span>=glib)
+
+    glib.close()
+
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

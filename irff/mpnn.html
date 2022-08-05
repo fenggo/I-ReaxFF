@@ -1,0 +1,1318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>/media/feng/irnn/I-ReaxFF/irff/mpnn.py.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="python">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="delek">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.Statement { color: #8080ff; font-weight: bold; }
+.Type { color: #8080ff; }
+.Comment { color: #c00000; }
+.Constant { color: #008000; }
+.Identifier { color: #008080; }
+.PreProc { color: #c000c0; }
+.Special { color: #ffd7d7; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="PreProc">import</span> matplotlib.pyplot <span class="Statement">as</span> plt
+<span class="PreProc">from</span> os <span class="PreProc">import</span> system, getcwd, chdir,listdir,environ,makedirs
+<span class="PreProc">from</span> os.path <span class="PreProc">import</span> isfile,exists,isdir
+<span class="PreProc">from</span> .reax_data <span class="PreProc">import</span> get_data
+<span class="PreProc">from</span> .link <span class="PreProc">import</span> links
+<span class="PreProc">from</span> .reaxfflib <span class="PreProc">import</span> write_ffield
+<span class="PreProc">from</span> .reax <span class="PreProc">import</span> ReaxFF,taper
+<span class="PreProc">from</span> .initCheck <span class="PreProc">import</span> Init_Check
+<span class="PreProc">from</span> .dingtalk <span class="PreProc">import</span> send_msg
+<span class="PreProc">import</span> time
+<span class="PreProc">from</span> ase <span class="PreProc">import</span> Atoms
+<span class="PreProc">from</span> ase.io.trajectory <span class="PreProc">import</span> Trajectory
+<span class="PreProc">import</span> tensorflow <span class="Statement">as</span> tf
+<span class="Comment"># from tensorflow.contrib.opt import ScipyOptimizerInterface</span>
+<span class="PreProc">import</span> numpy <span class="Statement">as</span> np
+<span class="PreProc">import</span> random
+<span class="PreProc">import</span> pickle
+<span class="PreProc">import</span> json <span class="Statement">as</span> js
+<span class="Comment"># tf_upgrade_v2 --infile reax.py --outfile reax_v1.py</span>
+<span class="Comment"># tf.compat.v1.disable_v2_behavior()</span>
+tf.compat.v1.disable_eager_execution()
+
+
+<span class="Statement">def</span> <span class="Identifier">dsigmoid</span>(x):
+    ds = tf.sigmoid(x)(<span class="Constant">1</span>-tf.sigmoid(x))
+    <span class="Statement">return</span> ds
+
+
+<span class="Statement">class</span> <span class="Identifier">MPNN</span>(ReaxFF):
+  <span class="Statement">def</span> <span class="Identifier">__init__</span>(self,libfile=<span class="Constant">'</span><span class="Constant">ffield</span><span class="Constant">'</span>,dataset={},
+               dft=<span class="Constant">'</span><span class="Constant">ase</span><span class="Constant">'</span>,atoms=<span class="Identifier">None</span>,
+               cons=[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">valang</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>,    <span class="Comment"># 'valboc',</span>
+                     <span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun4</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">ovun5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun7</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun8</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">lp2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp3</span><span class="Constant">'</span>,<span class="Comment">#'lp1',</span>
+                     <span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">coa1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">pen1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen4</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">Depi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depp</span><span class="Constant">'</span>,<span class="Comment">#'Desi','Devdw',</span>
+                     <span class="Comment">#'bo1','bo2','bo3','bo4','bo5','bo6',</span>
+                     <span class="Comment">#'rosi','ropi','ropp',</span>
+                     <span class="Constant">'</span><span class="Constant">cutoff</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hbtol</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">acut</span><span class="Constant">'</span>,<span class="Comment">#'val8','val9','val10',</span>
+                     ], <span class="Comment"># </span>
+               nn=<span class="Identifier">True</span>,
+               optmol=<span class="Identifier">True</span>,lambda_me=<span class="Constant">0.1</span>,
+               opt=<span class="Identifier">None</span>,optword=<span class="Constant">'</span><span class="Constant">nocoul</span><span class="Constant">'</span>,
+               mpopt=<span class="Identifier">None</span>,bdopt=<span class="Identifier">None</span>,mfopt=<span class="Identifier">None</span>,
+               VariablesToOpt=<span class="Identifier">None</span>,
+               batch_size=<span class="Constant">200</span>,sample=<span class="Constant">'</span><span class="Constant">uniform</span><span class="Constant">'</span>,
+               hbshort=<span class="Constant">6.75</span>,hblong=<span class="Constant">7.5</span>,
+               vdwcut=<span class="Constant">10.0</span>,
+               beup={},                                 <span class="Comment"># e.g. {'C-C':[(1.5,0.5)]} or {'C-C':[(1.5,'si')]}</span>
+               belo={},
+               vlo={<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>:[(<span class="Constant">0.0</span>,<span class="Constant">0.0</span>)]},
+               vup={<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>:[(<span class="Constant">10.0</span>,<span class="Constant">0.0</span>)]},
+               pim={<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>:<span class="Constant">10.0</span>},
+               spv_be=<span class="Identifier">False</span>,
+               spv_bo=<span class="Identifier">None</span>,                             <span class="Comment"># e.g. spv_bo={'C-C':(3.0,0.2,1.0)}</span>
+               spv_pi=<span class="Identifier">False</span>,
+               spv_ang=<span class="Identifier">False</span>,
+               spv_vdw=<span class="Identifier">False</span>,
+               fixrcbo=<span class="Identifier">False</span>,
+               weight={<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>:<span class="Constant">1.0</span>},
+               ro_scale=<span class="Constant">0.1</span>,
+               clip_op=<span class="Identifier">True</span>,
+               clip={},
+               InitCheck=<span class="Identifier">True</span>,
+               resetDeadNeuron=<span class="Identifier">False</span>,
+               messages=<span class="Constant">1</span>,
+               be_univeral_nn=<span class="Identifier">None</span>,be_layer=[<span class="Constant">9</span>,<span class="Constant">0</span>],
+               bo_univeral_nn=<span class="Identifier">None</span>,bo_layer=[<span class="Constant">6</span>,<span class="Constant">0</span>],
+               mf_univeral_nn=<span class="Identifier">None</span>,mf_layer=[<span class="Constant">9</span>,<span class="Constant">0</span>],
+               vdw_univeral_nn=<span class="Identifier">None</span>,vdw_layer=[<span class="Constant">9</span>,<span class="Constant">0</span>],
+               vdwnn=<span class="Identifier">False</span>,VdwFunction=<span class="Constant">1</span>,
+               BOFunction=<span class="Constant">0</span>,
+               EnergyFunction=<span class="Constant">1</span>,
+               MessageFunction=<span class="Constant">3</span>,
+               spec=[],
+               sort=<span class="Identifier">False</span>,
+               pkl=<span class="Identifier">False</span>,
+               lambda_bd=<span class="Constant">100000.0</span>,
+               lambda_pi=<span class="Constant">1.0</span>,
+               lambda_reg=<span class="Constant">0.01</span>,
+               lambda_ang=<span class="Constant">1.0</span>,
+               fluctuation=<span class="Constant">0.0</span>,
+               regularize_bo=<span class="Identifier">True</span>,
+               regularize_be=<span class="Identifier">True</span>,
+               regularize_mf=<span class="Identifier">True</span>,
+               regularize_vdw=<span class="Identifier">False</span>,
+               regularize_bias=<span class="Identifier">False</span>,
+               optMethod=<span class="Constant">'</span><span class="Constant">ADAM</span><span class="Constant">'</span>,
+               maxstep=<span class="Constant">60000</span>,
+               emse=<span class="Constant">0.9</span>,
+               convergence=<span class="Constant">0.97</span>,
+               lossConvergence=<span class="Constant">1000.0</span>,
+               losFunc=<span class="Constant">'</span><span class="Constant">n2</span><span class="Constant">'</span>,
+               conf_vale=<span class="Identifier">None</span>,
+               huber_d=<span class="Constant">30.0</span>,
+               ncpu=<span class="Identifier">None</span>):
+      <span class="Constant">'''</span>
+<span class="Constant">         Message Passing Neural network build top on ReaxFF potentail</span>
+<span class="Constant">         version 3.0 </span>
+<span class="Constant">           Time: 2018-10-20</span>
+<span class="Constant">           Intelligence ReaxFF Neual Network: Evoluting the Force Field parameters on-the-fly</span>
+<span class="Constant">           2017-11-01</span>
+<span class="Constant">      </span><span class="Constant">'''</span>
+      self.messages         = messages
+      self.EnergyFunction   = EnergyFunction
+      self.MessageFunction  = MessageFunction
+      self.BOFunction       = BOFunction
+      self.pim              = pim
+      self.spv_bo           = spv_bo
+      self.spv_be           = spv_be
+      self.beup             = beup
+      self.belo             = belo
+      self.spv_pi           = spv_pi
+      self.spv_ang          = spv_ang
+      self.spv_vdw          = spv_vdw
+      self.vup              = vup
+      self.vlo              = vlo
+      self.fixrcbo          = fixrcbo
+      self.regularize_be    = regularize_be
+      self.regularize_bo    = regularize_bo
+      self.regularize_mf    = regularize_mf
+      self.regularize_vdw   = regularize_vdw
+      self.regularize_bias  = regularize_bias
+      <span class="Statement">if</span> regularize_vdw <span class="Statement">or</span> regularize_mf <span class="Statement">or</span> regularize_bo <span class="Statement">or</span> regularize_be:
+         self.regularize    = <span class="Identifier">True</span>
+      <span class="Statement">else</span>:
+         self.regularize    = <span class="Identifier">False</span>
+      self.lambda_reg       = lambda_reg
+      self.lambda_pi        = lambda_pi
+      self.lambda_ang       = lambda_ang
+      self.fluctuation      = fluctuation
+      self.mf_layer         = mf_layer
+      self.be_layer         = be_layer
+      self.vdw_layer        = vdw_layer <span class="Statement">if</span> vdwnn <span class="Statement">else</span> <span class="Identifier">None</span>
+
+      self.bo_univeral_nn   = bo_univeral_nn
+      self.be_univeral_nn   = be_univeral_nn
+      self.mf_univeral_nn   = mf_univeral_nn
+      self.vdw_univeral_nn  = vdw_univeral_nn
+      <span class="Statement">if</span> mpopt <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.mpopt = [<span class="Identifier">True</span>,<span class="Identifier">True</span>,<span class="Identifier">True</span>,<span class="Identifier">True</span>]
+      <span class="Statement">else</span>:
+         self.mpopt = mpopt
+      self.bdopt    = bdopt
+      self.mfopt    = mfopt
+      ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
+                      dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,
+                      VariablesToOpt=VariablesToOpt,optmol=optmol,lambda_me=lambda_me,
+                      batch_size=batch_size,sample=sample,
+                      hbshort=hbshort,hblong=hblong,vdwcut=vdwcut,
+                      ro_scale=ro_scale,
+                      clip_op=clip_op,clip=clip,
+                      InitCheck=InitCheck,resetDeadNeuron=resetDeadNeuron,
+                      nn=nn,vdwnn=vdwnn,VdwFunction=VdwFunction,
+                      bo_layer=bo_layer,spec=spec,sort=sort,pkl=pkl,weight=weight,
+                      lambda_bd=lambda_bd,
+                      optMethod=optMethod,maxstep=maxstep,
+                      emse=emse,convergence=convergence,lossConvergence=lossConvergence,
+                      losFunc=losFunc,conf_vale=conf_vale,
+                      huber_d=huber_d,ncpu=ncpu)
+      self.S        = {}
+      self.esi      = {}
+      self.fbo      = {}
+
+  <span class="Statement">def</span> <span class="Identifier">get_loss</span>(self):
+      self.Loss = <span class="Constant">0.0</span>
+      <span class="Statement">for</span> mol <span class="Statement">in</span> self.mols:
+          mol_ = mol.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+          <span class="Statement">if</span> mol <span class="Statement">in</span> self.weight:
+             w_ = self.weight[mol]
+          <span class="Statement">elif</span> mol_ <span class="Statement">in</span> self.weight:
+             w_ = self.weight[mol_]
+          <span class="Statement">else</span>:
+             w_ = self.weight[<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>]
+
+          <span class="Statement">if</span> self.losFunc   == <span class="Constant">'</span><span class="Constant">n2</span><span class="Constant">'</span>:
+             self.loss[mol] = tf.nn.l2_loss(self.E[mol]-self.dft_energy[mol],
+                                 name=<span class="Constant">'</span><span class="Constant">loss_%s</span><span class="Constant">'</span> %mol)
+          <span class="Statement">elif</span> self.losFunc == <span class="Constant">'</span><span class="Constant">abs</span><span class="Constant">'</span>:
+             self.loss[mol] = tf.compat.v1.losses.absolute_difference(self.dft_energy[mol],self.E[mol])
+          <span class="Statement">elif</span> self.losFunc == <span class="Constant">'</span><span class="Constant">mse</span><span class="Constant">'</span>:
+             self.loss[mol] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[mol],self.E[mol])
+          <span class="Statement">elif</span> self.losFunc == <span class="Constant">'</span><span class="Constant">huber</span><span class="Constant">'</span>:
+             self.loss[mol] = tf.compat.v1.losses.huber_loss(self.dft_energy[mol],self.E[mol],delta=self.huber_d)
+          <span class="Statement">elif</span> self.losFunc == <span class="Constant">'</span><span class="Constant">CrossEntropy</span><span class="Constant">'</span>:
+             y_min = tf.reduce_min(self.dft_energy[mol])
+             a_min = tf.reduce_min(self.E[mol])
+             norm  = tf.minimum(y_min,a_min) - <span class="Constant">0.00000001</span>
+             y     = self.dft_energy[mol]/norm
+             y_    = self.E[mol]/norm
+             self.loss[mol] =  (-<span class="Constant">1.0</span>/self.batch)*tf.reduce_sum(y*tf.math.log(y_)+(<span class="Constant">1</span>-y)*tf.math.log(<span class="Constant">1.0</span>-y_))
+          <span class="Statement">else</span>:
+             <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  This function not supported yet!</span><span class="Constant">'</span>)
+
+          sum_edft = tf.reduce_sum(input_tensor=tf.abs(self.dft_energy[mol]-self.max_e[mol]))
+          self.accur[mol] = <span class="Constant">1.0</span> - tf.reduce_sum(input_tensor=tf.abs(self.E[mol]-self.dft_energy[mol]))/(sum_edft+<span class="Constant">0.00000001</span>)
+
+          self.Loss     += self.loss[mol]*w_
+          self.accuracy += self.accur[mol]
+
+      self.ME   = <span class="Constant">0.0</span>
+      <span class="Statement">for</span> mol <span class="Statement">in</span> self.mols:
+          mols = mol.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+          self.ME += tf.square(self.MolEnergy[mols])
+
+      self.loss_penalty  = self.supervise()
+      self.Loss         += self.loss_penalty
+
+      <span class="Statement">if</span> self.optmol:
+         self.Loss  += self.ME*self.lambda_me
+      self.accuracy  = self.accuracy/self.nmol
+
+  <span class="Statement">def</span> <span class="Identifier">build_graph</span>(self):
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  building graph ...</span><span class="Constant">'</span>)
+      self.accuracy   = tf.constant(<span class="Constant">0.0</span>,name=<span class="Constant">'</span><span class="Constant">accuracy</span><span class="Constant">'</span>)
+      self.accuracies = {}
+      self.get_bond_energy()
+      self.get_atom_energy()
+      self.get_angle_energy()
+      self.get_torsion_energy()
+      self.get_vdw_energy()
+      self.get_hb_energy()
+      self.get_total_energy()
+      self.get_loss()
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  end of build.</span><span class="Constant">'</span>)
+
+  <span class="Statement">def</span> <span class="Identifier">get_atomic_energy</span>(self):
+      i = <span class="Constant">0</span>
+      <span class="Statement">for</span> sp <span class="Statement">in</span> self.spec:
+          <span class="Statement">if</span> self.nsp[sp]==<span class="Constant">0</span>:
+             <span class="Statement">continue</span>
+          self.eatom[sp] = -tf.ones([self.nsp[sp]])*self.p[<span class="Constant">'</span><span class="Constant">atomic_</span><span class="Constant">'</span>+sp]
+          self.EATOM  = self.eatom[sp] <span class="Statement">if</span> i==<span class="Constant">0</span> <span class="Statement">else</span> tf.concat((self.EATOM,self.eatom[sp]),<span class="Constant">0</span>)
+          i += <span class="Constant">1</span>
+
+      <span class="Statement">for</span> mol <span class="Statement">in</span> self.mols:
+          mols = mol.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+          zpe_ = tf.gather_nd(self.EATOM,self.atomlink[mol])
+          self.zpe[mol] = tf.reduce_sum(input_tensor=zpe_,name=<span class="Constant">'</span><span class="Constant">zpe</span><span class="Constant">'</span>) + self.MolEnergy[mols]
+
+  <span class="Statement">def</span> <span class="Identifier">get_total_energy</span>(self):
+      <span class="Statement">for</span> mol <span class="Statement">in</span> self.mols:
+          <span class="Comment"># mols = mol.split('-')[0] </span>
+          self.E[mol] = tf.add(self.ebond[mol] +
+                               self.eover[mol] +
+                               self.eunder[mol]+
+                               self.elone[mol] +
+                               self.eang[mol]  +
+                               self.epen[mol]  +
+                               self.tconj[mol] +
+                               self.etor[mol]  +
+                               self.efcon[mol] +
+                               self.evdw[mol]  +
+                               self.ecoul[mol] +
+                               self.ehb[mol]   +
+                               self.eself[mol],
+                               self.zpe[mol],name=<span class="Constant">'</span><span class="Constant">E_%s</span><span class="Constant">'</span> %mol)
+
+  <span class="Statement">def</span> <span class="Identifier">get_tap</span>(self,r,bd,di,dj):
+      <span class="Statement">if</span> self.vdwnn:
+         <span class="Comment"># r_ = r/self.p['rvdw_'+bd]</span>
+         <span class="Statement">if</span> self.VdwFunction==<span class="Constant">1</span>:
+            tp = self.f_nn(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,bd,self.nvb[bd],[r],layer=self.vdw_layer[<span class="Constant">1</span>])
+         <span class="Statement">elif</span> self.VdwFunction==<span class="Constant">2</span>:
+            tpi = self.f_nn(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,bd,self.nvb[bd],[r,di,dj],layer=self.vdw_layer[<span class="Constant">1</span>])
+            tpj = self.f_nn(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,bd,self.nvb[bd],[r,dj,di],layer=self.vdw_layer[<span class="Constant">1</span>])
+            tp  = tpi*tpj
+         <span class="Statement">else</span>:
+            <span class="Statement">raise</span> <span class="Type">RuntimeError</span>(<span class="Constant">'</span><span class="Constant">-  This method not implimented!</span><span class="Constant">'</span>)
+      <span class="Statement">else</span>:
+         tp = <span class="Constant">1.0</span>+tf.math.divide(-<span class="Constant">35.0</span>,tf.pow(self.vdwcut,<span class="Constant">4.0</span>))*tf.pow(r,<span class="Constant">4.0</span>)+ <span class="Special">\</span>
+              tf.math.divide(<span class="Constant">84.0</span>,tf.pow(self.vdwcut,<span class="Constant">5.0</span>))*tf.pow(r,<span class="Constant">5.0</span>)+ <span class="Special">\</span>
+              tf.math.divide(-<span class="Constant">70.0</span>,tf.pow(self.vdwcut,<span class="Constant">6.0</span>))*tf.pow(r,<span class="Constant">6.0</span>)+ <span class="Special">\</span>
+              tf.math.divide(<span class="Constant">20.0</span>,tf.pow(self.vdwcut,<span class="Constant">7.0</span>))*tf.pow(r,<span class="Constant">7.0</span>)
+      <span class="Statement">return</span> tp
+
+  <span class="Statement">def</span> <span class="Identifier">f_nn</span>(self,pre,bd,nbd,x,layer=<span class="Constant">5</span>):
+      <span class="Constant">'''</span><span class="Constant"> Dimention: (nbatch,4) input = 4</span>
+<span class="Constant">                 Wi:  (4,8) </span>
+<span class="Constant">                 Wh:  (8,8)</span>
+<span class="Constant">                 Wo:  (8,1)  output = 1</span>
+<span class="Constant">      </span><span class="Constant">'''</span>
+      nd = <span class="Identifier">len</span>(x)
+      x_ = []
+      <span class="Statement">for</span> d <span class="Statement">in</span> x:
+          x_.append(tf.reshape(d,[nbd*self.batch]))
+      X   = tf.stack(x_,axis=<span class="Constant">1</span>)        <span class="Comment"># Dimention: (nbatch,4)</span>
+                                       <span class="Comment">#        Wi:  (4,8) </span>
+      o   =  []                        <span class="Comment">#        Wh:  (8,8)</span>
+      o.append(tf.sigmoid(tf.matmul(X,self.m[pre+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">input</span><span class="Constant">'</span>)+self.m[pre+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd]))   <span class="Comment"># input layer</span>
+
+      <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer):                                                   <span class="Comment"># hidden layer      </span>
+          o.append(tf.sigmoid(tf.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd][l],name=<span class="Constant">'</span><span class="Constant">hide</span><span class="Constant">'</span>)+self.m[pre+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd][l]))
+
+      o_ = tf.sigmoid(tf.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">output</span><span class="Constant">'</span>) + self.m[pre+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd])  <span class="Comment"># output layer</span>
+      out= tf.reshape(o_,[nbd,self.batch])
+      <span class="Statement">return</span> out
+
+  <span class="Statement">def</span> <span class="Identifier">fmessage</span>(self,pre,bd,nbd,x,layer=<span class="Constant">5</span>):
+      <span class="Constant">'''</span><span class="Constant"> Dimention: (nbatch,4) input = 4</span>
+<span class="Constant">                 Wi:  (4,8) </span>
+<span class="Constant">                 Wh:  (8,8)</span>
+<span class="Constant">                 Wo:  (8,3)  output = 3</span>
+<span class="Constant">      </span><span class="Constant">'''</span>
+      nd = <span class="Identifier">len</span>(x)
+      x_ = []
+      <span class="Statement">for</span> d <span class="Statement">in</span> x:
+          x_.append(tf.reshape(d,[nbd*self.batch]))
+      X   = tf.stack(x_,axis=<span class="Constant">1</span>)        <span class="Comment"># Dimention: (nbatch,4)</span>
+                                       <span class="Comment">#        Wi:  (4,8) </span>
+      o   =  []                        <span class="Comment">#        Wh:  (8,8)</span>
+      o.append(tf.sigmoid(tf.matmul(X,self.m[pre+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">bop_input</span><span class="Constant">'</span>)+self.m[pre+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd]))   <span class="Comment"># input layer</span>
+
+      <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer):                                                   <span class="Comment"># hidden layer      </span>
+          o.append(tf.sigmoid(tf.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd][l],name=<span class="Constant">'</span><span class="Constant">bop_hide</span><span class="Constant">'</span>)+self.m[pre+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd][l]))
+
+      o_ = tf.sigmoid(tf.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">bop_output</span><span class="Constant">'</span>) + self.m[pre+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd])  <span class="Comment"># output layer</span>
+      out= tf.reshape(o_,[nbd,self.batch,<span class="Constant">3</span>])
+      <span class="Statement">return</span> out
+
+  <span class="Statement">def</span> <span class="Identifier">get_bondorder_uc</span>(self,bd):
+      <span class="Comment"># self.frc[bd] = tf.where(tf.logical_or(tf.greater(self.rbd[bd],self.rc_bo[bd]),</span>
+      <span class="Comment">#                                       tf.less_equal(self.rbd[bd],0.001)),</span>
+      <span class="Comment">#                       tf.zeros_like(self.rbd[bd]),tf.ones_like(self.rbd[bd]))</span>
+
+      self.bodiv1[bd] = tf.math.divide(self.rbd[bd],self.p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">bodiv1_</span><span class="Constant">'</span>+bd)
+      self.bopow1[bd] = tf.pow(self.bodiv1[bd],self.p[<span class="Constant">'</span><span class="Constant">bo2_</span><span class="Constant">'</span>+bd])
+      <span class="Statement">if</span> self.BOFunction==<span class="Constant">0</span>:
+          self.eterm1[bd] = (<span class="Constant">1.0</span>+self.botol)*tf.exp(tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">bo1_</span><span class="Constant">'</span>+bd],self.bopow1[bd]))<span class="Comment">#*self.frc[bd] </span>
+      <span class="Statement">else</span>:
+          self.eterm1[bd] = tf.exp(tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">bo1_</span><span class="Constant">'</span>+bd],self.bopow1[bd]))<span class="Comment">#*self.frc[bd] </span>
+
+      self.bodiv2[bd] = tf.math.divide(self.rbd[bd],self.p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">bodiv2_</span><span class="Constant">'</span>+bd)
+      self.bopow2[bd] = tf.pow(self.bodiv2[bd],self.p[<span class="Constant">'</span><span class="Constant">bo4_</span><span class="Constant">'</span>+bd])
+      self.eterm2[bd] = tf.exp(tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">bo3_</span><span class="Constant">'</span>+bd],self.bopow2[bd]))<span class="Comment">#*self.frc[bd]</span>
+
+      self.bodiv3[bd] = tf.math.divide(self.rbd[bd],self.p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+bd],name=<span class="Constant">'</span><span class="Constant">bodiv3_</span><span class="Constant">'</span>+bd)
+      self.bopow3[bd] = tf.pow(self.bodiv3[bd],self.p[<span class="Constant">'</span><span class="Constant">bo6_</span><span class="Constant">'</span>+bd])
+      self.eterm3[bd] = tf.exp(tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">bo5_</span><span class="Constant">'</span>+bd],self.bopow3[bd]))<span class="Comment">#*self.frc[bd]</span>
+
+      <span class="Statement">if</span> self.BOFunction==<span class="Constant">0</span>:
+         fsi_         = taper(self.eterm1[bd],rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*(self.eterm1[bd]-self.botol) <span class="Comment"># consist with GULP</span>
+         fpi_         = taper(self.eterm2[bd],rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*self.eterm2[bd]
+         fpp_         = taper(self.eterm3[bd],rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*self.eterm3[bd]
+      <span class="Statement">elif</span> self.BOFunction==<span class="Constant">1</span>:
+         fsi_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,bd, self.nbd[bd],[self.eterm1[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpi_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,bd, self.nbd[bd],[self.eterm2[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpp_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>,bd, self.nbd[bd],[self.eterm3[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+      <span class="Statement">elif</span> self.BOFunction==<span class="Constant">2</span>:
+         fsi_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,bd, self.nbd[bd],[-self.eterm1[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpi_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,bd, self.nbd[bd],[-self.eterm2[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpp_         = self.f_nn(<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>,bd, self.nbd[bd],[-self.eterm3[bd]],layer=self.bo_layer[<span class="Constant">1</span>])
+      <span class="Statement">else</span>:
+         <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  BO function not supported yet!</span><span class="Constant">'</span>)
+
+      self.bop_si[bd] = fsi_ <span class="Comment">#*self.frc[bd] #*self.eterm1[bd]  </span>
+      self.bop_pi[bd] = fpi_ <span class="Comment">#*self.frc[bd] #*self.eterm2[bd]</span>
+      self.bop_pp[bd] = fpp_ <span class="Comment">#*self.frc[bd] #*self.eterm3[bd]</span>
+      self.bop[bd]    = tf.add(self.bop_si[bd],self.bop_pi[bd]+self.bop_pp[bd],name=<span class="Constant">'</span><span class="Constant">BOp_</span><span class="Constant">'</span>+bd)
+
+  <span class="Statement">def</span> <span class="Identifier">get_delta</span>(self):
+      <span class="Constant">'''</span><span class="Constant"> compute the uncorrected Delta: the sum of BO </span><span class="Constant">'''</span>
+      self.BOP   = tf.zeros([<span class="Constant">1</span>,self.batch])                    <span class="Comment"># for ghost atom, the value is zero</span>
+      <span class="Comment"># self.BON = tf.zeros([1,self.batch])                    # for ghost atom, the value is zero</span>
+
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         self.BOPSI = tf.zeros([<span class="Constant">1</span>,self.batch])
+         self.BOPPI = tf.zeros([<span class="Constant">1</span>,self.batch])
+         self.BOPPP = tf.zeros([<span class="Constant">1</span>,self.batch])
+
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          atomi,atomj = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          <span class="Comment"># boc = tf.sqrt(self.p['valboc_'+atomi]*self.p['valboc_'+atomj])</span>
+          <span class="Statement">if</span> self.nbd[bd]&gt;<span class="Constant">0</span>:
+             self.get_bondorder_uc(bd)
+             self.BOP   = tf.concat([self.BOP,self.bop[bd]],<span class="Constant">0</span>)
+             <span class="Comment"># self.BON = tf.concat([self.BOP,self.bop[bd]*self.b],0)</span>
+             <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+                self.BOPSI = tf.concat([self.BOPSI,self.bop_si[bd]],<span class="Constant">0</span>)
+                self.BOPPI = tf.concat([self.BOPPI,self.bop_pi[bd]],<span class="Constant">0</span>)
+                self.BOPPP = tf.concat([self.BOPPP,self.bop_pp[bd]],<span class="Constant">0</span>)
+
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         self.Dpsi   = tf.reduce_sum(input_tensor=tf.gather_nd(self.BOPSI,self.dlist),axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Dpsi</span><span class="Constant">'</span>)
+         self.Dppi   = tf.reduce_sum(input_tensor=tf.gather_nd(self.BOPPI,self.dlist),axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Dppi</span><span class="Constant">'</span>)
+         self.Dppp   = tf.reduce_sum(input_tensor=tf.gather_nd(self.BOPPP,self.dlist),axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Dppp</span><span class="Constant">'</span>)
+         self.Dp     = tf.gather_nd(self.BOP,self.dlist)
+         self.Deltap = tf.reduce_sum(input_tensor=self.Dp,axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Dppp</span><span class="Constant">'</span>)<span class="Comment"># self.Dpsi + self.Dppi + self.Dppp</span>
+      <span class="Statement">else</span>:
+         self.Dp     = tf.gather_nd(self.BOP,self.dlist)
+         self.Deltap = tf.reduce_sum(input_tensor=self.Dp,axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Deltap</span><span class="Constant">'</span>)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_bondorder</span>(self,t,bd,atomi,atomj):
+      <span class="Constant">'''</span><span class="Constant"> compute bond-order according the message function </span><span class="Constant">'''</span>
+      Di      = tf.gather_nd(self.D[t-<span class="Constant">1</span>],self.dilink[bd])
+      Dj      = tf.gather_nd(self.D[t-<span class="Constant">1</span>],self.djlink[bd])
+      h       = self.H[t-<span class="Constant">1</span>][bd]
+
+      b       = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+      bdr     = b[<span class="Constant">1</span>]+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+b[<span class="Constant">0</span>]
+      flabel  = <span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span> <span class="Comment"># +str(t)</span>
+
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         Dsi_i = tf.gather_nd(self.D_si[t-<span class="Constant">1</span>],self.dilink[bd]) - self.Hsi[t-<span class="Constant">1</span>][bd]
+         Dpi_i = tf.gather_nd(self.D_pi[t-<span class="Constant">1</span>],self.dilink[bd]) - self.Hpi[t-<span class="Constant">1</span>][bd]
+         Dpp_i = tf.gather_nd(self.D_pp[t-<span class="Constant">1</span>],self.dilink[bd]) - self.Hpp[t-<span class="Constant">1</span>][bd]
+
+         Dsi_j = tf.gather_nd(self.D_si[t-<span class="Constant">1</span>],self.djlink[bd]) - self.Hsi[t-<span class="Constant">1</span>][bd]
+         Dpi_j = tf.gather_nd(self.D_pi[t-<span class="Constant">1</span>],self.djlink[bd]) - self.Hpi[t-<span class="Constant">1</span>][bd]
+         Dpp_j = tf.gather_nd(self.D_pp[t-<span class="Constant">1</span>],self.djlink[bd]) - self.Hpp[t-<span class="Constant">1</span>][bd]
+
+         Dpii  = Dpi_i + Dpp_i
+         Dpij  = Dpi_j + Dpp_j
+
+         Fi    = self.fmessage(flabel,b[<span class="Constant">0</span>],self.nbd[bd],[Dsi_i,Dpii,self.H[t-<span class="Constant">1</span>][bd],Dpij,Dsi_j],
+                               layer=self.mf_layer[<span class="Constant">1</span>])
+         Fj    = self.fmessage(flabel,b[<span class="Constant">1</span>],self.nbd[bd],[Dsi_j,Dpij,self.H[t-<span class="Constant">1</span>][bd],Dpii,Dsi_i],
+                               layer=self.mf_layer[<span class="Constant">1</span>])
+         F     = Fi*Fj
+
+         Fsi,Fpi,Fpp = tf.unstack(F,axis=<span class="Constant">2</span>)
+         bosi = self.Hsi[t-<span class="Constant">1</span>][bd]*Fsi
+         bopi = self.Hpi[t-<span class="Constant">1</span>][bd]*Fpi
+         bopp = self.Hpp[t-<span class="Constant">1</span>][bd]*Fpp
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">2</span>:
+         Dbi  = Di-h
+         Dbj  = Dj-h
+         Fi   = self.fmessage(flabel,b[<span class="Constant">0</span>],self.nbd[bd],[Dbi,Dbj,self.Hsi[t-<span class="Constant">1</span>][bd],self.Hpi[t-<span class="Constant">1</span>][bd],self.Hpp[t-<span class="Constant">1</span>][bd]],
+                              layer=self.mf_layer[<span class="Constant">1</span>])
+         Fj   = self.fmessage(flabel,b[<span class="Constant">1</span>],self.nbd[bd],[Dbj,Dbi,self.Hsi[t-<span class="Constant">1</span>][bd],self.Hpi[t-<span class="Constant">1</span>][bd],self.Hpp[t-<span class="Constant">1</span>][bd]],
+                              layer=self.mf_layer[<span class="Constant">1</span>])
+         F    = Fi*Fj
+         Fsi,Fpi,Fpp = tf.unstack(F,axis=<span class="Constant">2</span>)
+
+         bosi = self.Hsi[t-<span class="Constant">1</span>][bd]*Fsi
+         bopi = self.Hpi[t-<span class="Constant">1</span>][bd]*Fpi
+         bopp = self.Hpp[t-<span class="Constant">1</span>][bd]*Fpp
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">3</span>:
+         Dbi  = Di - h <span class="Comment"># self.p['valboc_'+atomi]  </span>
+         Dbj  = Dj - h <span class="Comment"># self.p['valboc_'+atomj]  </span>
+         Fi   = self.fmessage(flabel,b[<span class="Constant">0</span>],self.nbd[bd],[Dbi,h,Dbj],layer=self.mf_layer[<span class="Constant">1</span>])
+         Fj   = self.fmessage(flabel,b[<span class="Constant">1</span>],self.nbd[bd],[Dbj,h,Dbi],layer=self.mf_layer[<span class="Constant">1</span>])
+         F    = Fi*Fj
+         Fsi,Fpi,Fpp = tf.unstack(F,axis=<span class="Constant">2</span>)
+
+         bosi = self.Hsi[t-<span class="Constant">1</span>][bd]*Fsi
+         bopi = self.Hpi[t-<span class="Constant">1</span>][bd]*Fpi
+         bopp = self.Hpp[t-<span class="Constant">1</span>][bd]*Fpp
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">4</span>:
+         <span class="Comment"># Dbi  = Di - self.p['val_'+atomi]</span>
+         <span class="Comment"># Dbj  = Dj - self.p['val_'+atomj]</span>
+         <span class="Comment"># f_1  = self.f1(bd,atomi,atomj,Di,Dj,Dbi,Dbj) # over correction </span>
+
+         Di_boc = Di - self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomi]        <span class="Comment"># bo correction</span>
+         Dj_boc = Di - self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomi]
+         Fi   = self.f_nn(flabel,b[<span class="Constant">0</span>],self.nbd[bd],[Di_boc,h,Dj_boc],layer=self.mf_layer[<span class="Constant">1</span>])
+         Fj   = self.f_nn(flabel,b[<span class="Constant">1</span>],self.nbd[bd],[Dj_boc,h,Di_boc],layer=self.mf_layer[<span class="Constant">1</span>])
+
+         <span class="Comment">#one  = lambda:1.0</span>
+         <span class="Comment">#F1   = lambda:f_1*f_1</span>
+         <span class="Comment">#f_11 = tf.cond(pred=tf.greater_equal(self.p['ovcorr_'+bd],0.0001),true_fn=F1,false_fn=one)</span>
+         F    = Fi*Fj<span class="Comment">#*f_11</span>
+
+         <span class="Comment"># By default p_corr13 is always True</span>
+         bosi = self.Hsi[t-<span class="Constant">1</span>][bd]*F
+         bopi = self.Hpi[t-<span class="Constant">1</span>][bd]*F
+         bopp = self.Hpp[t-<span class="Constant">1</span>][bd]*F
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">5</span>:
+         Dbi  = Di - self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomi] <span class="Comment"># Di-h</span>
+         Dbj  = Dj - self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomj] <span class="Comment"># Dj-h</span>
+         Fi   = self.fmessage(flabel,b[<span class="Constant">0</span>],self.nbd[bd],[Dbi,h,Dbj],layer=self.mf_layer[<span class="Constant">1</span>])
+         Fj   = self.fmessage(flabel,b[<span class="Constant">1</span>],self.nbd[bd],[Dbj,h,Dbi],layer=self.mf_layer[<span class="Constant">1</span>])
+         F    = Fi*Fj
+         Fsi,Fpi,Fpp = tf.unstack(F,axis=<span class="Constant">2</span>)
+
+         bosi = Fsi
+         bopi = Fpi
+         bopp = Fpp
+      <span class="Statement">else</span>:
+         <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  Message function not supported yet!</span><span class="Constant">'</span>)
+      bo = bosi+bopi+bopp
+      <span class="Statement">return</span> bo,bosi,bopi,bopp
+
+  <span class="Statement">def</span> <span class="Identifier">f1</span>(self,bd,atomi,atomj,Di,Dj,Div,Djv):
+      <span class="Comment">#Div = Di - self.p['val_'+atomi]   </span>
+      <span class="Comment">#Djv = Dj - self.p['val_'+atomj] </span>
+      self.f2(bd,Div,Djv)
+      self.f3(bd,Div,Djv)
+      f_1 = <span class="Constant">0.5</span>*(tf.math.divide(self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomi]+self.f_2[bd],
+                          self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomi]+self.f_2[bd]+self.f_3[bd]) +
+                 tf.math.divide(self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomj]+self.f_2[bd],
+                          self.p[<span class="Constant">'</span><span class="Constant">val_</span><span class="Constant">'</span>+atomj]+self.f_2[bd]+self.f_3[bd]))
+      <span class="Statement">return</span> f_1
+
+  <span class="Statement">def</span> <span class="Identifier">get_ebond</span>(self,bd):
+      b       = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+      bdr     = b[<span class="Constant">1</span>]+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+b[<span class="Constant">0</span>]
+      <span class="Statement">if</span> self.EnergyFunction==<span class="Constant">0</span>:
+         FBO  = tf.where(tf.greater(self.bosi[bd],<span class="Constant">0.0</span>),
+                         tf.ones_like(self.bosi[bd]),tf.zeros_like(self.bosi[bd]))
+         FBOR = <span class="Constant">1.0</span> - FBO
+         self.powb[bd] = tf.pow(self.bosi[bd]+FBOR,self.p[<span class="Constant">'</span><span class="Constant">be2_</span><span class="Constant">'</span>+bd])
+         self.expb[bd] = tf.exp(tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">be1_</span><span class="Constant">'</span>+bd],<span class="Constant">1.0</span>-self.powb[bd]))
+
+         self.sieng[bd] = self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.bosi[bd]*self.expb[bd]*FBO
+         self.pieng[bd] = tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">Depi_</span><span class="Constant">'</span>+bd],self.bopi[bd])
+         self.ppeng[bd] = tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">Depp_</span><span class="Constant">'</span>+bd],self.bopp[bd])
+         self.esi[bd]   = self.sieng[bd] + self.pieng[bd] + self.ppeng[bd]
+         self.EBD[bd]   = -self.esi[bd]
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">1</span>:
+         self.esi[bd] = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd, self.nbd[bd],[self.bosi[bd],self.bopi[bd],self.bopp[bd]],
+                                  layer=self.be_layer[<span class="Constant">1</span>])
+         self.EBD[bd] = -self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.esi[bd]
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">2</span>:
+         self.esi[bd] = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd, self.nbd[bd],[-self.bosi[bd],-self.bopi[bd],-self.bopp[bd]],
+                                  layer=self.be_layer[<span class="Constant">1</span>])
+         self.EBD[bd] = -self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.esi[bd]
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">3</span>:
+         self.esi[bd] = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd, self.nbd[bd],[self.bosi[bd],self.bopi[bd],self.bopp[bd]],
+                                  layer=self.be_layer[<span class="Constant">1</span>])
+         self.EBD[bd] = -self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.esi[bd]*self.bo0[bd]
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">4</span>:
+         Di      = tf.gather_nd(self.Delta,self.dilink[bd])
+         Dj      = tf.gather_nd(self.Delta,self.djlink[bd])
+         Dbi = Di-self.bo0[bd]
+         Dbj = Dj-self.bo0[bd]
+         Fi  = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd,self.nbd[bd],[Dbi,Dbj,self.bo0[bd]],layer=self.be_layer[<span class="Constant">1</span>])
+         Fj  = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd,self.nbd[bd],[Dbj,Dbi,self.bo0[bd]],layer=self.be_layer[<span class="Constant">1</span>])
+         self.esi[bd] = Fi*Fj <span class="Comment"># *self.bo0[bd]</span>
+         self.EBD[bd] = -self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.esi[bd]
+      <span class="Comment"># elif self.EnergyFunction==5:</span>
+      <span class="Comment">#    r_        = self.rbd[bd]/self.p['rosi_'+bd]</span>
+      <span class="Comment">#    mors_exp1 = tf.exp(self.p['be2_'+bd]*(1.0-r_))</span>
+      <span class="Comment">#    mors_exp2 = tf.square(mors_exp1) </span>
+
+      <span class="Comment">#    mors_exp10 = tf.exp(self.p['be2_'+bd]*self.p['be1_'+bd]) </span>
+      <span class="Comment">#    mors_exp20 = tf.square(mors_exp10)</span>
+
+      <span class="Comment">#    emorse     = 2.0*mors_exp1 - mors_exp2 + mors_exp20 - 2.0*mors_exp10</span>
+      <span class="Comment">#    self.esi[bd] = tf.nn.relu(emorse)</span>
+      <span class="Comment">#    self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]</span>
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">5</span>:
+         self.sieng[bd] = tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd],self.bosi[bd])
+         self.pieng[bd] = tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">Depi_</span><span class="Constant">'</span>+bd],self.bopi[bd])
+         self.ppeng[bd] = tf.multiply(self.p[<span class="Constant">'</span><span class="Constant">Depp_</span><span class="Constant">'</span>+bd],self.bopp[bd])
+         self.esi[bd]   = self.sieng[bd] + self.pieng[bd] - self.ppeng[bd]
+         self.EBD[bd]   = -self.esi[bd]
+      <span class="Statement">else</span>:
+         <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  This method is not implimented!</span><span class="Constant">'</span>)
+
+  <span class="Statement">def</span> <span class="Identifier">get_bond_energy</span>(self):
+      self.get_delta()
+
+      self.message_passing()
+      self.get_final_sate()
+
+      i = <span class="Constant">0</span>                           <span class="Comment"># get bond energy</span>
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          [atomi,atomj] = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          <span class="Statement">if</span> self.nbd[bd]&gt;<span class="Constant">0</span>:
+             [atomi,atomj] = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+             self.get_ebond(bd)
+             EBDA = self.EBD[bd] <span class="Statement">if</span> i==<span class="Constant">0</span> <span class="Statement">else</span> tf.concat((EBDA,self.EBD[bd]),<span class="Constant">0</span>)
+             i += <span class="Constant">1</span>
+
+      <span class="Statement">for</span> mol <span class="Statement">in</span> self.mols:
+          self.ebda[mol] = tf.gather_nd(EBDA,self.bdlink[mol])
+          self.ebond[mol]= tf.reduce_sum(input_tensor=self.ebda[mol],axis=<span class="Constant">0</span>,name=<span class="Constant">'</span><span class="Constant">bondenergy</span><span class="Constant">'</span>)
+
+  <span class="Statement">def</span> <span class="Identifier">message_passing</span>(self):
+      <span class="Constant">'''</span><span class="Constant"> finding the final Bond－order with a message passing </span><span class="Constant">'''</span>
+      self.H   = [self.bop]                     <span class="Comment"># </span>
+      self.Hsi = [self.bop_si]                  <span class="Comment">#</span>
+      self.Hpi = [self.bop_pi]                  <span class="Comment">#</span>
+      self.Hpp = [self.bop_pp]                  <span class="Comment"># </span>
+      self.D   = [self.Deltap]                  <span class="Comment"># get the initial hidden state H[0]</span>
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         self.D_si = [self.Dpsi]
+         self.D_pi = [self.Dppi]
+         self.D_pp = [self.Dppp]
+
+      <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+          <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  message passing for t=%d ...</span><span class="Constant">'</span> %t)
+          self.H.append({})                     <span class="Comment"># get the hidden state H[t]</span>
+          self.Hsi.append({})                   <span class="Comment">#</span>
+          self.Hpi.append({})                   <span class="Comment">#</span>
+          self.Hpp.append({})                   <span class="Comment">#             </span>
+
+          <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+             BOSI = tf.zeros([<span class="Constant">1</span>,self.batch])
+             BOPI = tf.zeros([<span class="Constant">1</span>,self.batch])
+             BOPP = tf.zeros([<span class="Constant">1</span>,self.batch])
+          <span class="Statement">else</span>:
+             BO    = tf.zeros([<span class="Constant">1</span>,self.batch])         <span class="Comment"># for ghost atom, the value is zero</span>
+
+          <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+              <span class="Statement">if</span> self.nbd[bd]&gt;<span class="Constant">0</span>:
+                 atomi,atomj = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+                 bo,bosi,bopi,bopp = self.get_bondorder(t,bd,atomi,atomj)
+
+                 self.H[t][bd]   = bo
+                 self.Hsi[t][bd] = bosi
+                 self.Hpi[t][bd] = bopi
+                 self.Hpp[t][bd] = bopp
+
+                 <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+                    BOSI = tf.concat([BOSI,bosi],<span class="Constant">0</span>)
+                    BOPI = tf.concat([BOPI,bosi],<span class="Constant">0</span>)
+                    BOPP = tf.concat([BOPP,bosi],<span class="Constant">0</span>)
+                 <span class="Statement">else</span>:
+                    BO = tf.concat([BO,bo],<span class="Constant">0</span>)
+
+          <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+             Dsi_   = tf.gather_nd(BOSI,self.dlist)
+             Dsi    = tf.reduce_sum(input_tensor=Dsi_,axis=<span class="Constant">1</span>)
+             Dpi_   = tf.gather_nd(BOPI,self.dlist)
+             Dpi    = tf.reduce_sum(input_tensor=Dpi_,axis=<span class="Constant">1</span>)
+             Dpp_   = tf.gather_nd(BOPP,self.dlist)
+             Dpp    = tf.reduce_sum(input_tensor=Dpp_,axis=<span class="Constant">1</span>)
+             Delta  = Dsi + Dpi + Dpp
+
+             self.D_si.append(Dsi)
+             self.D_pi.append(Dpi)
+             self.D_pp.append(Dpp)
+          <span class="Statement">else</span>:
+             D      = tf.gather_nd(BO,self.dlist)
+             Delta  = tf.reduce_sum(input_tensor=D,axis=<span class="Constant">1</span>)
+          self.D.append(Delta)                  <span class="Comment"># degree matrix</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_final_sate</span>(self):
+      self.Delta  = self.D[-<span class="Constant">1</span>]
+      self.bo0    = self.H[-<span class="Constant">1</span>]                  <span class="Comment"># fetch the final state </span>
+      self.bosi   = self.Hsi[-<span class="Constant">1</span>]
+      self.bopi   = self.Hpi[-<span class="Constant">1</span>]
+      self.bopp   = self.Hpp[-<span class="Constant">1</span>]
+
+      self.BO0    = tf.zeros([<span class="Constant">1</span>,self.batch])    <span class="Comment"># for ghost atom, the value is zero</span>
+      self.BO     = tf.zeros([<span class="Constant">1</span>,self.batch])
+      self.BOPI   = tf.zeros([<span class="Constant">1</span>,self.batch])
+      self.BSO    = tf.zeros([<span class="Constant">1</span>,self.batch])
+      BPI         = tf.zeros([<span class="Constant">1</span>,self.batch])
+
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          <span class="Statement">if</span> self.nbd[bd]&gt;<span class="Constant">0</span>:
+             <span class="Comment"># self.fbo[bd]  = taper(self.bo0[bd],rmin=self.botol,rmax=2.0*self.botol)</span>
+             self.bo[bd]   = tf.nn.relu(self.bo0[bd] - self.atol)
+             self.bso[bd]  = self.p[<span class="Constant">'</span><span class="Constant">ovun1_</span><span class="Constant">'</span>+bd]*self.p[<span class="Constant">'</span><span class="Constant">Desi_</span><span class="Constant">'</span>+bd]*self.bo0[bd]
+
+             self.BO0 = tf.concat([self.BO0,self.bo0[bd]],<span class="Constant">0</span>)
+             self.BO  = tf.concat([self.BO,self.bo[bd]],<span class="Constant">0</span>)
+             self.BSO = tf.concat([self.BSO,self.bso[bd]],<span class="Constant">0</span>)
+             BPI      = tf.concat([BPI,self.bopi[bd]+self.bopp[bd]],<span class="Constant">0</span>)
+             self.BOPI= tf.concat([self.BOPI,self.bopi[bd]],<span class="Constant">0</span>)
+
+      D_  = tf.gather_nd(self.BO0,self.dlist,name=<span class="Constant">'</span><span class="Constant">D_</span><span class="Constant">'</span>)
+      self.Delta  = tf.reduce_sum(input_tensor=D_,axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">Delta</span><span class="Constant">'</span>)  <span class="Comment"># without valence i.e. - Val </span>
+
+      SO_ = tf.gather_nd(self.BSO,self.dlist,name=<span class="Constant">'</span><span class="Constant">SO_</span><span class="Constant">'</span>)
+      self.BPI = tf.gather_nd(BPI,self.dlist,name=<span class="Constant">'</span><span class="Constant">BPI</span><span class="Constant">'</span>)
+
+      self.SO     = tf.reduce_sum(input_tensor=SO_,axis=<span class="Constant">1</span>,name=<span class="Constant">'</span><span class="Constant">sumover</span><span class="Constant">'</span>)
+      self.FBOT   = taper(self.BO0,rmin=self.atol,rmax=<span class="Constant">2.0</span>*self.atol)
+      self.FHB    = taper(self.BO0,rmin=self.hbtol,rmax=<span class="Constant">2.0</span>*self.hbtol)
+
+      <span class="Comment">####</span>
+      <span class="Comment"># if self.spv_bo: # self.MessageFunction==3:</span>
+      <span class="Comment">#    N_           = tf.math.ceil(D_ - self.p['cutoff'])             </span>
+      <span class="Comment">#    self.N       = tf.reduce_sum(input_tensor=N_,axis=1,name='N')          # N  整数版Delta </span>
+
+      <span class="Comment">#    for bd in self.bonds:</span>
+      <span class="Comment">#        atomi,atomj = bd.split('-') </span>
+      <span class="Comment">#        if self.nbd[bd]&gt;0: </span>
+      <span class="Comment">#           boc   = tf.math.ceil(self.bo0[bd] - self.p['cutoff'])</span>
+      <span class="Comment">#           Ni    = self.p['val_'+atomi] - tf.gather_nd(self.N,self.dilink[bd]) + boc</span>
+      <span class="Comment">#           Nj    = self.p['val_'+atomj] - tf.gather_nd(self.N,self.djlink[bd]) + boc</span>
+      <span class="Comment">#           Si    = tf.where(tf.greater(Ni,0.0001),-0.5,0.5)</span>
+      <span class="Comment">#           Sj    = tf.where(tf.greater(Nj,0.0001),-0.5,0.5)</span>
+      <span class="Comment">#           self.S[bd] = Si + Sj</span>
+
+  <span class="Statement">def</span> <span class="Identifier">set_m</span>(self):
+      <span class="Constant">'''</span><span class="Constant"> set variable for neural networks </span><span class="Constant">'''</span>
+      self.m = {}
+      bond   = []               <span class="Comment"># make sure the m matrix is unique </span>
+      <span class="Statement">for</span> si <span class="Statement">in</span> self.spec:
+          <span class="Statement">for</span> sj <span class="Statement">in</span> self.spec:
+              bd = si + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + sj
+              <span class="Statement">if</span> bd <span class="Statement">not</span> <span class="Statement">in</span> bond:
+                 bond.append(bd)
+
+      <span class="Statement">if</span> self.mfopt <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.mfopt = self.spec
+      <span class="Statement">if</span> self.bdopt <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.bdopt = self.bonds
+
+      self.get_univeral_nn()
+
+      reuse_m = <span class="Identifier">True</span> <span class="Statement">if</span> (self.bo_layer==self.bo_layer_ <span class="Statement">and</span> self.BOFunction_==self.BOFunction) <span class="Statement">else</span> <span class="Identifier">False</span>
+
+      <span class="Statement">if</span> self.BOFunction!=<span class="Constant">0</span>:
+         <span class="Statement">for</span> p_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>]:
+             <span class="Statement">if</span> <span class="Statement">not</span> self.bo_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+                self.set_univeral_wb(pref=p_,bd=self.bo_univeral_nn[<span class="Constant">0</span>],reuse_m=reuse_m,
+                                       nin=<span class="Constant">1</span>,nout=<span class="Constant">1</span>,layer=self.bo_layer,
+                                       nnopt=self.mpopt[<span class="Constant">0</span>],bias=-<span class="Constant">1.0</span>)
+             self.set_wb(pref=p_,reuse_m=reuse_m,nin=<span class="Constant">1</span>,nout=<span class="Constant">1</span>,layer=self.bo_layer,
+                         vlist=self.bonds,nnopt=self.mpopt[<span class="Constant">0</span>],bias=-<span class="Constant">1.0</span>)
+
+      <span class="Comment">############ set weight and bias for message neural network ###################</span>
+      <span class="Statement">if</span> (self.mf_layer==self.mf_layer_ <span class="Statement">and</span>  self.EnergyFunction==self.EnergyFunction_
+          <span class="Statement">and</span> self.MessageFunction_==self.MessageFunction):
+         reuse_m = <span class="Identifier">True</span>
+      <span class="Statement">else</span>:
+         reuse_m = <span class="Identifier">False</span>
+
+      nout_ = <span class="Constant">3</span> <span class="Statement">if</span> self.MessageFunction!=<span class="Constant">4</span> <span class="Statement">else</span> <span class="Constant">1</span>
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         nin_  = <span class="Constant">5</span>
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">5</span> :
+         nin_  = <span class="Constant">3</span>
+      <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">2</span>:
+         nin_  = <span class="Constant">5</span>
+      <span class="Statement">else</span>:
+         nin_  = <span class="Constant">3</span>
+
+      <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+          b = <span class="Constant">0.881373587</span> <span class="Statement">if</span> t&gt;<span class="Constant">1</span> <span class="Statement">else</span> -<span class="Constant">0.867</span>
+          <span class="Statement">if</span> <span class="Statement">not</span> self.mf_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+             self.set_univeral_wb(pref=<span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span>,bd=self.mf_univeral_nn[<span class="Constant">0</span>],reuse_m=reuse_m,<span class="Comment"># +str(t)</span>
+                                    nin=nin_,nout=nout_,layer=self.mf_layer,
+                                    nnopt=self.mpopt[t],bias=b)
+          self.set_message_wb(pref=<span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span>,reuse_m=reuse_m,nin=nin_,nout=nout_,   <span class="Comment"># +str(t)</span>
+                              layer=self.mf_layer,nnopt=self.mpopt[t],bias=b)
+
+      <span class="Comment">############ set weight and bias for energy neural network ###################</span>
+      <span class="Statement">if</span> self.EnergyFunction==self.EnergyFunction_ <span class="Statement">and</span> self.be_layer==self.be_layer_:
+         reuse_m = <span class="Identifier">True</span>
+      <span class="Statement">else</span>:
+         reuse_m = <span class="Identifier">False</span>
+
+      nin_ = <span class="Constant">3</span> <span class="Comment"># 4 if self.EnergyFunction==1 else 3</span>
+
+      <span class="Statement">if</span> <span class="Statement">not</span> self.be_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.set_univeral_wb(pref=<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,bd=self.be_univeral_nn[<span class="Constant">0</span>],reuse_m=reuse_m,
+                                nin=nin_,nout=<span class="Constant">1</span>,layer=self.be_layer,
+                                nnopt=self.mpopt[t+<span class="Constant">1</span>],bias=<span class="Constant">2.0</span>)
+      self.set_wb(pref=<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,reuse_m=reuse_m,nin=nin_,nout=<span class="Constant">1</span>,layer=self.be_layer,
+                  vlist=self.bonds,nnopt=self.mpopt[t+<span class="Constant">1</span>],bias=<span class="Constant">2.0</span>)
+
+      nin_ = <span class="Constant">1</span> <span class="Statement">if</span> self.VdwFunction==<span class="Constant">1</span> <span class="Statement">else</span> <span class="Constant">3</span>
+
+      <span class="Statement">if</span> self.vdwnn:
+         reuse_m = <span class="Identifier">True</span> <span class="Statement">if</span> self.vdw_layer==self.vdw_layer_ <span class="Statement">and</span> self.VdwFunction==self.VdwFunction_ <span class="Statement">else</span> <span class="Identifier">False</span>
+         <span class="Statement">if</span> <span class="Statement">not</span> self.vdw_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+            self.set_univeral_wb(pref=<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,bd=self.vdw_univeral_nn[<span class="Constant">0</span>],reuse_m=reuse_m,
+                                   nin=nin_,nout=<span class="Constant">1</span>,layer=self.vdw_layer,
+                                   nnopt=self.mpopt[t+<span class="Constant">1</span>],bias=<span class="Constant">0.867</span>)
+         self.set_wb(pref=<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,reuse_m=reuse_m,nin=nin_,nout=<span class="Constant">1</span>,layer=self.vdw_layer,
+                     vlist=self.bonds,nnopt=self.mpopt[-<span class="Constant">1</span>],bias=<span class="Constant">0.867</span>)
+
+  <span class="Statement">def</span> <span class="Identifier">set_wb</span>(self,pref=<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>,reuse_m=<span class="Identifier">True</span>,nnopt=<span class="Identifier">True</span>,nin=<span class="Constant">8</span>,nout=<span class="Constant">3</span>,layer=[<span class="Constant">8</span>,<span class="Constant">9</span>],vlist=<span class="Identifier">None</span>,bias=<span class="Constant">0.0</span>):
+      <span class="Constant">'''</span><span class="Constant"> set matix varibles </span><span class="Constant">'''</span>
+      <span class="Statement">if</span> self.m_ <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.m_ = {}
+      <span class="Statement">for</span> bd <span class="Statement">in</span> vlist:
+          <span class="Statement">if</span> pref+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.univeral_nn:
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>]
+          <span class="Statement">elif</span> pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.m_ <span class="Statement">and</span> reuse_m:                   <span class="Comment"># input layer</span>
+             <span class="Statement">if</span> nnopt <span class="Statement">and</span> (bd <span class="Statement">in</span> self.bdopt):
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd)
+             <span class="Statement">else</span>:
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd)
+          <span class="Statement">else</span>:
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd] = tf.Variable(tf.random.normal([nin,layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.2</span>),
+                                                 name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+bd)
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.1</span>),
+                                                 name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+bd)
+
+          self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd] = []                                    <span class="Comment"># hidden layer</span>
+          self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd] = []
+          <span class="Statement">if</span> pref+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.univeral_nn:
+             <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>]
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>]
+          <span class="Statement">elif</span> pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.m_ <span class="Statement">and</span> reuse_m:
+             <span class="Statement">if</span> nnopt <span class="Statement">and</span> (bd <span class="Statement">in</span> self.bdopt):
+                <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd][i],name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd ))
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd][i],name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd ))
+             <span class="Statement">else</span>:
+                <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd][i],name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd ))
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd][i],name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd ))
+          <span class="Statement">else</span>:
+             <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],layer[<span class="Constant">0</span>]],
+                                                         stddev=<span class="Constant">0.2</span>),name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd))
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],
+                                                         stddev=<span class="Constant">0.1</span>),name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd ))
+
+          <span class="Statement">if</span> pref+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.univeral_nn:
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd] = self.m[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]
+          <span class="Statement">elif</span> pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd <span class="Statement">in</span> self.m_ <span class="Statement">and</span> reuse_m:          <span class="Comment"># output layer</span>
+              <span class="Statement">if</span> nnopt <span class="Statement">and</span> (bd <span class="Statement">in</span> self.bdopt):
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd)
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd)
+              <span class="Statement">else</span>:
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd)
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd],name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd)
+          <span class="Statement">else</span>:
+              self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],nout],stddev=<span class="Constant">0.2</span>), name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+bd)
+              self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd] = tf.Variable(tf.random.normal([nout], stddev=<span class="Constant">0.01</span>)+bias,
+                                                  name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+bd)
+
+  <span class="Statement">def</span> <span class="Identifier">set_message_wb</span>(self,pref=<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>,reuse_m=<span class="Identifier">True</span>,nnopt=<span class="Identifier">True</span>,nin=<span class="Constant">8</span>,nout=<span class="Constant">3</span>,layer=[<span class="Constant">8</span>,<span class="Constant">9</span>],bias=<span class="Constant">0.0</span>):
+      <span class="Constant">'''</span><span class="Constant"> set matix varibles </span><span class="Constant">'''</span>
+      <span class="Statement">if</span> self.m_ <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.m_ = {}
+      <span class="Statement">for</span> sp <span class="Statement">in</span> self.spec:
+          self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp] = []
+          self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp] = []
+          <span class="Statement">if</span> pref+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp <span class="Statement">in</span> self.univeral_nn:
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp] = self.m[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp] = self.m[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp] = self.m[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp] = self.m[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp]  = self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>]
+             self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp]  = self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>]
+          <span class="Statement">elif</span> pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp <span class="Statement">in</span> self.m_ <span class="Statement">and</span> reuse_m:
+             <span class="Statement">if</span> nnopt <span class="Statement">and</span> (sp <span class="Statement">in</span> self.mfopt):
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp)
+                <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp][i],name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp ))
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp][i],name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp ))
+             <span class="Statement">else</span>:
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp)
+                self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp],name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp)
+                <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp][i],name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp ))
+                    self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp][i],name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp ))
+          <span class="Statement">else</span>:
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp] = tf.Variable(tf.random.normal([nin,layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wi_</span><span class="Constant">'</span>+sp)
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">bi_</span><span class="Constant">'</span>+sp)
+             self.m[pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],nout],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wo_</span><span class="Constant">'</span>+sp)
+             self.m[pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp] = tf.Variable(tf.random.normal([nout],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">bo_</span><span class="Constant">'</span>+sp)
+             <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],layer[<span class="Constant">0</span>]],
+                                                         stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp))
+                 self.m[pref+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],
+                                                         stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp))
+
+  <span class="Statement">def</span> <span class="Identifier">set_univeral_wb</span>(self,pref=<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>,bd=<span class="Constant">'</span><span class="Constant">C-C</span><span class="Constant">'</span>,reuse_m=<span class="Identifier">True</span>,nnopt=<span class="Identifier">True</span>,nin=<span class="Constant">8</span>,nout=<span class="Constant">3</span>,
+                         layer=[<span class="Constant">8</span>,<span class="Constant">9</span>],bias=<span class="Constant">0.0</span>):
+      <span class="Constant">'''</span><span class="Constant"> set universial matix varibles </span><span class="Constant">'''</span>
+      <span class="Statement">if</span> self.m_ <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.m_ = {}
+
+      self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>] = []                                    <span class="Comment"># hidden layer</span>
+      self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>] = []
+
+      <span class="Statement">if</span> pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span> <span class="Statement">in</span> self.m_:
+          bd_ = <span class="Constant">''</span>
+      <span class="Statement">else</span>:
+          bd_ = <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + bd
+
+      <span class="Statement">if</span> reuse_m <span class="Statement">and</span> pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>+bd_ <span class="Statement">in</span> self.m_:                   <span class="Comment"># input layer</span>
+         <span class="Statement">if</span> nnopt:
+            self.m[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>] = tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>)
+            <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>+bd_][i],
+                                                    name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+                self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>].append(tf.Variable(self.m_[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>+bd_][i],
+                                                    name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+         <span class="Statement">else</span>:
+            self.m[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>)
+            self.m[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>] = tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>+bd_],name=pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>)
+            <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+                self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>+bd_][i],
+                                                    name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+                self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>].append(tf.constant(self.m_[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>+bd_][i],
+                                                    name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+      <span class="Statement">else</span>:
+         self.m[pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>] = tf.Variable(tf.random.normal([nin,layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>)
+         self.m[pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>)
+         self.m[pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>] = tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],nout],stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>)
+         self.m[pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>] = tf.Variable(tf.random.normal([nout], stddev=<span class="Constant">0.9</span>)+bias,name=pref+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>)
+         <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(layer[<span class="Constant">1</span>]):
+             self.m[pref+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>],layer[<span class="Constant">0</span>]],
+                                                 stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">wh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+             self.m[pref+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>].append(tf.Variable(tf.random.normal([layer[<span class="Constant">0</span>]],
+                                                 stddev=<span class="Constant">0.9</span>),name=pref+<span class="Constant">'</span><span class="Constant">bh</span><span class="Constant">'</span>+<span class="Identifier">str</span>(i)))
+
+  <span class="Statement">def</span> <span class="Identifier">get_univeral_nn</span>(self):
+      self.univeral_nn = []
+      <span class="Statement">if</span> <span class="Statement">not</span> self.bo_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+         <span class="Statement">if</span> self.bo_univeral_nn==<span class="Constant">'</span><span class="Constant">all</span><span class="Constant">'</span>:
+            univeral_bonds = self.bonds
+         <span class="Statement">else</span>:
+            univeral_bonds = self.bo_univeral_nn
+         <span class="Statement">for</span> bd <span class="Statement">in</span> univeral_bonds:
+             b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+             bdr = b[<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + b[<span class="Constant">0</span>]
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fsi_</span><span class="Constant">'</span>+bd)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fpi_</span><span class="Constant">'</span>+bd)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fpp_</span><span class="Constant">'</span>+bd)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fsi_</span><span class="Constant">'</span>+bdr)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fpi_</span><span class="Constant">'</span>+bdr)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fpp_</span><span class="Constant">'</span>+bdr)
+
+      <span class="Statement">if</span> <span class="Statement">not</span> self.be_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+         <span class="Statement">if</span> self.be_univeral_nn==<span class="Constant">'</span><span class="Constant">all</span><span class="Constant">'</span>:
+            univeral_bonds = self.bonds
+         <span class="Statement">else</span>:
+            univeral_bonds = self.be_univeral_nn
+         <span class="Statement">for</span> bd <span class="Statement">in</span> univeral_bonds:
+             b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+             bdr = b[<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + b[<span class="Constant">0</span>]
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fe_</span><span class="Constant">'</span>+bd)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fe_</span><span class="Constant">'</span>+bdr)
+
+      <span class="Statement">if</span> <span class="Statement">not</span> self.vdw_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+         <span class="Statement">if</span> self.vdw_univeral_nn==<span class="Constant">'</span><span class="Constant">all</span><span class="Constant">'</span>:
+            univeral_bonds = self.bonds
+         <span class="Statement">else</span>:
+            univeral_bonds = self.vdw_univeral_nn
+         <span class="Statement">for</span> bd <span class="Statement">in</span> univeral_bonds:
+             b = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+             bdr = b[<span class="Constant">1</span>] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + b[<span class="Constant">0</span>]
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fv_</span><span class="Constant">'</span>+bd)
+             self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fv_</span><span class="Constant">'</span>+bdr)
+
+      <span class="Statement">if</span> <span class="Statement">not</span> self.mf_univeral_nn <span class="Statement">is</span> <span class="Identifier">None</span>:
+         <span class="Statement">if</span> self.mf_univeral_nn==<span class="Constant">'</span><span class="Constant">all</span><span class="Constant">'</span>:
+            univeral_bonds = self.spec
+         <span class="Statement">else</span>:
+            univeral_bonds = self.mf_univeral_nn
+         <span class="Statement">for</span> sp <span class="Statement">in</span> univeral_bonds:
+             <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+                 self.univeral_nn.append(<span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span>+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp) <span class="Comment"># +str(t)</span>
+
+  <span class="Statement">def</span> <span class="Identifier">write_lib</span>(self,libfile=<span class="Constant">'</span><span class="Constant">ffield</span><span class="Constant">'</span>,loss=<span class="Identifier">None</span>):
+      p_   = self.sess.run(self.p)
+      self.p_ = {}
+
+      self.MolEnergy_ = self.sess.run(self.MolEnergy)
+      <span class="Statement">for</span> key <span class="Statement">in</span> self.MolEnergy_:
+          self.MolEnergy_[key] = <span class="Identifier">float</span>(self.MolEnergy_[key])
+
+      <span class="Statement">if</span> <span class="Statement">not</span> loss <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.p_[<span class="Constant">'</span><span class="Constant">score</span><span class="Constant">'</span>] = -loss
+
+      <span class="Statement">for</span> k <span class="Statement">in</span> p_:
+          key = k.split(<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+          <span class="Statement">if</span> key <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">V1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>]:
+             k_ = k.split(<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>)[<span class="Constant">1</span>]
+             <span class="Statement">if</span> k_ <span class="Statement">not</span> <span class="Statement">in</span> self.torp:
+                <span class="Statement">continue</span>
+
+          self.p_[k] = <span class="Identifier">float</span>(p_[k])
+          <span class="Statement">if</span> key <span class="Statement">in</span> self.punit:
+             self.p_[k] = <span class="Identifier">float</span>(p_[k]/self.unit)
+
+      <span class="Statement">if</span> self.libfile.endswith(<span class="Constant">'</span><span class="Constant">.json</span><span class="Constant">'</span>):
+         self.m_   = self.sess.run(self.m)
+
+         <span class="Statement">for</span> key <span class="Statement">in</span> self.m_:
+             k = key.split(<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+             <span class="Statement">if</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span> <span class="Statement">and</span> (k[-<span class="Constant">1</span>]==<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span> <span class="Statement">or</span> k[-<span class="Constant">1</span>]==<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>):
+                <span class="Statement">for</span> i,M <span class="Statement">in</span> <span class="Identifier">enumerate</span>(self.m_[key]):
+                    <span class="Comment"># if isinstance(M, np.ndarray):</span>
+                    self.m_[key][i] = M.tolist()
+             <span class="Statement">else</span>:
+                self.m_[key] = self.m_[key].tolist()  <span class="Comment"># covert ndarray to list</span>
+         <span class="Comment"># print(' * save parameters to file ...')</span>
+         fj = <span class="Identifier">open</span>(libfile+<span class="Constant">'</span><span class="Constant">.json</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>)
+         j = {<span class="Constant">'</span><span class="Constant">p</span><span class="Constant">'</span>:self.p_,<span class="Constant">'</span><span class="Constant">m</span><span class="Constant">'</span>:self.m_,
+              <span class="Constant">'</span><span class="Constant">BOFunction</span><span class="Constant">'</span>:self.BOFunction,
+              <span class="Constant">'</span><span class="Constant">EnergyFunction</span><span class="Constant">'</span>:self.EnergyFunction,
+              <span class="Constant">'</span><span class="Constant">MessageFunction</span><span class="Constant">'</span>:self.MessageFunction,
+              <span class="Constant">'</span><span class="Constant">VdwFunction</span><span class="Constant">'</span>:self.VdwFunction,
+              <span class="Constant">'</span><span class="Constant">messages</span><span class="Constant">'</span>:self.messages,
+              <span class="Constant">'</span><span class="Constant">bo_layer</span><span class="Constant">'</span>:self.bo_layer,
+              <span class="Constant">'</span><span class="Constant">mf_layer</span><span class="Constant">'</span>:self.mf_layer,
+              <span class="Constant">'</span><span class="Constant">be_layer</span><span class="Constant">'</span>:self.be_layer,
+              <span class="Constant">'</span><span class="Constant">vdw_layer</span><span class="Constant">'</span>:self.vdw_layer,
+              <span class="Constant">'</span><span class="Constant">rcut</span><span class="Constant">'</span>:self.rcut,
+              <span class="Constant">'</span><span class="Constant">rcutBond</span><span class="Constant">'</span>:self.rcuta,
+              <span class="Constant">'</span><span class="Constant">rEquilibrium</span><span class="Constant">'</span>:self.re,
+              <span class="Constant">'</span><span class="Constant">MolEnergy</span><span class="Constant">'</span>:self.MolEnergy_}
+         js.dump(j,fj,sort_keys=<span class="Identifier">True</span>,indent=<span class="Constant">2</span>)
+         fj.close()
+      <span class="Statement">elif</span> self.libfile.endswith(<span class="Constant">'</span><span class="Constant">.lib</span><span class="Constant">'</span>):
+         write_lib(self.p_,self.spec,self.bonds,self.offd,
+                   self.angs,self.torp,self.hbs,
+                   libfile=libfile)
+      <span class="Statement">else</span>:
+         write_ffield(self.p_,self.spec,self.bonds,self.offd,
+                      self.angs,self.torp,self.hbs,
+                      zpe=self.zpe_,libfile=libfile,
+                      loss=loss)
+
+  <span class="Statement">def</span> <span class="Identifier">supervise</span>(self):
+      <span class="Constant">'''</span><span class="Constant"> adding some penalty term to accelerate the training </span><span class="Constant">'''</span>
+      log_    = -<span class="Constant">9.21044036697651</span>
+      penalty = <span class="Constant">0.0</span>
+      pen_w   = <span class="Constant">0.0</span>
+      pen_b   = <span class="Constant">0.0</span>
+      wb_p    = []
+      <span class="Statement">if</span> self.regularize_be:
+         wb_p.append(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>)
+      <span class="Statement">if</span> self.regularize_bo <span class="Statement">and</span> self.BOFunction:
+         wb_p.append(<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>)
+         wb_p.append(<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>)
+         wb_p.append(<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>)
+
+      <span class="Statement">if</span> self.vdwnn <span class="Statement">and</span> self.regularize_vdw:
+         wb_p.append(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>)
+
+      w_n     = [<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>,]
+      b_n     = [<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]
+      layer   = {<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>:self.be_layer[<span class="Constant">1</span>],<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>:self.bo_layer[<span class="Constant">1</span>],<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>:self.bo_layer[<span class="Constant">1</span>],
+                 <span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>:self.bo_layer[<span class="Constant">1</span>]}
+      <span class="Statement">if</span> self.vdwnn:
+         layer[<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>] = self.vdw_layer[<span class="Constant">1</span>]
+
+      wb_message = []
+      <span class="Statement">if</span> self.regularize_mf:
+         <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+             wb_message.append(<span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span>)<span class="Comment">#+str(t)</span>
+             layer[<span class="Constant">'</span><span class="Constant">fm</span><span class="Constant">'</span>] = self.mf_layer[<span class="Constant">1</span>]<span class="Comment">#+str(t)</span>
+
+      self.penalty_bop,self.penalty_bo = {},{}
+      self.penalty_bo_rcut = {}
+      self.penalty_pi,self.penalty_ang = {},{}
+      self.penalty_vdw = {}
+      self.penalty_be_cut,self.penalty_be = {},{}
+      self.penalty_s_bo,self.penalty_s = {},{}
+      self.penalty_rcut = {}
+
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          atomi,atomj = bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          bdr = atomj + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + atomi
+          <span class="Comment"># log_ = tf.math.log((self.botol/(1.0 + self.botol)))</span>
+          <span class="Statement">if</span> self.fixrcbo:
+             rcut_si = tf.square(self.rc_bo[bd]-self.rcut[bd])
+          <span class="Statement">else</span>:
+             rcut_si = tf.nn.relu(self.rc_bo[bd]-self.rcut[bd])
+
+          rc_bopi = self.p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+bd]*tf.pow(log_/self.p[<span class="Constant">'</span><span class="Constant">bo3_</span><span class="Constant">'</span>+bd],<span class="Constant">1.0</span>/self.p[<span class="Constant">'</span><span class="Constant">bo4_</span><span class="Constant">'</span>+bd])
+          rcut_pi = tf.nn.relu(rc_bopi-self.rcut[bd])
+
+          rc_bopp = self.p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+bd]*tf.pow(log_/self.p[<span class="Constant">'</span><span class="Constant">bo5_</span><span class="Constant">'</span>+bd],<span class="Constant">1.0</span>/self.p[<span class="Constant">'</span><span class="Constant">bo6_</span><span class="Constant">'</span>+bd])
+          rcut_pp = tf.nn.relu(rc_bopp-self.rcut[bd])
+
+          self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
+          penalty = tf.add(self.penalty_rcut[bd]*self.lambda_bd,penalty)
+
+          <span class="Statement">if</span> self.nbd[bd]&gt;<span class="Constant">0</span>:
+             bd_ = bd  <span class="Statement">if</span> bd <span class="Statement">in</span> self.bore <span class="Statement">else</span> <span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>
+
+             fao = tf.where(tf.greater(self.rbd[bd],self.rcuta[bd]),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)    <span class="Comment">##### r&gt; rcuta that bo = 0.0</span>
+             self.penalty_bo_rcut[bd]  = tf.reduce_sum(self.bo0[bd]*fao)
+             penalty = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
+
+             <span class="Comment"># if self.MessageFunction==1:</span>
+             <span class="Comment">#    pen_b    = tf.reduce_sum(self.bo0[bd]*fbo) </span>
+             <span class="Comment">#    penalty  = tf.add(diffb_*self.lambda_bd,penalty)</span>
+             <span class="Comment"># bop_nn = nn(bop) MUST BE zero if r&gt;rc_bo</span>
+             <span class="Comment"># if self.BOFunction!=0:</span>
+             fbo = tf.where(tf.less(self.rbd[bd],self.rc_bo[bd]),<span class="Constant">0.0</span>,<span class="Constant">1.0</span>)     <span class="Comment">##### bop should be zero if r&gt;rcut_bo</span>
+             self.penalty_bop[bd]  = tf.reduce_sum(self.bop[bd]*fbo)          <span class="Comment">#####  </span>
+             penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)
+
+             <span class="Statement">if</span> self.spv_be:
+                <span class="Comment"># if self.MessageFunction==1:</span>
+                <span class="Comment"># fe  = tf.where(tf.less_equal(self.rbd[bd],self.rc_bo[bd]),1.0,0.0) ##### r&lt; r_e that bo &gt; bore_</span>
+                <span class="Comment"># else:</span>
+                <span class="Comment">#   fe  = tf.where(tf.less_equal(self.rbd[bd],self.rc_bo[bd]),1.0,0.0) </span>
+                self.penalty_be[bd] = tf.constant(<span class="Constant">0.0</span>)
+                <span class="Statement">if</span> (bd <span class="Statement">in</span> self.beup) <span class="Statement">or</span> (bdr <span class="Statement">in</span> self.beup):
+                   bd_ = bd <span class="Statement">if</span> bd <span class="Statement">in</span> self.beup <span class="Statement">else</span> bdr
+                   <span class="Statement">for</span> beup_ <span class="Statement">in</span> self.beup[bd_]:
+                       r_,be_u = beup_
+                       <span class="Statement">if</span> <span class="Identifier">isinstance</span>(be_u,<span class="Identifier">str</span>):
+                          <span class="Statement">if</span> be_u==<span class="Constant">'</span><span class="Constant">si</span><span class="Constant">'</span>:
+                             be = self.bop_si[bd]
+                          <span class="Statement">elif</span> be_u==<span class="Constant">'</span><span class="Constant">pi</span><span class="Constant">'</span>:
+                             be = self.bop_pi[bd]
+                          <span class="Statement">elif</span> be_u==<span class="Constant">'</span><span class="Constant">pp</span><span class="Constant">'</span>:
+                             be = self.bop_pp[bd]
+                          <span class="Statement">else</span>:
+                             <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  This format not supported yet!</span><span class="Constant">'</span>)
+                          fu      = tf.where(tf.greater(self.rbd[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### </span>
+                          fluct_u = <span class="Constant">1.0</span>+self.fluctuation
+                          pen_e = tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd] - be*fluct_u)*fu))
+                       <span class="Statement">else</span>:
+                         fu      = tf.where(tf.less_equal(self.rbd[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### </span>
+                         pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((self.EBD[bd] - be_u)*fu))
+                       self.penalty_be[bd] = self.penalty_be[bd] + pen_e
+
+                <span class="Statement">if</span> (bd <span class="Statement">in</span> self.belo) <span class="Statement">or</span> (bdr <span class="Statement">in</span> self.belo):
+                   bd_ = bd <span class="Statement">if</span> bd <span class="Statement">in</span> self.belo <span class="Statement">else</span> bdr
+                   <span class="Statement">for</span> belo_ <span class="Statement">in</span> self.belo[bd_]:
+                       r_,be_l = belo_
+
+                       <span class="Statement">if</span> <span class="Identifier">isinstance</span>(be_l,<span class="Identifier">str</span>):
+                          <span class="Statement">if</span> be_l==<span class="Constant">'</span><span class="Constant">si</span><span class="Constant">'</span>:
+                             be = self.bop_si[bd]
+                          <span class="Statement">elif</span> be_l==<span class="Constant">'</span><span class="Constant">pi</span><span class="Constant">'</span>:
+                             be = self.bop_pi[bd]
+                          <span class="Statement">elif</span> be_l==<span class="Constant">'</span><span class="Constant">pp</span><span class="Constant">'</span>:
+                             be = self.bop_pp[bd]
+                          <span class="Statement">else</span>:
+                             <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  This format not supported yet!</span><span class="Constant">'</span>)
+                          fl      = tf.where(tf.less_equal(self.rbd[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)   <span class="Comment">#####</span>
+                          fluct_l = <span class="Constant">1.0</span>-self.fluctuation
+                          pen_e = tf.reduce_sum(input_tensor=tf.nn.relu((be*fluct_l-self.esi[bd])*fl))
+                       <span class="Statement">else</span>:
+                          fl      = tf.where(tf.greater(self.rbd[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)   <span class="Comment">#####</span>
+                          pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((be_l - self.EBD[bd])*fl))
+                       self.penalty_be[bd] = self.penalty_be[bd] + pen_e
+                <span class="Comment"># if not self.beup and not self.belo:</span>
+                <span class="Comment">#    fe  = tf.where(tf.less_equal(self.rbd[bd],self.rc_bo[bd]),1.0,0.0) ##### r&lt; r_e that bo &gt; bore_</span>
+                <span class="Comment">#    fluct_l = 1.0-self.fluctuation</span>
+                <span class="Comment">#    pen_e = tf.reduce_sum(input_tensor=tf.nn.relu((self.bop_pi[bd]*fluct_l-self.esi[bd])*fe))</span>
+                <span class="Comment">#    self.penalty_be[bd] = self.penalty_be[bd] + pen_e</span>
+
+                <span class="Comment">#    fluct_u = 1.0+self.fluctuation</span>
+                <span class="Comment">#    pen_e = tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-self.bop_pi[bd]*fluct_u)*fe))</span>
+                <span class="Comment">#    self.penalty_be[bd] = self.penalty_be[bd] + pen_e</span>
+                penalty = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty)
+
+             <span class="Comment"># if self.MessageFunction==3:</span>
+             <span class="Comment">#    fe_ = tf.where(tf.greater(self.S[bd],0.00001),1.0,0.0) </span>
+             <span class="Comment">#    self.penalty_s[bd]  = tf.reduce_sum(input_tensor=self.bo0[bd]*fe_)</span>
+             <span class="Comment">#    penalty  = tf.add(self.penalty_s[bd]*self.lambda_bd,penalty)    ## penalty iterm for bond order</span>
+
+             <span class="Statement">if</span> self.spv_bo:
+                <span class="Comment">#fe_ = tf.where(tf.greater(self.S[bd],0.00001),1.0,0.0) </span>
+                <span class="Comment">#self.penalty_s[bd]  = tf.reduce_sum(input_tensor=self.bo0[bd]*fe_)</span>
+                <span class="Comment">#penalty  = tf.add(self.penalty_s[bd]*self.lambda_bd,penalty)      ## penalty iterm for bond order</span>
+                self.penalty_bo[bd] = tf.constant(<span class="Constant">0.0</span>)
+                <span class="Statement">if</span> (bd <span class="Statement">in</span> self.spv_bo) <span class="Statement">or</span> (bdr <span class="Statement">in</span> self.spv_bo):
+                   bd_  = bd <span class="Statement">if</span> bd <span class="Statement">in</span> self.spv_bo <span class="Statement">else</span> bdr
+                   r    = self.spv_bo[bd_][<span class="Constant">0</span>]
+                   bo_l = self.spv_bo[bd_][<span class="Constant">1</span>]
+                   bo_u = self.spv_bo[bd_][<span class="Constant">2</span>]
+                   fe   = tf.where(tf.less_equal(self.rbd[bd],r),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### r&lt; r_e that bo &gt; bore_</span>
+                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
+                   fe   = tf.where(tf.greater_equal(self.rbd[bd],r),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### r&lt; r_e that bo &gt; bore_</span>
+                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
+
+                penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty)
+
+             <span class="Statement">if</span> self.EnergyFunction != <span class="Constant">3</span>: <span class="Comment"># or self.EnergyFunction == 4 or self.EnergyFunction == 2:</span>
+                fesi = tf.where(tf.less_equal(self.bo0[bd],self.botol),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### bo &lt;= 0.0 that e = 0.0</span>
+                self.penalty_be_cut[bd]  = tf.reduce_sum(tf.nn.relu(self.esi[bd]*fesi))
+                penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
+
+             <span class="Comment"># penalize term for regularization of the neural networs</span>
+             <span class="Statement">if</span> self.regularize:                             <span class="Comment"># regularize to avoid overfit</span>
+                <span class="Statement">for</span> k <span class="Statement">in</span> wb_p:
+                    <span class="Statement">for</span> k_ <span class="Statement">in</span> w_n:
+                        key     = k + k_ + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + bd
+                        pen_w  += tf.reduce_sum(tf.square(self.m[key]))
+                    <span class="Statement">if</span> self.regularize_bias:
+                       <span class="Statement">for</span> k_ <span class="Statement">in</span> b_n:
+                           key     = k + k_ + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + bd
+                           pen_b  += tf.reduce_sum(tf.square(self.m[key]))
+                    <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer[k]):
+                        pen_w += tf.reduce_sum(tf.square(self.m[k+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+bd][l]))
+                        <span class="Statement">if</span> self.regularize_bias:
+                           pen_b += tf.reduce_sum(tf.square(self.m[k+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+bd][l]))
+
+             <span class="Statement">if</span> self.spv_vdw <span class="Statement">and</span> self.nvb[bd]&gt;<span class="Constant">0</span>:
+                self.penalty_vdw[bd] = tf.constant(<span class="Constant">0.0</span>)
+                <span class="Statement">if</span> (bd <span class="Statement">in</span> self.vup) <span class="Statement">or</span> (bdr <span class="Statement">in</span> self.vup):
+                   bd_ = bd <span class="Statement">if</span> bd <span class="Statement">in</span> self.vup <span class="Statement">else</span> bdr
+                   <span class="Statement">for</span> vup_ <span class="Statement">in</span> self.vup[bd_]:
+                       r_,ev_u = vup_
+                       fu      = tf.where(tf.less(self.rv[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">##### </span>
+                       pen_v   = tf.reduce_sum(input_tensor=tf.nn.relu((self.EVDW[bd] - ev_u)*fu))
+                       self.penalty_vdw[bd] = self.penalty_vdw[bd] + pen_v
+                       <span class="Comment"># penalty  = tf.add(self.penalty_bo_nn[bd]*self.lambda_bd,penalty) </span>
+
+                <span class="Statement">if</span> (bd <span class="Statement">in</span> self.vlo) <span class="Statement">or</span> (bdr <span class="Statement">in</span> self.vlo):
+                   bd_ = bd <span class="Statement">if</span> bd <span class="Statement">in</span> self.vlo <span class="Statement">else</span> bdr
+                   <span class="Statement">for</span> vlo_ <span class="Statement">in</span> self.vlo[bd_]:
+                       r_,ev_l = vlo_
+                       fl      = tf.where(tf.greater(self.rv[bd],r_),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment">#####</span>
+                       pen_v   = tf.reduce_sum(input_tensor=tf.nn.relu((ev_l - self.EVDW[bd])*fl))
+                       self.penalty_vdw[bd] = self.penalty_vdw[bd] + pen_v
+                penalty  = tf.add(self.penalty_vdw[bd]*self.lambda_bd,penalty)
+
+          <span class="Comment"># for sp in self.spec: </span>
+          <span class="Comment">#     pi_ = self.pim[sp] if sp in self.pim else self.pim['others']</span>
+          <span class="Comment">#     if self.nsp[sp]&gt;0:</span>
+          <span class="Comment">#        self.penalty_pi[sp] = tf.reduce_sum(input_tensor=tf.nn.relu(self.Dpi[sp]-pi_))</span>
+          <span class="Comment">#        penalty  = tf.add(self.penalty_pi[sp]*self.lambda_pi,penalty)</span>
+      <span class="Statement">if</span> self.optword.find(<span class="Constant">'</span><span class="Constant">noang</span><span class="Constant">'</span>)&lt;<span class="Constant">0</span>:
+         <span class="Statement">for</span> ang <span class="Statement">in</span> self.angs:
+             <span class="Statement">if</span> self.nang[ang]&gt;<span class="Constant">0</span>:
+                <span class="Statement">if</span> self.spv_pi:
+                   pi_ = self.pim[ang] <span class="Statement">if</span> ang <span class="Statement">in</span> self.pim <span class="Statement">else</span> self.pim[<span class="Constant">'</span><span class="Constant">others</span><span class="Constant">'</span>]
+                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu(self.SBO[ang]-pi_))
+                   penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
+                <span class="Statement">if</span> self.spv_ang:
+                   self.penalty_ang[ang] = tf.reduce_sum(self.thet2[ang]*self.fijk[ang])
+                   penalty  = tf.add(self.penalty_ang[ang]*self.lambda_ang,penalty)
+
+         <span class="Comment"># self.penalty_pi = tf.reduce_sum(input_tensor=tf.nn.relu(self.DPI-2.0)) </span>
+         <span class="Comment"># penalty  = tf.add(self.penalty_pi*self.lambda_pi,penalty)</span>
+      <span class="Statement">if</span> self.regularize:                              <span class="Comment"># regularize</span>
+         <span class="Statement">for</span> sp <span class="Statement">in</span> self.spec:
+             <span class="Statement">for</span> k <span class="Statement">in</span> wb_message:
+                 <span class="Statement">for</span> k_ <span class="Statement">in</span> w_n:
+                     key     = k + k_ + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + sp
+                     pen_w  += tf.reduce_sum(tf.square(self.m[key]))
+                 <span class="Statement">if</span> self.regularize_bias:
+                    <span class="Statement">for</span> k_ <span class="Statement">in</span> b_n:
+                        key     = k + k_ + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + sp
+                        pen_b  += tf.reduce_sum(tf.square(self.m[key]))
+                 <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer[k]):
+                     pen_w += tf.reduce_sum(tf.square(self.m[k+<span class="Constant">'</span><span class="Constant">w_</span><span class="Constant">'</span>+sp][l]))
+                     <span class="Statement">if</span> self.regularize_bias:
+                        pen_b += tf.reduce_sum(tf.square(self.m[k+<span class="Constant">'</span><span class="Constant">b_</span><span class="Constant">'</span>+sp][l]))
+         penalty = tf.add(self.lambda_reg*pen_w,penalty)
+         penalty = tf.add(self.lambda_reg*pen_b,penalty)
+      <span class="Statement">return</span> penalty
+
+  <span class="Statement">def</span> <span class="Identifier">get_pentalty</span>(self):
+      (penalty_bop,penalty_bo,penalty_bo_rcut,
+          penalty_be_cut,penalty_be,
+          penalty_s,penalty_s_bo,
+          penalty_rcut,rc_bo,
+          penalty_vdw) = self.sess.run([self.penalty_bop,self.penalty_bo,self.penalty_bo_rcut,
+                                         self.penalty_be_cut,self.penalty_be,
+                                         self.penalty_s,self.penalty_s_bo,self.penalty_rcut,self.rc_bo,
+                                         self.penalty_vdw],
+                                        feed_dict=self.feed_dict)
+      rcut = self.rcut
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Constant">'</span>)
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-                                                                      -</span><span class="Constant">'</span>)
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-                         Penalty Information                          -</span><span class="Constant">'</span>)
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-                                                                      -</span><span class="Constant">'</span>)
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_bop:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">bop cutoff penalty of                             {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_bop[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_bo:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">BO state penalty of                               {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_bo[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_bo_rcut:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Differency between rcut and rcut-bo Penalty of    {:5s}: {:6.4f} {:6.4f} {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_bo_rcut[bd],rc_bo[bd],rcut[bd]))
+          <span class="Comment"># if bd in penalty_esi:</span>
+          <span class="Comment">#    print('Differency between bosi and esi Penalty of      {:5s}: {:6.4f}'.format(bd,penalty_esi[bd]))</span>
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_be_cut:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Bond-Energy at radius cutoff penalty of           {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_be_cut[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_be:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Bond-Energy fluctuation penalty of                {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_be[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_s_bo:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Penalty of Bond-Order should greater than zero of {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_s_bo[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_s:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Anti-bond penalty of                              {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_s[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_rcut:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Bond-Order at radius cutoff penalty of            {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_rcut[bd]))
+          <span class="Statement">if</span> bd <span class="Statement">in</span> penalty_vdw:
+             <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">Vdw fluctuation penalty of                        {:5s}: {:6.4f}</span><span class="Constant">'</span>.format(bd,penalty_vdw[bd]))
+      <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">'</span>)
+      <span class="Comment"># self.log_energies()</span>
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->
