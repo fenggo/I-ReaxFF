@@ -1,0 +1,1475 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>/media/feng/irnn/I-ReaxFF/irff/irff_np.py.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="python">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.Todo { color: #000000; background-color: #ffff00; padding-bottom: 1px; }
+.Constant { color: #c00000; }
+.Special { color: #c000c0; }
+.Identifier { color: #008080; }
+.Statement { color: #af5f00; }
+.PreProc { color: #c000c0; }
+.Type { color: #008000; }
+.Comment { color: #0000c0; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="PreProc">from</span> __future__ <span class="PreProc">import</span> print_function
+<span class="PreProc">from</span> .reaxfflib <span class="PreProc">import</span> read_lib,write_lib
+<span class="PreProc">from</span> ase <span class="PreProc">import</span> Atoms
+<span class="PreProc">from</span> ase.io <span class="PreProc">import</span> read,write
+<span class="PreProc">import</span> numpy <span class="Statement">as</span> np
+<span class="PreProc">from</span> .qeq <span class="PreProc">import</span> qeq
+<span class="PreProc">from</span> .RadiusCutOff <span class="PreProc">import</span> setRcut
+<span class="PreProc">import</span> json <span class="Statement">as</span> js
+<span class="PreProc">from</span> ase.calculators.calculator <span class="PreProc">import</span> Calculator, all_changes
+<span class="Comment"># tf.compat.v1.enable_eager_execution()</span>
+
+
+<span class="Statement">try</span>:
+   <span class="PreProc">from</span> .neighbor <span class="PreProc">import</span> get_neighbors,get_pangle,get_ptorsion,get_phb
+<span class="Statement">except</span> <span class="Type">ImportError</span>:
+   <span class="PreProc">from</span> .neighbors <span class="PreProc">import</span> get_neighbors,get_pangle,get_ptorsion,get_phb
+
+
+<span class="Statement">def</span> <span class="Identifier">rtaper</span>(r,rmin=<span class="Constant">0.001</span>,rmax=<span class="Constant">0.002</span>):
+    <span class="Constant">'''</span><span class="Constant"> taper function for bond-order </span><span class="Constant">'''</span>
+    r3    = np.where(r&lt;rmin,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment"># r &gt; rmax then 1 else 0</span>
+
+    ok    = np.logical_and(r&lt;=rmax,r&gt;rmin)      <span class="Comment"># rmin &lt; r &lt; rmax  = r else 0</span>
+    r2    = np.where(ok,r,<span class="Constant">0.0</span>)
+    r20   = np.where(ok,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)
+
+    rterm = np.divide(<span class="Constant">1.0</span>,np.power(rmax-rmin,<span class="Constant">3</span>))
+    rm    = rmax*r20
+    rd    = rm - r2
+    trm1  = rm + <span class="Constant">2.0</span>*r2 - <span class="Constant">3.0</span>*rmin*r20
+    r22   = rterm*rd*rd*trm1
+    <span class="Statement">return</span> r22+r3
+
+
+<span class="Statement">def</span> <span class="Identifier">taper</span>(r,rmin=<span class="Constant">0.001</span>,rmax=<span class="Constant">0.002</span>):
+    <span class="Constant">'''</span><span class="Constant"> taper function for bond-order </span><span class="Constant">'''</span>
+    r3    = np.where(r&gt;rmax,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>) <span class="Comment"># r &gt; rmax then 1 else 0</span>
+
+    ok    = np.logical_and(r&lt;=rmax,r&gt;rmin)      <span class="Comment"># rmin &lt; r &lt; rmax  = r else 0</span>
+    r2    = np.where(ok,r,<span class="Constant">0.0</span>)
+    r20   = np.where(ok,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)
+
+    rterm = np.divide(<span class="Constant">1.0</span>,np.power(rmin-rmax,<span class="Constant">3</span>)+<span class="Constant">0.0000001</span>)
+    rm    = rmin*r20
+    rd    = rm - r2
+    trm1  = rm + <span class="Constant">2.0</span>*r2 - <span class="Constant">3.0</span>*rmax*r20
+    r22   = rterm*rd*rd*trm1
+    <span class="Statement">return</span> r22+r3
+
+
+<span class="Statement">def</span> <span class="Identifier">fvr</span>(x):
+    xi  = np.expand_dims(x,axis=<span class="Constant">0</span>)
+    xj  = np.expand_dims(x,axis=<span class="Constant">1</span>)
+    vr  = xj - xi
+    <span class="Statement">return</span> vr
+
+
+<span class="Statement">def</span> <span class="Identifier">fr</span>(vr):
+    R   = np.sqrt(np.sum(vr*vr,axis=<span class="Constant">2</span>))
+    <span class="Statement">return</span> R
+
+
+<span class="Statement">def</span> <span class="Identifier">sigmoid</span>(x):
+    s = <span class="Constant">1.0</span>/(<span class="Constant">1.0</span>+np.exp(-x))
+    <span class="Statement">return</span> s
+
+
+<span class="Statement">def</span> <span class="Identifier">relu</span>(x):
+    <span class="Statement">return</span> np.where(x&gt;<span class="Constant">0.0</span>,x,<span class="Constant">0.0</span>)
+
+
+
+<span class="Statement">class</span> <span class="Identifier">IRFF_NP</span>(<span class="Identifier">object</span>):
+  <span class="Constant">'''</span><span class="Constant">Intelligent Machine-Learning ASE calculator</span><span class="Constant">'''</span>
+  name = <span class="Constant">&quot;</span><span class="Constant">IRFF-NP</span><span class="Constant">&quot;</span>
+  implemented_properties = [<span class="Constant">&quot;</span><span class="Constant">energy</span><span class="Constant">&quot;</span>, <span class="Constant">&quot;</span><span class="Constant">forces</span><span class="Constant">&quot;</span>] <span class="Comment"># , &quot;stress&quot;]</span>
+  <span class="Statement">def</span> <span class="Identifier">__init__</span>(self,atoms=<span class="Identifier">None</span>,
+               libfile=<span class="Constant">'</span><span class="Constant">ffield</span><span class="Constant">'</span>,
+               vdwcut=<span class="Constant">10.0</span>,
+               nn=<span class="Identifier">False</span>,<span class="Comment"># vdwnn=False,</span>
+               messages=<span class="Constant">1</span>,
+               hbshort=<span class="Constant">6.75</span>,hblong=<span class="Constant">7.5</span>,
+               mol=<span class="Identifier">None</span>,label=<span class="Constant">&quot;</span><span class="Constant">IRFF</span><span class="Constant">&quot;</span>, **kwargs):
+      <span class="Comment"># Calculator.__init__(self,label=label, **kwargs)</span>
+      self.atoms        = atoms
+      self.cell         = atoms.get_cell()
+      self.atom_name    = self.atoms.get_chemical_symbols()
+      self.natom        = <span class="Identifier">len</span>(self.atom_name)
+      self.spec         = []
+      self.nn           = nn
+      <span class="Comment"># self.vdwnn      = vdwnn</span>
+      self.EnergyFunction = <span class="Constant">0</span>
+      self.messages     = messages
+      self.safety_value = <span class="Constant">0.000000001</span>
+      self.label        = label
+
+      self.p_ang  = [<span class="Constant">'</span><span class="Constant">theta0</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val7</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen1</span><span class="Constant">'</span>]
+      self.p_hb   = [<span class="Constant">'</span><span class="Constant">rohb</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Dehb</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hb1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">hb2</span><span class="Constant">'</span>]
+      self.p_tor  = [<span class="Constant">'</span><span class="Constant">V1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>]
+
+      <span class="Statement">if</span> libfile.endswith(<span class="Constant">'</span><span class="Constant">.json</span><span class="Constant">'</span>):
+         lf = <span class="Identifier">open</span>(libfile,<span class="Constant">'</span><span class="Constant">r</span><span class="Constant">'</span>)
+         j = js.load(lf)
+         self.p              = j[<span class="Constant">'</span><span class="Constant">p</span><span class="Constant">'</span>]
+         m                   = j[<span class="Constant">'</span><span class="Constant">m</span><span class="Constant">'</span>]
+         self.MolEnergy_     = j[<span class="Constant">'</span><span class="Constant">MolEnergy</span><span class="Constant">'</span>]
+         self.messages       = j[<span class="Constant">'</span><span class="Constant">messages</span><span class="Constant">'</span>]
+         self.EnergyFunction = j[<span class="Constant">'</span><span class="Constant">EnergyFunction</span><span class="Constant">'</span>]
+         self.MessageFunction= j[<span class="Constant">'</span><span class="Constant">MessageFunction</span><span class="Constant">'</span>]
+         self.VdwFunction    = j[<span class="Constant">'</span><span class="Constant">VdwFunction</span><span class="Constant">'</span>]
+         self.bo_layer       = j[<span class="Constant">'</span><span class="Constant">bo_layer</span><span class="Constant">'</span>]
+         self.mf_layer       = j[<span class="Constant">'</span><span class="Constant">mf_layer</span><span class="Constant">'</span>]
+         self.be_layer       = j[<span class="Constant">'</span><span class="Constant">be_layer</span><span class="Constant">'</span>]
+         self.vdw_layer      = j[<span class="Constant">'</span><span class="Constant">vdw_layer</span><span class="Constant">'</span>]
+         <span class="Statement">if</span> <span class="Statement">not</span> self.vdw_layer <span class="Statement">is</span> <span class="Identifier">None</span>:
+            self.vdwnn       = <span class="Identifier">True</span>
+         <span class="Statement">else</span>:
+            self.vdwnn       = <span class="Identifier">False</span>
+         rcut                = j[<span class="Constant">'</span><span class="Constant">rcut</span><span class="Constant">'</span>]
+         rcuta               = j[<span class="Constant">'</span><span class="Constant">rcutBond</span><span class="Constant">'</span>]
+         lf.close()
+         self.init_bonds()
+
+         <span class="Statement">if</span> mol <span class="Statement">is</span> <span class="Identifier">None</span>:
+            self.emol = <span class="Constant">0.0</span>
+         <span class="Statement">else</span>:
+            mol_ = mol.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)[<span class="Constant">0</span>]
+            <span class="Statement">if</span> mol_ <span class="Statement">in</span> self.MolEnergy_:
+               self.emol = self.MolEnergy_[mol_]
+            <span class="Statement">else</span>:
+               self.emol = <span class="Constant">0.0</span>
+      <span class="Statement">else</span>:
+         self.p,zpe_,self.spec,self.bonds,self.offd,self.Angs,self.torp,self.Hbs= <span class="Special">\</span>
+                       read_lib(libfile=libfile,zpe=<span class="Identifier">False</span>)
+         m                = <span class="Identifier">None</span>
+         self.bo_layer    = <span class="Identifier">None</span>
+         self.emol        = <span class="Constant">0.0</span>
+         rcut             = <span class="Identifier">None</span>
+         rcuta            = <span class="Identifier">None</span>
+         self.vdwnn       = <span class="Identifier">False</span>
+
+      <span class="Statement">if</span> m <span class="Statement">is</span> <span class="Identifier">None</span>:
+         self.nn=<span class="Identifier">False</span>
+
+      <span class="Statement">for</span> sp <span class="Statement">in</span> self.atom_name:
+          <span class="Statement">if</span> sp <span class="Statement">not</span> <span class="Statement">in</span> self.spec:
+             self.spec.append(sp)
+
+      self.torp      = self.checkTors(self.torp)
+      self.check_tors(self.p_tor)
+      self.botol     = <span class="Constant">0.01</span>*self.p[<span class="Constant">'</span><span class="Constant">cutoff</span><span class="Constant">'</span>]
+      self.atol      = self.p[<span class="Constant">'</span><span class="Constant">acut</span><span class="Constant">'</span>]   <span class="Comment"># atol</span>
+      self.hbtol     = self.p[<span class="Constant">'</span><span class="Constant">hbtol</span><span class="Constant">'</span>]  <span class="Comment"># hbtol</span>
+      self.hbshort   = hbshort
+      self.hblong    = hblong
+      self.set_rcut(rcut,rcuta)
+      self.vdwcut    = vdwcut
+      d              = np.ones([self.natom,self.natom],dtype=np.float32)
+      self.d1        = np.triu(d,k=<span class="Constant">0</span>)
+      self.d2        = np.triu(d,k=<span class="Constant">1</span>)
+      self.eye       = <span class="Constant">1.0</span> - np.eye(self.natom,dtype=np.float32)
+      self.check_offd()
+      self.check_hb()
+      self.get_rcbo()
+      self.set_p(m,self.bo_layer)
+      self.Qe= qeq(p=self.p,atoms=self.atoms)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_charge</span>(self,cell,positions):
+      self.Qe.calc(cell,positions)
+      self.q   = self.Qe.q[:-<span class="Constant">1</span>]
+      qij      = np.expand_dims(self.q,axis=<span class="Constant">0</span>)*np.expand_dims(self.q,axis=<span class="Constant">1</span>)
+      self.qij = qij*<span class="Constant">14.39975840</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_neighbor</span>(self,cell,rcell,positions):
+      xi    = np.expand_dims(positions,axis=<span class="Constant">0</span>)
+      xj    = np.expand_dims(positions,axis=<span class="Constant">1</span>)
+      vr    = xj-xi
+
+      vrf   = np.dot(vr,rcell)
+      vrf   = np.where(vrf-<span class="Constant">0.5</span>&gt;<span class="Constant">0</span>,vrf-<span class="Constant">1.0</span>,vrf)
+      vrf   = np.where(vrf+<span class="Constant">0.5</span>&lt;<span class="Constant">0</span>,vrf+<span class="Constant">1.0</span>,vrf)
+      vr    = np.dot(vrf,cell)
+      r     = np.sqrt(np.sum(vr*vr,axis=<span class="Constant">2</span>))
+
+      angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
+
+      self.angs  = np.array(angs)
+      self.tors  = np.array(tors)
+      self.hbs   = np.array(hbs)
+
+      self.nang  = <span class="Identifier">len</span>(self.angs)
+      self.ntor  = <span class="Identifier">len</span>(self.tors)
+      self.nhb   = <span class="Identifier">len</span>(self.hbs)
+
+      <span class="Statement">if</span> self.nang&gt;<span class="Constant">0</span>:
+         self.angi  = self.angs[:,<span class="Constant">0</span>] <span class="Comment"># np.expand_dims(self.angs[:,0],axis=1)</span>
+         self.angj  = self.angs[:,<span class="Constant">1</span>] <span class="Comment"># np.expand_dims(self.angs[:,1],axis=1)</span>
+         self.angk  = self.angs[:,<span class="Constant">2</span>] <span class="Comment"># np.expand_dims(self.angs[:,2],axis=1)</span>
+
+         <span class="Comment"># self.angij = np.transpose([self.angs[:,0],self.angs[:,1]])</span>
+         <span class="Comment"># self.angjk = np.transpose([self.angs[:,1],self.angs[:,2]])</span>
+         <span class="Comment"># self.angik = np.transpose([self.angs[:,0],self.angs[:,2]])</span>
+
+      <span class="Statement">if</span> self.ntor&gt;<span class="Constant">0</span>:
+         self.tori  = self.tors[:,<span class="Constant">0</span>] <span class="Comment"># np.expand_dims(self.tors[:,0],axis=1)</span>
+         self.torj  = self.tors[:,<span class="Constant">1</span>] <span class="Comment"># np.expand_dims(self.tors[:,1],axis=1)</span>
+         self.tork  = self.tors[:,<span class="Constant">2</span>] <span class="Comment"># np.expand_dims(self.tors[:,2],axis=1)</span>
+         self.torl  = self.tors[:,<span class="Constant">3</span>] <span class="Comment"># np.expand_dims(self.tors[:,3],axis=1)</span>
+
+         <span class="Comment"># self.torij = np.transpose([self.tors[:,0],self.tors[:,1]])</span>
+         <span class="Comment"># self.torjk = np.transpose([self.tors[:,1],self.tors[:,2]])</span>
+         <span class="Comment"># self.torkl = np.transpose([self.tors[:,2],self.tors[:,3]])</span>
+
+      <span class="Statement">if</span> self.nhb&gt;<span class="Constant">0</span>:
+         self.hbi     = self.hbs[:,<span class="Constant">0</span>] <span class="Comment"># np.expand_dims(self.hbs[:,0],axis=1)</span>
+         self.hbj     = self.hbs[:,<span class="Constant">1</span>] <span class="Comment"># np.expand_dims(self.hbs[:,1],axis=1)</span>
+         self.hbk     = self.hbs[:,<span class="Constant">2</span>] <span class="Comment"># np.expand_dims(self.hbs[:,2],axis=1)</span>
+         <span class="Comment"># self.hbij  = np.transpose([self.hbs[:,0],self.hbs[:,1]])</span>
+         <span class="Comment"># self.hbjk  = np.transpose([self.hbs[:,1],self.hbs[:,2]])</span>
+
+      P_ = get_pangle(self.p,self.atom_name,<span class="Identifier">len</span>(self.p_ang),self.p_ang,self.nang,angs)
+      self.P.update(P_)
+
+      P_ = get_ptorsion(self.p,self.atom_name,<span class="Identifier">len</span>(self.p_tor),self.p_tor,self.ntor,tors)
+      self.P.update(P_)
+
+      P_ = get_phb(self.p,self.atom_name,<span class="Identifier">len</span>(self.p_hb),self.p_hb,self.nhb,hbs)
+      self.P.update(P_)
+
+
+  <span class="Statement">def</span> <span class="Identifier">set_rcut</span>(self,rcut,rcuta):
+      rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,<span class="Identifier">None</span>)
+      self.rcut  = rcut_    <span class="Comment">## bond order compute cutoff</span>
+      self.rcuta = rcuta_  <span class="Comment">## angle term cutoff</span>
+
+      self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float32)
+      self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float32)
+      self.re = np.zeros([self.natom,self.natom],dtype=np.float32)
+      <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+          <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+              bd = self.atom_name[i] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[j]
+              <span class="Statement">if</span> i!=j:
+                 self.r_cut[i][j]  = self.rcut[bd]
+                 self.r_cuta[i][j] = self.rcuta[bd]
+                 self.re[i][j]     = re_[bd]
+                 <span class="Comment"># print(i,j,bd,re_[bd])</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_rcbo</span>(self):
+      <span class="Constant">'''</span><span class="Constant"> get cut-offs for individual bond </span><span class="Constant">'''</span>
+      self.rc_bo = {}
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:
+          b= bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          ofd=bd <span class="Statement">if</span> b[<span class="Constant">0</span>]!=b[<span class="Constant">1</span>] <span class="Statement">else</span> b[<span class="Constant">0</span>]
+
+          log_ = np.log((self.botol/(<span class="Constant">1.0</span>+self.botol)))
+          <span class="Comment"># rr = log_/self.p['bo1_'+bd] </span>
+          self.rc_bo[bd]=self.p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+ofd]*np.power(log_/self.p[<span class="Constant">'</span><span class="Constant">bo1_</span><span class="Constant">'</span>+bd],<span class="Constant">1.0</span>/self.p[<span class="Constant">'</span><span class="Constant">bo2_</span><span class="Constant">'</span>+bd])
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_bondorder_uc</span>(self):
+      self.frc = np.where(np.logical_or(self.r&gt;self.rcbo,self.r&lt;=<span class="Constant">0.001</span>), <span class="Constant">0.0</span>,<span class="Constant">1.0</span>)
+
+      self.bodiv1 = self.r/self.P[<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>]
+      self.bopow1 = np.power(self.bodiv1,self.P[<span class="Constant">'</span><span class="Constant">bo2</span><span class="Constant">'</span>])
+      self.eterm1 = (<span class="Constant">1.0</span>+self.botol)*np.exp(self.P[<span class="Constant">'</span><span class="Constant">bo1</span><span class="Constant">'</span>]*self.bopow1)*self.frc <span class="Comment"># consist with GULP</span>
+
+      self.bodiv2 = self.r/self.P[<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>]
+      self.bopow2 = np.power(self.bodiv2,self.P[<span class="Constant">'</span><span class="Constant">bo4</span><span class="Constant">'</span>])
+      self.eterm2 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">bo3</span><span class="Constant">'</span>]*self.bopow2)*self.frc
+
+      self.bodiv3 = self.r/self.P[<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>]
+      self.bopow3 = np.power(self.bodiv3,self.P[<span class="Constant">'</span><span class="Constant">bo6</span><span class="Constant">'</span>])
+      self.eterm3 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">bo5</span><span class="Constant">'</span>]*self.bopow3)*self.frc
+
+      <span class="Statement">if</span> self.nn:
+         fsi_        = self.f_nn(<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,[-self.eterm1],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpi_        = self.f_nn(<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,[-self.eterm2],layer=self.bo_layer[<span class="Constant">1</span>])
+         fpp_        = self.f_nn(<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>,[-self.eterm3],layer=self.bo_layer[<span class="Constant">1</span>])
+
+         self.bop_si = fsi_ <span class="Comment">#*self.frc #*self.eterm1</span>
+         self.bop_pi = fpi_ <span class="Comment">#*self.frc #*self.eterm2</span>
+         self.bop_pp = fpp_ <span class="Comment">#*self.frc #*self.eterm3</span>
+      <span class="Statement">else</span>:
+         self.bop_si = taper(self.eterm1,rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*(self.eterm1-self.botol) <span class="Comment"># consist with GULP</span>
+         self.bop_pi = taper(self.eterm2,rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*self.eterm2
+         self.bop_pp = taper(self.eterm3,rmin=self.botol,rmax=<span class="Constant">2.0</span>*self.botol)*self.eterm3
+      self.bop    = self.bop_si+self.bop_pi+self.bop_pp
+
+      self.Deltap= np.sum(self.bop,axis=<span class="Constant">1</span>)
+      <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+         self.D_si = [np.sum(self.bop_si,axis=<span class="Constant">1</span>)]
+         self.D_pi = [np.sum(self.bop_pi,axis=<span class="Constant">1</span>)]
+         self.D_pp = [np.sum(self.bop_pp,axis=<span class="Constant">1</span>)]
+
+  <span class="Statement">def</span> <span class="Identifier">f1</span>(self):
+      Dv  = np.expand_dims(self.Deltap - self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>],axis=<span class="Constant">0</span>)
+      self.f2(Dv)
+      self.f3(Dv)
+      VAL      = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>],axis=<span class="Constant">1</span>)
+      VALt     = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>],axis=<span class="Constant">0</span>)
+      self.f_1 = <span class="Constant">0.5</span>*(np.divide(VAL+self.f_2,  VAL+self.f_2+self.f_3)  +
+                      np.divide(VALt+self.f_2, VALt+self.f_2+self.f_3))
+
+
+  <span class="Statement">def</span> <span class="Identifier">f2</span>(self,Dv):
+      self.dexpf2  = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">boc1</span><span class="Constant">'</span>]*Dv)
+      self.f_2     = self.dexpf2 + np.transpose(self.dexpf2,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+
+
+  <span class="Statement">def</span> <span class="Identifier">f3</span>(self,Dv):
+      self.dexpf3 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">boc2</span><span class="Constant">'</span>]*Dv)
+      delta_exp   = self.dexpf3 + np.transpose(self.dexpf3,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+
+      self.f3log  = np.log(<span class="Constant">0.5</span>*delta_exp )
+      self.f_3    = (-<span class="Constant">1.0</span>/self.P[<span class="Constant">'</span><span class="Constant">boc2</span><span class="Constant">'</span>])*self.f3log
+
+
+  <span class="Statement">def</span> <span class="Identifier">f45</span>(self):
+      self.D_boc = self.Deltap - self.P[<span class="Constant">'</span><span class="Constant">valboc</span><span class="Constant">'</span>] <span class="Comment"># + self.p['val_'+atomi]</span>
+
+      self.DELTA  = np.expand_dims(self.D_boc,axis=<span class="Constant">1</span>)
+      self.DELTAt = np.transpose(self.DELTA,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+
+      self.df4 = self.P[<span class="Constant">'</span><span class="Constant">boc4</span><span class="Constant">'</span>]*np.square(self.bop)-self.DELTA
+      self.f4r = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">boc3</span><span class="Constant">'</span>]*(self.df4)+self.P[<span class="Constant">'</span><span class="Constant">boc5</span><span class="Constant">'</span>])
+
+      self.df5 = self.P[<span class="Constant">'</span><span class="Constant">boc4</span><span class="Constant">'</span>]*np.square(self.bop)-self.DELTAt
+      self.f5r = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">boc3</span><span class="Constant">'</span>]*(self.df5)+self.P[<span class="Constant">'</span><span class="Constant">boc5</span><span class="Constant">'</span>])
+
+      self.f_4 = <span class="Constant">1.0</span>/(<span class="Constant">1.0</span>+self.f4r)
+      self.f_5 = <span class="Constant">1.0</span>/(<span class="Constant">1.0</span>+self.f5r)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_bondorder</span>(self):
+      self.f1()
+      self.f45()
+
+      self.F        = self.f_1*self.f_1*self.f_4*self.f_5
+      self.bo0      = self.bop*self.f_1*self.f_4*self.f_5   <span class="Comment">#-0.001        # consistent with GULP</span>
+
+      bo_           = self.bo0 - self.atol
+      self.bo       = np.where(bo_&gt;<span class="Constant">0.0</span>,bo_,<span class="Constant">0.0</span>)      <span class="Comment">#bond-order cut-off 0.001 reaxffatol</span>
+      self.bopi     = self.bop_pi*self.F
+      self.bopp     = self.bop_pp*self.F
+      bosi_         = self.bo0 - self.bopi - self.bopp
+      self.bosi     = np.where(bosi_&gt;<span class="Constant">0.0</span>,bosi_,<span class="Constant">0.0</span>)
+      self.bso      = self.P[<span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>]*self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>]*self.bo0
+      self.Delta    = np.sum(self.bo0,axis=<span class="Constant">1</span>)
+
+
+  <span class="Statement">def</span> <span class="Identifier">f_nn</span>(self,pre,x,layer=<span class="Constant">5</span>):
+      X   = np.expand_dims(np.stack(x,axis=<span class="Constant">2</span>),<span class="Constant">2</span>)
+
+      o   = []
+      o.append(sigmoid(np.matmul(X,self.m[pre+<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>])+self.m[pre+<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>]))
+                                                                    <span class="Comment"># input layer</span>
+      <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer):                                        <span class="Comment"># hidden layer      </span>
+          o.append(sigmoid(np.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>][l])+self.m[pre+<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>][l]))
+
+      o_  = sigmoid(np.matmul(o[-<span class="Constant">1</span>],self.m[pre+<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>]) + self.m[pre+<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>])
+      out = np.squeeze(o_)                                          <span class="Comment"># output layer</span>
+      <span class="Statement">return</span> out
+
+
+  <span class="Statement">def</span> <span class="Identifier">message_passing</span>(self):
+      self.H         = []    <span class="Comment"># hiden states (or embeding states)</span>
+      self.D         = []    <span class="Comment"># degree matrix</span>
+      self.Hsi       = []
+      self.Hpi       = []
+      self.Hpp       = []
+      self.F         = []
+      self.H.append(self.bop)                   <span class="Comment"># </span>
+      self.Hsi.append(self.bop_si)              <span class="Comment">#</span>
+      self.Hpi.append(self.bop_pi)              <span class="Comment">#</span>
+      self.Hpp.append(self.bop_pp)              <span class="Comment"># </span>
+      self.D.append(self.Deltap)                <span class="Comment"># get the initial hidden state H[0]</span>
+
+      <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+          Di       = np.expand_dims(self.D[t-<span class="Constant">1</span>],axis=<span class="Constant">0</span>)*self.eye
+          Dj       = np.expand_dims(self.D[t-<span class="Constant">1</span>],axis=<span class="Constant">1</span>)*self.eye
+          <span class="Comment"># self.Fi  = self.f_nn('f',[Di,Dj,Dbi,Dbj],layer=self.mf_layer[1])</span>
+          <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+             Dsi = np.expand_dims(self.D_si[t-<span class="Constant">1</span>],axis=<span class="Constant">0</span>)*self.eye+np.expand_dims(self.D_si[t-<span class="Constant">1</span>],axis=<span class="Constant">1</span>)*self.eye
+             Dpi = np.expand_dims(self.D_pi[t-<span class="Constant">1</span>],axis=<span class="Constant">0</span>)*self.eye+np.expand_dims(self.D_pi[t-<span class="Constant">1</span>],axis=<span class="Constant">1</span>)*self.eye
+             Dpp = np.expand_dims(self.D_pp[t-<span class="Constant">1</span>],axis=<span class="Constant">0</span>)*self.eye+np.expand_dims(self.D_pp[t-<span class="Constant">1</span>],axis=<span class="Constant">1</span>)*self.eye
+             F     = self.f_nn(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t),[Dsi,Dpi,Dpp],layer=self.mf_layer[<span class="Constant">1</span>])
+             Fsi = F[:,:,<span class="Constant">0</span>]
+             Fpi = F[:,:,<span class="Constant">1</span>]
+             Fpp = F[:,:,<span class="Constant">2</span>]
+             self.F.append(F)
+             self.Hsi.append(self.Hsi[t-<span class="Constant">1</span>]*Fsi)
+             self.Hpi.append(self.Hpi[t-<span class="Constant">1</span>]*Fpi)
+             self.Hpp.append(self.Hpp[t-<span class="Constant">1</span>]*Fpp)
+          <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">2</span>:
+             Dbi   = Di  - self.H[t-<span class="Constant">1</span>]
+             Dbj   = Dj  - self.H[t-<span class="Constant">1</span>]
+             Fi    = self.f_nn(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t),[Dbj,Dbi,self.H[t-<span class="Constant">1</span>]],layer=self.mf_layer[<span class="Constant">1</span>])
+             Fj    = np.transpose(Fi,[<span class="Constant">1</span>,<span class="Constant">0</span>,<span class="Constant">2</span>])
+             F     = Fi*Fj
+             self.F.append(F)
+             Fsi   = F[:,:,<span class="Constant">0</span>]
+             Fpi   = F[:,:,<span class="Constant">1</span>]
+             Fpp   = F[:,:,<span class="Constant">2</span>]
+             self.Hsi.append(self.Hsi[t-<span class="Constant">1</span>]*Fsi)
+             self.Hpi.append(self.Hpi[t-<span class="Constant">1</span>]*Fpi)
+             self.Hpp.append(self.Hpp[t-<span class="Constant">1</span>]*Fpp)
+          <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">3</span>:
+             Dbi   = Di  - self.H[t-<span class="Constant">1</span>]
+             Dbj   = Dj  - self.H[t-<span class="Constant">1</span>]
+             Fi    = self.f_nn(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t),[Dbj,Dbi,self.H[t-<span class="Constant">1</span>]],layer=self.mf_layer[<span class="Constant">1</span>])
+             Fj    = np.transpose(Fi,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+             F     = Fi*Fj
+             self.F.append(F)
+             self.Hsi.append(self.Hsi[t-<span class="Constant">1</span>]*F)
+             self.Hpi.append(self.Hpi[t-<span class="Constant">1</span>]*F)
+             self.Hpp.append(self.Hpp[t-<span class="Constant">1</span>]*F)
+          <span class="Statement">elif</span> self.MessageFunction==<span class="Constant">4</span>:
+             Di_   = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>],axis=<span class="Constant">0</span>)*self.eye - Di
+             Dj_   = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>],axis=<span class="Constant">1</span>)*self.eye - Dj
+             Fi    = self.f_nn(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t),[Dj_,Di_],layer=self.mf_layer[<span class="Constant">1</span>])
+             Fj    = np.transpose(Fi,[<span class="Constant">1</span>,<span class="Constant">0</span>,<span class="Constant">2</span>])
+             F     = np.sqrt(Fi*Fj)
+             self.F.append(F)
+             Fsi   = F[:,:,<span class="Constant">0</span>]
+             Fpi   = F[:,:,<span class="Constant">1</span>]
+             Fpp   = F[:,:,<span class="Constant">2</span>]
+             self.Hsi.append(self.Hsi[t-<span class="Constant">1</span>]*Fsi)
+             self.Hpi.append(self.Hpi[t-<span class="Constant">1</span>]*Fpi)
+             self.Hpp.append(self.Hpp[t-<span class="Constant">1</span>]*Fpp)
+          <span class="Statement">else</span>:
+             <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  Message function not supported yet!</span><span class="Constant">'</span>)
+          self.H.append(self.Hsi[t]+self.Hpi[t]+self.Hpp[t])
+          self.D.append(np.sum(self.H[t],axis=<span class="Constant">1</span>))
+          <span class="Statement">if</span> self.MessageFunction==<span class="Constant">1</span>:
+             self.D_si.append(torch.sum(self.Hsi[t],<span class="Constant">1</span>))
+             self.D_pi.append(torch.sum(self.Hpi[t],<span class="Constant">1</span>))
+             self.D_pp.append(torch.sum(self.Hpp[t],<span class="Constant">1</span>))
+
+  <span class="Statement">def</span> <span class="Identifier">get_bondorder_nn</span>(self):
+      self.message_passing()
+      self.bosi  = self.Hsi[-<span class="Constant">1</span>]       <span class="Comment"># getting the final state</span>
+      self.bopi  = self.Hpi[-<span class="Constant">1</span>]
+      self.bopp  = self.Hpp[-<span class="Constant">1</span>]
+
+      self.bo0   = self.H[-<span class="Constant">1</span>] <span class="Comment"># self.bosi + self.bopi + self.bopp</span>
+      <span class="Comment"># self.fbo   = taper(self.bo0,rmin=self.botol,rmax=2.0*self.botol)</span>
+      self.bo    = relu(self.bo0 - self.atol*self.eye)     <span class="Comment"># bond-order cut-off 0.001 reaxffatol</span>
+      self.bso   = self.P[<span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>]*self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>]*self.bo0
+      self.Delta = np.sum(self.bo0,axis=<span class="Constant">1</span>)
+
+      self.Di    = np.expand_dims(self.Delta,axis=<span class="Constant">0</span>)*self.eye          <span class="Comment"># get energy layer</span>
+      self.Dj    = np.expand_dims(self.Delta,axis=<span class="Constant">1</span>)*self.eye
+      Dbi        = self.Di - self.bo0
+      Dbj        = self.Dj - self.bo0
+
+      <span class="Statement">if</span> self.EnergyFunction==<span class="Constant">1</span>:
+         self.esi = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[<span class="Constant">1</span>])
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">2</span>:
+         self.esi = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,[self.bosi,self.bopi,self.bopp],layer=self.be_layer[<span class="Constant">1</span>])
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">3</span>:
+         e_ = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,[self.bosi,self.bopi,self.bopp],layer=self.be_layer[<span class="Constant">1</span>])
+         self.esi = self.bo0*e_
+      <span class="Statement">elif</span> self.EnergyFunction==<span class="Constant">4</span>:
+         Fi = self.f_nn(<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,[Dbj,Dbi,self.bo0],layer=self.be_layer[<span class="Constant">1</span>])
+         Fj = np.transpose(Fi,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+         self.esi = Fi*Fj*self.bo0
+      <span class="Statement">else</span>:
+         <span class="Statement">raise</span> <span class="Type">NotImplementedError</span>(<span class="Constant">'</span><span class="Constant">-  This method is not implimented!</span><span class="Constant">'</span>)
+
+  <span class="Statement">def</span> <span class="Identifier">get_ebond</span>(self,cell,rcell,positions):
+      self.vr    = fvr(positions)
+      vrf        = np.dot(self.vr,rcell)
+
+      vrf        = np.where(vrf-<span class="Constant">0.5</span>&gt;<span class="Constant">0</span>,vrf-<span class="Constant">1.0</span>,vrf)
+      vrf        = np.where(vrf+<span class="Constant">0.5</span>&lt;<span class="Constant">0</span>,vrf+<span class="Constant">1.0</span>,vrf)
+
+      self.vr    = np.dot(vrf,cell)
+      self.r     = np.sqrt(np.sum(self.vr*self.vr,axis=<span class="Constant">2</span>)+self.safety_value)
+
+      self.get_bondorder_uc()
+
+      <span class="Statement">if</span> self.nn:
+         self.get_bondorder_nn()
+      <span class="Statement">else</span>:
+         self.get_bondorder()
+
+      self.Dv    = self.Delta - self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>]
+      self.Dpi   = np.sum(self.bopi+self.bopp,axis=<span class="Constant">1</span>)
+
+      self.so    = np.sum(self.P[<span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>]*self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>]*self.bo0,axis=<span class="Constant">1</span>)
+      self.fbo   = taper(self.bo0,rmin=self.atol,rmax=<span class="Constant">2.0</span>*self.atol)
+      self.fhb   = taper(self.bo0,rmin=self.hbtol,rmax=<span class="Constant">2.0</span>*self.hbtol)
+
+      <span class="Statement">if</span> self.EnergyFunction&gt;=<span class="Constant">1</span>: <span class="Comment"># or self.EnergyFunction==2 or self.EnergyFunction==3:</span>
+         self.ebond = - self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>]*self.esi
+      <span class="Comment"># elif self.EnergyFunction==4:</span>
+      <span class="Comment">#    self.sieng =   self.P['Desi']*self.esi*self.bosi</span>
+      <span class="Comment">#    self.pieng =   self.P['Depi']*self.esi*self.bopi</span>
+      <span class="Comment">#    self.ppeng =   self.P['Depp']*self.esi*self.bopp</span>
+      <span class="Comment">#    self.ebond = - self.sieng - self.pieng - self.ppeng</span>
+      <span class="Statement">else</span>:
+         <span class="Statement">if</span> self.nn:
+            self.sieng = np.multiply(self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>],self.esi)
+         <span class="Statement">else</span>:
+            self.powb  = np.power(self.bosi+self.safety_value,self.P[<span class="Constant">'</span><span class="Constant">be2</span><span class="Constant">'</span>])
+            self.expb  = np.exp(np.multiply(self.P[<span class="Constant">'</span><span class="Constant">be1</span><span class="Constant">'</span>],<span class="Constant">1.0</span>-self.powb))
+            self.sieng = self.P[<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>]*self.bosi*self.expb
+
+         self.pieng = np.multiply(self.P[<span class="Constant">'</span><span class="Constant">Depi</span><span class="Constant">'</span>],self.bopi)
+         self.ppeng = np.multiply(self.P[<span class="Constant">'</span><span class="Constant">Depp</span><span class="Constant">'</span>],self.bopp)
+         self.ebond = - self.sieng - self.pieng - self.ppeng
+      self.Ebond = <span class="Constant">0.5</span>*np.sum(self.ebond)
+      <span class="Statement">return</span> self.Ebond
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_elone</span>(self):
+      self.NLPOPT  = <span class="Constant">0.5</span>*(self.P[<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>] - self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>])
+
+      <span class="Comment"># if self.nn:</span>
+      <span class="Comment">#    self.Delta_e = 0.5*(self.P['vale'] - self.Delta)</span>
+      <span class="Comment">#    self.nlp     = self.Delta_e</span>
+      <span class="Comment"># else:</span>
+      self.Delta_e = <span class="Constant">0.5</span>*(self.Delta - self.P[<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>])
+      self.DE      = relu(-np.ceil(self.Delta_e))  <span class="Comment"># number of lone pair electron</span>
+      self.nlp     = self.DE + np.exp(-self.P[<span class="Constant">'</span><span class="Constant">lp1</span><span class="Constant">'</span>]*<span class="Constant">4.0</span>*np.square(<span class="Constant">1.0</span>+self.Delta_e+self.DE))
+
+      self.Delta_lp= self.NLPOPT-self.nlp
+      self.Dlp     = self.Delta - self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>] - self.Delta_lp
+      self.Dpil    = np.sum(np.expand_dims(self.Dlp,axis=<span class="Constant">0</span>)*(self.bopi+self.bopp),<span class="Constant">1</span>)
+
+      self.explp   = <span class="Constant">1.0</span>+np.exp(-self.P[<span class="Constant">'</span><span class="Constant">lp3</span><span class="Constant">'</span>]*self.Delta_lp)
+      self.elone   = self.P[<span class="Constant">'</span><span class="Constant">lp2</span><span class="Constant">'</span>]*self.Delta_lp/self.explp
+      self.Elone   = np.sum(self.elone)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_eover</span>(self):
+      self.lpcorr= self.Delta_lp/(<span class="Constant">1.0</span>+self.P[<span class="Constant">'</span><span class="Constant">ovun3</span><span class="Constant">'</span>]*np.exp(self.P[<span class="Constant">'</span><span class="Constant">ovun4</span><span class="Constant">'</span>]*self.Dpil))
+      self.Delta_lpcorr = self.Dv - self.lpcorr
+
+      self.otrm1 = <span class="Constant">1.0</span>/(self.Delta_lpcorr+self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>])
+      self.otrm2 = <span class="Constant">1.0</span>/(<span class="Constant">1.0</span>+np.exp(self.P[<span class="Constant">'</span><span class="Constant">ovun2</span><span class="Constant">'</span>]*self.Delta_lpcorr))
+      self.eover = self.so*self.otrm1*self.Delta_lpcorr*self.otrm2
+      self.Eover = np.sum(self.eover)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_eunder</span>(self):
+      self.expeu1 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">ovun6</span><span class="Constant">'</span>]*self.Delta_lpcorr)
+      self.eu1    = sigmoid(self.P[<span class="Constant">'</span><span class="Constant">ovun2</span><span class="Constant">'</span>]*self.Delta_lpcorr)
+
+      self.expeu3 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">ovun8</span><span class="Constant">'</span>]*self.Dpil)
+      self.eu2    = <span class="Constant">1.0</span>/(<span class="Constant">1.0</span>+self.P[<span class="Constant">'</span><span class="Constant">ovun7</span><span class="Constant">'</span>]*self.expeu3)
+      self.eunder = -self.P[<span class="Constant">'</span><span class="Constant">ovun5</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>-self.expeu1)*self.eu1*self.eu2
+      self.Eunder = np.sum(self.eunder)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_theta</span>(self):
+      Rij = self.r[self.angi,self.angj]
+      Rjk = self.r[self.angj,self.angk]
+      Rik = self.r[self.angi,self.angk]
+
+      Rij2= Rij*Rij
+      Rjk2= Rjk*Rjk
+      Rik2= Rik*Rik
+
+      self.cos_theta = np.squeeze((Rij2+Rjk2-Rik2)/(<span class="Constant">2.0</span>*Rij*Rjk))
+      cos_ = np.where(self.cos_theta&lt;-<span class="Constant">0.9999999999</span>,-<span class="Constant">0.9999999999</span>,self.cos_theta)
+      cos_ = np.where(self.cos_theta&gt;<span class="Constant">0.9999999999</span>,<span class="Constant">0.9999999999</span>,cos_)
+      self.theta     = np.arccos(cos_)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_theta0</span>(self,dang):
+      self.dang  = dang
+      self.sbo   = np.squeeze(self.Dpi[self.angj])
+      self.pbo   = np.squeeze(self.PBO[self.angj])
+      rnlp       = np.squeeze(self.nlp[self.angj])
+
+      <span class="Comment"># if self.nn:</span>
+      <span class="Comment">#    SBO   = self.sbo </span>
+      <span class="Comment">#    self.SBO = SBO</span>
+      <span class="Comment"># else:</span>
+      SBO   = self.sbo - (<span class="Constant">1.0</span>-self.pbo)*(dang+self.P[<span class="Constant">'</span><span class="Constant">val8</span><span class="Constant">'</span>]*rnlp)
+      self.SBO = SBO
+
+      ok    = np.logical_and(SBO&lt;=<span class="Constant">1.0</span>,SBO&gt;<span class="Constant">0.0</span>)
+      S1    = np.where(ok,SBO,<span class="Constant">0.0</span>)                             <span class="Comment">#  0&lt; sbo &lt; 1                  </span>
+      SBO01 = np.where(ok,np.power(S1,self.P[<span class="Constant">'</span><span class="Constant">val9</span><span class="Constant">'</span>]),<span class="Constant">0.0</span>)
+
+      ok    = np.logical_and(SBO&lt;<span class="Constant">2.0</span>,SBO&gt;<span class="Constant">1.0</span>)
+      S2    = np.where(ok,SBO,<span class="Constant">0.0</span>)
+      F2    = np.where(ok,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)                              <span class="Comment">#  1&lt; sbo &lt;2</span>
+      S2    = <span class="Constant">2.0</span>*F2-S2
+      SBO12 = np.where(ok,<span class="Constant">2.0</span>-np.power(S2,self.P[<span class="Constant">'</span><span class="Constant">val9</span><span class="Constant">'</span>]),<span class="Constant">0.0</span>)  <span class="Comment">#  1&lt; sbo &lt;2</span>
+      SBO2  = np.where(SBO&gt;<span class="Constant">2.0</span>,<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)                         <span class="Comment">#     sbo &gt;2</span>
+
+      self.SBO3  = SBO01+SBO12+<span class="Constant">2.0</span>*SBO2
+      theta_     = self.P[<span class="Constant">'</span><span class="Constant">theta0</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>-np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val10</span><span class="Constant">'</span>]*(<span class="Constant">2.0</span>-self.SBO3)))
+      <span class="Comment">#if self.nn:</span>
+      <span class="Comment">#   thet_  = self.P['theta0']*(1.0-np.exp(-self.P['val10']*(2.0-self.SBO3)))</span>
+      <span class="Comment">#else:</span>
+      thet_      = <span class="Constant">180.0</span> - self.P[<span class="Constant">'</span><span class="Constant">theta0</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>-np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val10</span><span class="Constant">'</span>]*(<span class="Constant">2.0</span>-self.SBO3)))
+      self.thet0 = thet_/<span class="Constant">57.29577951</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_eangle</span>(self):
+      self.Dang  = self.Delta - self.P[<span class="Constant">'</span><span class="Constant">valang</span><span class="Constant">'</span>]
+      self.boaij = np.squeeze(self.bo[self.angi,self.angj])
+      self.boajk = np.squeeze(self.bo[self.angj,self.angk])
+      fij        = self.fbo[self.angi,self.angj]
+      fjk        = self.fbo[self.angj,self.angk]
+      self.fijk  = np.squeeze(fij*fjk)
+
+      dang       = np.squeeze(self.Dang[self.angj])
+      PBOpow     = -np.power(self.bo+self.safety_value,<span class="Constant">8</span>)  <span class="Comment"># bo0</span>
+      PBOexp     = np.exp(PBOpow)
+      self.PBO   = np.prod(PBOexp,axis=<span class="Constant">1</span>)
+
+      self.get_theta()
+      self.get_theta0(dang)
+
+      self.thet  = self.thet0-self.theta
+      self.expang= np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val2</span><span class="Constant">'</span>]*np.square(self.thet))
+      self.f7(self.boaij,self.boajk)
+      self.f8(dang)
+
+      self.eang  = self.fijk*self.f_7*self.f_8*(self.P[<span class="Constant">'</span><span class="Constant">val1</span><span class="Constant">'</span>]-self.P[<span class="Constant">'</span><span class="Constant">val1</span><span class="Constant">'</span>]*self.expang)
+      self.Eang  = np.sum(self.eang)
+
+      self.get_epenalty(self.boaij,self.boajk)
+      self.get_three_conj(self.boaij,self.boajk)
+
+
+  <span class="Statement">def</span> <span class="Identifier">f7</span>(self,boij,bojk):
+      self.expaij = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val3</span><span class="Constant">'</span>]*np.power(boij+self.safety_value,self.P[<span class="Constant">'</span><span class="Constant">val4</span><span class="Constant">'</span>]))
+      self.expajk = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val3</span><span class="Constant">'</span>]*np.power(bojk+self.safety_value,self.P[<span class="Constant">'</span><span class="Constant">val4</span><span class="Constant">'</span>]))
+      fi          = <span class="Constant">1.0</span> - self.expaij
+      fk          = <span class="Constant">1.0</span> - self.expajk
+      self.f_7    = fi*fk
+
+
+  <span class="Statement">def</span> <span class="Identifier">f8</span>(self,dang):
+      exp6      = np.exp( self.P[<span class="Constant">'</span><span class="Constant">val6</span><span class="Constant">'</span>]*dang)
+      exp7      = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">val7</span><span class="Constant">'</span>]*dang)
+      self.f_8  = self.P[<span class="Constant">'</span><span class="Constant">val5</span><span class="Constant">'</span>] - (self.P[<span class="Constant">'</span><span class="Constant">val5</span><span class="Constant">'</span>] - <span class="Constant">1.0</span>)*(<span class="Constant">2.0</span>+exp6)/(<span class="Constant">1.0</span>+exp6+exp7)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_epenalty</span>(self,boij,bojk):
+      self.f9()
+      expi      = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>]*np.square(boij-<span class="Constant">2.0</span>))
+      expk      = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>]*np.square(bojk-<span class="Constant">2.0</span>))
+      self.epen = self.P[<span class="Constant">'</span><span class="Constant">pen1</span><span class="Constant">'</span>]*self.f_9*expi*expk*self.fijk
+      self.Epen = np.sum(self.epen)
+
+
+  <span class="Statement">def</span> <span class="Identifier">f9</span>(self):
+      D         = np.squeeze(self.Dv[self.angj])
+      exp3      = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">pen3</span><span class="Constant">'</span>]*D)
+      exp4      = np.exp( self.P[<span class="Constant">'</span><span class="Constant">pen4</span><span class="Constant">'</span>]*D)
+      self.f_9  = np.divide(<span class="Constant">2.0</span>+exp3,<span class="Constant">1.0</span>+exp3+exp4)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_three_conj</span>(self,boij,bojk):
+      Dcoa_ = self.Delta-self.P[<span class="Constant">'</span><span class="Constant">valboc</span><span class="Constant">'</span>]
+      Dcoa  = Dcoa_[self.angj]
+      Di    = self.Delta[self.angi]
+      Dk    = self.Delta[self.angk]
+      self.expcoa1 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">coa2</span><span class="Constant">'</span>]*Dcoa)
+
+      self.texp0 = np.divide(self.P[<span class="Constant">'</span><span class="Constant">coa1</span><span class="Constant">'</span>],<span class="Constant">1.0</span>+self.expcoa1)
+      self.texp1 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>]*np.square(Di-boij))
+      self.texp2 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>]*np.square(Dk-bojk))
+      self.texp3 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>]*np.square(boij-<span class="Constant">1.5</span>))
+      self.texp4 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>]*np.square(bojk-<span class="Constant">1.5</span>))
+      self.etcon = self.texp0*self.texp1*self.texp2*self.texp3*self.texp4*self.fijk
+      <span class="Comment"># print(texp0.shape)</span>
+      <span class="Comment"># print(self.etcon.shape)</span>
+      self.Etcon = np.sum(self.etcon)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_torsion_angle</span>(self):
+      rij = self.r[self.tori,self.torj]
+      rjk = self.r[self.torj,self.tork]
+      rkl = self.r[self.tork,self.torl]
+
+      vrjk= self.vr[self.torj,self.tork]
+      vrkl= self.vr[self.tork,self.torl]
+
+      vrjl= vrjk + vrkl
+      rjl = np.sqrt(np.sum(np.square(vrjl),axis=<span class="Constant">1</span>))
+
+      vrij= self.vr[self.tori,self.torj]
+      vril= vrij + vrjl
+      ril = np.sqrt(np.sum(np.square(vril),axis=<span class="Constant">1</span>))
+
+      vrik= vrij + vrjk
+      rik = np.sqrt(np.sum(np.square(vrik),axis=<span class="Constant">1</span>))
+
+      rij2= np.square(rij)
+      rjk2= np.square(rjk)
+      rkl2= np.square(rkl)
+      rjl2= np.square(rjl)
+      ril2= np.square(ril)
+      rik2= np.square(rik)
+
+      c_ijk = (rij2+rjk2-rik2)/(<span class="Constant">2.0</span>*rij*rjk)
+      c2ijk = np.square(c_ijk)
+      <span class="Comment"># tijk  = np.arccos(c_ijk)</span>
+      cijk  = <span class="Constant">1.000001</span> - c2ijk
+      self.s_ijk = np.sqrt(cijk)
+
+      c_jkl = (rjk2+rkl2-rjl2)/(<span class="Constant">2.0</span>*rjk*rkl)
+      c2jkl = np.square(c_jkl)
+      cjkl  = <span class="Constant">1.000001</span> - c2jkl
+      self.s_jkl = np.sqrt(cjkl)
+
+      c_ijl = (rij2+rjl2-ril2)/(<span class="Constant">2.0</span>*rij*rjl)
+      c_kjl = (rjk2+rjl2-rkl2)/(<span class="Constant">2.0</span>*rjk*rjl)
+
+      c2kjl = np.square(c_kjl)
+      ckjl  = <span class="Constant">1.000001</span> - c2kjl
+      s_kjl = np.sqrt(ckjl)
+
+      fz    = rij2+rjl2-ril2-<span class="Constant">2.0</span>*rij*rjl*c_ijk*c_kjl
+      fm    = rij*rjl*self.s_ijk*s_kjl
+
+      fm    = np.where(np.logical_and(fm&lt;=<span class="Constant">0.000001</span>,fm&gt;=-<span class="Constant">0.000001</span>),<span class="Constant">1.0</span>,fm)
+      fac   = np.where(np.logical_and(fm&lt;=<span class="Constant">0.000001</span>,fm&gt;=-<span class="Constant">0.000001</span>),<span class="Constant">0.0</span>,<span class="Constant">1.0</span>)
+      cos_w = <span class="Constant">0.5</span>*fz*fac/fm
+      <span class="Comment">#cos_w= cos_w*ccijk*ccjkl</span>
+      cos_w = np.where(cos_w&gt;<span class="Constant">0.9999999</span>,<span class="Constant">1.0</span>,cos_w)
+      self.cos_w = np.where(cos_w&lt;-<span class="Constant">0.999999</span>,-<span class="Constant">1.0</span>,cos_w)
+      self.w= np.arccos(self.cos_w)
+      self.cos2w = np.cos(<span class="Constant">2.0</span>*self.w)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_etorsion</span>(self):
+      self.get_torsion_angle()
+
+      self.botij = np.squeeze(self.bo[self.tori,self.torj])
+      self.botjk = np.squeeze(self.bo[self.torj,self.tork])
+      self.botkl = np.squeeze(self.bo[self.tork,self.torl])
+      fij        = np.squeeze(self.fbo[self.tori,self.torj])
+      fjk        = np.squeeze(self.fbo[self.torj,self.tork])
+      fkl        = np.squeeze(self.fbo[self.tork,self.torl])
+      self.fijkl = fij*fjk*fkl
+
+      Dj         = np.squeeze(self.Dang[self.torj])
+      Dk         = np.squeeze(self.Dang[self.tork])
+
+      self.f10(self.botij,self.botjk,self.botkl)
+      self.f11(Dj,Dk)
+
+      self.bopjk = np.squeeze(self.bopi[self.torj,self.tork])  <span class="Comment">#   different from reaxff manual</span>
+      self.expv2 = np.exp(self.P[<span class="Constant">'</span><span class="Constant">tor1</span><span class="Constant">'</span>]*np.square(<span class="Constant">2.0</span>-self.bopjk-self.f_11))
+      self.cos3w = np.cos(<span class="Constant">3.0</span>*self.w)
+
+      self.v1    = <span class="Constant">0.5</span>*self.P[<span class="Constant">'</span><span class="Constant">V1</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>+self.cos_w)
+      self.v2    = <span class="Constant">0.5</span>*self.P[<span class="Constant">'</span><span class="Constant">V2</span><span class="Constant">'</span>]*self.expv2*(<span class="Constant">1.0</span>-self.cos2w)
+      self.v3    = <span class="Constant">0.5</span>*self.P[<span class="Constant">'</span><span class="Constant">V3</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>+self.cos3w)
+
+      self.etor  = self.fijkl*self.f_10*self.s_ijk*self.s_jkl*(self.v1+self.v2+self.v3)
+      self.Etor  = np.sum(self.etor)
+      <span class="Comment"># print('Etor',self.etor.shape)</span>
+      self.get_four_conj(self.botij,self.botjk,self.botkl)
+
+
+  <span class="Statement">def</span> <span class="Identifier">f10</span>(self,boij,bojk,bokl):
+      exp1 = <span class="Constant">1.0</span> - np.exp(-self.P[<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>]*boij)
+      exp2 = <span class="Constant">1.0</span> - np.exp(-self.P[<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>]*bojk)
+      exp3 = <span class="Constant">1.0</span> - np.exp(-self.P[<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>]*bokl)
+      self.f_10 = exp1*exp2*exp3
+
+
+  <span class="Statement">def</span> <span class="Identifier">f11</span>(self,Dj,Dk):
+      delt      = Dj+Dk
+      f11exp3   = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">tor3</span><span class="Constant">'</span>]*delt)
+      f11exp4   = np.exp( self.P[<span class="Constant">'</span><span class="Constant">tor4</span><span class="Constant">'</span>]*delt)
+      self.f_11 = np.divide(<span class="Constant">2.0</span>+f11exp3,<span class="Constant">1.0</span>+f11exp3+f11exp4)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_four_conj</span>(self,boij,bojk,bokl):
+      exptol= np.exp(-self.P[<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>]*np.square(self.atol - <span class="Constant">1.5</span>))
+      expij = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>]*np.square(boij-<span class="Constant">1.5</span>))-exptol
+      expjk = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>]*np.square(bojk-<span class="Constant">1.5</span>))-exptol
+      expkl = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>]*np.square(bokl-<span class="Constant">1.5</span>))-exptol
+
+      self.f_12  = expij*expjk*expkl
+      self.prod  = <span class="Constant">1.0</span>+(np.square(np.cos(self.w))-<span class="Constant">1.0</span>)*self.s_ijk*self.s_jkl
+      self.efcon = self.fijkl*self.f_12*self.P[<span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>]*self.prod
+      <span class="Comment"># print('efcon',self.efcon.shape)</span>
+      self.Efcon = np.sum(self.efcon)
+
+
+  <span class="Statement">def</span> <span class="Identifier">f13</span>(self,r):
+      rr = np.power(r,self.P[<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>])+np.power(np.divide(<span class="Constant">1.0</span>,self.P[<span class="Constant">'</span><span class="Constant">gammaw</span><span class="Constant">'</span>]),self.P[<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>])
+      f_13 = np.power(rr,np.divide(<span class="Constant">1.0</span>,self.P[<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>]))
+      <span class="Statement">return</span> f_13
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_tap</span>(self,r):
+      tpc = <span class="Constant">1.0</span>+np.divide(-<span class="Constant">35.0</span>,np.power(self.vdwcut,<span class="Constant">4.0</span>))*np.power(r,<span class="Constant">4.0</span>)+ <span class="Special">\</span>
+            np.divide(<span class="Constant">84.0</span>,np.power(self.vdwcut,<span class="Constant">5.0</span>))*np.power(r,<span class="Constant">5.0</span>)+ <span class="Special">\</span>
+            np.divide(-<span class="Constant">70.0</span>,np.power(self.vdwcut,<span class="Constant">6.0</span>))*np.power(r,<span class="Constant">6.0</span>)+ <span class="Special">\</span>
+            np.divide(<span class="Constant">20.0</span>,np.power(self.vdwcut,<span class="Constant">7.0</span>))*np.power(r,<span class="Constant">7.0</span>)
+      <span class="Statement">if</span> self.vdwnn:
+         <span class="Statement">if</span> self.VdwFunction==<span class="Constant">1</span>:
+            tp = self.f_nn(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,[r],layer=self.vdw_layer[<span class="Constant">1</span>]) <span class="Comment"># /self.P['rvdw']</span>
+         <span class="Statement">elif</span> self.VdwFunction==<span class="Constant">2</span>:
+            tpi = self.f_nn(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>,[r,self.Di,self.Dj],layer=self.vdw_layer[<span class="Constant">1</span>])
+            <span class="Comment"># tpj = self.f_nn('fv',[r,self.Dj,self.Di],layer=self.vdw_layer[1]) </span>
+            tpj = np.transpose(tpi,[<span class="Constant">1</span>,<span class="Constant">0</span>])
+            tp  = tpi*tpj
+         <span class="Statement">else</span>:
+            <span class="Statement">raise</span> <span class="Type">RuntimeError</span>(<span class="Constant">'</span><span class="Constant">-  This method not implimented!</span><span class="Constant">'</span>)
+      <span class="Statement">else</span>:
+         tp = tpc
+      <span class="Statement">return</span> tp,tpc
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_evdw</span>(self,cell):
+      self.evdw = <span class="Constant">0.0</span>
+      self.ecoul= <span class="Constant">0.0</span>
+      nc = <span class="Constant">0</span>
+      <span class="Comment">#Di_        = np.expand_dims(self.D[t-1],axis=0)*self.eye</span>
+      <span class="Comment">#Dj_        = np.expand_dims(self.D[t-1],axis=1)*self.eye</span>
+      <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+          <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+              <span class="Statement">for</span> k <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+                  cell_= cell[<span class="Constant">0</span>]*i + cell[<span class="Constant">1</span>]*j+cell[<span class="Constant">2</span>]*k
+                  vr_  = self.vr + cell_
+                  r    = np.sqrt(np.sum(np.square(vr_),axis=<span class="Constant">2</span>)+self.safety_value)
+
+                  gm3  = np.power(np.divide(<span class="Constant">1.0</span>,self.P[<span class="Constant">'</span><span class="Constant">gamma</span><span class="Constant">'</span>]),<span class="Constant">3.0</span>)
+                  r3   = np.power(r,<span class="Constant">3.0</span>)
+                  fv_  = np.where(np.logical_and(r&gt;<span class="Constant">0.0000001</span>,r&lt;=self.vdwcut),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)
+
+                  <span class="Statement">if</span> nc&lt;<span class="Constant">13</span>:
+                     fv = fv_*self.d1
+                  <span class="Statement">else</span>:
+                     fv = fv_*self.d2
+
+                  f_13 = self.f13(r)
+                  tpv,tpc  = self.get_tap(r)
+
+                  expvdw1 = np.exp(<span class="Constant">0.5</span>*self.P[<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>]*(<span class="Constant">1.0</span>-np.divide(f_13,<span class="Constant">2.0</span>*self.P[<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>])))
+                  expvdw2 = np.square(expvdw1)
+                  self.evdw  += fv*tpv*self.P[<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>]*(expvdw2-<span class="Constant">2.0</span>*expvdw1)
+
+                  rth         = np.power(r3+gm3,<span class="Constant">1.0</span>/<span class="Constant">3.0</span>)                                      <span class="Comment"># ecoul</span>
+                  self.ecoul += np.divide(fv*tpc*self.qij,rth)
+                  nc += <span class="Constant">1</span>
+
+      self.Evdw  = np.sum(self.evdw)
+      self.Ecoul = np.sum(self.ecoul)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_ehb</span>(self,cell):
+      self.BOhb   = self.bo0[self.hbi,self.hbj] <span class="Comment"># np.squeeze(self.bo0[self.hbi,self.hbj])</span>
+      fhb         = self.fhb[self.hbi,self.hbj] <span class="Comment"># np.squeeze(self.fhb[self.hbi,self.hbj])</span>
+
+      rij         = self.r[self.hbi,self.hbj]   <span class="Comment"># np.squeeze(self.r[self.hbi,self.hbj])</span>
+      rij2        = rij <span class="Comment"># np.square(rij)</span>
+      vrij        = self.vr[self.hbi,self.hbj]  <span class="Comment"># np.squeeze(self.vr[self.hbi,self.hbj]) </span>
+      vrjk_       = self.vr[self.hbj,self.hbk]  <span class="Comment"># np.squeeze(self.vr[self.hbj,self.hbk]) </span>
+      self.Ehb    = <span class="Constant">0.0</span>
+
+      <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+          <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+              <span class="Statement">for</span> k <span class="Statement">in</span> <span class="Identifier">range</span>(-<span class="Constant">1</span>,<span class="Constant">2</span>):
+                  cell_  = cell[<span class="Constant">0</span>]*i + cell[<span class="Constant">1</span>]*j+cell[<span class="Constant">2</span>]*k
+                  vrjk   = vrjk_ + cell_
+
+                  rjk2   = np.sum(np.square(vrjk),axis=<span class="Constant">1</span>)
+                  rjk    = np.sqrt(rjk2)
+
+                  vrik   = vrij + vrjk
+                  rik2   = np.sum(np.square(vrik),axis=<span class="Constant">1</span>)
+                  rik    = np.sqrt(rik2)
+
+                  cos_th = (rij2+rjk2-rik2)/(<span class="Constant">2.0</span>*rij*rjk)
+                  hbthe  = <span class="Constant">0.5</span>-<span class="Constant">0.5</span>*cos_th
+                  frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
+
+                  exphb1 = <span class="Constant">1.0</span>-np.exp(-self.P[<span class="Constant">'</span><span class="Constant">hb1</span><span class="Constant">'</span>]*self.BOhb)
+                  hbsum  = np.divide(self.P[<span class="Constant">'</span><span class="Constant">rohb</span><span class="Constant">'</span>],rjk)+np.divide(rjk,self.P[<span class="Constant">'</span><span class="Constant">rohb</span><span class="Constant">'</span>])-<span class="Constant">2.0</span>
+                  exphb2 = np.exp(-self.P[<span class="Constant">'</span><span class="Constant">hb2</span><span class="Constant">'</span>]*hbsum)
+
+                  sin4   = np.square(hbthe)
+                  ehb    = fhb*frhb*self.P[<span class="Constant">'</span><span class="Constant">Dehb</span><span class="Constant">'</span>]*exphb1*exphb2*sin4
+                  self.Ehb += np.sum(ehb)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_eself</span>(self):
+      chi    = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">chi</span><span class="Constant">'</span>],axis=<span class="Constant">0</span>)
+      mu     = np.expand_dims(self.P[<span class="Constant">'</span><span class="Constant">mu</span><span class="Constant">'</span>],axis=<span class="Constant">0</span>)
+      self.eself = self.q*(chi+self.q*mu)
+      <span class="Comment"># print(self.eself.shape)</span>
+      self.Eself = np.sum(self.eself)
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_total_energy</span>(self,cell,rcell,positions):
+      self.get_ebond(cell,rcell,positions)
+      self.get_elone()
+      self.get_eover()
+      self.get_eunder()
+
+      <span class="Statement">if</span> self.nang&gt;<span class="Constant">0</span>:
+         self.get_eangle()
+      <span class="Statement">else</span>:
+         self.Eang  = <span class="Constant">0.0</span>
+         self.Epen  = <span class="Constant">0.0</span>
+         self.Etcon = <span class="Constant">0.0</span>
+
+      <span class="Statement">if</span> self.ntor&gt;<span class="Constant">0</span>:
+         self.get_etorsion()
+      <span class="Statement">else</span>:
+         self.Etor  = <span class="Constant">0.0</span>
+         self.Efcon = <span class="Constant">0.0</span>
+
+      self.get_evdw(cell)
+
+      <span class="Statement">if</span> self.nhb&gt;<span class="Constant">0</span>:
+         self.get_ehb(cell)
+      <span class="Statement">else</span>:
+         self.Ehb   = <span class="Constant">0.0</span>
+
+      self.get_eself()
+
+      E = self.Ebond + self.Elone + self.Eover + self.Eunder + <span class="Special">\</span>
+               self.Eang + self.Epen + self.Etcon + <span class="Special">\</span>
+               self.Etor + self.Efcon + self.Evdw + self.Ecoul + <span class="Special">\</span>
+               self.Ehb + self.Eself + self.zpe
+      <span class="Statement">return</span> E
+
+
+  <span class="Statement">def</span> <span class="Identifier">update_p</span>(self,libfile=<span class="Constant">'</span><span class="Constant">ffield.json</span><span class="Constant">'</span>):
+      <span class="Statement">if</span> libfile.endswith(<span class="Constant">'</span><span class="Constant">.json</span><span class="Constant">'</span>):
+         lf = <span class="Identifier">open</span>(libfile,<span class="Constant">'</span><span class="Constant">r</span><span class="Constant">'</span>)
+         j = js.load(lf)
+         self.p  = j[<span class="Constant">'</span><span class="Constant">p</span><span class="Constant">'</span>]
+         m       = j[<span class="Constant">'</span><span class="Constant">m</span><span class="Constant">'</span>]
+         self.MolEnergy_     = j[<span class="Constant">'</span><span class="Constant">MolEnergy</span><span class="Constant">'</span>]
+         self.messages       = j[<span class="Constant">'</span><span class="Constant">messages</span><span class="Constant">'</span>]
+         self.EnergyFunction = j[<span class="Constant">'</span><span class="Constant">EnergyFunction</span><span class="Constant">'</span>]
+         self.MessageFunction= j[<span class="Constant">'</span><span class="Constant">MessageFunction</span><span class="Constant">'</span>]
+         self.VdwFunction    = j[<span class="Constant">'</span><span class="Constant">VdwFunction</span><span class="Constant">'</span>]
+         self.bo_layer = j[<span class="Constant">'</span><span class="Constant">bo_layer</span><span class="Constant">'</span>]
+         self.mf_layer = j[<span class="Constant">'</span><span class="Constant">mf_layer</span><span class="Constant">'</span>]
+         self.be_layer = j[<span class="Constant">'</span><span class="Constant">be_layer</span><span class="Constant">'</span>]
+         self.vdw_layer  = j[<span class="Constant">'</span><span class="Constant">vdw_layer</span><span class="Constant">'</span>]
+         lf.close()
+      <span class="Statement">else</span>:
+         self.p,zpe_,self.spec,self.bonds,self.offd,self.Angs,self.torp,self.Hbs= <span class="Special">\</span>
+                       read_lib(libfile=libfile,zpe=<span class="Identifier">True</span>)
+         m           = <span class="Identifier">None</span>
+         bo_layer    = <span class="Identifier">None</span>
+      self.check_tors(self.p_tor)
+      self.botol     = <span class="Constant">0.01</span>*self.p[<span class="Constant">'</span><span class="Constant">cutoff</span><span class="Constant">'</span>]
+      self.atol      = self.p[<span class="Constant">'</span><span class="Constant">acut</span><span class="Constant">'</span>]
+      self.hbtol     = self.p[<span class="Constant">'</span><span class="Constant">hbtol</span><span class="Constant">'</span>]
+
+      self.get_rcbo()
+      self.set_p(m,self.bo_layer)
+
+
+  <span class="Statement">def</span> <span class="Identifier">calculate_Delta</span>(self,atoms=<span class="Identifier">None</span>,updateP=<span class="Identifier">False</span>):
+      <span class="Statement">if</span> updateP:
+         self.update_p()
+
+      cell      = atoms.get_cell()                    <span class="Comment"># cell is object now</span>
+      cell      = cell[:].astype(dtype=np.float32)
+      rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
+
+      positions = atoms.get_positions()
+      xf        = np.dot(positions,rcell)
+      xf        = np.mod(xf,<span class="Constant">1.0</span>)
+      positions = np.dot(xf,cell).astype(dtype=np.float32)
+
+      <span class="Comment"># self.get_charge(cell,positions)</span>
+      self.get_neighbor(cell,rcell,positions)
+      self.get_ebond(cell,rcell,positions)
+
+      n       = np.where(np.logical_and(self.r&gt;<span class="Constant">0.0001</span>,self.r&lt;self.r_cuta),<span class="Constant">1.0</span>,<span class="Constant">0.0</span>)
+      N       = np.sum(n,axis=<span class="Constant">1</span>)                      <span class="Comment"># nearest neighbor matrix</span>
+      self.ND = N-self.P[<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>]                       <span class="Comment"># </span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">calculate</span>(self,atoms=<span class="Identifier">None</span>):
+      cell      = atoms.get_cell()                    <span class="Comment"># cell is object now</span>
+      cell      = cell[:].astype(dtype=np.float32)
+      rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
+
+      positions = atoms.get_positions()
+      xf        = np.dot(positions,rcell)
+      xf        = np.mod(xf,<span class="Constant">1.0</span>)
+      positions = np.dot(xf,cell).astype(dtype=np.float32)
+
+      self.get_charge(cell,positions)
+      self.get_neighbor(cell,rcell,positions)
+
+      self.E    = self.get_total_energy(cell,rcell,positions)
+
+      <span class="Comment"># self.results['energy'] = self.E.numpy()[0]</span>
+      <span class="Comment"># self.results['forces'] = -self.grad.numpy()</span>
+      <span class="Comment"># self.results['stress'] = v</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_free_energy</span>(self,atoms=<span class="Identifier">None</span>):
+      cell      = atoms.get_cell()                    <span class="Comment"># cell is object now</span>
+      cell      = cell[:].astype(dtype=np.float64)
+      rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
+
+      positions = atoms.get_positions()
+      xf        = np.dot(positions,rcell)
+      xf        = np.mod(xf,<span class="Constant">1.0</span>)
+      positions = np.dot(xf,cell).astype(dtype=np.float64)
+
+      self.get_charge(cell,positions)
+      <span class="Comment"># self.get_neighbor(cell,rcell,positions)</span>
+
+      E         = self.get_total_energy(cell,rcell,self.positions)
+      <span class="Statement">return</span> E
+
+
+  <span class="Statement">def</span> <span class="Identifier">calculate_numerical_stress</span>(self, atoms, d=<span class="Constant">1e-6</span>, voigt=<span class="Identifier">True</span>,scale_atoms=<span class="Identifier">False</span>):
+      <span class="Constant">&quot;&quot;&quot;</span><span class="Constant">Calculate numerical stress using finite difference.</span><span class="Constant">&quot;&quot;&quot;</span>
+      stress = np.zeros((<span class="Constant">3</span>, <span class="Constant">3</span>), dtype=<span class="Identifier">float</span>)
+      cell   = atoms.cell.copy()
+      V      = atoms.get_volume()
+
+      <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">3</span>):
+          x = np.eye(<span class="Constant">3</span>)
+          x[i, i] += d
+          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
+          eplus = self.get_free_energy(atoms=atoms)
+
+          x[i, i] -= <span class="Constant">2</span> * d
+          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
+          eminus = self.get_free_energy(atoms=atoms)
+
+          stress[i, i] = (eplus - eminus) / (<span class="Constant">2</span> * d * V)
+          x[i, i] += d
+
+          j = i - <span class="Constant">2</span>
+          x[i, j] = d
+          x[j, i] = d
+          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
+          eplus = self.get_free_energy(atoms=atoms)
+
+          x[i, j] = -d
+          x[j, i] = -d
+          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
+          eminus = self.get_free_energy(atoms=atoms)
+
+          stress[i, j] = (eplus - eminus) / (<span class="Constant">4</span> * d * V)
+          stress[j, i] = stress[i, j]
+      atoms.set_cell(cell, scale_atoms=<span class="Identifier">True</span>)
+
+      <span class="Statement">if</span> voigt:
+          <span class="Statement">return</span> stress.flat[[<span class="Constant">0</span>, <span class="Constant">4</span>, <span class="Constant">8</span>, <span class="Constant">5</span>, <span class="Constant">2</span>, <span class="Constant">1</span>]]
+      <span class="Statement">else</span>:
+          <span class="Statement">return</span> stress
+
+
+  <span class="Statement">def</span> <span class="Identifier">get_pot_energy</span>(self,atoms):
+      cell      = atoms.get_cell()                    <span class="Comment"># cell is object now</span>
+      cell      = cell[:].astype(dtype=np.float32)
+      rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
+
+      positions = atoms.get_positions()
+      xf        = np.dot(positions,rcell)
+      xf        = np.mod(xf,<span class="Constant">1.0</span>)
+      positions = np.dot(xf,cell).astype(dtype=np.float32)
+
+      self.get_charge(cell,positions)
+      self.get_neighbor(cell,rcell,positions)
+
+      self.E = self.get_total_energy(cell,rcell,positions)
+      <span class="Statement">return</span> self.E
+
+
+  <span class="Statement">def</span> <span class="Identifier">check_hb</span>(self):
+      <span class="Statement">if</span> <span class="Constant">'</span><span class="Constant">H</span><span class="Constant">'</span> <span class="Statement">in</span> self.spec:
+         <span class="Statement">for</span> sp1 <span class="Statement">in</span> self.spec:
+             <span class="Statement">if</span> sp1 != <span class="Constant">'</span><span class="Constant">H</span><span class="Constant">'</span>:
+                <span class="Statement">for</span> sp2 <span class="Statement">in</span> self.spec:
+                    <span class="Statement">if</span> sp2 != <span class="Constant">'</span><span class="Constant">H</span><span class="Constant">'</span>:
+                       hb = sp1+<span class="Constant">'</span><span class="Constant">-H-</span><span class="Constant">'</span>+sp2
+                       <span class="Statement">if</span> hb <span class="Statement">not</span> <span class="Statement">in</span> self.Hbs:
+                          self.Hbs.append(hb) <span class="Comment"># 'rohb','Dehb','hb1','hb2'</span>
+                          self.p[<span class="Constant">'</span><span class="Constant">rohb_</span><span class="Constant">'</span>+hb] = <span class="Constant">1.9</span>
+                          self.p[<span class="Constant">'</span><span class="Constant">Dehb_</span><span class="Constant">'</span>+hb] = <span class="Constant">0.0</span>
+                          self.p[<span class="Constant">'</span><span class="Constant">hb1_</span><span class="Constant">'</span>+hb]  = <span class="Constant">2.0</span>
+                          self.p[<span class="Constant">'</span><span class="Constant">hb2_</span><span class="Constant">'</span>+hb]  = <span class="Constant">19.0</span>
+
+  <span class="Statement">def</span> <span class="Identifier">check_offd</span>(self):
+      p_offd = [<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>]
+      <span class="Statement">for</span> key <span class="Statement">in</span> p_offd:
+          <span class="Statement">for</span> sp <span class="Statement">in</span> self.spec:
+              <span class="Statement">try</span>:
+                 self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+sp]  = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp]
+              <span class="Statement">except</span> <span class="Type">KeyError</span>:
+                 <span class="Identifier">print</span>(<span class="Constant">'</span><span class="Constant">-  warning: key not in dict</span><span class="Constant">'</span>)
+
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:             <span class="Comment"># check offd parameters</span>
+          b= bd.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          <span class="Statement">if</span> <span class="Constant">'</span><span class="Constant">rvdw_</span><span class="Constant">'</span>+bd <span class="Statement">not</span> <span class="Statement">in</span> self.p:
+              <span class="Statement">for</span> key <span class="Statement">in</span> p_offd:        <span class="Comment"># set offd parameters according combine rules</span>
+                  <span class="Statement">if</span> self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+b[<span class="Constant">0</span>]]&gt;<span class="Constant">0.0</span> <span class="Statement">and</span> self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+b[<span class="Constant">1</span>]]&gt;<span class="Constant">0.0</span>:
+                     self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd] = np.sqrt(self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+b[<span class="Constant">0</span>]]*self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+b[<span class="Constant">1</span>]])
+                  <span class="Statement">else</span>:
+                     self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd] = -<span class="Constant">1.0</span>
+
+      <span class="Statement">for</span> bd <span class="Statement">in</span> self.bonds:             <span class="Comment"># check minus ropi ropp parameters</span>
+          <span class="Statement">if</span> self.p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.0</span>:
+             self.p[<span class="Constant">'</span><span class="Constant">ropi_</span><span class="Constant">'</span>+bd] = <span class="Constant">0.3</span>*self.p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+bd]
+             self.p[<span class="Constant">'</span><span class="Constant">bo3_</span><span class="Constant">'</span>+bd]  = -<span class="Constant">50.0</span>
+             self.p[<span class="Constant">'</span><span class="Constant">bo4_</span><span class="Constant">'</span>+bd]  = <span class="Constant">0.0</span>
+          <span class="Statement">if</span> self.p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+bd]&lt;<span class="Constant">0.0</span>:
+             self.p[<span class="Constant">'</span><span class="Constant">ropp_</span><span class="Constant">'</span>+bd] = <span class="Constant">0.2</span>*self.p[<span class="Constant">'</span><span class="Constant">rosi_</span><span class="Constant">'</span>+bd]
+             self.p[<span class="Constant">'</span><span class="Constant">bo5_</span><span class="Constant">'</span>+bd]  = -<span class="Constant">50.0</span>
+             self.p[<span class="Constant">'</span><span class="Constant">bo6_</span><span class="Constant">'</span>+bd]  = <span class="Constant">0.0</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">set_p</span>(self,m,bo_layer):
+      <span class="Constant">'''</span><span class="Constant"> setting up parameters </span><span class="Constant">'''</span>
+      self.unit   = <span class="Constant">4.3364432032e-2</span>
+      self.punit  = [<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val1</span><span class="Constant">'</span>,
+                     <span class="Constant">'</span><span class="Constant">coa1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">V3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Dehb</span><span class="Constant">'</span>]
+      p_bond = [<span class="Constant">'</span><span class="Constant">Desi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">Depp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun1</span><span class="Constant">'</span>,
+                <span class="Constant">'</span><span class="Constant">be1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">be2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo2</span><span class="Constant">'</span>,
+                <span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>]
+      p_offd = [<span class="Constant">'</span><span class="Constant">Devdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rvdw</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">alfa</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ropp</span><span class="Constant">'</span>]
+      self.P = {}
+
+      <span class="Statement">if</span> <span class="Statement">not</span> self.nn:
+         self.p[<span class="Constant">'</span><span class="Constant">lp3</span><span class="Constant">'</span>] = <span class="Constant">75.0</span>
+      <span class="Comment"># else:</span>
+      <span class="Comment">#    self.hbtol = self.p['hbtol']</span>
+      <span class="Comment">#    self.atol = self.p['acut']  </span>
+      self.rcbo = np.zeros([self.natom,self.natom],dtype=np.float32)
+
+      <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+          <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+              bd = self.atom_name[i] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[j]
+              <span class="Statement">if</span> bd <span class="Statement">not</span> <span class="Statement">in</span> self.bonds:
+                 bd = self.atom_name[j] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[i]
+              self.rcbo[i][j] = <span class="Identifier">min</span>(self.rcut[bd],self.rc_bo[bd])   <span class="Comment">#  ###### </span><span class="Todo">TODO</span><span class="Comment"> #####</span>
+
+      p_spec = [<span class="Constant">'</span><span class="Constant">valang</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">valboc</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vale</span><span class="Constant">'</span>,
+                <span class="Constant">'</span><span class="Constant">lp2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun5</span><span class="Constant">'</span>,                 <span class="Comment"># 'val3','val5','boc3','boc4','boc5'</span>
+                <span class="Constant">'</span><span class="Constant">ovun2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">atomic</span><span class="Constant">'</span>,
+                <span class="Constant">'</span><span class="Constant">mass</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">chi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">mu</span><span class="Constant">'</span>]             <span class="Comment"># 'gamma','gammaw','Devdw','rvdw','alfa'</span>
+
+      <span class="Statement">for</span> key <span class="Statement">in</span> p_spec:
+          unit_ = self.unit <span class="Statement">if</span> key <span class="Statement">in</span> self.punit <span class="Statement">else</span> <span class="Constant">1.0</span>
+          self.P[key] = np.zeros([self.natom],dtype=np.float32)
+          <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                sp = self.atom_name[i]
+                self.P[key][i] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+sp]*unit_
+      self.zpe = -np.sum(self.P[<span class="Constant">'</span><span class="Constant">atomic</span><span class="Constant">'</span>]) + self.emol
+
+      <span class="Statement">for</span> key <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">boc3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc5</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">gamma</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">gammaw</span><span class="Constant">'</span>]:
+          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float32)
+          <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+              <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                  self.P[key][i][j] = np.sqrt(self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+self.atom_name[i]]*self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+self.atom_name[j]],
+                                              dtype=np.float32)
+
+      <span class="Statement">for</span> key <span class="Statement">in</span> p_bond:
+          unit_ = self.unit <span class="Statement">if</span> key <span class="Statement">in</span> self.punit <span class="Statement">else</span> <span class="Constant">1.0</span>
+          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float32)
+          <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+              <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                  bd = self.atom_name[i] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[j]
+                  <span class="Statement">if</span> bd <span class="Statement">not</span> <span class="Statement">in</span> self.bonds:
+                     bd = self.atom_name[j] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[i]
+                  self.P[key][i][j] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd]*unit_
+
+      p_g  = [<span class="Constant">'</span><span class="Constant">boc1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">boc2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp1</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">lp3</span><span class="Constant">'</span>,
+              <span class="Constant">'</span><span class="Constant">ovun7</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun8</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val6</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val9</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val10</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor2</span><span class="Constant">'</span>,
+              <span class="Constant">'</span><span class="Constant">tor3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">tor4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">cot2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">ovun4</span><span class="Constant">'</span>,
+              <span class="Constant">'</span><span class="Constant">ovun3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">val8</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">coa3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen2</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen3</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">pen4</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">vdw1</span><span class="Constant">'</span>]
+      <span class="Statement">for</span> key <span class="Statement">in</span> p_g:
+          self.P[key] = self.p[key]
+
+      <span class="Statement">for</span> key <span class="Statement">in</span> self.p_ang:
+          unit_ = self.unit <span class="Statement">if</span> key <span class="Statement">in</span> self.punit <span class="Statement">else</span> <span class="Constant">1.0</span>
+          <span class="Statement">for</span> a <span class="Statement">in</span> self.Angs:
+              pn = key + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + a
+              self.p[pn] = self.p[pn]*unit_
+
+      <span class="Statement">for</span> key <span class="Statement">in</span> self.p_tor:
+          unit_ = self.unit <span class="Statement">if</span> key <span class="Statement">in</span> self.punit <span class="Statement">else</span> <span class="Constant">1.0</span>
+          <span class="Statement">for</span> t <span class="Statement">in</span> self.Tors:
+              pn = key + <span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span> + t
+              self.p[pn] = self.p[pn]*unit_
+
+      <span class="Statement">for</span> h <span class="Statement">in</span> self.Hbs:
+          pn = <span class="Constant">'</span><span class="Constant">Dehb_</span><span class="Constant">'</span> + h
+          self.p[pn] = self.p[pn]*self.unit
+
+      <span class="Statement">if</span> self.nn:
+         self.set_m(m)
+
+
+  <span class="Statement">def</span> <span class="Identifier">set_m</span>(self,m):
+      self.m = {}
+      <span class="Comment"># if self.EnergyFunction==1:</span>
+      <span class="Comment">#    pres = ['fesi','fepi','fepp','fsi','fpi','fpp','fv']</span>
+      <span class="Comment"># else:</span>
+      pres = [<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>]
+      <span class="Statement">if</span> self.vdwnn:
+         pres.append(<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>)
+
+      <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+          pres.append(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t))
+
+      <span class="Statement">for</span> k_ <span class="Statement">in</span> pres:
+          <span class="Statement">for</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]:
+              key = k_+k
+              self.m[key] = []
+              <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                  mi_ = []
+                  <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                      <span class="Statement">if</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fesi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>]:
+                         bd = self.atom_name[i] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[j]
+                         <span class="Statement">if</span> bd <span class="Statement">not</span> <span class="Statement">in</span> self.bonds:
+                            bd = self.atom_name[j] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[i]
+                      <span class="Statement">else</span>:
+                         bd = self.atom_name[i]
+                      key_ = key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd
+                      <span class="Statement">if</span> key_ <span class="Statement">in</span> m:
+                         <span class="Statement">if</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]:
+                            mi_.append(np.expand_dims(m[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd],axis=<span class="Constant">0</span>))
+                         <span class="Statement">else</span>:
+                            mi_.append(m[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd])
+                  self.m[key].append(mi_)
+              self.m[key] = np.array(self.m[key],dtype=np.float32)
+
+          <span class="Statement">for</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>]:
+              key = k_+k
+              self.m[key] = []
+
+              <span class="Statement">if</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fesi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>]:
+                 layer_ = self.be_layer[<span class="Constant">1</span>]
+              <span class="Statement">elif</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>]:
+                 layer_ = self.bo_layer[<span class="Constant">1</span>]
+              <span class="Statement">elif</span> k_ ==<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>:
+                 layer_ = self.vdw_layer[<span class="Constant">1</span>]
+              <span class="Statement">else</span>:
+                 layer_ = self.mf_layer[<span class="Constant">1</span>]
+
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer_):
+                  m_ = []
+                  <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                      mi_ = []
+                      <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                          <span class="Statement">if</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fesi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>]:
+                             bd = self.atom_name[i] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[j]
+                             <span class="Statement">if</span> bd <span class="Statement">not</span> <span class="Statement">in</span> self.bonds:
+                                bd = self.atom_name[j] + <span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span> + self.atom_name[i]
+                          <span class="Statement">else</span>:
+                             bd = self.atom_name[i]
+                          key_ = key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd
+                          <span class="Statement">if</span> key_ <span class="Statement">in</span> m:
+                             <span class="Statement">if</span> k == <span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>:
+                                mi_.append(np.expand_dims(m[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd][l],axis=<span class="Constant">0</span>))
+                             <span class="Statement">else</span>:
+                                mi_.append(m[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+bd][l])
+                      m_.append(mi_)
+                  self.m[key].append(np.array(m_,dtype=np.float32))
+
+  <span class="Statement">def</span> <span class="Identifier">set_m_univeral</span>(self,m,pres=[<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>]):
+      <span class="Comment"># pres = ['fe','fsi','fpi','fpp']   # general neural network matrix</span>
+      <span class="Statement">for</span> t <span class="Statement">in</span> <span class="Identifier">range</span>(<span class="Constant">1</span>,self.messages+<span class="Constant">1</span>):
+          pres.append(<span class="Constant">'</span><span class="Constant">f</span><span class="Constant">'</span>+<span class="Identifier">str</span>(t))
+
+      <span class="Statement">for</span> k_ <span class="Statement">in</span> pres:
+          <span class="Statement">for</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">wi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">wo</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]:
+              key = k_+k
+              <span class="Statement">if</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">bi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">bo</span><span class="Constant">'</span>]:
+                 mi_ = np.expand_dims(np.expand_dims(np.expand_dims(m[key],axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>)
+              <span class="Statement">else</span>:
+                 mi_ = np.expand_dims(np.expand_dims(m[key],axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>)
+              self.m[key] = np.array(mi_,dtype=np.float32)
+
+          <span class="Statement">for</span> k <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>]:
+              key = k_+k
+              self.m[key] = []
+
+              <span class="Statement">if</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fesi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fepp</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fe</span><span class="Constant">'</span>]:
+                 layer_ = self.be_layer[<span class="Constant">1</span>]
+              <span class="Statement">elif</span> k_ <span class="Statement">in</span> [<span class="Constant">'</span><span class="Constant">fsi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpi</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">fpp</span><span class="Constant">'</span>]:
+                 layer_ = self.bo_layer[<span class="Constant">1</span>]
+              <span class="Statement">elif</span> k_ ==<span class="Constant">'</span><span class="Constant">fv</span><span class="Constant">'</span>:
+                 layer_ = self.vdw_layer[<span class="Constant">1</span>]
+              <span class="Statement">else</span>:
+                 layer_ = self.mf_layer[<span class="Constant">1</span>]
+
+              <span class="Statement">for</span> l <span class="Statement">in</span> <span class="Identifier">range</span>(layer_):
+                  <span class="Statement">if</span> k == <span class="Constant">'</span><span class="Constant">b</span><span class="Constant">'</span>:
+                     m_ = np.expand_dims(np.expand_dims(np.expand_dims(m[key][l],axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>)
+                  <span class="Statement">else</span>:
+                     m_ = np.expand_dims(np.expand_dims(m[key][l],axis=<span class="Constant">0</span>),axis=<span class="Constant">0</span>)
+                  self.m[key].append(np.array(m_,dtype=np.float32))
+
+  <span class="Statement">def</span> <span class="Identifier">init_bonds</span>(self):
+      self.bonds,self.offd,self.Angs,self.torp,self.Hbs = [],[],[],[],[]
+      <span class="Statement">for</span> key <span class="Statement">in</span> self.p:
+          k = key.split(<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>)
+          <span class="Statement">if</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">bo1</span><span class="Constant">'</span>:
+             self.bonds.append(k[<span class="Constant">1</span>])
+          <span class="Statement">elif</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">rosi</span><span class="Constant">'</span>:
+             kk = k[<span class="Constant">1</span>].split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+             <span class="Statement">if</span> <span class="Identifier">len</span>(kk)==<span class="Constant">2</span>:
+                self.offd.append(k[<span class="Constant">1</span>])
+          <span class="Statement">elif</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">theta0</span><span class="Constant">'</span>:
+             self.Angs.append(k[<span class="Constant">1</span>])
+          <span class="Statement">elif</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">tor1</span><span class="Constant">'</span>:
+             self.torp.append(k[<span class="Constant">1</span>])
+          <span class="Statement">elif</span> k[<span class="Constant">0</span>]==<span class="Constant">'</span><span class="Constant">rohb</span><span class="Constant">'</span>:
+             self.Hbs.append(k[<span class="Constant">1</span>])
+
+
+  <span class="Statement">def</span> <span class="Identifier">checkTors</span>(self,torp):
+      tors_ = torp
+      <span class="Statement">for</span> tor <span class="Statement">in</span> tors_:
+          [t1,t2,t3,t4] = tor.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+          tor1 = t1+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t4
+          tor2 = t4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t1
+          tor3 = t4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t1
+
+          <span class="Statement">if</span> tor1 <span class="Statement">in</span> torp <span class="Statement">and</span> tor1!=tor:
+             <span class="Comment"># print('-  dict %s is repeated, delteting ...' %tor1)</span>
+             torp.remove(tor1)
+          <span class="Statement">elif</span> tor2 <span class="Statement">in</span> self.torp <span class="Statement">and</span> tor2!=tor:
+             <span class="Comment"># print('-  dict %s is repeated, delteting ...' %tor2)</span>
+             torp.remove(tor2)
+          <span class="Statement">elif</span> tor3 <span class="Statement">in</span> self.torp <span class="Statement">and</span> tor3!=tor:
+             <span class="Comment"># print('-  dict %s is repeated, delteting ...' %tor3)</span>
+             torp.remove(tor3)
+
+      self.Tors = []          <span class="Comment">### check torsion parameter</span>
+      <span class="Statement">for</span> spi <span class="Statement">in</span> self.spec:
+          <span class="Statement">for</span> spj <span class="Statement">in</span> self.spec:
+              <span class="Statement">for</span> spk <span class="Statement">in</span> self.spec:
+                  <span class="Statement">for</span> spl <span class="Statement">in</span> self.spec:
+                      tor = spi+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+spj+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+spk+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+spl
+                      <span class="Statement">if</span> tor <span class="Statement">not</span> <span class="Statement">in</span> self.Tors:
+                         self.Tors.append(tor)
+      <span class="Statement">return</span> torp
+
+
+  <span class="Statement">def</span> <span class="Identifier">check_tors</span>(self,p_tor):
+      <span class="Statement">for</span> key <span class="Statement">in</span> p_tor:
+          <span class="Statement">for</span> tor <span class="Statement">in</span> self.Tors:
+              <span class="Statement">if</span> tor <span class="Statement">not</span> <span class="Statement">in</span> self.torp:
+                 [t1,t2,t3,t4] = tor.split(<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>)
+                 tor1 =  t1+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t4
+                 tor2 =  t4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t1
+                 tor3 =  t4+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t1
+                 tor4 = <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span>+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+<span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span>
+                 tor5 = <span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span>+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t3+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+t2+<span class="Constant">'</span><span class="Constant">-</span><span class="Constant">'</span>+<span class="Constant">'</span><span class="Constant">X</span><span class="Constant">'</span>
+                 <span class="Statement">if</span> tor1 <span class="Statement">in</span> self.torp:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor1]
+                 <span class="Statement">elif</span> tor2 <span class="Statement">in</span> self.torp:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor2]
+                 <span class="Statement">elif</span> tor3 <span class="Statement">in</span> self.torp:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor3]
+                 <span class="Statement">elif</span> tor4 <span class="Statement">in</span> self.torp:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor4]
+                 <span class="Statement">elif</span> tor5 <span class="Statement">in</span> self.torp:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor5]
+                 <span class="Statement">else</span>:
+                    self.p[key+<span class="Constant">'</span><span class="Constant">_</span><span class="Constant">'</span>+tor] = <span class="Constant">0.0</span>
+
+
+  <span class="Statement">def</span> <span class="Identifier">logout</span>(self):
+      <span class="Statement">with</span> <span class="Identifier">open</span>(<span class="Constant">'</span><span class="Constant">irff.log</span><span class="Constant">'</span>,<span class="Constant">'</span><span class="Constant">w</span><span class="Constant">'</span>) <span class="Statement">as</span> fmd:
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">-                Energies From Machine Learning MD                     -</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Ebond =%f  </span><span class="Constant">'</span> %self.Ebond)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Elone =%f  </span><span class="Constant">'</span> %self.Elone)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Eover =%f  </span><span class="Special">\n</span><span class="Constant">'</span> %self.Eover)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Eunder=%f  </span><span class="Constant">'</span> %self.Eunder)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Eang  =%f  </span><span class="Constant">'</span> %self.Eang)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Epen  =%f  </span><span class="Special">\n</span><span class="Constant">'</span> %self.Epen)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Etcon =%f  </span><span class="Constant">'</span> %self.Etcon)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Etor  =%f  </span><span class="Constant">'</span> %self.Etor)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Efcon =%f  </span><span class="Special">\n</span><span class="Constant">'</span> %self.Efcon)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Evdw  =%f  </span><span class="Constant">'</span> %self.Evdw)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Ecoul =%f  </span><span class="Constant">'</span> %self.Ecoul)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Ehb   =%f  </span><span class="Special">\n</span><span class="Constant">'</span> %self.Ehb)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Eself =%f  </span><span class="Constant">'</span> %self.Eself)
+         fmd.write(<span class="Constant">'</span><span class="Constant">-  Ezpe  =%f  </span><span class="Special">\n</span><span class="Constant">'</span> %self.zpe)
+
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">-              Atomic Information  (Delta and Bond order)              -</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">  AtomID Sym  Delta      NLP        DLPC          Bond-Order </span><span class="Special">\n</span><span class="Constant">'</span>)
+         <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+             fmd.write(<span class="Constant">'</span><span class="Constant">%6d  %2s %9.6f %9.6f %9.6f</span><span class="Constant">'</span> %(i,
+                                      self.atom_name[i],
+                                      self.Delta[i],
+                                      self.nlp[i],
+                                      self.Delta_lpcorr[i]))
+             <span class="Statement">for</span> j <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+                   <span class="Statement">if</span> self.bo0[i][j]&gt;self.botol:
+                      fmd.write(<span class="Constant">'</span><span class="Constant"> %3d %2s %9.6f</span><span class="Constant">'</span> %(j,self.atom_name[j],
+                                                 self.bo0[i][j]))
+             fmd.write(<span class="Constant">'</span><span class="Constant"> </span><span class="Special">\n</span><span class="Constant">'</span>)
+
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">-                          Atomic Energies                             -</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">  AtomID Sym  Explp     Delta_lp     Elone     Eover      Eunder      Fx        Fy         Fz</span><span class="Special">\n</span><span class="Constant">'</span>)
+         <span class="Statement">for</span> i <span class="Statement">in</span> <span class="Identifier">range</span>(self.natom):
+             fmd.write(<span class="Constant">'</span><span class="Constant">%6d  %2s  %9.6f  %9.6f  %9.6f  %9.6f  %9.6f </span><span class="Constant">'</span> %(i,
+                       self.atom_name[i],
+                       self.explp[i],
+                       self.Delta_lp[i],
+                       self.elone[i],
+                       self.eover[i],
+                       self.eunder[i]))
+             fmd.write(<span class="Constant">'</span><span class="Constant"> </span><span class="Special">\n</span><span class="Constant">'</span>)
+
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">------------------------------------------------------------------------</span><span class="Special">\n</span><span class="Constant">'</span>)
+         fmd.write(<span class="Constant">'</span><span class="Special">\n</span><span class="Constant">- Machine Learning MD Completed!</span><span class="Special">\n</span><span class="Constant">'</span>)
+
+
+  <span class="Statement">def</span> <span class="Identifier">close</span>(self):
+      self.P  = <span class="Identifier">None</span>
+      self.m  = <span class="Identifier">None</span>
+      self.Qe = <span class="Identifier">None</span>
+
+
+
+
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->
