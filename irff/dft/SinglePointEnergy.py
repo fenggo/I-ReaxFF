@@ -10,19 +10,24 @@ import numpy as np
 
 def SinglePointEnergies(traj,label='aimd',xcf='VDW',xca='DRSLL',basistype='DZP',
                         EngTole=0.0000001,frame=50,cpu=4,dft='siesta',kpts=(1,1,1),
-                        dE=0.2,d2E=0.1,colmin=2,select=False):
+                        dE=0.2,colmin=2,select=False,**kwargs):
     ''' get single point energy and labeling data '''
+    #  if 'd2E' in kwargs:
+    #      d2E = kwargs['d2E']
+    #  else:
+    #      d2E = 0.1
     images = Trajectory(traj)
     tframe = len(images)
     E,E_,dEs = [],[],[]
+
     if tframe>frame:
        if frame>1:
           ind_  = list(np.linspace(0,tframe-1,num=frame,dtype=np.int32))
        else:
           ind_  = [tframe-1]
     else:
-       ind_  = [i for i in range(tframe)]
-
+       ind_  = [i for i in range(0,tframe,colmin)]
+       
     if len(ind_)>1 and 0 in ind_:
        ind_.pop(0)
 
@@ -57,8 +62,9 @@ def SinglePointEnergies(traj,label='aimd',xcf='VDW',xca='DRSLL',basistype='DZP',
                     for j in range(1,colmin):
                         ii = i-j
                         # ii_= i+j
-                        if ii>0 and (ii not in ind_): #and (ii_ not in ind_):
-                           ajacent_not_in = False
+                        if ii>=0 :
+                           if ii in ind_: #and (ii_ not in ind_):
+                              ajacent_not_in = False
                     if ajacent_not_in:
                        ind_.append(i)
 
@@ -86,11 +92,11 @@ def SinglePointEnergies(traj,label='aimd',xcf='VDW',xca='DRSLL',basistype='DZP',
         d2E_  = d2Es[i]
 
         if dft=='siesta':
-           atoms_= single_point_siesta(atoms,xcf=xcf,xca=xca,basistype=basistype,cpu=cpu)
+           atoms_= single_point_siesta(atoms,xcf=xcf,xca=xca,basistype=basistype,cpu=cpu,**kwargs)
         elif dft=='qe':
-           atoms_= single_point_qe(atoms,kpts=kpts,cpu=cpu)
+           atoms_= single_point_qe(atoms,kpts=kpts,cpu=cpu,**kwargs)
         else:
-           raise RuntimeError('-  This method not implimented!')
+           raise RuntimeError('-  This method is not implimented!')
         e     = atoms_.get_potential_energy()
         E.append(e)
         E_.append(e_)
