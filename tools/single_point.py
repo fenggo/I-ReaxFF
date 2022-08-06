@@ -12,7 +12,7 @@ if __name__ == '__main__':
            equal the number of frame of *.traj contains
    cpu   : number of cpu to be parallelly used 
    '''
-   SinglePointEnergies('swing.traj',label='nm2-s',frame=10,cpu=4)
+   SinglePointEnergies('swing.traj',label='nm2-s',dft='qe',frame=10,cpu=4)
 
 
 
