@@ -18,17 +18,16 @@ import numpy as np
 
 def single_point(atoms,kpts=(1,1,1),
                  val={'C':4.0,'H':1.0,'O':6.0,'N':5.0,'F':7.0,'Al':3.0},
-                 cpu=4):
+                 cpu=4,**kwargs):
 
-    write_qe_in(atoms,kpts=kpts,koffset=(0, 0, 0)) # for MD
+    write_qe_in(atoms,kpts=kpts,koffset=(0, 0, 0),**kwargs) # for MD
     system('mpirun -n %d pw.x<pw.in>pw.out' %cpu)
 
-    atoms  = read_espresso_out('pw.out')
-    atoms_ = None
-    for atoms_ in atoms:
+    images  = read_espresso_out('pw.out')
+    atoms_  = None
+    for atoms_ in images:
         e = atoms_.get_potential_energy()
     return atoms_
-
 
 def qemd(atoms=None,gen='poscar.gen',kpts=(1,1,1),
          label='pw',ncpu=1,T=300,dt=0.1,tstep=10):
@@ -48,7 +47,6 @@ def qemd(atoms=None,gen='poscar.gen',kpts=(1,1,1),
     his.close()
     return images
 
-
 def qeopt(atoms=None,gen='poscar.gen',kpts=(1,1,1),
           label='pw',ncpu=1):
     if atoms is None:
@@ -67,20 +65,18 @@ def qeopt(atoms=None,gen='poscar.gen',kpts=(1,1,1),
     his.close()
     return images
 
-
 def run_qe(ncpu=12):
     system('mpirun -n %d pw.x<in.fdf>pw.out' %ncpu)
-
 
 def pseudopotentials(specie):
     return specie+'.UPF'
 
-
 def write_qe_in(atoms,
                 kspacing=None, kpts=None,koffset=(0, 0, 0),
                 calculation=None,          # supported: 'md','relax'
+                forc_conv_thr=0.0001,
                 ion_dynamics='bfgs',
-                nspin=1,fspin=None):
+                nspin=1,fspin=None,**kwargs):
     ''' wtrite QE(PWscf) input'''
     constraint_mask = np.ones((len(atoms), 3), dtype='int')
     for constraint in atoms.constraints:
@@ -91,13 +87,23 @@ def write_qe_in(atoms,
         else:
             warnings.warn('Ignored unknown constraint {}'.format(constraint))
 
-    atomic_species       = {}# atoms.get_chemical_symbols()
+    atomic_species       = {} # atoms.get_chemical_symbols()
     atomic_species_str   = []
     atomic_positions_str = []
+    mag_str = []
+
+    if 'magmoms' in kwargs:
+       atoms.set_initial_magnetic_moments(magmoms=kwargs['magmoms'])
+
+    if any(atoms.get_initial_magnetic_moments()):
+        if nspin == 1:
+            # Force spin on
+            nspin = 2
 
     if nspin == 2:
         # Spin on
         for atom, magmom in zip(atoms, atoms.get_initial_magnetic_moments()):
+            #print(atomic_species)
             if (atom.symbol, magmom) not in atomic_species:
                # spin as fraction of valence
                # fspin = float(magmom) / species_info[atom.symbol]['valence']
@@ -107,8 +113,10 @@ def write_qe_in(atoms,
                tidx = sum(atom.symbol == x[0] for x in atomic_species) or ' '
                atomic_species[(atom.symbol, magmom)] = (sidx, tidx)
                # Add magnetization to the input file
-               mag_str = 'starting_magnetization({0})'.format(sidx)
-               input_parameters['system'][mag_str] = fspin
+               # print(sidx,magmom)
+               mag_str.append('starting_magnetization({:d})  = {:7.4f}'.format(sidx,magmom))
+               
+               #input_parameters['system'][mag_str] = fspin
                atomic_species_str.append(
                   '{species}{tidx} {mass} {pseudo}\n'.format(
                         species=atom.symbol, tidx=tidx, mass=atom.mass,
@@ -128,10 +136,11 @@ def write_qe_in(atoms,
                 '{atom.symbol}{tidx} '
                 '{atom.x:.10f} {atom.y:.10f} {atom.z:.10f}'
                 '{mask}\n'.format(atom=atom, tidx=tidx, mask=mask))
+        #for sp in 
+        
     else:
-       print
-       for atom in atoms:
-           if atom.symbol not in atomic_species:
+        for atom in atoms:
+            if atom.symbol not in atomic_species:
                atomic_species[atom.symbol] = True  # just a placeholder
                atomic_species_str.append(
                    '{species} {mass} {pseudo}\n'.format(
@@ -139,17 +148,17 @@ def write_qe_in(atoms,
                        pseudo=pseudopotentials(atom.symbol)))
 
            # only inclued mask if something is fixed
-           if not all(constraint_mask[atom.index]):
+            if not all(constraint_mask[atom.index]):
                mask = ' {mask[0]} {mask[1]} {mask[2]}'.format(
                    mask=constraint_mask[atom.index])
-           else:
+            else:
                mask = ''
 
-           atomic_positions_str.append(
+            atomic_positions_str.append(
                '{atom.symbol} '
                '{atom.x:.10f} {atom.y:.10f} {atom.z:.10f} '
                '{mask}\n'.format(atom=atom, mask=mask))
-
+    # print(mag_str)
     # Add computed parameters
     # different magnetisms means different types
     # input_parameters['system']['ntyp'] = len(atomic_species)
@@ -163,25 +172,52 @@ def write_qe_in(atoms,
     pwi.append('  outdir          =  \'./\' \n')
     pwi.append('  pseudo_dir      =  \'./\' \n')
     pwi.append('  wfcdir          =  \'./\' \n')
-    pwi.append('  forc_conv_thr   =  1.00000e-03 \n')
+    pwi.append('  forc_conv_thr   =  {:f}\n'.format(forc_conv_thr))
     pwi.append('/\n')  # terminate section
     pwi.append('\n')
 
     pwi.append('&SYSTEM\n')
-    pwi.append('  ibrav           =  0 \n')
+    if 'ibrav' in kwargs:
+       pwi.append('  ibrav           =  {:f} \n'.format(kwargs['ibrav']))
+    else:
+       pwi.append('  ibrav           =  0 \n')
     pwi.append('  nat             =  {:d} \n'.format(len(atoms)))
     pwi.append('  ntyp            =  {:d} \n'.format(len(atomic_species)))
-    pwi.append('  ecutwfc         =  50 \n')
-    pwi.append('  ecutrho         =  600 \n')
+    if 'ecutwfc' in kwargs:
+       pwi.append('  ecutwfc         =  {:f} \n'.format(kwargs['ecutwfc']))
+    else:
+       pwi.append('  ecutwfc         =  50 \n')
+    if 'ecutrho' in kwargs:
+       pwi.append('  ecutrho         =  {:f} \n'.format(kwargs['ecutrho']))
+    else:
+       pwi.append('  ecutrho         =  600 \n')
     pwi.append('  occupations     =  \'smearing\' \n')
-    pwi.append('  smearing        =  \'methfessel-paxton\' \n')
-    pwi.append('  degauss         =  1.00000e-02           !defult 0.D0 Ry \n')
+    pwi.append('  smearing        =  \'gauss\' \n') # methfessel-paxton
+    pwi.append('  degauss         =  0.2          !defult 0.D0 Ry \n')
+
+    if nspin==2:
+       for m in mag_str:
+           m_ = float(m.split()[-1])
+           if abs(m_)>0.00001:
+              pwi.append('  '+m+'\n')
+    if 'lda_plus_u' in kwargs:
+       pwi.append('  lda_plus_u   =  .true. \n')
+    if 'hubbard_u' in kwargs:
+       hubbard_u = kwargs['hubbard_u']
+       for u in hubbard_u:
+           pwi.append('  hubbard_u({:d})   =  {:6.4f} \n'.format(u,hubbard_u[u]))
     pwi.append('/\n')  # terminate section
     pwi.append('\n')
 
     pwi.append('&ELECTRONS\n')
-    pwi.append('  conv_thr        =  1.00000e-06           !defult 1.0d-6 \n')
-    pwi.append('  mixing_beta     =  7.00000e-01           !defult 0.7D0 \n')
+    if 'conv_thr' in kwargs:
+       pwi.append('  conv_thr         =  {:f} \n'.format(kwargs['conv_thr']))
+    else:
+       pwi.append('  conv_thr         =  1.00000e-06           !defult 1.0d-6 \n')
+    if 'mixing_beta' in kwargs:
+       pwi.append('  mixing_beta      =  {:f} \n'.format(kwargs['mixing_beta']))
+    else:
+       pwi.append('  mixing_beta      =  7.00000e-01           !defult 0.7D0 \n')
     pwi.append('/\n')  # terminate section
     pwi.append('\n')
 
@@ -199,25 +235,7 @@ def write_qe_in(atoms,
     # pwi.append('&CELL\n')
     # pwi.append('/\n')  # terminate section
     # pwi.append('\n')
-
-    # KPOINTS - add a MP grid as required
-    if kspacing is not None:
-        kgrid = kspacing_to_grid(atoms, kspacing)
-    elif kpts is not None:
-        if isinstance(kpts, dict) and 'path' not in kpts:
-            kgrid, shift = kpts2sizeandoffsets(atoms=atoms, **kpts)
-            koffset = []
-            for i, x in enumerate(shift):
-                assert x == 0 or abs(x * kgrid[i] - 0.5) < 1e-14
-                koffset.append(0 if x == 0 else 1)
-        else:
-            kgrid = kpts
-    else:
-        kgrid = (1, 1, 1)
-
     # True and False work here and will get converted by ':d' format
-    if isinstance(koffset, int):
-        koffset = (koffset, ) * 3
 
     # CELL block, if required
     pwi.append('CELL_PARAMETERS angstrom\n')
@@ -238,14 +256,17 @@ def write_qe_in(atoms,
     pwi.append('\n')
 
     # BandPath object or bandpath-as-dictionary:
-    pwi.append('K_POINTS automatic\n')
-    pwi.append('{0[0]} {0[1]} {0[2]}  {1[0]:d} {1[1]:d} {1[2]:d}\n'
-               ''.format(kgrid, koffset))
+    if 'K_POINTS' in kwargs:
+       pwi.append('K_POINTS automatic\n')
+       pwi.append(kwargs['K_POINTS'])
+    else:
+       pwi.append('K_POINTS automatic\n')
+       pwi.append('{0[0]} {0[1]} {0[2]}  {1[0]:d} {1[1]:d} {1[2]:d}\n'
+                  ''.format(kgrid, koffset))
     pwi.append('\n')
 
     with open('pw.in','w') as fd:
          fd.write(''.join(pwi))
-
 
 def read_espresso_out(fileo):
     with open(fileo, 'rU') as fileobj:
@@ -472,47 +493,6 @@ def read_espresso_out(fileo):
         kpoints_warning = "Number of k-points >= 100: " + \
                           "set verbosity='high' to print the bands."
 
-        # for bands_index in indexes[_PW_BANDS] + indexes[_PW_BANDSTRUCTURE]:
-        #     if image_index < bands_index < next_index:
-        #         bands_index += 2
-
-        #         if pwo_lines[bands_index].strip() == kpoints_warning:
-        #             continue
-
-        #         assert ibzkpts is not None
-        #         spin, bands, eigenvalues = 0, [], [[], []]
-
-        #         while True:
-        #             l = pwo_lines[bands_index].replace('-', ' -').split()
-        #             if len(l) == 0:
-        #                 if len(bands) > 0:
-        #                     eigenvalues[spin].append(bands)
-        #                     bands = []
-        #             elif l == ['occupation', 'numbers']:
-        #                 # Skip the lines with the occupation numbers
-        #                 bands_index += len(eigenvalues[spin][0]) // 8 + 1
-        #             elif l[0] == 'k' and l[1].startswith('='):
-        #                 pass
-        #             elif 'SPIN' in l:
-        #                 if 'DOWN' in l:
-        #                     spin += 1
-        #             else:
-        #                 try:
-        #                     bands.extend(map(float, l))
-        #                 except ValueError:
-        #                     break
-        #             bands_index += 1
-
-                # if spin == 1:
-                #     assert len(eigenvalues[0]) == len(eigenvalues[1])
-                # assert len(eigenvalues[0]) == len(ibzkpts), (np.shape(eigenvalues), len(ibzkpts))
-
-                # kpts = []
-                # for s in range(spin + 1):
-                #     for w, k, e in zip(weights, ibzkpts, eigenvalues[s]):
-                #         kpt = SinglePointKPoint(w, s, k, eps_n=e)
-                #         kpts.append(kpt)
-
         # Put everything together
         calc = SinglePointDFTCalculator(structure, energy=energy,
                                         forces=forces, stress=stress)
@@ -522,7 +502,6 @@ def read_espresso_out(fileo):
         structure.set_calculator(calc)
 
         yield structure
-
 
 def get_constraint(constraint_idx):
     """
@@ -540,7 +519,6 @@ def get_constraint(constraint_idx):
     else:
         constraint = FixCartesian(a, mask)
     return constraint
-
 
 def parse_pwo_start(lines, index=0):
     units = create_units('2006')
@@ -577,9 +555,7 @@ def parse_pwo_start(lines, index=0):
     info['atoms'] = Atoms(symbols=info['symbols'],
                           positions=info['positions'],
                           cell=info['cell'], pbc=True)
-
     return info
-
 
 def label_to_symbol(label):
     if len(label) >= 2:
@@ -638,9 +614,7 @@ def get_atomic_positions(lines, n_atoms, cell=None, alat=None):
                     force_mult = None
 
                 positions.append((split_line[0], position, force_mult))
-
     return positions
-
 
 def get_cell_parameters(lines, alat=None):
     cell = None
@@ -686,7 +660,6 @@ def get_cell_parameters(lines, alat=None):
                     [float(x) for x in next(trimmed_lines).split()[:3]],
                     [float(x) for x in next(trimmed_lines).split()[:3]]]
             cell = np.array(cell) * cell_units
-
     return cell, cell_alat
 
 def infix_float(text):
