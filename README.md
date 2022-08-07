@@ -3,13 +3,8 @@
 - I-ReaxFF is a differentiable ReaxFF framework based on TensorFlow, with which we can get the first and high order derivatives of energies, and also can optimize ReaxFF parameters with integrated optimizers in TensorFlow.
 ---
 
-* ffield,ffield.json: the parameter file for the machine learning potential model.
-* train.ipynb: shows a training example of the IRFF-MPNN model with data sets uploaded in the data directory.
-* GeomentryOptimization.ipynb: shows how to do geometry optimizations with the IRFF-MPNN model.    
-* MolecularDynamics.ipynb: shows how to do molecular dynamics with the IRFF-MPNN model.  
-* StaticCompress.ipynb: shows the computation of the static compression of the solid nitromethane.   
-(The .py files have the same content as .ipynb files, but supplied as runnable python file).   
-To run all test files, just using commond like "python test.py".
+* ffield.json: the parameter file from machine learning
+* reaxff_nn.lib  the parameter file converted from ffield.json for usage with GULP
 
 ## Requirement
  the following package need to be installed
