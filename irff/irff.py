@@ -1274,7 +1274,7 @@ class IRFF(Calculator):
                          else:
                             mi_.append(m[key_])
                   self.m[key].append(mi_)
-              self.m[key] = torch.tensor(self.m[key],dtype=torch.double)
+              self.m[key] = torch.tensor(np.array(self.m[key]),dtype=torch.double)
 
           for k in ['w','b']:
               key = k_+k
