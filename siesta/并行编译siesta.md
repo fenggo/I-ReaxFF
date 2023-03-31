@@ -6,7 +6,7 @@ https://gitlab.com/siesta-project/siesta
 ## 安装必要的编译软件
 (默认使用deepin linux系统)
 ```
-sudo apt install build-essential  
+sudo apt install build-essential automake  
 sudo apt install g++
 sudo apt install gfortran
 ```
