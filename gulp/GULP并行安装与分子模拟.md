@@ -46,4 +46,4 @@ nohup mpirun -n 8 gulp<inp-gulp>gulp.out 2>&1 &
 ```bash
 ./gmd.py nvt --s=1 --g=xxx.gen
 ```
-脚本执行完毕可生成inp-gulp输入文件，其中“xxx.gen”为结构文件.
+脚本执行完毕可生成inp-gulp输入文件，其中“xxx.gen”为结构文件。根据需要编辑“inp-gulp”文件，使用（5）并行运行命令进行分子动力学模拟。
