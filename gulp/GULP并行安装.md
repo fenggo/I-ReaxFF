@@ -1,8 +1,10 @@
 To install GULP on most Unix/Linux machines :
 
 (1) Go to Src/
+
 (2) Type "./mkgulp -h"     该命令会列出所有可用选项
-    NB: There are several flags that can be added depending on what options are
+    
+NB: There are several flags that can be added depending on what options are
         required. The main options are:
         -h => print help text to list the options below
         -m => parallel compilation with MPI
