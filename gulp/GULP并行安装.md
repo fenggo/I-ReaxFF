@@ -28,7 +28,7 @@ case $compiler in
 #--USER--End
 ```
 
-（上面的库在“并行编译siesta.md”里面已经有编译方法，如果siesta编译好了，找到库文件所在路径就行了。）
+（上面的库在“并行编译siesta.md”里面已经有编译方法，如果siesta编译好了，找到库文件所在路径就行了。openmpi编译参见“并行编译siesta.md”。）
 
 (4) 运行“mkgulp”脚本，加“-m”选项进行并行编译：
 
