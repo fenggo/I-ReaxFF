@@ -1,5 +1,5 @@
 ## GULP分子动力学模拟
-* 使用“gmd.py”脚本制作GULP输入文件：
+### 1、使用“gmd.py”脚本制作GULP输入文件：
 ```bash
 ./gmd.py nvt --s=1 --g=xxx.gen
 ```
