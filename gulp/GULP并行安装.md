@@ -35,3 +35,9 @@ case $compiler in
 ```bash
 ./mkgulp -m
 ```
+
+(5) 测试GULP
+
+```bash
+nohup mpirun -n 8 gulp<inp-gulp>gulp.out 2>&1 & 
+```
