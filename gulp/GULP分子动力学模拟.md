@@ -8,7 +8,7 @@
 ```bash
 ./gmd.py nvt --s=1 --g=xxx.gen --x=2 --y=2 --z=2
 ```
-2 &\times& 2 &\times& 2 超胞
+2 $\times$ 2 $\times$ 2 超胞
 
 脚本执行完毕可生成inp-gulp输入文件，其中“xxx.gen”为结构文件。根据需要编辑“inp-gulp”文件，使用
 ```bash
