@@ -41,3 +41,5 @@ case $compiler in
 ```bash
 nohup mpirun -n 8 gulp<inp-gulp>gulp.out 2>&1 & 
 ```
+
+其中 "-n"选项后面数字为CPU核心数，根据自己计算机（或工作站）实际情况设置。
