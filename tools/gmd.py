@@ -3,7 +3,7 @@ import argh
 import argparse
 from os import system,popen
 import time
-# from ase.io import read,write
+from ase.io import read # ,write
 # from ase import Atoms
 from irff.md.gulp import write_gulp_in,xyztotraj,get_md_results,plot_md
 
