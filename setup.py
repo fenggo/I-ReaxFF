@@ -11,7 +11,7 @@ install with commond
 '''
 
 
-__version__ = '1.4.1'
+__version__ = '1.5.2'
 install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
