@@ -7,7 +7,7 @@ Email: fengguo@lcu.edu.cn or gfeng.alan@foxmail.com
 ---
 
 ## 1  I-ReaxFF软件安装
-     I-ReaxFF软件主要运行的操作系统为Linux系统，Window系统也能安装使用，但效率低下，不推荐。 I-ReaxFF使用Python程序语言开发，少量代码使用cython开发。使用了少部分python的第三方库，首先要对这些依赖库进行安装。如NumPy, 可视化库matplotlib, ase (Atomic Simulation Environment)模块, 谷歌开源机器学习框架TensorFlow。以上模块均可通过python包管理器pip命令安装，如安装NumPy：
+I-ReaxFF软件主要运行的操作系统为Linux系统，Window系统也能安装使用，但效率低下，不推荐。 I-ReaxFF使用Python程序语言开发，少量代码使用cython开发。使用了少部分python的第三方库，首先要对这些依赖库进行安装。如NumPy, 可视化库matplotlib, ase (Atomic Simulation Environment)模块, 谷歌开源机器学习框架TensorFlow。以上模块均可通过python包管理器pip命令安装，如安装NumPy：
 
 ```bash
  pip install numpy -user -upgrade
