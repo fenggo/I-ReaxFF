@@ -136,15 +136,26 @@ class ReaxFF(object):
 ### 3.1 部分参数详细说明
 
 cons: 设定列表中的变量在优化过程中保持不变。
+
 opt: 设定列表中的变量将被优化（cons和opt不能同时设置）。
+
 optword: 可以设置为nocoul、novdw、notor、all，
+
 batch_size: 所有数据被分割成batch_size大小，以进行矩阵计算，大小设置会影响计算速度，默认为50。
+
 sample:抽样方法，可先uniform，均一抽样，random随样抽样。
+
 hbtol: 形成氢键键级最小值。
+
 hbshort, hblong: 氢键结构X-H...Y中X-Y长度的取值范围。
+
 vdwcut: vdw相互作用的截断半径。
+
 clip：对参数取值范围进行限制，数据格式为字典，例如将参数“bo1”限制在（-0.1，0.01）之间：clip={‘bo1’:(-0.1,-0.01)}。
+
 spec: 结构中的化学元素种类，不设置将自动从ffield中获取。
+
 bo_penalty：促进收敛的选项。
+
 losFunc：损失函数，可选n2、abs、mse、huber, 分别对应范数2、绝对差、均方差和结合了均方差和绝对值二者特长的huber式损失函数。
 
