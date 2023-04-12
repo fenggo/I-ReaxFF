@@ -109,11 +109,11 @@ dataset={'nm2_23':'nm2_23.traj',
 dataset中定义了两个ASE Trajectory文件，这两个轨迹均是包含SIESTA-MD (AIMD)计算结果文件，定义ReaxFF对象，’ffield’为初始参数文件。一般使用如下：
 ```python
 rn = ReaxFF(libfile='ffield',
-                　 dataset=dataset,            　
-         　        cons=None,
-          　       batch_size=50,
-          　      losFunc='n2',
-           　     bo_penalty=100000.0)
+            dataset=dataset,
+            cons=None,
+            batch_size=50,
+            losFunc='n2',
+            bo_penalty=100000.0)
 ```
 可使用ReaxFF对象的run模块开始训练：
 ```python
@@ -130,7 +130,7 @@ class ReaxFF(object):
                hbtol=0.01,
                vdwcut=10.0,
                hbshort=6.75,hblong=7.5,
-         ……
+         ......
 ```
 
 ### 3.1 部分参数详细说明
