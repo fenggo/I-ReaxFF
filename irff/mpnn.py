@@ -919,9 +919,9 @@ class MPNN(ReaxFF):
                    bo_l = self.spv_bo[bd_][1]
                    bo_u = self.spv_bo[bd_][2]
                    fe   = tf.where(tf.less_equal(self.rbd[bd],r),1.0,0.0) ##### r< r_e that bo > bore_
-                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bop[bd])*fe))
+                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
                    fe   = tf.where(tf.greater_equal(self.rbd[bd],r),1.0,0.0) ##### r< r_e that bo > bore_
-                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bop[bd]-bo_u)*fe))
+                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
 
                 penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
 
