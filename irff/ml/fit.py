@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize_scalar
 from irff.ml.data import get_data
 from irff.data.ColData import ColData
-from irff.initCheck import init_bonds
+from irff.intCheck import init_bonds
 tf.compat.v1.disable_eager_execution()
 
 
