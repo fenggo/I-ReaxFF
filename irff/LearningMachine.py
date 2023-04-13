@@ -67,7 +67,7 @@ class LearningMachine(object):
                accCriteria=0.9,lossCriteria=10.0,lossTole=1.0,accTole=0.05,
                accMax=0.9,accInc=1.0001,mdInc=1.2,resetAcc=2,
                learnWay=5,FreePairs=None,beta=None,
-               FreeAtoms=None,FirstAtom=None,
+               free_atoms=None,first_atom=None,
                rodic=None,
                rmin=0.88,rmax=1.33,angmax=25.0,
                CheckZmat=True,
@@ -174,12 +174,12 @@ class LearningMachine(object):
       self.EnergyFunction = EnergyFunction
       self.MessageFunction= MessageFunction
       self.writelib       = writelib
-      self.freeatoms      = FreeAtoms
+      self.freeatoms      = free_atoms
       self.freepairs      = FreePairs
       self.a              = AtomDance(poscar=self.initConfig,nn=self.nn,
                                     ffield=ffield,
                                     rmin=self.rmin-0.05,rmax=self.rmax,
-                                    FirstAtom=FirstAtom,freeatoms=self.freeatoms)
+                                    FirstAtom=first_atom,freeatoms=self.freeatoms)
       if self.freepairs is None:
          self.a.get_freebond(freeatoms=self.freeatoms)
       else:
@@ -763,7 +763,7 @@ if __name__ == '__main__':
                      # regularize=True,
                      lambda_reg=0.001,lambda_bd=1000.0,lambda_me=0.001,lambda_ang=0.01,
                      learnWay=1,dft_step=50,
-                     beta=0.77,# FirstAtom=4,FreeAtoms=[4,5,8], 
+                     beta=0.77,# first_atom=4,FreeAtoms=[4,5,8], 
                      EngTole=0.01,dEtole=0.05,dEstop=2.0,
                      EnergyFunction=1,
                      bo_layer=[4,1],mf_layer=[9,2],be_layer=[6,1],vdw_layer=[6,1],
