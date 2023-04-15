@@ -1717,8 +1717,6 @@ class ReaxFF_nn(object):
       ''' adding some penalty term to accelerate the training '''
       log_    = -9.21044036697651
       penalty = 0.0
-      pen_w   = 0.0
-      pen_b   = 0.0
       wb_p    = []
       if self.regularize_be:
          wb_p.append('fe')
@@ -1736,11 +1734,13 @@ class ReaxFF_nn(object):
              wb_message.append('fm')          
              layer['fm'] = self.mf_layer[1]  
 
-      self.penalty_bop = {}
+      self.penalty_bop     = {}
       self.penalty_bo_rcut = {}
-      self.penalty_be_cut = {}
-      self.penalty_rcut = {}
-      self.penalty_ang  = {}
+      self.penalty_be_cut  = {}
+      self.penalty_rcut    = {}
+      self.penalty_ang     = {}
+      self.penalty_w       = 0.0
+      self.penalty_b       = 0.0
 
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
@@ -1791,40 +1791,42 @@ class ReaxFF_nn(object):
              for k in wb_p:
                  for k_ in w_n:
                      key     = k + k_ + '_' + bd
-                     pen_w  += tf.reduce_sum(tf.square(self.m[key]))
+                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
                  if self.regularize_bias:
                     for k_ in b_n:
                         key     = k + k_ + '_' + bd
-                        pen_b  += tf.reduce_sum(tf.square(self.m[key]))
+                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     pen_w += tf.reduce_sum(tf.square(self.m[k+'w_'+bd][l]))
+                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+bd][l]))
                      if self.regularize_bias:
-                        pen_b += tf.reduce_sum(tf.square(self.m[k+'b_'+bd][l]))
+                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+bd][l]))
 
       if self.regularize:                              # regularize
          for sp in self.spec:
              for k in wb_message:
                  for k_ in w_n:
                      key     = k + k_ + '_' + sp
-                     pen_w  += tf.reduce_sum(tf.square(self.m[key]))
+                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
                  if self.regularize_bias:
                     for k_ in b_n:
                         key     = k + k_ + '_' + sp
-                        pen_b  += tf.reduce_sum(tf.square(self.m[key]))
+                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     pen_w += tf.reduce_sum(tf.square(self.m[k+'w_'+sp][l]))
+                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+sp][l]))
                      if self.regularize_bias:
-                        pen_b += tf.reduce_sum(tf.square(self.m[k+'b_'+sp][l]))
-         penalty = tf.add(self.lambda_reg*pen_w,penalty)
-         penalty = tf.add(self.lambda_reg*pen_b,penalty)
+                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+sp][l]))
+         penalty = tf.add(self.lambda_reg*self.penalty_w,penalty)
+         penalty = tf.add(self.lambda_reg*self.penalty_b,penalty)
       return penalty
 
   def get_pentalty(self):
       (penalty_bop,penalty_bo_rcut,
           penalty_be_cut,
-          penalty_rcut,rc_bo) = self.sess.run([self.penalty_bop,self.penalty_bo_rcut,
+          penalty_rcut,rc_bo,
+          penalty_w,penalty_b) = self.sess.run([self.penalty_bop,self.penalty_bo_rcut,
                                          self.penalty_be_cut,
-                                         self.penalty_rcut,self.rc_bo],
+                                         self.penalty_rcut,self.rc_bo,
+                                         self.penalty_w,self.penalty_b],
                                          feed_dict=self.feed_dict)
       rcut = self.rcut
       print('\n------------------------------------------------------------------------')
@@ -1845,6 +1847,8 @@ class ReaxFF_nn(object):
              print('Bond-Energy at radius cutoff penalty of           {:5s}: {:6.4f}'.format(bd,penalty_be_cut[bd]))
           if bd in penalty_rcut:
              print('Bond-Order at radius cutoff penalty of            {:5s}: {:6.4f}'.format(bd,penalty_rcut[bd]))
+      print('Sum of square of weight:                                 {:6.4f}'.format(penalty_w))
+      print('Sum of square of bias:                                   {:6.4f}'.format(penalty_b))
       print('\n')
      
       # print('\n------------------------------------------------------------------------')
