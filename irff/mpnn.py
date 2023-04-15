@@ -825,7 +825,7 @@ class MPNN(ReaxFF):
       self.penalty_pi,self.penalty_ang = {},{}
       self.penalty_vdw = {} 
       self.penalty_be_cut,self.penalty_be = {},{}
-      self.penalty_s_bo,self.penalty_s = {},{}
+      self.penalty_s = {} #,{}
       self.penalty_rcut = {}
 
       for bd in self.bonds: 
@@ -1004,11 +1004,11 @@ class MPNN(ReaxFF):
   def get_pentalty(self):
       (penalty_bop,penalty_bo,penalty_bo_rcut,
           penalty_be_cut,penalty_be,
-          penalty_s,penalty_s_bo,
+          penalty_s,
           penalty_rcut,rc_bo,
           penalty_vdw) = self.sess.run([self.penalty_bop,self.penalty_bo,self.penalty_bo_rcut,
                                          self.penalty_be_cut,self.penalty_be,
-                                         self.penalty_s,self.penalty_s_bo,self.penalty_rcut,self.rc_bo,
+                                         self.penalty_s,self.penalty_rcut,self.rc_bo,
                                          self.penalty_vdw],
                                         feed_dict=self.feed_dict)
       rcut = self.rcut
@@ -1030,8 +1030,8 @@ class MPNN(ReaxFF):
              print('Bond-Energy at radius cutoff penalty of           {:5s}: {:6.4f}'.format(bd,penalty_be_cut[bd]))
           if bd in penalty_be: 
              print('Bond-Energy fluctuation penalty of                {:5s}: {:6.4f}'.format(bd,penalty_be[bd]))
-          if bd in penalty_s_bo:
-             print('Penalty of Bond-Order should greater than zero of {:5s}: {:6.4f}'.format(bd,penalty_s_bo[bd]))
+          # if bd in penalty_s_bo:
+          #   print('Penalty of Bond-Order should greater than zero of {:5s}: {:6.4f}'.format(bd,penalty_s_bo[bd]))
           if bd in penalty_s:
              print('Anti-bond penalty of                              {:5s}: {:6.4f}'.format(bd,penalty_s[bd]))
           if bd in penalty_rcut:
