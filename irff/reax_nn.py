@@ -1847,8 +1847,8 @@ class ReaxFF_nn(object):
              print('Bond-Energy at radius cutoff penalty of           {:5s}: {:6.4f}'.format(bd,penalty_be_cut[bd]))
           if bd in penalty_rcut:
              print('Bond-Order at radius cutoff penalty of            {:5s}: {:6.4f}'.format(bd,penalty_rcut[bd]))
-      print('Sum of square of weight:                                 {:6.4f}'.format(penalty_w))
-      print('Sum of square of bias:                                   {:6.4f}'.format(penalty_b))
+      print('Sum of square of weight:                          {:6.4f}'.format(penalty_w))
+      print('Sum of square of bias:                            {:6.4f}'.format(penalty_b))
       print('\n')
      
       # print('\n------------------------------------------------------------------------')
