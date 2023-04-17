@@ -74,7 +74,8 @@ class LearningMachine(object):
                EngTole=0.05,dEtole=0.2,dEstop=2.0,
                nn=True,vdwnn=False,
                bo_layer=None,mf_layer=[9,1],be_layer=[9,1],vdw_layer=None,#[6,1],
-               be_universal_nn=None,bo_universal_nn=None,mf_universal_nn=None,vdw_universal_nn=None,
+               be_universal_nn=None,bo_universal_nn=None,
+               mf_universal_nn=None,vdw_universal_nn=None,
                BOFunction=0,EnergyFunction=1,MessageFunction=3,VdwFunction=1,
                spv_be=False,beup={},belo={},
                spv_bo=False,
@@ -576,13 +577,15 @@ class LearningMachine(object):
       ''' run classic MD to test training results '''
       mdstep = max(int(self.md_step/5),2) if learnWay==2 else self.md_step
       zmats  = None
+      nomb = False  if self.optword.find('nomb')<0 else True
       irmd = IRMD(atoms=atoms,label=self.label,Iter=Iter,initT=self.T,
                   time_step=self.dt_mlmd,totstep=mdstep,Tmax=Tmax,
                   ro=self.ro,rmin=self.rmin,rmax=self.rmax,angmax=self.angmax,
                   CheckZmat=self.CheckZmat,InitZmat=self.a.InitZmat,
                   zmat_id=self.a.zmat_id,zmat_index=self.a.zmat_index,
                   dEstop=self.dEstop,dEtole=self.dEtole,nn=self.nn,vdwnn=self.vdwnn,
-                  learnpair=learnpair,beta=beta,groupi=groupi,groupj=groupj,freeatoms=self.freeatoms)
+                  learnpair=learnpair,beta=beta,groupi=groupi,groupj=groupj,
+                  nomb=nomb,freeatoms=self.freeatoms)
       if learnWay==2:
          Deformed,zmats,zv,zvlo,zvhi = irmd.opt()
       else:

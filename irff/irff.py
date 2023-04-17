@@ -92,7 +92,7 @@ class IRFF(Calculator):
                nn=False,# vdwnn=False,
                messages=1,
                hbshort=6.75,hblong=7.5,
-               nomb=False,
+               nomb=False,  # this option is used when deal with metal system
                autograd=True,
                CalStress=False,
                label="IRFF", **kwargs):
@@ -106,7 +106,7 @@ class IRFF(Calculator):
       # self.vdwnn      = vdwnn
       self.EnergyFunction = 0
       self.autograd     = autograd
-      self.nomb         = nomb
+      self.nomb         = nomb # without angle, torsion and hbond manybody term
       self.messages     = messages 
       self.safety_value = 0.000000001
       self.GPa          = 1.60217662*1.0e2
@@ -194,8 +194,11 @@ class IRFF(Calculator):
       vrf   = np.where(vrf+0.5<0,vrf+1.0,vrf)  
       vr    = np.dot(vrf,cell)
       r     = np.sqrt(np.sum(vr*vr,axis=2))
-
-      angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
+      
+      if self.nomb:
+         angs,tors,hbs = [],[],[]
+      esle:
+         angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
 
       self.angs  = np.array(angs)
       self.tors  = np.array(tors)
@@ -209,29 +212,26 @@ class IRFF(Calculator):
          self.angj  = self.angs[:,1]
          self.angi  = self.angs[:,0]
          self.angk  = self.angs[:,2]
+         P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
+         for key in P_:
+             self.P[key] = torch.from_numpy(P_[key])
 
       if self.ntor>0:
          self.tori  = self.tors[:,0]
          self.torj  = self.tors[:,1]
          self.tork  = self.tors[:,2]
          self.torl  = self.tors[:,3]
+         P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
+         for key in P_:
+             self.P[key] = torch.from_numpy(P_[key])
 
       if self.nhb>0:
          self.hbi     = self.hbs[:,0]
          self.hbj     = self.hbs[:,1]
          self.hbk     = self.hbs[:,2]
-
-      P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
-      for key in P_:
-          self.P[key] = torch.from_numpy(P_[key])
-
-      P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
-      for key in P_:
-          self.P[key] = torch.from_numpy(P_[key])
-
-      P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
-      for key in P_:
-          self.P[key] = torch.from_numpy(P_[key])
+         P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
+         for key in P_:
+             self.P[key] = torch.from_numpy(P_[key])
 
   def set_rcut(self,rcut,rcuta,re): 
       rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)

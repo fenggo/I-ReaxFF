@@ -63,7 +63,7 @@ def getBonds(natom,r,rcut):
 class IRMD(object):
   ''' Intelligent Reactive Molecular Dynamics '''
   def __init__(self,label=None,atoms=None,gen='poscar.gen',ffield='ffield.json',
-               index=-1,totstep=100,vdwnn=False,nn=True,
+               index=-1,totstep=100,vdwnn=False,nn=True,nomb=False,
                initT=300,Tmax=10000,time_step=0.1,Iter=0,
                ro=None,rmin=0.6,rmax=1.3,angmax=20.0,
                CheckZmat=False,zmat_id=None,zmat_index=None,InitZmat=None,
@@ -102,7 +102,7 @@ class IRMD(object):
          self.atoms  = read(gen,index=index)
       
       self.atoms.calc= IRFF(atoms=self.atoms, mol=label,libfile=ffield,
-                            rcut=None,nn=nn,vdwnn=vdwnn)
+                            nomb=nomb,rcut=None,nn=nn,vdwnn=vdwnn)
       self.natom     = len(self.atoms)
       self.re        = self.atoms.calc.re
       self.dyn       = None

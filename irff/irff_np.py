@@ -72,6 +72,7 @@ class IRFF_NP(object):
                nn=False,# vdwnn=False,
                messages=1,
                hbshort=6.75,hblong=7.5,
+               nomb=False,  # this option is used when dealing with metal system
                mol=None,label="IRFF", **kwargs):
       # Calculator.__init__(self,label=label, **kwargs)
       self.atoms        = atoms
@@ -82,6 +83,7 @@ class IRFF_NP(object):
       self.nn           = nn
       # self.vdwnn      = vdwnn
       self.EnergyFunction = 0
+      self.nomb         = nomb # without angle, torsion and hbond manybody term
       self.messages     = messages
       self.safety_value = 0.000000001
       self.label        = label
@@ -163,14 +165,12 @@ class IRFF_NP(object):
       self.get_rcbo()
       self.set_p(m,self.bo_layer)
       self.Qe= qeq(p=self.p,atoms=self.atoms)
-    
 
   def get_charge(self,cell,positions):
       self.Qe.calc(cell,positions)
       self.q   = self.Qe.q[:-1]
       qij      = np.expand_dims(self.q,axis=0)*np.expand_dims(self.q,axis=1)
       self.qij = qij*14.39975840 
-
 
   def get_neighbor(self,cell,rcell,positions):
       xi    = np.expand_dims(positions,axis=0)
@@ -183,7 +183,10 @@ class IRFF_NP(object):
       vr    = np.dot(vrf,cell)
       r     = np.sqrt(np.sum(vr*vr,axis=2))
 
-      angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
+      if self.nomb:
+         angs,tors,hbs = [],[],[]
+      esle:
+         angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
 
       self.angs  = np.array(angs)
       self.tors  = np.array(tors)
@@ -197,37 +200,23 @@ class IRFF_NP(object):
          self.angi  = self.angs[:,0] # np.expand_dims(self.angs[:,0],axis=1)
          self.angj  = self.angs[:,1] # np.expand_dims(self.angs[:,1],axis=1)
          self.angk  = self.angs[:,2] # np.expand_dims(self.angs[:,2],axis=1)
-
-         # self.angij = np.transpose([self.angs[:,0],self.angs[:,1]])
-         # self.angjk = np.transpose([self.angs[:,1],self.angs[:,2]])
-         # self.angik = np.transpose([self.angs[:,0],self.angs[:,2]])
+         P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
+         self.P.update(P_)
 
       if self.ntor>0:
          self.tori  = self.tors[:,0] # np.expand_dims(self.tors[:,0],axis=1)
          self.torj  = self.tors[:,1] # np.expand_dims(self.tors[:,1],axis=1)
          self.tork  = self.tors[:,2] # np.expand_dims(self.tors[:,2],axis=1)
          self.torl  = self.tors[:,3] # np.expand_dims(self.tors[:,3],axis=1)
-
-         # self.torij = np.transpose([self.tors[:,0],self.tors[:,1]])
-         # self.torjk = np.transpose([self.tors[:,1],self.tors[:,2]])
-         # self.torkl = np.transpose([self.tors[:,2],self.tors[:,3]])
+         P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
+         self.P.update(P_)
 
       if self.nhb>0:
          self.hbi     = self.hbs[:,0] # np.expand_dims(self.hbs[:,0],axis=1)
          self.hbj     = self.hbs[:,1] # np.expand_dims(self.hbs[:,1],axis=1)
          self.hbk     = self.hbs[:,2] # np.expand_dims(self.hbs[:,2],axis=1)
-         # self.hbij  = np.transpose([self.hbs[:,0],self.hbs[:,1]])
-         # self.hbjk  = np.transpose([self.hbs[:,1],self.hbs[:,2]])
-
-      P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
-      self.P.update(P_)
-
-      P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
-      self.P.update(P_)
-
-      P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
-      self.P.update(P_)
-
+         P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
+         self.P.update(P_)
 
   def set_rcut(self,rcut,rcuta,re): 
       rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)
@@ -305,7 +294,6 @@ class IRFF_NP(object):
          self.D_pi = [np.sum(self.bop_pi,axis=1)] 
          self.D_pp = [np.sum(self.bop_pp,axis=1)] 
 
-
   def f1(self):
       Dv  = np.expand_dims(self.Deltap - self.P['val'],axis=0)
       self.f2(Dv)
@@ -315,11 +303,9 @@ class IRFF_NP(object):
       self.f_1 = 0.5*(np.divide(VAL+self.f_2,  VAL+self.f_2+self.f_3)  + 
                       np.divide(VALt+self.f_2, VALt+self.f_2+self.f_3))
 
-
   def f2(self,Dv):
       self.dexpf2  = np.exp(-self.P['boc1']*Dv)
       self.f_2     = self.dexpf2 + np.transpose(self.dexpf2,[1,0])
-
 
   def f3(self,Dv):
       self.dexpf3 = np.exp(-self.P['boc2']*Dv)
@@ -327,7 +313,6 @@ class IRFF_NP(object):
 
       self.f3log  = np.log(0.5*delta_exp )
       self.f_3    = (-1.0/self.P['boc2'])*self.f3log
-
 
   def f45(self):
       self.D_boc = self.Deltap - self.P['valboc'] # + self.p['val_'+atomi]
@@ -343,7 +328,6 @@ class IRFF_NP(object):
 
       self.f_4 = 1.0/(1.0+self.f4r)
       self.f_5 = 1.0/(1.0+self.f5r)
-
 
   def get_bondorder(self):
       self.f1()
@@ -399,7 +383,6 @@ class IRFF_NP(object):
       self.Hpi.append(self.bop_pi)              #
       self.Hpp.append(self.bop_pp)              # 
       self.D.append(self.Deltap)                # get the initial hidden state H[0]
-
 
       for t in range(1,self.messages+1):
           Di        = np.expand_dims(self.D[t-1],axis=0)*self.eye
