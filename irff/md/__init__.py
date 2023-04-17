@@ -13,11 +13,11 @@ import numpy as np
 
 def opt(atoms=None,gen='poscar.gen',fmax=0.3,step=100,
         optimizer=BFGS,
-        vdwnn=False,nn=True):
+        nomb=False,vdwnn=False,nn=True):
     if atoms is None:
        atoms = read(gen)
     atoms.calc = IRFF(atoms=atoms,libfile='ffield.json',rcut=None,
-                      nn=nn,vdwnn=vdwnn)
+                      nomb=nomb,nn=nn,vdwnn=vdwnn)
 
     def check(atoms=atoms):
         epot_      = atoms.get_potential_energy()
@@ -41,11 +41,11 @@ def opt(atoms=None,gen='poscar.gen',fmax=0.3,step=100,
 
 def bhopt(atoms=None,gen='poscar.gen',fmax=0.3,step=100,dr=0.5,temperature=100,
           optimizer=BFGS,
-          vdwnn=False,nn=True,v=False):
+          nomb=False,vdwnn=False,nn=True,v=False):
     if atoms is None:
        atoms = read(gen)
     atoms.calc = IRFF(atoms=atoms,libfile='ffield.json',rcut=None,
-                      nn=nn,vdwnn=vdwnn)
+                      nomb=nomb,nn=nn,vdwnn=vdwnn)
 
     optimizer = BasinHopping(atoms=atoms,              # the system to optimize
                       temperature=temperature * kB,    # 'temperature' to overcome barriers
@@ -77,10 +77,10 @@ def freq(atoms=None):
 
 
 def md(atoms=None,gen='poscar.gen',step=100,nn=True,ffield='ffield.json',initT=300,timeStep=0.1,
-       vdwnn=False,print_interval=1):
+       nomb=False,vdwnn=False,print_interval=1):
     irmd = IRMD(time_step=timeStep,totstep=step,atoms=atoms,gen=gen,Tmax=10000,
                 ro=0.8,rmin=0.5,initT=initT,vdwnn=vdwnn,print_interval=print_interval,
-                nn=nn,ffield=ffield)
+                nomb=nome,nn=nn,ffield=ffield)
     irmd.run()
 
     irmd.close()
