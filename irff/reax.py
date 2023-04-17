@@ -1535,16 +1535,22 @@ class ReaxFF(object):
       libfile = self.libfile.split('.')[0]
 
       for i in range(step+1):
-          loss,lpenalty,ME_,accu,accs,_ = self.sess.run([self.Loss,
+          if i==0:
+             loss,lpenalty,ME_,accu,accs = self.sess.run([self.Loss,
+                                                      self.loss_penalty,
+                                                      self.ME,
+                                                      self.accuracy,
+                                                      self.accur],
+                                                  feed_dict=self.feed_dict)
+             accMax = accu
+          else:
+             loss,lpenalty,ME_,accu,accs,_ = self.sess.run([self.Loss,
                                                       self.loss_penalty,
                                                       self.ME,
                                                       self.accuracy,
                                                       self.accur,
                                                       self.train_step],
                                                   feed_dict=self.feed_dict)
-          if i==0:
-             accMax = accu
-          else:
              if accu>accMax:
                 accMax = accu
 
