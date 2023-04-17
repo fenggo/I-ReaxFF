@@ -92,6 +92,7 @@ class IRFF(Calculator):
                nn=False,# vdwnn=False,
                messages=1,
                hbshort=6.75,hblong=7.5,
+               nomb=False,
                autograd=True,
                CalStress=False,
                label="IRFF", **kwargs):
@@ -105,6 +106,7 @@ class IRFF(Calculator):
       # self.vdwnn      = vdwnn
       self.EnergyFunction = 0
       self.autograd     = autograd
+      self.nomb         = nomb
       self.messages     = messages 
       self.safety_value = 0.000000001
       self.GPa          = 1.60217662*1.0e2
