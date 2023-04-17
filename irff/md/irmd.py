@@ -13,7 +13,6 @@ from ase.io.trajectory import Trajectory
 from ase import units
 
 
-
 def get_pressure(atoms):           
     ir = IRFF(atoms=atoms_md[-1],
             libfile='ffield.json',
