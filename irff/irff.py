@@ -197,7 +197,7 @@ class IRFF(Calculator):
       
       if self.nomb:
          angs,tors,hbs = [],[],[]
-      esle:
+      else:
          angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
 
       self.angs  = np.array(angs)
