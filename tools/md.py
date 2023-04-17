@@ -25,6 +25,7 @@ parser.add_argument('--T',default=300,type=int ,help='the Temperature of MD simu
 parser.add_argument('--r',default=0,type=int ,help='if run relax mode, i.e. relax the structure')
 parser.add_argument('--b',default=0.96,type=float,help='the relax parameter')
 parser.add_argument('--f',default=[],type=list,help='free atoms')
+parser.add_argument('--m',default=1,type=int,help='manybody interaction flag')
 args = parser.parse_args(sys.argv[1:])
 
 
@@ -35,12 +36,13 @@ def moleculardynamics():
     # atoms = ao.bond_momenta_bigest(atoms)
     
     f_= args.f if args.f else None
-
+    nomb = False if args.m else True 
+    
     irmd  = IRMD(atoms=atoms,time_step=0.1,totstep=args.step,gen=args.gen,Tmax=10000,
                  freeatoms=f_,beta=args.b,
                  ro=0.8,rmin=0.5,initT=args.T,
                  ffield='ffield.json',
-                 nn=True)
+                 nomb=nomb,nn=True)
     irmd.run()
     mdsteps= irmd.step
     Emd  = irmd.Epot
