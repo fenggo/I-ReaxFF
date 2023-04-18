@@ -31,7 +31,6 @@ dump 100 restart.grs;
 '''
 
 def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
-                  T=298.0,
                   time_step=0.1,
                   tot_step=10.0,
                   maxcyc=2000,
@@ -67,14 +66,16 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         if 'tau_thermostat' in kwargs:
             print('tau_thermostat   =  {:f} ps'.format(kwargs['tau_thermostat']), file=finp)
 
-        print('temperature        %f K' % T, file=finp)
+        # print('temperature        %f K' % T, file=finp)
         print('timestep           %f fs' % time_step, file=finp)
         print('production         %f ps' %
               float(tot_step*time_step/1000.0), file=finp)
         print('equilibration      0.0 ps', file=finp)
         print('write              1', file=finp)
         print('sample             1', file=finp)
-
+        
+    if 'T' in kwargs: 
+       print('temperature          {:f} K'.format(kwargs['T']),file=finp)
     if 'pressure' in kwargs:
        print('pressure          {:f} GPa'.format(kwargs['pressure']),file=finp)
 
