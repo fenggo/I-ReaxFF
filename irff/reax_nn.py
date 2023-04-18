@@ -1739,8 +1739,8 @@ class ReaxFF_nn(object):
       self.penalty_be_cut  = {}
       self.penalty_rcut    = {}
       self.penalty_ang     = {}
-      self.penalty_w       = 0.0
-      self.penalty_b       = 0.0
+      self.penalty_w       = tf.constant(0.0)
+      self.penalty_b       = tf.constant(0.0)
 
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
