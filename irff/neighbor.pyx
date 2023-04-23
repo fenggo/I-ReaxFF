@@ -61,7 +61,7 @@ def get_pangle(dict p,list atom_name,int np_,list p_ang,int nang,list angs):
             if an in p:
                P[key][a_] = p[an]
             elif anr in p:
-               P[key][a_] = p[an]
+               P[key][a_] = p[anr]
             else:
                P[key][a_] = 0.0
 
