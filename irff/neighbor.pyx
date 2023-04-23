@@ -57,9 +57,13 @@ def get_pangle(dict p,list atom_name,int np_,list p_ang,int nang,list angs):
         for a_ in range(nang):
             ang = angs[a_]
             an = key+'_'+atom_name[ang[0]]+'-'+atom_name[ang[1]]+'-'+atom_name[ang[2]]
-            if not an in p:
-               an = key+'_'+atom_name[ang[2]]+'-'+atom_name[ang[1]]+'-'+atom_name[ang[0]]
-            P[key][a_] = p[an]
+            anr = key+'_'+atom_name[ang[2]]+'-'+atom_name[ang[1]]+'-'+atom_name[ang[0]]
+            if an in p:
+               P[key][a_] = p[an]
+            elif anr in p:
+               P[key][a_] = p[an]
+            else:
+               P[key][a_] = 0.0
 
     P['val3'] = np.zeros([nang],dtype=np.float32)
     for a_ in range(nang):
