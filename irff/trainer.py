@@ -8,7 +8,7 @@ import numpy as np
 from .reax import ReaxFF
 from .reax_nn import ReaxFF_nn
 from .mpnn import MPNN
-from .initCheck import Init_Check
+# from .intCheck import Intelligent_Check 
 from .dingtalk import send_msg
 import json as js
 
