@@ -635,13 +635,14 @@ def deb_thet(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,dFrame=[])
     if show: plt.show()
     plt.close()
 
-def get_changed_fourboday(traj='md.traj'):
-    images_md = Trajectory('md.traj')
+def get_changed_fourboday(images=None,traj='md.traj'):
+    if images is None:
+       images = Trajectory(traj)
     Eb,Ea,Etor,E = [],[],[],[]
-    ir = IRFF_NP(atoms=images_md[0],
+    ir = IRFF_NP(atoms=images[0],
                  libfile='ffield.json',
                  nn='True')
-    ir.calculate(images_md[0])
+    ir.calculate(images[0])
 
     tor_min = {}
     tor_max = {}
@@ -651,8 +652,8 @@ def get_changed_fourboday(traj='md.traj'):
         tor_max[t] = ir.etor[i]
     # print(tor_min)
 
-    for i_,atoms in enumerate(images_md):       
-        ir.calculate(images_md[i_])
+    for i_,atoms in enumerate(images):       
+        ir.calculate(images[i_])
         # print('%d Energies: ' %i_,'%12.4f ' %ir.E )
 
         Eb.append(ir.Ebond)
@@ -690,7 +691,62 @@ def get_changed_fourboday(traj='md.traj'):
     tor_ = '{:s}-{:s}-{:s}-{:s}'.format(ir.atom_name[tor[0]],ir.atom_name[tor[1]],
                                         ir.atom_name[tor[2]],ir.atom_name[tor[3]])
     print(tor_,tor,tor_change[mi])
-    
+
+def get_changed_threeboday(images=None,traj='md.traj'):
+    if images is None:
+       images = Trajectory(traj)
+    Eb,Ea,Etor,E = [],[],[],[]
+    ir = IRFF_NP(atoms=images[0],
+                 libfile='ffield.json',
+                 nn='True')
+    ir.calculate(images[0])
+
+    ang_min = {}
+    ang_max = {}
+    for i,ang in enumerate(ir.angs):
+        t = tuple(ang)
+        ang_min[t] = ir.eang[i]
+        ang_max[t] = ir.eang[i]
+        
+    for i_,atoms in enumerate(images):       
+        ir.calculate(images[i_])
+        # print('%d Energies: ' %i_,'%12.4f ' %ir.E )
+
+        Eb.append(ir.Ebond)
+        Ea.append(ir.Eang)
+        Etor.append(ir.Etor)
+        E.append(ir.E)
+
+        for i,ang in enumerate(ir.angs):
+            t  = tuple(ang)
+            t_ = (ang[2],ang[1],ang[0])
+            if t in ang_min:
+               if ang_min[t]>ir.eang[i]:
+                  ang_min[t] = ir.eang[i]
+               if ang_max[t]<ir.eang[i]:
+                  ang_max[t] = ir.eang[i]
+            elif t_ in ang_min:
+               if ang_min[t_]>ir.eang[i]:
+                  ang_min[t_] = ir.eang[i]
+               if ang_max[t_]<ir.eang[i]:
+                  ang_max[t_] = ir.eang[i]
+            else:
+              ang_min[t] = ir.eang[i]
+              ang_max[t] = ir.eang[i]
+    ang_change = []
+    ang_name   = []
+    m_ = 0.0
+    mi = 0
+    for i,t in enumerate(ang_min):
+        m = ang_max[t] - ang_min[t]
+        if m>m_:
+           mi = i
+        ang_change.append(m)
+        ang_name.append(t)
+    ang  = ang_name[mi]
+    ang_ = '{:s}-{:s}-{:s}'.format(ir.atom_name[ang[0]],ir.atom_name[ang[1]],ir.atom_name[ang[2]])
+    print(ang_,ang,ang_change[mi]) 
+
 ## compare the total energy with DFT energy
 
 # images = Trajectory('md.traj')
