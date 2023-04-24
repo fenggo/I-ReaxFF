@@ -635,6 +635,62 @@ def deb_thet(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,dFrame=[])
     if show: plt.show()
     plt.close()
 
+def get_changed_fourboday(traj='md.traj'):
+    images_md = Trajectory('md.traj')
+    Eb,Ea,Etor,E = [],[],[],[]
+    ir = IRFF_NP(atoms=images_md[0],
+                 libfile='ffield.json',
+                 nn='True')
+    ir.calculate(images_md[0])
+
+    tor_min = {}
+    tor_max = {}
+    for i,tor in enumerate(ir.tors):
+        t = tuple(tor)
+        tor_min[t] = ir.etor[i]
+        tor_max[t] = ir.etor[i]
+    # print(tor_min)
+
+    for i_,atoms in enumerate(images_md):       
+        ir.calculate(images_md[i_])
+        # print('%d Energies: ' %i_,'%12.4f ' %ir.E )
+
+        Eb.append(ir.Ebond)
+        Ea.append(ir.Eang)
+        Etor.append(ir.Etor)
+        E.append(ir.E)
+
+        for i,tor in enumerate(ir.tors):
+            t  = tuple(tor)
+            t_ = (tor[3],tor[2],tor[1],tor[0])
+            if t in tor_min:
+               if tor_min[t]>ir.etor[i]:
+                  tor_min[t] = ir.etor[i]
+               if tor_max[t]<ir.etor[i]:
+                  tor_max[t] = ir.etor[i]
+            elif t_ in tor_min:
+               if tor_min[t_]>ir.etor[i]:
+                  tor_min[t_] = ir.etor[i]
+               if tor_max[t_]<ir.etor[i]:
+                  tor_max[t_] = ir.etor[i]
+            else:
+              tor_min[t] = ir.etor[i]
+              tor_max[t] = ir.etor[i]
+    tor_change = []
+    tor_name   = []
+    m_ = 0.0
+    mi = 0
+    for i,t in enumerate(tor_min):
+        m = tor_max[t] - tor_min[t]
+        if m>m_:
+           mi = i
+        tor_change.append(m)
+        tor_name.append(t)
+    tor  = tor_name[mi]
+    tor_ = '{:s}-{:s}-{:s}-{:s}'.format(ir.atom_name[tor[0]],ir.atom_name[tor[1]],
+                                        ir.atom_name[tor[2]],ir.atom_name[tor[3]])
+    print(tor_,tor,tor_change[mi])
+    
 ## compare the total energy with DFT energy
 
 # images = Trajectory('md.traj')
