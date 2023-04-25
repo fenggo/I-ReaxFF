@@ -685,6 +685,7 @@ def get_changed_fourboday(images=None,traj='md.traj'):
         m = tor_max[t] - tor_min[t]
         if m>m_:
            mi = i
+           m_ = m
         tor_change.append(m)
         tor_name.append(t)
     tor  = tor_name[mi]
@@ -741,6 +742,7 @@ def get_changed_threeboday(images=None,traj='md.traj'):
         m = ang_max[t] - ang_min[t]
         if m>m_:
            mi = i
+           m_ = m
         ang_change.append(m)
         ang_name.append(t)
     ang  = ang_name[mi]
