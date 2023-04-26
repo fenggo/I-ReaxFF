@@ -194,10 +194,15 @@ class reax_data(object):
       self.get_table()
       self.get_bonds(self.R)
 
-      self.compute_angle(self.R,self.vr)
-      self.compute_torsion(self.R,self.vr)
-
-      self.compute_hbond(image_rs)
+      if self.structure.find('fake')>=0:
+         self.nhb  = 0
+         self.nang = 0
+         self.ntor = 0
+      else:
+         self.compute_angle(self.R,self.vr)
+         self.compute_torsion(self.R,self.vr)
+         self.compute_hbond(image_rs)
+         
       self.compute_vdw(image_rs)
 
       # self.get_gulp_energy()
