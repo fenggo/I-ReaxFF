@@ -12,11 +12,12 @@ tf.compat.v1.disable_eager_execution()
 
 
 def fit(step=1000,obj='BO',i=0,j=1,traj='md.traj',bd=None,dataset={}):
+    ''' fit bo value according prior knowledge'''
     unit =  4.3364432032e-2
     Desi = 424.95
 
     bonds = ['C-C','C-H','C-N','H-O','C-O','H-H','H-N','N-N','O-N','O-O'] 
-    D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
+    D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffield.json')
 
     D_, Bp_, B_, R_, E_ = get_bond_data(i,j,traj=traj)
     
