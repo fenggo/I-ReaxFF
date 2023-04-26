@@ -226,7 +226,7 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
 
 
 class AtomDance(object):
-  def __init__(self,atoms=None,poscar=None,nn=True,ffield='ffield.json',
+  def __init__(self,atoms=None,poscar=None,nn=True,nomb=False,ffield='ffield.json',
                rotAng=40.0,angmax=30.0,freeatoms=None,FirstAtom=None,
                rmin=0.4,rmax=1.25,botol=0.0):
       self.rmin          = rmin
@@ -245,6 +245,7 @@ class AtomDance(object):
       self.ir = IRFF_NP(atoms=atoms,
                         libfile=ffield,
                         rcut=None,
+                        nomb=nomb,
                         nn=nn)
       self.natom     = self.ir.natom
       self.atom_name = self.ir.atom_name
