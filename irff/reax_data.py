@@ -194,7 +194,7 @@ class reax_data(object):
       self.get_table()
       self.get_bonds(self.R)
 
-      if self.structure.find('fake')>=0:
+      if self.structure.find('nomb')>=0:
          self.nhb  = 0
          self.nang = 0
          self.ntor = 0
