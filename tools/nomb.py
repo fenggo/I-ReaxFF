@@ -6,7 +6,7 @@ import argparse
 from irff.irff_np import IRFF_NP
 
 
-def nomb(traj='md.traj',,interval=5):
+def nomb(traj='md.traj',interval=5):
     images = Trajectory(traj)
 
     ir = IRFF_NP(atoms=images[0],
