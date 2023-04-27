@@ -205,6 +205,8 @@ class reax_data(object):
          self.tor_i,self.tor_j,self.tor_k,self.tor_l = [],[],[],[]
          self.A,self.T,self.H,self.hij={},{},{},{}
          self.na,self.nt={},{}
+         self.theta,self.s_ijk,self.s_jkl,self.w,self.rhb = None,None,None,None,None
+         self.frhb,self.hbthe = None,None
       else:
          self.compute_angle(self.R,self.vr)
          self.compute_torsion(self.R,self.vr)
