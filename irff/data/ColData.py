@@ -19,18 +19,23 @@ class ColData(object):
       data_dir    = {}
       running     = True
 
-      while running:
-          run_dir = 'aimd_'+self.label+'/'+self.label+'-'+str(i)
-          if exists(run_dir):
-             i += increase
-             data_dir[self.label+'-'+str(i)] = cwd+'/'+run_dir+'/'+self.label+'.traj'
-          else:
-             running = False
-          if not endstep is None:
-             if increase>0:
-                if i>endstep: running = False
-             else:
-                if i<endstep: running = False
+      traj        = self.label+'.traj'
+      if isfile(traj):
+         data_dir[self.label] = traj
+      else:
+         while running:
+            run_dir = 'aimd_'+self.label+'/'+self.label+'-'+str(i)
+            if exists(run_dir):
+                i += increase
+                data_dir[self.label+'-'+str(i)] = cwd+'/'+run_dir+'/'+self.label+'.traj'
+            else:
+                running = False
+            if not endstep is None:
+                if increase>0:
+                    if i>endstep: running = False
+                else:
+                    if i<endstep: running = False
+                    
       trajs_ = prep_data(label=self.label,direcs=data_dir,
                          split_batch=batch,max_batch=self.max_batch,
                          frame=100000,dft=dft)              # get trajs for training
