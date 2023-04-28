@@ -1579,7 +1579,8 @@ class ReaxFF(object):
 
              acc = ''
              for key in accs:
-                 acc += key+': %6.4f ' %accs[key]
+                 if key.find('nomb_')<0:
+                    acc += key+': %6.4f ' %accs[key]
 
              self.logger.info('-  step: %d loss: %6.4f accs: %f %s spv: %6.4f me: %6.4f time: %6.4f' %(i,
                              loss_,accu,acc,lpenalty,ME_,elapsed_time))
