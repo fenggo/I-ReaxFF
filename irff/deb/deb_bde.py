@@ -381,9 +381,9 @@ def deb_eang(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,frame=[0])
            continue 
         ir.calculate(atoms)
 
-        eang.append(ir.Eang)    
-        ecoa.append(ir.Etcon)
-        epen.append(ir.Epen)
+        eang.append(ir.eang[a])    
+        # ecoa.append(ir.Etcon)
+        # epen.append(ir.Epen)
         if print_:
            print('{:3d}  {:6.4f}  {:6.4f} Dpi: {:6.4f} pbo: {:6.4f} N: {:6.4f} SBO3: {:6.4f} eang: {:6.4f}'.format(i_,
                      ir.thet0[a],ir.theta[a],ir.sbo[a],ir.pbo[a],
