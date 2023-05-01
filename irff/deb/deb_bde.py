@@ -356,8 +356,7 @@ def deb_eang(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,frame=[0])
     a     = 0
     
     eang,ecoa,epen = [],[],[]
-    
-    ir = IRFF_NP(atoms=images[frame],
+    ir = IRFF_NP(atoms=images[frame[0]],
                  libfile='ffield.json',
                  nn=True)
     for f_ in frame:
