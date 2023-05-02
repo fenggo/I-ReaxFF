@@ -41,6 +41,7 @@ class ReaxFF_nn(object):
                bore={'others':0.0},
                weight={'others':1.0},
                spv_vdw=False,vlo={'others':[(0.0,0.0)]},vup={'others':[(10.0,0.0)]},
+               spv_bo=None,                 # e.g. spv_bo={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
                ro_scale=0.1,
                clip_op=True,
@@ -125,6 +126,7 @@ class ReaxFF_nn(object):
       self.messages      = messages
       self.spv_vdw       = spv_vdw
       self.spv_ang       = spv_ang
+      self.spv_bo        = spv_bo
       self.vlo           = vlo
       self.vup           = vup
       self.bo_layer      = bo_layer
@@ -341,12 +343,16 @@ class ReaxFF_nn(object):
       self.ebd   = {}
       self.rbd   = {}
       self.rbd_  = {}
+      self.Dbi   = {}
+      self.Dbj   = {}
       #self.bop_ = {}
       #self.bo0_ = {}
       for mol in self.mols:
           self.esi[mol]   = {}
           self.ebd[mol]   = {}
           self.rbd_[mol]  = {}
+          self.Dbi[mol]   = {}
+          self.Dbj[mol]   = {}
           #self.bop_[mol]  = {}
           #self.bo0_[mol]  = {}
 
@@ -552,12 +558,12 @@ class ReaxFF_nn(object):
           hpp  = tf.slice(self.Hpp[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpp_slice')
 
           b    = bd.split('-')
-          Dbi  = Di - h   
-          Dbj  = Dj - h   
+          self.Dbi[mol][bd]  = Di - h   
+          self.Dbj[mol][bd]  = Dj - h   
           
-          Fi   = fmessage(flabel,b[0],self.nbd[mol][bd],[Dbi,h,Dbj],self.m,
+          Fi   = fmessage(flabel,b[0],self.nbd[mol][bd],[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
                           batch=self.batch[mol],layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],self.nbd[mol][bd],[Dbj,h,Dbi],self.m,
+          Fj   = fmessage(flabel,b[1],self.nbd[mol][bd],[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
                           batch=self.batch[mol],layer=self.mf_layer[1])
           F    = Fi*Fj
           Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
@@ -1735,6 +1741,7 @@ class ReaxFF_nn(object):
              layer['fm'] = self.mf_layer[1]  
 
       self.penalty_bop     = {}
+      self.penalty_bo      = {}
       self.penalty_bo_rcut = {}
       self.penalty_be_cut  = {}
       self.penalty_rcut    = {}
@@ -1763,6 +1770,8 @@ class ReaxFF_nn(object):
           self.penalty_bop[bd]     = tf.constant(0.0)
           self.penalty_be_cut[bd]  = tf.constant(0.0)
           self.penalty_bo_rcut[bd] = tf.constant(0.0)
+          self.penalty_bo[bd]      = tf.constant(0.0)
+
           for mol in self.mols:
               if self.nbd[mol][bd]>0:       
                  b_   = self.b[mol][bd]
@@ -1778,6 +1787,25 @@ class ReaxFF_nn(object):
 
                  fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= 0.0 that e = 0.0
                  self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu(self.esi[mol][bd]*fesi))
+                 
+                 if self.spv_bo:
+                     if (bd in self.spv_bo) or (bdr in self.spv_bo):
+                        bd_  = bd if bd in self.spv_bo else bdr
+                        r    = self.spv_bo[bd_][0]
+                        d_i  = self.spv_bo[bd_][1]
+                        d_j  = self.spv_bo[bd_][2]
+                        bo_l = self.spv_bo[bd_][3]
+                        bo_u = self.spv_bo[bd_][4]
+                        fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd_[mol][bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[mol][bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[mol][bd],d_j))),
+                                          1.0,0.0)  
+                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-bo0_)*fe))
+                        fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd_[mol][bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[mol][bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[mol][bd],d_j))),
+                                          1.0,0.0)  
+                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo0_-bo_u)*fe))
 
               if self.spv_ang:
                  self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
@@ -1785,6 +1813,7 @@ class ReaxFF_nn(object):
           penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
           penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)        
           penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
+          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty)   
 
           # penalize term for regularization of the neural networs
           if self.regularize:                             # regularize to avoid overfit
