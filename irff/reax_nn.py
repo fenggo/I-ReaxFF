@@ -1850,10 +1850,10 @@ class ReaxFF_nn(object):
 
   def get_pentalty(self):
       (penalty_bop,penalty_bo_rcut,
-          penalty_be_cut,
+          penalty_bo,penalty_be_cut,
           penalty_rcut,rc_bo,
           penalty_w,penalty_b) = self.sess.run([self.penalty_bop,self.penalty_bo_rcut,
-                                         self.penalty_be_cut,
+                                         self.penalty_bo,self.penalty_be_cut,
                                          self.penalty_rcut,self.rc_bo,
                                          self.penalty_w,self.penalty_b],
                                          feed_dict=self.feed_dict)
@@ -1866,8 +1866,8 @@ class ReaxFF_nn(object):
       for bd in self.bonds:
           if bd in penalty_bop:
              print('bop cutoff penalty of                             {:5s}: {:6.4f}'.format(bd,penalty_bop[bd]))
-         #  if bd in penalty_bo:
-         #     print('BO state penalty of                             {:5s}: {:6.4f}'.format(bd,penalty_bo[bd]))
+          if bd in penalty_bo:
+             print('BO state penalty of                               {:5s}: {:6.4f}'.format(bd,penalty_bo[bd]))
           if bd in penalty_bo_rcut:
              print('Differency between rcut-bo and rcut Penalty of    {:5s}: {:6.4f} {:6.4f} {:6.4f}'.format(bd,penalty_bo_rcut[bd],rc_bo[bd],rcut[bd]))
           # if bd in penalty_esi:
