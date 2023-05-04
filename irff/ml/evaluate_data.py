@@ -1,8 +1,8 @@
-# import csv
 import pandas as pd
 from os.path import isfile
 from os import listdir,getcwd
 import numpy as np
+from sklearn.cluster import KMeans
 from .ffield import ffield_to_csv,update_ffield #,get_csv_data
 from ..data.ColData import ColData
 from ..reax import ReaxFF 
@@ -41,7 +41,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                     'lp1','lp2','coa2','coa3','coa4','pen2','pen3','pen4',
                     'tor2','tor3','tor4','cot2',
                     'rvdw','gammaw','Devdw','alfa','vdw1'],
-             evaluate_ffield=True,scale=1.0,pop=20,regenerate=False,
+             evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
     if not isfile(fcsv):
@@ -82,21 +82,14 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
            if col == 'Unnamed:':
               d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
 
+   #  if n_clusters>1:
+   #     X   = d.values[:, : -1]
+   #     #Y  = d.values[:, -1]
+   #     kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
+   #     print(kmeans.labels_)
+   #     print(kmeans.cluster_centers_)
 
-    #from sklearn.cluster import KMeans
-    #import numpy as np
-    # X = np.array([[1, 2], [1, 4], [1, 0],
-    #               [10, 2], [10, 4], [10, 0]])
-    #kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto").fit(X)
-    #kmeans.labels_
-    # array([1, 1, 1, 0, 0, 0], dtype=int32)
-    #kmeans.predict([[0, 0], [12, 3]])
-    # array([1, 0], dtype=int32)
-    #kmeans.cluster_centers_
-    # array([[10.,  2.],
-    #        [ 1.,  2.]])
-
-    columns        = d.columns
+    columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
        if not model is None:                                         ### evaluate the score of current ffield
           model.update(p=None,reset_emol=True)
