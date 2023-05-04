@@ -1,4 +1,5 @@
 import pandas as pd
+import random
 from os.path import isfile
 from os import listdir,getcwd
 import numpy as np
@@ -75,8 +76,10 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
 
     if n_clusters>1:
        X   = d.values[:, : -1]
+       print(X)
        #Y  = d.values[:, -1]
-       kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
+       random.seed()
+       kmeans = KMeans(n_clusters=n_clusters, random_state=random.random()).fit(X)
        print(kmeans.labels_)
        print(kmeans.cluster_centers_)
 
