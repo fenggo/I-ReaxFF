@@ -6,17 +6,7 @@ from sklearn.cluster import KMeans
 from .ffield import ffield_to_csv,update_ffield #,get_csv_data
 from ..data.ColData import ColData
 from ..reax import ReaxFF 
-#from ..dft.CheckEmol import check_emol
 
-# parameters = ['boc1','boc2','boc3','boc4','boc5',
-#               'rosi','ropi','ropp','Desi','Depi','Depp',
-#               'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6',
-#               'valboc','val3','val5','val6','val8','val9','val10',
-#               'ovun1','ovun2','ovun3','ovun4','ovun5','ovun6','ovun7','ovun8',
-#               'lp1','lp2','coa2','coa3','coa4','pen2','pen3','pen4',
-#               'tor2','tor3','tor4','cot2',
-#               'rvdw','gammaw','Devdw','alfa','vdw1',
-#               'rohb','Dehb','hb1','hb2']
 
 def init_ffield_csv(fcsv,parameters=['boc1','boc2','boc3','boc4','boc5',
                     'rosi','ropi','ropp','Desi','Depi','Depp',
@@ -71,6 +61,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 for x_ in x:
                     print(x_,end=',',file=f)
                 print(-99999999999.9,file=f)                                   # 得分为-999，需要重新评估
+       n_clusters = 1
 
     d              = pd.read_csv(fcsv)
     columns        = d.columns
