@@ -20,6 +20,7 @@ def train(step=5000,print_step=100,writelib=500,
             max_generation=500,
                   size_pop=500,
                   init_pop=10,
+                n_clusters=1,
                   prob_mut=0.5,
                  potential=None,
                    trainer=None,
@@ -38,7 +39,7 @@ def train(step=5000,print_step=100,writelib=500,
                  fcsv=fcsv,to_evaluate=to_evaluate,
                  step=evaluate_step,print_step=print_step,writelib=writelib,
                  evaluate_ffield=evaluate_ffield,pop=init_pop,scale=scale,
-                 regenerate=regenerate,parameters=parameters)
+                 n_clusters=n_clusters,parameters=parameters)
     d.sort_values(axis=0,by='score',ascending=False,inplace=True)
 
     X       = d.values[:, : -1]
