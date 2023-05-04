@@ -62,7 +62,20 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 for x_ in x:
                     print(x_,end=',',file=f)
                 print(-99999999999.9,file=f)                                   # 得分为-999，需要重新评估
-       n_clusters = 1
+    else:
+       if n_clusters>1:
+          pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
+          X   = d.values
+          #Y  = d.values[:, -1]
+          kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X)
+          #print(kmeans.labels_)
+          #print(kmeans.cluster_centers_)
+          with open(fcsv,'a') as f:
+             for i,x in enumerate(kmeans.cluster_centers_):
+                 print(i+1,end=',',file=f)
+                 for x_ in x:
+                     print(x_,end=',',file=f)
+                 print(-99999999999.9,file=f)   
 
     d              = pd.read_csv(fcsv)
     columns        = d.columns
@@ -73,15 +86,6 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
            col = col_[0]
            if col == 'Unnamed:':
               d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
-
-    if n_clusters>1:
-       X   = d.values[:, : -1]
-       print(X)
-       #Y  = d.values[:, -1]
-       random.seed()
-       kmeans = KMeans(n_clusters=n_clusters, random_state=random.random()).fit(X)
-       print(kmeans.labels_)
-       print(kmeans.cluster_centers_)
 
     columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
