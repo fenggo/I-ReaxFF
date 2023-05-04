@@ -280,7 +280,8 @@ class MPNN(ReaxFF):
           self.accur[mol] = 1.0 - tf.reduce_sum(input_tensor=tf.abs(self.E[mol]-self.dft_energy[mol]))/(sum_edft+0.00000001)
          
           self.Loss     += self.loss[mol]*w_
-          self.accuracy += self.accur[mol]
+          if mol.find('nomb_')<0:
+             self.accuracy += self.accur[mol]
 
       self.ME   = 0.0
       for mol in self.mols:
