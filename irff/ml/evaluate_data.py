@@ -82,12 +82,12 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
            if col == 'Unnamed:':
               d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
 
-   #  if n_clusters>1:
-   #     X   = d.values[:, : -1]
-   #     #Y  = d.values[:, -1]
-   #     kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
-   #     print(kmeans.labels_)
-   #     print(kmeans.cluster_centers_)
+    if n_clusters>1:
+       X   = d.values[:, : -1]
+       #Y  = d.values[:, -1]
+       kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
+       print(kmeans.labels_)
+       print(kmeans.cluster_centers_)
 
     columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
