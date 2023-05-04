@@ -541,8 +541,9 @@ class ReaxFF(object):
              self.Loss     += self.loss[mol]*self.weight[mol_]
           else:
              self.Loss     += self.loss[mol]
-
-          self.accuracy += self.accur[mol]
+             
+          if mol.find('nomb_')<0:
+             self.accuracy += self.accur[mol]
 
       self.ME   = 0.0
       for mol in self.mols:
