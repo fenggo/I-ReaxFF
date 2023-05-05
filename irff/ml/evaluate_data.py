@@ -75,7 +75,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
           X   = d.values[:,:-1]
           #Y  = d.values[:, -1]
           random.seed()
-          kmeans = KMeans(n_clusters=n_clusters, random_state=random.ranint(0,10)).fit(X)
+          kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(X)
           #print(kmeans.labels_)
           #print(kmeans.cluster_centers_)
           
