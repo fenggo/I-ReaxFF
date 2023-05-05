@@ -64,6 +64,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 print(-99999999999.9,file=f)                                   # 得分为-999，需要重新评估
     else:
        if n_clusters>1:
+          d              = pd.read_csv(fcsv)
           pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
           X   = d.values
           #Y  = d.values[:, -1]
