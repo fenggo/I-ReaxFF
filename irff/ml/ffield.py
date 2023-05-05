@@ -45,7 +45,7 @@ def update_ffield(p_,ffield):
     with open('ffield.json','w') as fj:
          js.dump(j,fj,sort_keys=True,indent=2)
 
-def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.csv'):
+def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.csv',mode='a'):
     with open(ffield,'r') as lf:
          j  = js.load(lf)
          p_ = j['p']
@@ -148,13 +148,13 @@ def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.cs
     if isfile(fcsv):
        already_exist = True
 
-    if already_exist: 
+    if already_exist and mode!='w': 
        fcsv_ = open(fcsv,'a')
     else:
        fcsv_ = open(fcsv,'w')
     csv_write = csv.writer(fcsv_)
 
-    if not already_exist:
+    if not already_exist or mode=='w':
        csv_write.writerow(p_name)
     
     row = ['0'] # if already_exist else []

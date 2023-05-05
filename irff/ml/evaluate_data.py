@@ -64,13 +64,14 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 print(-99999999999.9,file=f)                                   # 得分为-999，需要重新评估
     else:
        if n_clusters>1:
-          d              = pd.read_csv(fcsv)
-          pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
-          X   = d.values
+          d   = pd.read_csv(fcsv)
+          X   = d.values[:,:-1]
           #Y  = d.values[:, -1]
           kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X)
           #print(kmeans.labels_)
           #print(kmeans.cluster_centers_)
+          
+          pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w') 
           with open(fcsv,'a') as f:
              for i,x in enumerate(kmeans.cluster_centers_):
                  print(i+1,end=',',file=f)
