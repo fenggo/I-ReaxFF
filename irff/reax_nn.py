@@ -1014,6 +1014,8 @@ class ReaxFF_nn(object):
           self.Loss     += self.loss[mol]*w_
           if mol.find('nomb_')<0:
              self.accuracy += self.accur[mol]
+          else:
+             self.nmol -= 1
 
       self.ME   = 0.0
       for mol in self.mols:
