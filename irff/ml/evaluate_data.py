@@ -88,6 +88,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  if len(index_.shape)==0 or isinstance(index_,int):
                     x      = X[index_]
                  else:
+                    print(index_)
                     x      = X[index_[0]]
                  print(i+1,end=',',file=f)
                  for x_ in x:
