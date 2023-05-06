@@ -1,11 +1,13 @@
+import random
 import numpy as np
 import types
+from sklearn.cluster import KMeans
 
 
 class Evolution:
     def __init__(self, func, n_dim, F=0.5,
                  size_pop=50, max_iter=200, prob_mut=0.5,
-                 X_input=None,scale=None,
+                 X_input=None,scale=None,n_clusters=1,
                  constraint_eq=tuple(), constraint_ueq=tuple()):
         self.func = func # func_transformer(func)
         assert size_pop % 2 == 0, 'size_pop must be even integer'
@@ -41,6 +43,7 @@ class Evolution:
         self.V, self.U = None, None
         # self.lb, self.ub = np.array(lb) * np.ones(self.n_dim), np.array(ub) * np.ones(self.n_dim)
         self.scale = scale
+        self.n_clusters = n_clusters
         self.crtbp()
 
     def crtbp(self):
@@ -49,6 +52,7 @@ class Evolution:
           create the inital population: self.X
         '''
         len_    = len(self.X_input)
+        n_clusters = self.n_clusters if len_>self.n_clusters else len_
         pop_       = self.size_pop - len_
         self.X     = self.X_input
         Y_         = self.x2y()
@@ -61,9 +65,23 @@ class Evolution:
         if pop_>0:
            # X_    = np.random.uniform(low=self.lb, high=self.ub, size=(pop_, self.n_dim))  
            # Using a Gaussian Distribution instead of uniform distrution 使用高斯分布代替均匀分布
-           X_      = np.random.normal(loc=X_template, scale=self.scale, size=(pop_, self.n_dim))
-           merge_  = np.vstack([self.X_input,X_])
-           self.X  = merge_
+           XS = []
+           size_pop = int(pop_/n_clusters)
+
+           random.seed()
+           kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(X)
+
+           for i in range(n_clusters):
+               size = size_pop  if i != n_clusters-1 else pop_-size_pop*i
+
+               index_ = np.where(kmeans.label_==i)
+               index_ = np.squeeze(index_)
+
+               X_template = self.X[index_[0]]
+               X_   = np.random.normal(loc=X_template, scale=self.scale, size=(size, self.n_dim))
+               XS.append(X_)
+           self.X  = np.vstack(XS)
+
         elif pop_==0:
            self.X = self.X_input
         else:
