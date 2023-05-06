@@ -87,7 +87,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  for i_,k in enumerate(kmeans.labels_):
                      if k==i:
                         break
-                 x      = X[index_]
+                 x      = X[i_]
                  print(i+1,end=',',file=f)
                  for x_ in x:
                      print(x_,end=',',file=f)
