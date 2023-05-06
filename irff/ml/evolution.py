@@ -75,7 +75,9 @@ class Evolution:
               for i,l in enumerate(kmeans.labels_):
                   if l not in clusters:
                      clusters[l] = i
-              for i,i_ in enumerate(clusters):
+              
+              for i,x in enumerate(clusters):
+                  i_ = clusters[x]
                   size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)

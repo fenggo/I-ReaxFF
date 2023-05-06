@@ -87,8 +87,9 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               
           pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w') 
           with open(fcsv,'a') as f:
-             for i,x in enumerate(clusters):
-                 # x      = X[i_]
+             for i in clusters:
+                 i_ = clusters[i]
+                 x      = X[i_]
                  print(i+1,end=',',file=f)
                  for x_ in x:
                      print(x_,end=',',file=f)
