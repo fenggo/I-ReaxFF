@@ -83,7 +83,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
           with open(fcsv,'a') as f:
              for i,_x in enumerate(kmeans.cluster_centers_):
                  index_ = np.squeeze(np.where(kmeans.labels_==i))
-                 if isinstance(index_,int):
+                 if len(index_.shape)==0:
                     x      = X[index_]
                  else:
                     x      = X[index_[0]]
