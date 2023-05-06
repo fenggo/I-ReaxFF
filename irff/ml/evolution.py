@@ -68,15 +68,19 @@ class Evolution:
            XS = [self.X_input]
            size_pop = int(pop_/n_clusters)
 
-           random.seed()
-           kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(self.X)
+           if n_clusters>1:
+              random.seed()
+              kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(self.X)
 
-           for i in range(n_clusters):
-               size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
-               index_ = np.squeeze(np.where(kmeans.labels_==i))
-               i_     = index_  if len(index_.shape)==0 or isinstance(index_,int) else index_[0] # 
-               X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
-               XS.append(X_)
+              for i in range(n_clusters):
+                  size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
+                  index_ = np.squeeze(np.where(kmeans.labels_==i))
+                  i_     = index_  if len(index_.shape)==0 or isinstance(index_,int) else index_[0] # 
+                  X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
+                  XS.append(X_)
+           else:
+              X_  = np.random.normal(loc=X_template, scale=self.scale, size=(pop_, self.n_dim))
+              XS.append(X_)
            self.X  = np.vstack(XS)
 
         elif pop_==0:
