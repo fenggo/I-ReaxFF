@@ -69,7 +69,7 @@ class Evolution:
            size_pop = int(pop_/n_clusters)
 
            random.seed()
-           kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(X)
+           kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(self.X)
 
            for i in range(n_clusters):
                size = size_pop  if i != n_clusters-1 else pop_-size_pop*i
