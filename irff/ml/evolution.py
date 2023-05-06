@@ -51,7 +51,7 @@ class Evolution:
           创建初始                  族群: self.X     
           create the inital population: self.X
         '''
-        len_    = len(self.X_input)
+        len_       = len(self.X_input)
         n_clusters = self.n_clusters if len_>self.n_clusters else len_
         pop_       = self.size_pop - len_
         self.X     = self.X_input
@@ -65,7 +65,7 @@ class Evolution:
         if pop_>0:
            # X_    = np.random.uniform(low=self.lb, high=self.ub, size=(pop_, self.n_dim))  
            # Using a Gaussian Distribution instead of uniform distrution 使用高斯分布代替均匀分布
-           XS = []
+           XS = [self.X_input]
            size_pop = int(pop_/n_clusters)
 
            random.seed()
