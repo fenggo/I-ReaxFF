@@ -84,18 +84,15 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
           pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w') 
           with open(fcsv,'a') as f:
              for i,_x in enumerate(kmeans.cluster_centers_):
-                 index_ = np.squeeze(np.where(kmeans.labels_==i))
-                 if len(index_.shape)==0 or isinstance(index_,int):
-                    # x      = X[index_]
-                    print('1: ',index_)
-                 else:
-                    print('2: ',index_)
-                    # x      = X[index_[0]]
-               #   print(i+1,end=',',file=f)
-               #   for x_ in x:
-               #       print(x_,end=',',file=f)
-               #   print(-99999999999.9,file=f)
-          exit()
+                 for i_,k in enumerate(kmeans.labels_):
+                     if k==i:
+                        break
+                 x      = X[index_]
+                 print(i+1,end=',',file=f)
+                 for x_ in x:
+                     print(x_,end=',',file=f)
+                 print(-99999999999.9,file=f)
+                 
     d              = pd.read_csv(fcsv)
     columns        = d.columns
 
