@@ -74,7 +74,7 @@ class Evolution:
            for i in range(n_clusters):
                size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
                index_ = np.squeeze(np.where(kmeans.labels_==i))
-               i_     = index_  if len(index_.shape)==0 else index_[0] # isinstance(index_,int)
+               i_     = index_  if len(index_.shape)==0 or isinstance(index_,int) else index_[0] # 
                X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                XS.append(X_)
            self.X  = np.vstack(XS)
