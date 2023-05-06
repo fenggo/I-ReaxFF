@@ -74,7 +74,7 @@ class Evolution:
            for i in range(n_clusters):
                size = size_pop  if i != n_clusters-1 else pop_-size_pop*i
 
-               index_ = np.where(kmeans.label_==i)
+               index_ = np.where(kmeans.labels_==i)
                index_ = np.squeeze(index_)
 
                X_template = self.X[index_[0]]
