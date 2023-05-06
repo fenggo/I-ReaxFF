@@ -86,15 +86,16 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
              for i,_x in enumerate(kmeans.cluster_centers_):
                  index_ = np.squeeze(np.where(kmeans.labels_==i))
                  if len(index_.shape)==0 or isinstance(index_,int):
-                    x      = X[index_]
+                    # x      = X[index_]
+                    print('1: ',index_)
                  else:
-                    print(index_)
-                    x      = X[index_[0]]
+                    print('2: ',index_)
+                    # x      = X[index_[0]]
                  print(i+1,end=',',file=f)
                  for x_ in x:
                      print(x_,end=',',file=f)
                  print(-99999999999.9,file=f)
-
+          exit()
     d              = pd.read_csv(fcsv)
     columns        = d.columns
 
