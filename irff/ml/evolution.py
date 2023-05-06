@@ -70,13 +70,13 @@ class Evolution:
 
            if n_clusters>1:
               random.seed()
+              clusters = {}
               kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(self.X)
-
-              for i in range(n_clusters):
+              for i,l in enumerate(kmeans.labels_):
+                  if l not in clusters:
+                     clusters[l] = i
+              for i,i_ in enumerate(clusters):
                   size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
-                  for i_,k in enumerate(kmeans.labels_):
-                      if k==i:
-                         break
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)
            else:

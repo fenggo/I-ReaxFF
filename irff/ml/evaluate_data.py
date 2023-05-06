@@ -80,14 +80,15 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
           kmeans = KMeans(n_clusters=n_, random_state=random.randint(0,10)).fit(X)
           #print(kmeans.labels_)
           #print(kmeans.cluster_centers_)
-          
+          clusters = {}            # 取第一次出现的元素为核心，前面的元素分值高，排序好的数据
+          for i,l in enumerate(kmeans.labels_):
+              if l not in clusters:
+                 clusters[l] = i
+              
           pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w') 
           with open(fcsv,'a') as f:
-             for i,_x in enumerate(kmeans.cluster_centers_):
-                 for i_,k in enumerate(kmeans.labels_):
-                     if k==i:
-                        break
-                 x      = X[index_]
+             for i,x in enumerate(clusters):
+                 # x      = X[i_]
                  print(i+1,end=',',file=f)
                  for x_ in x:
                      print(x_,end=',',file=f)
