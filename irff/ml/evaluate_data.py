@@ -91,10 +91,10 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  else:
                     print('2: ',index_)
                     # x      = X[index_[0]]
-                 print(i+1,end=',',file=f)
-                 for x_ in x:
-                     print(x_,end=',',file=f)
-                 print(-99999999999.9,file=f)
+               #   print(i+1,end=',',file=f)
+               #   for x_ in x:
+               #       print(x_,end=',',file=f)
+               #   print(-99999999999.9,file=f)
           exit()
     d              = pd.read_csv(fcsv)
     columns        = d.columns
