@@ -72,13 +72,9 @@ class Evolution:
            kmeans = KMeans(n_clusters=n_clusters, random_state=random.randint(0,10)).fit(self.X)
 
            for i in range(n_clusters):
-               size = size_pop  if i != n_clusters-1 else pop_-size_pop*i
-
-               index_ = np.where(kmeans.labels_==i)
-               index_ = np.squeeze(index_)
-
-               X_template = self.X[index_[0]]
-               X_   = np.random.normal(loc=X_template, scale=self.scale, size=(size, self.n_dim))
+               size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
+               index_ = np.squeeze(np.where(kmeans.labels_==i))
+               X_     = np.random.normal(loc=self.X[index_[0]], scale=self.scale, size=(size, self.n_dim))
                XS.append(X_)
            self.X  = np.vstack(XS)
 
