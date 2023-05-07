@@ -1,3 +1,5 @@
+下载地址：https://gulp.curtin.edu.au/gulp
+
 To install GULP on most Unix/Linux machines :
 
 (1) Go to Src/
