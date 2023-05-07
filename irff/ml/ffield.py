@@ -2,7 +2,7 @@
 #from irff.reaxfflib import read_ffield,write_ffield
 import json as js
 import csv
-import pandas as pd
+# import pandas as pd
 from os.path import isfile
 from os import listdir
 
@@ -170,10 +170,10 @@ def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.cs
     fcsv_.close()
     return p_name,row
 
-def get_csv_data(fcsv):
-    d = pd.read_csv(fcsv)
-    # print(d['boc1'])
-    return d
+# def get_csv_data(fcsv):
+#     d = pd.read_csv(fcsv)
+#     # print(d['boc1'])
+#     return d
 
 def init_bonds(p_):
     spec,bonds,offd,angs,torp,hbs = [],[],[],[],[],[]
