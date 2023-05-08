@@ -66,7 +66,7 @@ class LearningMachine(object):
                convergence=0.01,nconvergence=3,
                accCriteria=0.9,lossCriteria=10.0,lossTole=1.0,accTole=0.05,
                accMax=0.9,accInc=1.0001,mdInc=1.2,resetAcc=2,
-               learnWay=5,FreePairs=None,beta=None,
+               learnWay=3,FreePairs=None,beta=None,
                free_atoms=None,first_atom=None,
                rodic=None,
                rmin=0.88,rmax=1.33,angmax=25.0,
