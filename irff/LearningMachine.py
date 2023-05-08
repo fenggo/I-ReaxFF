@@ -108,7 +108,7 @@ class LearningMachine(object):
       self.convergence    = convergence
       self.cons           = cons
       self.nconvergence   = nconvergence
-      self.learnWay       = learnWay    # the way of learing
+      self.learnWay       = learnWay     # the way of learing
       self.ncpu           = ncpu
       self.step           = step
       self.batch          = batch
@@ -272,9 +272,10 @@ class LearningMachine(object):
              iter_ += 1
              continue
           if images is not None:
-             atoms = images[-1]   
+             atoms = images[0] if self.learnWay==4 else images[-1]
           elif isfile('md.traj'): 
-             atoms = read('md.traj',index=-1)
+             id_ = 0 if self.learnWay==4 else -1
+             atoms = read('md.traj',index=id_) 
              consistance = self.check_atoms(atoms)
              assert consistance,'-  The species or cell parameter in md.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
@@ -290,9 +291,10 @@ class LearningMachine(object):
              if momsteps >= mom_step:
                 momsteps  = 0
                 if learnWay == 4:
-                   atoms,self.learnpair,groupi,groupj = self.a.bond_momenta(atoms)
-                   if self.learnpair is None:
-                      learnWay = 3
+                   # atoms,self.learnpair,groupi,groupj = self.a.bond_momenta(atoms)
+                   # if self.learnpair is None:
+                   #    learnWay = 3
+                   self.CheckZmat=False
                 elif learnWay == 5:
                    if ms<self.natom:
                       i = self.a.zmat_id[ms]
@@ -316,7 +318,7 @@ class LearningMachine(object):
                       else:
                          learnWay = 3
                          self.learnpair = None
-                   if learnWay ==5: learnWay = 4
+                   if learnWay ==5: learnWay = 3 # 4
                 # learnWay  = 2
                 ms       += 1
 
@@ -330,8 +332,9 @@ class LearningMachine(object):
              dft_step = relax_step
           else:
              dft_step = self.col_frame # int(mdsteps/self.col_frame)+1
-          
-          e_aimd,eml_,dEmax_,d2Emax_,LabelDataLog = self.aimd(atoms,cwd,run_dir,dft_step,learnWay)
+
+          ### aimd: DO ab init calculations
+          e_aimd,eml_,dEmax_,d2Emax_,LabelDataLog = self.aimd(atoms,cwd,run_dir,dft_step,learnWay) 
           e_siesta.append(e_aimd[0])                                   # get siesta results              
                                                                        # start training  
           trajs_ = prep_data(label=self.label,direcs=data_dir,
@@ -414,6 +417,10 @@ class LearningMachine(object):
                 self.a.pes(i,atoms,nbin=dft_step,dr=0.1,traj='md.traj')
              if ms == len(self.freeatoms) -1:
                 self.learnWay=3
+          elif learnWay==4:
+             e_gmd,mdsteps,Deformed,zmat_variable,zvlo,zvhi = self.mlmd(atoms, 10000,
+                                      iter_,learnWay,beta=self.beta,learnpair=self.learnpair,
+                                      groupi=groupi,groupj=groupj) 
           else:
              if Deformed>=1.0:
                 images,relaxlog = self.a.zmat_relax(atoms=atoms,zmat_variable=zmat_variable,nbin=relax_step,
@@ -577,7 +584,8 @@ class LearningMachine(object):
       ''' run classic MD to test training results '''
       mdstep = max(int(self.md_step/5),2) if learnWay==2 else self.md_step
       zmats  = None
-      nomb = False  if self.optword.find('nomb')<0 else True
+      nomb = False if self.optword.find('nomb')<0 and learnWay!=4 else True
+      active = True if learnWay==4 else False
       irmd = IRMD(atoms=atoms,label=self.label,Iter=Iter,initT=self.T,
                   time_step=self.dt_mlmd,totstep=mdstep,Tmax=Tmax,
                   ro=self.ro,rmin=self.rmin,rmax=self.rmax,angmax=self.angmax,
@@ -585,7 +593,7 @@ class LearningMachine(object):
                   zmat_id=self.a.zmat_id,zmat_index=self.a.zmat_index,
                   dEstop=self.dEstop,dEtole=self.dEtole,nn=self.nn,vdwnn=self.vdwnn,
                   learnpair=learnpair,beta=beta,groupi=groupi,groupj=groupj,
-                  nomb=nomb,freeatoms=self.freeatoms)
+                  nomb=nomb,active=active,freeatoms=self.freeatoms)
       if learnWay==2:
          Deformed,zmats,zv,zvlo,zvhi = irmd.opt()
       else:
