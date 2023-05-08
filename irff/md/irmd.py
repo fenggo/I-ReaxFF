@@ -63,6 +63,7 @@ class IRMD(object):
   ''' Intelligent Reactive Molecular Dynamics '''
   def __init__(self,label=None,atoms=None,gen='poscar.gen',ffield='ffield.json',
                index=-1,totstep=100,vdwnn=False,nn=True,nomb=False,
+               active=False,period=30,
                initT=300,Tmax=10000,time_step=0.1,Iter=0,
                ro=None,rmin=0.6,rmax=1.3,angmax=20.0,
                CheckZmat=False,zmat_id=None,zmat_index=None,InitZmat=None,
@@ -96,6 +97,8 @@ class IRMD(object):
       self.beta      = beta
       self.freeatoms = freeatoms
       self.print_interval = print_interval
+      self.active    = active   # an active leaning protocal for metal
+      self.images    = []
 
       if self.atoms is None:
          self.atoms  = read(gen,index=index)
@@ -206,6 +209,11 @@ class IRMD(object):
                             bonds      = getBonds(self.natom,self.atoms.calc.r,1.17*self.re)
                             newbond    = self.checkBond(bonds)
              self.zmats.append(zmat)
+          elif active:
+             self.images.append(a.copy())
+             if self.step%self.period==0:
+
+                self.images = []
           else:
              r    = a.calc.r.detach().numpy()
              i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))

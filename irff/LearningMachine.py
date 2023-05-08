@@ -272,17 +272,16 @@ class LearningMachine(object):
              iter_ += 1
              continue
           if images is not None:
-             atoms = images[0] if self.learnWay==4 else images[-1]
+             atoms = images[-1] 
           elif isfile('md.traj'): 
-             id_ = 0 if self.learnWay==4 else -1
-             atoms = read('md.traj',index=id_) 
+             atoms = read('md.traj',index=-1) 
              consistance = self.check_atoms(atoms)
              assert consistance,'-  The species or cell parameter in md.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
           else:
              print('-  cannot find MD trajectory, use learnWay=1 in the first iter.')
              atoms = read(self.initConfig)
-             learnWay = 1
+             learnWay = 4 if self.learnWay==4 else 1
           if not self.freeatoms is None:
              atoms = self.a.check_momenta(atoms,freeatoms=self.freeatoms)
              
@@ -408,7 +407,7 @@ class LearningMachine(object):
 
           if mdsteps<10: mdsteps = 10
           # zmats    = None
-          images     = None
+          images     = None if learnWay!=4 else [atoms]
           # zmatopt  = zmat_vairable # if Deformed>=1.0 else uncertainty_zv
 
           if learnWay==6:
