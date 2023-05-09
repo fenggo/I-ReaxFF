@@ -70,7 +70,7 @@ class LearningMachine(object):
                free_atoms=None,first_atom=None,
                rodic=None,
                rmin=0.88,rmax=1.33,angmax=25.0,
-               CheckZmat=True,uncertainty=0.96,
+               CheckZmat=True,uncertainty=0.96,period=30,
                EngTole=0.05,dEtole=0.2,dEstop=2.0,
                nn=True,vdwnn=False,
                bo_layer=None,mf_layer=[9,1],be_layer=[9,1],vdw_layer=None,#[6,1],
@@ -106,6 +106,7 @@ class LearningMachine(object):
       self.angmax         = angmax
       self.CheckZmat      = CheckZmat
       self.uncertainty    = uncertainty
+      self.period         = period
       self.convergence    = convergence
       self.cons           = cons
       self.nconvergence   = nconvergence
@@ -593,7 +594,7 @@ class LearningMachine(object):
                   zmat_id=self.a.zmat_id,zmat_index=self.a.zmat_index,
                   dEstop=self.dEstop,dEtole=self.dEtole,nn=self.nn,vdwnn=self.vdwnn,
                   learnpair=learnpair,beta=beta,groupi=groupi,groupj=groupj,
-                  nomb=nomb,active=active,uncertainty=self.uncertainty,
+                  nomb=nomb,active=active,uncertainty=self.uncertainty,period=self.period,
                   freeatoms=self.freeatoms)
       if learn_method==2:
          Deformed,zmats,zv,zvlo,zvhi = irmd.opt()

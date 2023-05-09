@@ -9,7 +9,7 @@ import numpy as np
 from ase.optimize import BFGS
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.md.verlet import VelocityVerlet
-from ase.io.trajectory import Trajectory
+from ase.io.trajectory import Trajectory,TrajectoryWriter
 from ase import units
 
 
@@ -100,6 +100,7 @@ class IRMD(object):
       self.active    = active        # an active leaning protocal for metal
       self.uncertainty= uncertainty  # the limit of the uncertainty of bond length dirtribution
       self.images    = []
+      self.rs        = []
 
       if self.atoms is None:
          self.atoms  = read(gen,index=index)
@@ -126,7 +127,10 @@ class IRMD(object):
 
   def run(self):
       self.zv,self.zvlo,self.zvhi = None,0.0,0.0
-      self.dyn = VelocityVerlet(self.atoms, self.time_step*units.fs,trajectory='md.traj') 
+      if active:
+         self.dyn = VelocityVerlet(self.atoms, self.time_step*units.fs)
+      else:
+         self.dyn = VelocityVerlet(self.atoms, self.time_step*units.fs,trajectory='md.traj') 
       if (not self.learnpair is None) and (not self.beta is None):
          vij = self.atoms.positions[self.learnpair[1]] - self.atoms.positions[self.learnpair[0]]
          rij = np.sqrt(np.sum(np.square(vij)))
@@ -212,9 +216,16 @@ class IRMD(object):
              self.zmats.append(zmat)
           elif active:
              self.images.append(a.copy())
+             bo0   =  a.calc.bo0.detach().numpy()
+             r     = a.calc.r.detach().numpy()
+             mask  = np.where(bo0>=0.0001,1,0)     # 掩码，用于过虑掉非成键键长
+             self.rs.append(r*mask)
+
              if self.step%self.period==0:
+                n           = np.sum(mask)
 
                 self.images = []
+                self.rs     = []
           else:
              r    = a.calc.r.detach().numpy()
              i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
@@ -324,6 +335,11 @@ class IRMD(object):
   
       self.dyn.attach(check,interval=1)
       self.dyn.run(0.00001,self.totstep)
+      if active:
+         traj  = TrajectoryWriter('md.traj',mode='w')
+         for atoms in self.images:
+             traj.write(atoms=atoms)
+         traj.close()
       return self.Deformed,self.zmats,self.zv,self.zvlo,self.zvhi
 
   def checkBond(self,bonds):
