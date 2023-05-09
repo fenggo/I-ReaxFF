@@ -66,7 +66,7 @@ class LearningMachine(object):
                convergence=0.01,nconvergence=3,
                accCriteria=0.9,lossCriteria=10.0,lossTole=1.0,accTole=0.05,
                accMax=0.9,accInc=1.0001,mdInc=1.2,resetAcc=2,
-               learnWay=3,FreePairs=None,beta=None,
+               learn_method=3,FreePairs=None,beta=None,
                free_atoms=None,first_atom=None,
                rodic=None,
                rmin=0.88,rmax=1.33,angmax=25.0,
@@ -108,7 +108,7 @@ class LearningMachine(object):
       self.convergence    = convergence
       self.cons           = cons
       self.nconvergence   = nconvergence
-      self.learnWay       = learnWay     # the way of learing
+      self.learn_method       = learn_method     # the way of learing
       self.ncpu           = ncpu
       self.step           = step
       self.batch          = batch
@@ -240,7 +240,7 @@ class LearningMachine(object):
       data_dir     = {}
       running      = True
       Deformed     = 0
-      if self.learnWay==5:
+      if self.learn_method==5:
          if self.freeatoms is None:
             self.freeatoms = []
          ms        = len(self.freeatoms)
@@ -263,8 +263,8 @@ class LearningMachine(object):
       while running:
           optlog   = None
           relaxlog = None
-          learnWay = self.learnWay
-          mom_step = self.mom_step*(ms+1) if learnWay==5 else self.mom_step
+          learn_method = self.learn_method
+          mom_step = self.mom_step*(ms+1) if learn_method==5 else self.mom_step
           run_dir  = self.aidir+'/'+self.label+'-'+str(iter_)
           data_dir[self.label+'-'+str(iter_)] = cwd+'/'+run_dir+'/'+self.label+'.traj'
 
@@ -279,22 +279,22 @@ class LearningMachine(object):
              assert consistance,'-  The species or cell parameter in md.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
           else:
-             print('-  cannot find MD trajectory, use learnWay=1 in the first iter.')
+             print('-  cannot find MD trajectory, use learn_method=1 in the first iter.')
              atoms = read(self.initConfig)
-             learnWay = 4 if self.learnWay==4 else 1
+             learn_method = 4 if self.learn_method==4 else 1
           if not self.freeatoms is None:
              atoms = self.a.check_momenta(atoms,freeatoms=self.freeatoms)
              
-          if learnWay in [4,5,6]:
+          if learn_method in [4,5,6]:
              momsteps += mdsteps
              if momsteps >= mom_step:
                 momsteps  = 0
-                if learnWay == 4:
+                if learn_method == 4:
                    # atoms,self.learnpair,groupi,groupj = self.a.bond_momenta(atoms)
                    # if self.learnpair is None:
-                   #    learnWay = 3
+                   #    learn_method = 3
                    self.CheckZmat=False
-                elif learnWay == 5:
+                elif learn_method == 5:
                    if ms<self.natom:
                       i = self.a.zmat_id[ms]
                       if i not in self.freeatoms: 
@@ -315,17 +315,17 @@ class LearningMachine(object):
                          # self.learnpair = [i,j]
                          atoms,_,_ = self.a.set_bond_momenta(i,j,atoms)
                       else:
-                         learnWay = 3
+                         learn_method = 3
                          self.learnpair = None
-                   if learnWay ==5: learnWay = 3 # 4
-                # learnWay  = 2
+                   if learn_method ==5: learn_method = 3 # 4
+                # learn_method  = 2
                 ms       += 1
 
           # self.get_fixatom()
           # atoms.set_constraint(self.fixatoms)
           # atoms.write('poscar.gen')                                    # for aimd
 
-          if learnWay==1: 
+          if learn_method==1: 
              dft_step = self.dft_step
           elif Deformed>=1.0 or uncertainty_zv is not None:
              dft_step = relax_step
@@ -333,7 +333,7 @@ class LearningMachine(object):
              dft_step = self.col_frame # int(mdsteps/self.col_frame)+1
 
           ### aimd: DO ab init calculations
-          e_aimd,eml_,dEmax_,d2Emax_,LabelDataLog = self.aimd(atoms,cwd,run_dir,dft_step,learnWay) 
+          e_aimd,eml_,dEmax_,d2Emax_,LabelDataLog = self.aimd(atoms,cwd,run_dir,dft_step,learn_method) 
           e_siesta.append(e_aimd[0])                                   # get siesta results              
                                                                        # start training  
           trajs_ = prep_data(label=self.label,direcs=data_dir,
@@ -407,18 +407,18 @@ class LearningMachine(object):
 
           if mdsteps<10: mdsteps = 10
           # zmats    = None
-          images     = None if learnWay!=4 else [atoms]
+          images     = None if learn_method!=4 else [atoms]
           # zmatopt  = zmat_vairable # if Deformed>=1.0 else uncertainty_zv
 
-          if learnWay==6:
+          if learn_method==6:
              if ms<len(self.freeatoms):
                 i = self.freeatoms[ms]
                 self.a.pes(i,atoms,nbin=dft_step,dr=0.1,traj='md.traj')
              if ms == len(self.freeatoms) -1:
-                self.learnWay=3
-          elif learnWay==4:
+                self.learn_method=3
+          elif learn_method==4:
              e_gmd,mdsteps,Deformed,zmat_variable,zvlo,zvhi = self.mlmd(atoms, 10000,
-                                      iter_,learnWay,beta=self.beta,learnpair=self.learnpair,
+                                      iter_,learn_method,beta=self.beta,learnpair=self.learnpair,
                                       groupi=groupi,groupj=groupj) 
           else:
              if Deformed>=1.0:
@@ -429,7 +429,7 @@ class LearningMachine(object):
                                                     zmatrix=self.a.zmatrix,zvlo=u_zvlo,zvhi=u_zvhi,traj='md.traj') # ,reset=True
              else:
                 e_gmd,mdsteps,Deformed,zmat_variable,zvlo,zvhi = self.mlmd(atoms, 10000,
-                                                iter_,learnWay,beta=self.beta,learnpair=self.learnpair,
+                                                iter_,learn_method,beta=self.beta,learnpair=self.learnpair,
                                                 groupi=groupi,groupj=groupj) 
                 if self.CheckZmat and mdsteps<=3:
                    mdsteps= 10
@@ -454,14 +454,14 @@ class LearningMachine(object):
 
           self.save_config()
 
-          e_gmd = eml_ if learnWay in [3,4,5] else 0.0
+          e_gmd = eml_ if learn_method in [3,4,5] else 0.0
           e_gulp.append(e_gmd[0])
           diff  = abs(e_gmd[0]-e_aimd[0])
           it.append(iter_)
 
           plot_energies(it,e_siesta,e_gulp)                             # plot learning status                                   
           self.learninglog(iter_,loss,accu,mdsteps,e_gulp[-1],e_siesta[-1],dEmax_,d2Emax_,LabelDataLog,
-          	               learnWay,Deformed,
+          	               learn_method,Deformed,
                            self.a.InitZmat,uncertainty_zv,zvlo,zvhi,optlog,relaxlog)
           converg_ = converg
           if diff<=self.convergence: 
@@ -488,7 +488,7 @@ class LearningMachine(object):
           iter_ += 1
 
   def learninglog(self,i,loss,accu,mdsteps,eirff,edft,dEmax,d2Emax,LabelDataLog,
-                  learnWay,Deformed,
+                  learn_method,Deformed,
                   InitZmat,uz,uzlo,uzhi,optlog,relaxlog):
       with open('learning.log','a') as l:
          l.write('                  ------------------------------------                  \n')
@@ -516,7 +516,7 @@ class LearningMachine(object):
          l.write('MD Steps:  {:d}  \n'.format(mdsteps))
          l.write('Energy from ML and DFT:  {:f}  .vs.  {:f} \n'.format(eirff,edft))
          l.write('The max first derivative and second derivative:  {:f}  {:f} \n'.format(dEmax,d2Emax))
-         l.write('The learning method of this iter:  {:d} \n'.format(learnWay))
+         l.write('The learning method of this iter:  {:d} \n'.format(learn_method))
          if not relaxlog is None:
             if Deformed>=1:
                l.write('Molecule structure is deformed, using zmatmix relax\n' )
@@ -527,7 +527,7 @@ class LearningMachine(object):
             l.write(optlog)
          l.write(' \n')
 
-  def aimd(self,atoms,cwd,run_dir,tstep,learnWay):
+  def aimd(self,atoms,cwd,run_dir,tstep,learn_method):
       mkdir(run_dir)
       chdir(cwd+'/'+run_dir)
       
@@ -543,7 +543,7 @@ class LearningMachine(object):
       dEmax  = 0.0
       d2Emax = 0.0
       
-      if learnWay==1:
+      if learn_method==1:
          if self.dft=='siesta':
             images = siesta_md(label=self.label,ncpu=self.ncpu,T=self.T,dt=self.dt_aimd,us='F',tstep=tstep,
                                atoms=atoms,FreeAtoms=self.freeatoms,
@@ -563,7 +563,7 @@ class LearningMachine(object):
             raise RuntimeError('-  This method not implimented!')
          eaimd = [images[0].get_potential_energy()]
          system('cp %s ../../md.traj' %(self.label+'.traj'))
-      elif learnWay>=2:
+      elif learn_method>=2:
          # print('-  files in this dir \n',cwd+'/'+run_dir,'\n',listdir())
          E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
                                                  frame=tstep,select=True,
@@ -578,13 +578,13 @@ class LearningMachine(object):
       chdir(cwd)
       return eaimd,emlmd,dEmax,d2Emax,ind_
 
-  def mlmd(self,atoms,Tmax,Iter,learnWay,learnpair=None,beta=None,
+  def mlmd(self,atoms,Tmax,Iter,learn_method,learnpair=None,beta=None,
            groupi=None,groupj=None):        
       ''' run classic MD to test training results '''
-      mdstep = max(int(self.md_step/5),2) if learnWay==2 else self.md_step
+      mdstep = max(int(self.md_step/5),2) if learn_method==2 else self.md_step
       zmats  = None
-      nomb = False if self.optword.find('nomb')<0 and learnWay!=4 else True
-      active = True if learnWay==4 else False
+      nomb = False if self.optword.find('nomb')<0 and learn_method!=4 else True
+      active = True if learn_method==4 else False
       irmd = IRMD(atoms=atoms,label=self.label,Iter=Iter,initT=self.T,
                   time_step=self.dt_mlmd,totstep=mdstep,Tmax=Tmax,
                   ro=self.ro,rmin=self.rmin,rmax=self.rmax,angmax=self.angmax,
@@ -593,7 +593,7 @@ class LearningMachine(object):
                   dEstop=self.dEstop,dEtole=self.dEtole,nn=self.nn,vdwnn=self.vdwnn,
                   learnpair=learnpair,beta=beta,groupi=groupi,groupj=groupj,
                   nomb=nomb,active=active,freeatoms=self.freeatoms)
-      if learnWay==2:
+      if learn_method==2:
          Deformed,zmats,zv,zvlo,zvhi = irmd.opt()
       else:
          Deformed,zmats,zv,zvlo,zvhi = irmd.run()
@@ -692,7 +692,7 @@ class LearningMachine(object):
                     'maxiter':self.maxiter,
                     # 'max_batch':self.max_batch,
                     #'optword':self.optword,
-                    'learnWay':self.learnWay,
+                    'learn_method':self.learn_method,
                     'col_frame':self.col_frame,
                     'CheckZmat':self.CheckZmat,
                     'freeatoms':self.freeatoms}
@@ -700,7 +700,7 @@ class LearningMachine(object):
                     # 'bore':self.bore,
                     # 'writelib':self.writelib
 
-           if self.learnWay==1:
+           if self.learn_method==1:
               options['dft_step'] = self.dft_step
            js.dump(options,fj,sort_keys=True,indent=2) 
 
@@ -717,7 +717,7 @@ class LearningMachine(object):
            # self.accInc     = options['accInc']
            # self.resetAcc   = options['resetAcc']
            self.step         = options['step'] 
-           if self.learnWay==1:
+           if self.learn_method==1:
               self.dft_step     = options['dft_step'] 
            self.md_step      = options['md_step'] 
            
@@ -741,7 +741,7 @@ class LearningMachine(object):
            self.maxiter      = options['maxiter']
            # self.max_batch  = options['max_batch']
            #self.optword      = options['optword']
-           self.learnWay     = options['learnWay']
+           self.learn_method     = options['learn_method']
            self.learning_rate= options['learning_rate']
            self.col_frame     = options['col_frame']
            self.CheckZmat    = options['CheckZmat']
@@ -772,7 +772,7 @@ if __name__ == '__main__':
                      CheckZmat=False,
                      # regularize=True,
                      lambda_reg=0.001,lambda_bd=1000.0,lambda_me=0.001,lambda_ang=0.01,
-                     learnWay=1,dft_step=50,
+                     learn_method=1,dft_step=50,
                      beta=0.77,# first_atom=4,FreeAtoms=[4,5,8], 
                      EngTole=0.01,dEtole=0.05,dEstop=2.0,
                      EnergyFunction=1,
