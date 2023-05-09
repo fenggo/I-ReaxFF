@@ -32,12 +32,9 @@ def amp_data(lab='amp',
         A = Atoms(md.atom_name,x,cell=md.cell,pbc=[True,True,True])
 
         e = float(md.energy_nw[i]) 
-        calc = SinglePointCalculator(A,energy=e,
+        A.calc = SinglePointCalculator(A,energy=e,
                                      free_energy=float(md.max_e),
                                      forces=md.forces[i])
-
-        # A.set_calculator(calc)
-        A.calc = calc
         his.write(atoms=A)
         del A
     his.close()
@@ -281,9 +278,8 @@ class MDtoData(object):
           if self.checkMol:
              A =  press_mol(A)
 
-          calc = SinglePointCalculator(A,energy=float(self.energy_nw[ii]),
+          A.calc = SinglePointCalculator(A,energy=float(self.energy_nw[ii]),
                                          forces=self.forces[ii])
-          A.set_calculator(calc)
           his.write(atoms=A)
           images.append(A)
       his.close()
@@ -310,9 +306,8 @@ class MDtoData(object):
           A    = Atoms(self.atom_name,self.x[ii],
                         charges=c,
                         cell=self.cells[ii],pbc=[True,True,True])
-          calc = SinglePointCalculator(A,energy=float(self.energy_nw[ii]),
+          A.calc = SinglePointCalculator(A,energy=float(self.energy_nw[ii]),
                                          forces=self.forces[ii])
-          A.set_calculator(calc)
           images.append(A)
       return images
 
