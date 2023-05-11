@@ -66,7 +66,7 @@ class Evolution:
            # X_    = np.random.uniform(low=self.lb, high=self.ub, size=(pop_, self.n_dim))  
            # Using a Gaussian Distribution instead of uniform distrution 使用高斯分布代替均匀分布
            XS = [self.X_input]
-           size_pop = int(pop_/n_clusters)
+           size_ = int(pop_/n_clusters)
 
            if n_clusters>1:
               random.seed()
@@ -78,7 +78,7 @@ class Evolution:
               
               for i,x in enumerate(clusters):
                   i_ = clusters[x]
-                  size   = size_pop  if i != n_clusters-1 else pop_-size_pop*i
+                  size   = size_  if i != (n_clusters-1) else pop_-size_*i
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)
            else:
@@ -91,6 +91,7 @@ class Evolution:
         else:
            raise RuntimeError('The current population is larger than max defination!')
         # print('The length of current population:',len(self.X))
+        assert len(self.X)==self.size_pop,'Error: the length of the population is not equal to it set value!'
         return self.X
 
     def register(self, operator_name, operator, *args, **kwargs):
