@@ -15,7 +15,7 @@ from ase import units
 
 def get_pressure(atoms):           
     ir = IRFF(atoms=atoms_md[-1],
-            libfile='ffield.json', 
+            libfile='ffield.json',
             rcut=None,
             nn=True,
             CalStress=True)
@@ -101,7 +101,6 @@ class IRMD(object):
       self.uncertainty= uncertainty  # the limit of the uncertainty of bond length dirtribution
       self.images    = []
       self.rs        = []
-      self.r_var     = []
 
       if self.atoms is None:
          self.atoms  = read(gen,index=index)
@@ -220,24 +219,25 @@ class IRMD(object):
              bo0   =  a.calc.bo0.detach().numpy()
              r     = a.calc.r.detach().numpy()
              mask  = np.where(bo0>=0.0001,1,0)     # 掩码，用于过虑掉非成键键长
-
-             r_    = self.r*mask
-             self.rs.append(r_)
-             r_    = r_[r_!=0]
-             self.r_var.append(np.var(r_))
-
-             try:
-                assert self.uncertainty < np.mean(self.r_var[-1])), 'The varience is bigger than limit.'
-             except:
-                print('The varience is bigger than limit, stop at %d.' %self.step)
-                self.dyn.max_steps = self.dyn.nsteps-1
+            
+             r_ = self.r*mask
+             r_ = r_[r_!=0]
+             self.rs.append(np.var(r_))
              
              if self.step%self.period==0:
-                n           = np.sum(mask)
-
+                rs.append(np.mean(r_))
+                try:
+                   assert self.uncertainty < np.mean(self.rS[-1])), 'The varience is bigger than limit.'
+                except:
+                   print('The varience is bigger than limit, stop at %d.' %self.step)
+                   self.dyn.max_steps = self.dyn.nsteps-1
+               # n           = np.sum(mask)
+               # if np.mean(self.rs) > 0.01:
+               #    print(self.images)
+               #    break
+                self.r_     = []
                 self.images = []
                 self.rs     = []
-                self.r_var  = []
           else:
              r    = a.calc.r.detach().numpy()
              i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
