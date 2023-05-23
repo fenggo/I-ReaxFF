@@ -227,7 +227,7 @@ class IRMD(object):
              if self.step%self.period==0:
                 rs.append(np.mean(r_))
                 try:
-                   assert self.uncertainty < np.mean(self.rS[-1])), 'The varience is bigger than limit.'
+                   assert self.uncertainty <= self.rs[-1]), 'The varience is bigger than limit.'
                 except:
                    print('The varience is bigger than limit, stop at %d.' %self.step)
                    self.dyn.max_steps = self.dyn.nsteps-1
