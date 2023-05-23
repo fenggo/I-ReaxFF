@@ -49,8 +49,6 @@ def poscars_to_traj(fposcar):
                     while x_ !='[':
                         x_ = st.pop()
              line = ''.join(st.entry)
-             
-         
              l = line.split()
              
              if len(l)>=10:
