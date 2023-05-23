@@ -6,10 +6,25 @@ from ase.io.trajectory import TrajectoryWriter
 from ase.calculators.singlepoint import SinglePointCalculator
 
 
-help_ = './poscars_to_traj.py --f=BESTgatheredPOSCARS'
+help_ = './poscars_to_traj.py --f=gatheredPOSCARS'
 parser = argparse.ArgumentParser(description=help_)
-parser.add_argument('--f',default='BESTgatheredPOSCARS',type=str, help='poscars file name')
+parser.add_argument('--f',default='gatheredPOSCARS',type=str, help='poscars file name')
 args = parser.parse_args(sys.argv[1:])
+
+
+class Stack():
+    def __init__(self,entry=[]):
+        self.entry = entry
+        
+    def push(self,x):
+        self.entry.append(x) 
+
+    def pop(self):
+        return self.entry.pop()
+    
+    def close(self):
+        self.entry = None
+    
 
 
 def poscars_to_traj(fposcar):
@@ -18,17 +33,42 @@ def poscars_to_traj(fposcar):
     fbp.close()
 
     traj =  TrajectoryWriter('structures.traj',mode='w')
-    k = 0
+    k        = 0
+    s        = 0 
+    energies = []
     
+
+    with open('Individuals') as f:
+         for line in f.readlines():
+             st = Stack([])
+             for x in line:
+                if x!=']':
+                    st.push(x)
+                else:
+                    x_ = ' '
+                    while x_ !='[':
+                        x_ = st.pop()
+             line = ''.join(st.entry)
+             
+         
+             l = line.split()
+             
+             if len(l)>=10:
+                if l[0] != 'Gen':
+                   energies.append(float(l[3]))
+         st.close()
+                   
+    print(energies)
+
     for line in lines:
         if line.find('EA')>=0:
             if k>0:
                 fpos.close()
                 atoms = read('POSCAR')
-                calc = SinglePointCalculator(atoms,energy=0.0)
 
-                atoms.set_calculator(calc)
+                atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
                 traj.write(atoms=atoms)
+                s += 1
 
             fpos = open('POSCAR','w')
             print(line[:-1], file=fpos)
@@ -39,8 +79,7 @@ def poscars_to_traj(fposcar):
     fpos.close()
     
     atoms = read('POSCAR')
-    calc = SinglePointCalculator(atoms,energy=0.0)
-    atoms.set_calculator(calc)
+    atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
     traj.write(atoms=atoms)
 
     traj.close()
