@@ -214,7 +214,7 @@ class IRMD(object):
                             bonds      = getBonds(self.natom,self.atoms.calc.r,1.17*self.re)
                             newbond    = self.checkBond(bonds)
              self.zmats.append(zmat)
-          elif active:
+          elif self.active:
              self.images.append(a.copy())
              bo0   =  a.calc.bo0.detach().numpy()
              r     = a.calc.r.detach().numpy()
