@@ -127,7 +127,7 @@ class IRMD(object):
 
   def run(self):
       self.zv,self.zvlo,self.zvhi = None,0.0,0.0
-      if active:
+      if self.active:
          self.dyn = VelocityVerlet(self.atoms, self.time_step*units.fs)
       else:
          self.dyn = VelocityVerlet(self.atoms, self.time_step*units.fs,trajectory='md.traj') 
