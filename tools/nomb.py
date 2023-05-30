@@ -49,7 +49,7 @@ if __name__ == '__main__':
    for st in strucs:
        nvt(gen=st+'.gen',T=350,time_step=0.1,tot_step=5000,movieFrequency=1)
        nomb(traj='md.traj',interval=args.i)
-       print('save traj: nomb_{:s}.traj'.format(st))
+       print('-  save traj: nomb_{:s}.traj'.format(st))
        system('mv nomb_md.traj nomb_{:s}.traj'.format(st))
 
    # nomb(traj=args.t,interval=args.i)
