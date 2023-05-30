@@ -33,6 +33,7 @@ if __name__ == '__main__':
    parser = argparse.ArgumentParser(description=help_)
    parser.add_argument('--t',default='md.traj',type=str, help='atomic configuration')
    parser.add_argument('--i',default=1,type=int, help='time interval')
+   parser.add_argument('--a',default=0,type=int, help='whether compute all structures')
    args = parser.parse_args(sys.argv[1:])
 
    strucs = ['cl20','cl1','ch3nh2',
@@ -45,11 +46,12 @@ if __name__ == '__main__':
           'nh3','n2h4','n22',
           'co2','no2']
 
-   for st in strucs:
-       nvt(gen=st+'.gen',T=350,time_step=0.1,tot_step=5000,movieFrequency=1)
-       nomb(traj='md.traj',interval=args.i)
-       print('-  save traj: nomb_{:s}.traj'.format(st))
-       system('mv nomb_md.traj nomb_{:s}.traj'.format(st))
-
-   # nomb(traj=args.t,interval=args.i)
+   if args.a:
+      for st in strucs:
+          nvt(gen=st+'.gen',T=350,time_step=0.1,tot_step=5000,movieFrequency=1)
+          nomb(traj='md.traj',interval=args.i)
+          print('-  save traj: nomb_{:s}.traj'.format(st))
+          system('mv nomb_md.traj nomb_{:s}.traj'.format(st))
+   else:
+      nomb(traj=args.t,interval=args.i)
 
