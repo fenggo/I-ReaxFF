@@ -220,12 +220,13 @@ class IRMD(object):
              r     = a.calc.r.detach().numpy()
              mask  = np.where(bo0>=0.0001,1,0)     # 掩码，用于过虑掉非成键键长
             
+             
              r_ = self.r*mask
              r_ = r_[r_!=0]
              self.rs.append(np.var(r_))
              
              if self.step%self.period==0:
-                rs.append(np.mean(r_))
+                self.rs.append(np.mean(r_))
                 try:
                    assert self.uncertainty <= self.rs[-1], 'The varience is bigger than limit.'
                 except:
@@ -235,7 +236,7 @@ class IRMD(object):
                # if np.mean(self.rs) > 0.01:
                #    print(self.images)
                #    break
-                self.r_     = []
+                r_          = []
                 self.images = []
                 self.rs     = []
           else:
