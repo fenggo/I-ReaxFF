@@ -136,7 +136,7 @@ class MPNN(ReaxFF):
                vup={'others':[(10.0,0.0)]},
                pim={'others':10.0},
                spv_be=False,                             
-               spv_bo=None,                      # e.g. spv_bo={'C-C':(1.3,8.0,8.0,0.2,1.0)}
+               spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,8.0,8.0,0.2,1.0)]}
                spv_pi=False,
                spv_ang=False,
                spv_vdw=False,
@@ -918,21 +918,18 @@ class MPNN(ReaxFF):
                 self.penalty_bo[bd] = tf.constant(0.0)
                 if (bd in self.spv_bo) or (bdr in self.spv_bo):
                    bd_  = bd if bd in self.spv_bo else bdr
-                   r    = self.spv_bo[bd_][0]
-                   d_i  = self.spv_bo[bd_][1]
-                   d_j  = self.spv_bo[bd_][2]
-                   bo_l = self.spv_bo[bd_][3]
-                   bo_u = self.spv_bo[bd_][4]
-                   fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
-                                                  tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
-                                                                 tf.greater_equal(self.Dbj[bd],d_j))),
-                                   1.0,0.0)   ##### r< r_e that bo > bore_
-                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
-                   fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
-                                                  tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
-                                                                 tf.greater_equal(self.Dbj[bd],d_j))),
-                                   1.0,0.0)  ##### r> r_e that bo < bore_
-                   self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
+                   for sbo in self.spv_bo[bd_]:
+                       r,d_i,d_j,bo_l,bo_u = sbo
+                       fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
+                                                      tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                     tf.greater_equal(self.Dbj[bd],d_j))),
+                                       1.0,0.0)   ##### r< r_e that bo > bore_
+                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
+                       fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
+                                                      tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                     tf.greater_equal(self.Dbj[bd],d_j))),
+                                       1.0,0.0)  ##### r> r_e that bo < bore_
+                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
 
                 penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
 
