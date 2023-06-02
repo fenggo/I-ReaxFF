@@ -13,10 +13,11 @@ def theta(images):
     for a,ang in enumerate(ir.angs):
         i_,j_,k_ = ang
         if ir.eang[a]>0.00000001:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f}'.format(a,i_,j_,k_,
-                 ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a]))
+           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f} fijk {:8.4f} f7 {:8.4f} f8 {:8.4f}'.format(a,i_,j_,k_,
+                 ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],
+                 ir.fijk[a],ir.f_7[a],ir.f_8[a]))
         elif ir.eang[a]<0.0:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f} {:8.4f} {:8.4f} {:8.4f}'.format(a,i_,j_,k_,
+           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f} fijk {:8.4f} f7 {:8.4f} f8 {:8.4f}'.format(a,i_,j_,k_,
                  ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],
                  ir.fijk[a],ir.f_7[a],ir.f_8[a]))
             
