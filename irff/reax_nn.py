@@ -1794,21 +1794,18 @@ class ReaxFF_nn(object):
                  if self.spv_bo:
                      if (bd in self.spv_bo) or (bdr in self.spv_bo):
                         bd_  = bd if bd in self.spv_bo else bdr
-                        r    = self.spv_bo[bd_][0]
-                        d_i  = self.spv_bo[bd_][1]
-                        d_j  = self.spv_bo[bd_][2]
-                        bo_l = self.spv_bo[bd_][3]
-                        bo_u = self.spv_bo[bd_][4]
-                        fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd_[mol][bd],r),
-                                                         tf.logical_and(tf.greater_equal(self.Dbi[mol][bd],d_i),
-                                                                        tf.greater_equal(self.Dbj[mol][bd],d_j))),
-                                          1.0,0.0)  
-                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-bo0_)*fe))
-                        fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd_[mol][bd],r),
-                                                         tf.logical_and(tf.greater_equal(self.Dbi[mol][bd],d_i),
-                                                                        tf.greater_equal(self.Dbj[mol][bd],d_j))),
-                                          1.0,0.0)  
-                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo0_-bo_u)*fe))
+                     for sbo in self.spv_bo[bd_]:
+                         r,d_i,d_j,bo_l,bo_u = sbo
+                         fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
+                                          1.0,0.0)   ##### r< r_e that bo > bore_
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
+                         fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
+                                          1.0,0.0)  ##### r> r_e that bo < bore_
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
 
               if self.spv_ang:
                  self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
