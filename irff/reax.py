@@ -2233,7 +2233,7 @@ def clip_parameters(p_,v,clip):
            p[k] = tf.clip_by_value(v[k],0.0,8.0)
         elif key=='vale':
            sp = vn[1]
-           p[k] = tf.clip_by_value(v[k],v['val_'+sp],16.0)
+           p[k] = tf.clip_by_value(v[k],v['valang_'+sp],16.0)
         elif key=='valboc':
            sp = vn[1]
            p[k] = tf.clip_by_value(v[k],0.0,100.0)
