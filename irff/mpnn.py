@@ -973,30 +973,18 @@ class MPNN(ReaxFF):
                        self.penalty_vdw[bd] = self.penalty_vdw[bd] + pen_v
                 penalty  = tf.add(self.penalty_vdw[bd]*self.lambda_bd,penalty)
 
-          # for sp in self.spec: 
-          #     pi_ = self.pim[sp] if sp in self.pim else self.pim['others']
-          #     if self.nsp[sp]>0:
-          #        self.penalty_pi[sp] = tf.reduce_sum(input_tensor=tf.nn.relu(self.Dpi[sp]-pi_))
-          #        penalty  = tf.add(self.penalty_pi[sp]*self.lambda_pi,penalty)
       if self.optword.find('noang')<0:
-         for ang in self.angs: 
-             if self.nang[ang]>0:
-                if self.spv_pi:
-                   if ang in self.spv_pi:
-                      Du,Dl,piu,pil = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
-                      fpi = tf.where(tf.logical_and(tf.less_equal(self.D_ang[ang],Du), 
-                                                      tf.greater_equal(self.D_ang[ang],Dl)),
-                                     1.0,0.0)   
-                      self.penalty_pi[ang]  = tf.reduce_sum(input_tensor=tf.nn.relu((self.sbo[ang]-piu)*fpi))
-                      self.penalty_pi[ang] += tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.sbo[ang])*fpi))
-                      penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
+         if self.spv_pi:
+            for ang in self.spv_pi: 
+                if self.nang[ang]>0:
+                   Du,Dl,piu,pil = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
+                   fpi = tf.where(tf.logical_and(tf.less_equal(self.D_ang[ang],Du), 
+                                                tf.greater_equal(self.D_ang[ang],Dl)),
+                                 1.0,0.0)   
+                   self.penalty_pi[ang]  = tf.reduce_sum(input_tensor=tf.nn.relu((self.sbo[ang]-piu)*fpi))
+                   self.penalty_pi[ang] += tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.sbo[ang])*fpi))
+                   penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
 
-                if self.spv_ang:
-                   self.penalty_ang[ang] = tf.reduce_sum(self.thet2[ang]*self.fijk[ang])
-                   penalty  = tf.add(self.penalty_ang[ang]*self.lambda_ang,penalty)
-
-         # self.penalty_pi = tf.reduce_sum(input_tensor=tf.nn.relu(self.DPI-2.0)) 
-         # penalty  = tf.add(self.penalty_pi*self.lambda_pi,penalty)
       if self.regularize:                              # regularize
          for sp in self.spec:
              for k in wb_message:
