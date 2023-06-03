@@ -134,11 +134,11 @@ class MPNN(ReaxFF):
                belo={},
                vlo={'others':[(0.0,0.0)]},
                vup={'others':[(10.0,0.0)]},
-               pim={'others':10.0},
+               # pim={'others':10.0},
                spv_be=False,                             
                spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,8.0,8.0,0.2,1.0)]}
-               spv_pi=False,
-               spv_ang=False,
+               spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(1.3,8.0,8.0,0.2,1.0)]}
+               spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
                weight={'others':1.0},
@@ -187,7 +187,7 @@ class MPNN(ReaxFF):
       self.EnergyFunction   = EnergyFunction
       self.MessageFunction  = MessageFunction
       self.BOFunction       = BOFunction
-      self.pim              = pim
+      #self.pim              = pim
       self.spv_bo           = spv_bo
       self.spv_be           = spv_be
       self.beup             = beup
@@ -982,9 +982,15 @@ class MPNN(ReaxFF):
          for ang in self.angs: 
              if self.nang[ang]>0:
                 if self.spv_pi:
-                   pi_ = self.pim[ang] if ang in self.pim else self.pim['others']
-                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu(self.SBO[ang]-pi_))
-                   penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
+                   if ang in self.spv_pi:
+                      Du,Dl,piu,pil = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
+                      fpi = tf.where(tf.logical_and(tf.less_equal(self.D_ang[ang],Du), 
+                                                      tf.greater_equal(self.D_ang[ang],Dl)),
+                                     1.0,0.0)   
+                      self.penalty_pi[ang]  = tf.reduce_sum(input_tensor=tf.nn.relu((self.sbo[ang]-piu)*fpi))
+                      self.penalty_pi[ang] += tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.sbo[ang])*fpi))
+                      penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
+
                 if self.spv_ang:
                    self.penalty_ang[ang] = tf.reduce_sum(self.thet2[ang]*self.fijk[ang])
                    penalty  = tf.add(self.penalty_ang[ang]*self.lambda_ang,penalty)
