@@ -160,7 +160,7 @@ class MPNN(ReaxFF):
                lambda_bd=100000.0,
                lambda_pi=1.0,
                lambda_reg=0.01,
-               lambda_ang=1.0,
+               #lambda_ang=1.0,
                fluctuation=0.0,
                regularize_bo=True,
                regularize_be=True,
@@ -209,7 +209,7 @@ class MPNN(ReaxFF):
          self.regularize    = False
       self.lambda_reg       = lambda_reg
       self.lambda_pi        = lambda_pi
-      self.lambda_ang       = lambda_ang
+      #self.lambda_ang      = lambda_ang
       self.fluctuation      = fluctuation
       self.mf_layer         = mf_layer
       self.be_layer         = be_layer
@@ -981,12 +981,8 @@ class MPNN(ReaxFF):
          if self.spv_pi:
             for ang in self.spv_pi: 
                 if self.nang[ang]>0:
-                   Du,Dl,piu,pil = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
-                   fpi = tf.where(tf.logical_and(tf.less_equal(self.D_ang[ang],Du), 
-                                                tf.greater_equal(self.D_ang[ang],Dl)),
-                                 1.0,0.0)   
-                   self.penalty_pi[ang]  = tf.reduce_sum(input_tensor=tf.nn.relu((self.sbo[ang]-piu)*fpi))
-                   self.penalty_pi[ang] += tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.sbo[ang])*fpi))
+                   pi_ = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
+                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu(self.sbo[ang]-pi_))
                    penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
 
       if self.regularize:                              # regularize
