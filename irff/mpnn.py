@@ -136,7 +136,7 @@ class MPNN(ReaxFF):
                vup={'others':[(10.0,0.0)]},
                # pim={'others':10.0},
                spv_be=False,                             
-               spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,8.0,8.0,8.0,8.0,0.2,1.0)]}
+               spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
                spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(1.3,8.0,8.0,0.2,1.0)]}
                #spv_ang=False,                    
                spv_vdw=False,
