@@ -138,7 +138,7 @@ class MPNN(ReaxFF):
                spv_be=False,                             
                spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,8.0,8.0,0.2,1.0)]}
                spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(1.3,8.0,8.0,0.2,1.0)]}
-               spv_ang=False,                    
+               #spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
                weight={'others':1.0},
@@ -193,7 +193,7 @@ class MPNN(ReaxFF):
       self.beup             = beup
       self.belo             = belo
       self.spv_pi           = spv_pi
-      self.spv_ang          = spv_ang
+      #self.spv_ang         = spv_ang
       self.spv_vdw          = spv_vdw
       self.vup              = vup
       self.vlo              = vlo
