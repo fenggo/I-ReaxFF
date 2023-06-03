@@ -137,7 +137,7 @@ class MPNN(ReaxFF):
                # pim={'others':10.0},
                spv_be=False,                             
                spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
-               spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(1.3,8.0,8.0,0.2,1.0)]}
+               spv_pi=False,                     # e.g. spv_pi={'C-C-C':(0.8,1.8)}
                #spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
@@ -981,8 +981,9 @@ class MPNN(ReaxFF):
          if self.spv_pi:
             for ang in self.spv_pi: 
                 if self.nang[ang]>0:
-                   pi_ = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
-                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu(self.sbo[ang]-pi_))
+                   pil,piu = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
+                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu(self.sbo[ang]-piu))
+                   self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu(pil-self.sbo[ang]))
                    penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
 
       if self.regularize:                              # regularize
