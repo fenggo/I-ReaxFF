@@ -983,7 +983,7 @@ class MPNN(ReaxFF):
                 if self.nang[ang]>0:
                    self.penalty_pi[ang] = tf.constant(0.0)
                    for spi in self.spv_pi[ang]:
-                       Dl,Du,pil,piu = self.spv_pi[ang]    
+                       Dl,Du,pil,piu = spi
                        fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
                                                     tf.greater_equal(self.D_p[ang],Dl)),
                                        1.0,0.0)  
