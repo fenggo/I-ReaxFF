@@ -30,7 +30,7 @@ def theta(images):
     Eang   = []
 
     if a_>=0:
-        for atoms in images:
+        for t,atoms in enumerate(images):
             ir.calculate(atoms)
             a = np.where(np.logical_and(np.logical_and(ir.angs[:,0]==i,ir.angs[:,1]==j),ir.angs[:,2]==k))
             a = np.squeeze(a)
