@@ -137,7 +137,7 @@ class MPNN(ReaxFF):
                # pim={'others':10.0},
                spv_be=False,                             
                spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
-               spv_pi=False,                     # e.g. spv_pi={'C-C-C':(7.5,8.5,0.8,1.8)}
+               spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(7.5,8.5,0.8,1.8)]}
                #spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
@@ -981,12 +981,14 @@ class MPNN(ReaxFF):
          if self.spv_pi:                        # regularize pi term
             for ang in self.spv_pi: 
                 if self.nang[ang]>0:
-                   Dl,Du,pil,piu = self.spv_pi[ang]   # if ang in self.pi else self.pim['others']
-                   fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
-                                                 tf.greater_equal(self.D_p[ang],Dl)),
-                                  1.0,0.0)  
-                   self.penalty_pi[ang] = tf.reduce_sum(input_tensor=tf.nn.relu((self.SBO[ang]-piu)*fpi))
-                   self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.SBO[ang])*fpi))
+                   self.penalty_pi[ang] = tf.constant(0.0)
+                   for spi in self.spv_pi[ang]:
+                       Dl,Du,pil,piu = self.spv_pi[ang]    
+                       fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
+                                                    tf.greater_equal(self.D_p[ang],Dl)),
+                                       1.0,0.0)  
+                       self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu((self.SBO[ang]-piu)*fpi))
+                       self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.SBO[ang])*fpi))
                    penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
 
       if self.regularize:                              # regularize
@@ -1383,8 +1385,10 @@ Example:
               spv_bo={'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
                       'H-O':[(1.3,2.0,11,2.78,11,0.0,0.0)],
                       'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)] },
-              spv_pi={'N-C-N':(7.8,8.5,1.65,1.8),
-                      'C-C-C':(7.8,8.5,1.5,1.8)},
+              spv_pi={'N-C-N':[(7.8,8.7,1.65,1.8)],
+                      'C-C-C':[(7.8,8.7,1.61,1.8)],
+                      'C-C-H':[(8.0,8.8,1.61,1.8),(10.0,13,0,0.75)],
+                      'H-C-H':[(8.0,8.8,1.61,1.8)]},
               weight=weight,
               optword='nocoul',mpopt=mpopt,
               opt=opt,cons=cons,clip=clip,
