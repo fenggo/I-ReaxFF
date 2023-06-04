@@ -978,10 +978,10 @@ class MPNN(ReaxFF):
                 penalty  = tf.add(self.penalty_vdw[bd]*self.lambda_bd,penalty)
 
       if self.optword.find('noang')<0:
-         if self.spv_pi:
+         if self.spv_pi:                        # regularize pi term
             for ang in self.spv_pi: 
                 if self.nang[ang]>0:
-                   pil,piu = self.spv_pi[ang] # if ang in self.pi else self.pim['others']
+                   pil,piu = self.spv_pi[ang]   # if ang in self.pi else self.pim['others']
                    fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
                                                  tf.greater_equal(self.D_p[ang],Dl)),
                                   1.0,0.0)  
