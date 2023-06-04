@@ -137,7 +137,7 @@ class MPNN(ReaxFF):
                # pim={'others':10.0},
                spv_be=False,                             
                spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
-               spv_pi=False,                     # e.g. spv_pi={'C-C-C':(0.8,1.8)}
+               spv_pi=False,                     # e.g. spv_pi={'C-C-C':(7.5,8.5,0.8,1.8)}
                #spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
@@ -981,7 +981,7 @@ class MPNN(ReaxFF):
          if self.spv_pi:                        # regularize pi term
             for ang in self.spv_pi: 
                 if self.nang[ang]>0:
-                   pil,piu = self.spv_pi[ang]   # if ang in self.pi else self.pim['others']
+                   Dl,Du,pil,piu = self.spv_pi[ang]   # if ang in self.pi else self.pim['others']
                    fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
                                                  tf.greater_equal(self.D_p[ang],Dl)),
                                   1.0,0.0)  
@@ -1376,4 +1376,34 @@ def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn
            universal_nn.append('fm'+'_'+sp) # +str(t)
     return universal_nn
 
-                 
+'''
+Example:
+    rn = MPNN(libfile='ffield.json',
+              dataset=dataset,            
+              spv_bo={'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
+                      'H-O':[(1.3,2.0,11,2.78,11,0.0,0.0)],
+                      'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)] },
+              spv_pi={'N-C-N':(7.8,8.5,1.65,1.8),
+                      'C-C-C':(7.8,8.5,1.5,1.8)},
+              weight=weight,
+              optword='nocoul',mpopt=mpopt,
+              opt=opt,cons=cons,clip=clip,
+              regularize_mf=1,regularize_be=1,regularize_bias=1,
+              lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.0002,
+              mf_layer=[9,1],be_layer=[9,1],
+              EnergyFunction=1,MessageFunction=3,
+              mf_universal_nn=None,be_universal_nn=['C-H'],
+              messages=1,
+              bdopt=None,    # ['H-N'], 
+              mfopt=None,    # ['N'], 
+              batch_size=batch,
+              fixrcbo=False,
+              losFunc='n2',  # n2, mse, huber,abs
+              convergence=convergence) 
+
+    loss,accu,accMax,i,zpe =rn.run(learning_rate=lr,
+                      step=step,
+                      print_step=print_step,
+                      writelib=writelib,
+                      method='AdamOptimizer')  
+'''
