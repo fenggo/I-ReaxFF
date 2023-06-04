@@ -635,6 +635,7 @@ class ReaxFF(object):
              continue
           self.eatom[sp] = -tf.ones([self.nsp[sp]])*self.p['atomic_'+sp]
           self.delta[sp] = tf.gather_nd(self.Delta,self.atomlist[sp])
+          dp             = tf.gather_nd(self.Deltap,self.atomlist[sp])
           self.dang[sp]  = self.delta[sp] - self.p['valang_'+sp]
 
           self.get_elone(sp,self.delta[sp]) 
@@ -644,15 +645,17 @@ class ReaxFF(object):
 
           NLP_    = self.nlp[sp]  if i==0 else tf.concat((NLP_,self.nlp[sp]),0)
           DANG_   = self.dang[sp] if i==0 else tf.concat((DANG_,self.dang[sp]),0)
+          Dp_     = dp if i==0 else tf.concat((Dp_,dp),0)
           i      += 1
 
-      self.Dang= tf.gather_nd(DANG_,self.dalink)   
-      self.NLP = tf.gather_nd(NLP_,self.dalink) 
+      self.Dang   = tf.gather_nd(DANG_,self.dalink)   
+      self.Dang_p = tf.gather_nd(Dp_,self.dalink) 
+      self.NLP    = tf.gather_nd(NLP_,self.dalink) 
 
-      DLPL     = tf.gather_nd(DLP_,self.dalink)     
-      self.DLP = tf.gather_nd(DLPL,self.dalist)  # warning: zero pitfal for dalist
-      self.DPIL= tf.reduce_sum(input_tensor=self.BPI*self.DLP,axis=1,name='DPI') # 
-      self.DPI = tf.reduce_sum(input_tensor=self.BPI,axis=1,name='DPI') # *self.DLP
+      DLPL        = tf.gather_nd(DLP_,self.dalink)     
+      self.DLP    = tf.gather_nd(DLPL,self.dalist)  # warning: zero pitfal for dalist
+      self.DPIL   = tf.reduce_sum(input_tensor=self.BPI*self.DLP,axis=1,name='DPI') # 
+      self.DPI    = tf.reduce_sum(input_tensor=self.BPI,axis=1,name='DPI') # *self.DLP
     
       i = 0
       for sp in self.spec:
@@ -831,6 +834,7 @@ class ReaxFF(object):
              Di    = tf.gather_nd(self.Delta,self.dgilist[ang])
              Dk    = tf.gather_nd(self.Delta,self.dgklist[ang])
              self.D_ang[ang] = tf.gather_nd(self.Dang,self.dglist[ang])
+             self.D_p[ang]   = tf.gather_nd(self.Dang_p,self.dglist[ang])
              # self.D_ang[ang] = D - self.p['valang_'+atomj]
 
              self.get_eangle(ang,atomj,D)
