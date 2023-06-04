@@ -382,7 +382,7 @@ class ReaxFF(object):
       self.sieng,self.pieng,self.ppeng = {},{},{}
 
       self.Delta_e,self.DE,self.nlp,self.Delta_lp,self.Dlp = {},{},{},{},{}
-      self.Dpi,self.BSO,self.BOPI,self.Delta_lpcorr,self.NLP = {},{},{},{},{}
+      self.D_p,self.Dpi,self.BSO,self.BOPI,self.Delta_lpcorr,self.NLP = {},{},{},{},{},{}
       self.explp,self.EL,self.elone,self.Elone,self.ELONE = {},{},{},{},{}
       self.EOV,self.Eover,self.eover,self.otrm1,self.otrm2 =  {},{},{},{},{}
 
@@ -1972,7 +1972,7 @@ class ReaxFF(object):
       self.sieng,self.pieng,self.ppeng = None,None,None
 
       self.D,self.Delta_e,self.DE,self.nlp,self.Delta_lp,self.Dlp = None,None,None,None,None,None
-      self.Dpi,self.BSO,self.BOPI,self.Delta_lpcorr = None,None,None,None
+      self.D_p,self.Dpi,self.BSO,self.BOPI,self.Delta_lpcorr = None,None,None,None,None
       self.explp,self.EL,self.elone,self.Elone,self.ELONE = None,None,None,None,None
       self.EOV,self.Eover,self.eover,self.otrm1,self.otrm2 =  None,None,None,None,None
 
