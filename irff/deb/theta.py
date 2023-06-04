@@ -36,14 +36,14 @@ def theta(images):
             a = np.squeeze(a)
              
             if len(ir.angs)==1:
-               print('{:3d} theta0: {:6.4f} theta: {:6.4f} Dang: {:4.2f} D: {:4.2f} L: {:4.2f} '
+               print('{:3d} theta0: {:6.4f} theta: {:6.4f} Dang: {:4.2f} D: {:5.2f} L: {:4.2f} '
                         'S: {:4.2f} s: {:4.2f} p: {:4.2f} S3: {:4.2f} E: {:6.4f}'.format(t,
                         ir.thet0[a],ir.theta,ir.dang,ir.Deltap[j],ir.rnlp,ir.SBO,ir.sbo,ir.pbo,
                         ir.SBO3,ir.eang[a])) # self.thet0-self.theta
                theta_.append(ir.theta)
                Eang.append(ir.eang[a])
             else:
-               print('{:3d} t0: {:6.4f} t: {:6.4f} Dang: {:4.2f} D: {:4.2f} L: {:4.2f} '
+               print('{:3d} t0: {:6.4f} t: {:6.4f} Dang: {:4.2f} D: {:5.2f} L: {:4.2f} '
                      'S: {:4.2f} s: {:4.2f} p: {:4.2f} S3:{:4.2f} E: {:6.4f}'.format(t,
                      ir.thet0[a],ir.theta[a],ir.dang[a],ir.Deltap[j],ir.rnlp[a],ir.SBO[a],ir.sbo[a],ir.pbo[a],
                      ir.SBO3[a],ir.eang[a])) # self.thet0-self.theta
