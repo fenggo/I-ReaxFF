@@ -663,13 +663,6 @@ class LearningMachine(object):
       with open('options.json','w') as fj:
            options = {'accCriteria':self.accCriteria,
                     'lossCriteria':self.lossCriteria,
-                    # 'lossTole':self.lossTole,
-                    # 'rmax':self.rmax,
-                    # 'angmax':self.angmax,
-                    # 'accTole':self.accTole,
-                    # 'accMax':self.accMax,
-                    # 'accInc':self.accInc,
-                    # 'resetAcc':self.resetAcc,
                     'step':self.step,
                     'md_step':self.md_step,
                     # 'mom_step':self.mom_step,
@@ -679,25 +672,16 @@ class LearningMachine(object):
                     'dEtole':self.dEtole,
                     'dEstop':self.dEstop,
                     'beta':self.beta,
-                    # 'mpopt':self.mpopt,
-                    # 'regularize':self.regularize,
                     'lambda_reg':self.lambda_reg,
                     'lambda_bd':self.lambda_bd,
                     'lambda_me':self.lambda_me,
-                    'lambda_ang':self.lambda_ang,
                     'learning_rate':self.learning_rate,
-                    # 'rmin':self.rmin,
                     'T':self.T,
                     'maxiter':self.maxiter,
-                    # 'max_batch':self.max_batch,
-                    #'optword':self.optword,
                     'learn_method':self.learn_method,
                     'col_frame':self.col_frame,
                     'CheckZmat':self.CheckZmat,
                     'freeatoms':self.freeatoms}
-                    # 'freepairs':self.freepairs
-                    # 'bore':self.bore,
-                    # 'writelib':self.writelib
 
            if self.learn_method==1:
               options['dft_step'] = self.dft_step
@@ -708,13 +692,6 @@ class LearningMachine(object):
            options = js.load(fj)
            self.accCriteria  = options['accCriteria']
            self.lossCriteria = options['lossCriteria']
-           # self.lossTole     = options['lossTole']
-           # self.rmax         = options['rmax']
-           # self.angmax       = options['angmax']
-           # self.accTole      = options['accTole']
-           # self.accMax     = options['accMax']
-           # self.accInc     = options['accInc']
-           # self.resetAcc   = options['resetAcc']
            self.step         = options['step'] 
            if self.learn_method==1:
               self.dft_step     = options['dft_step'] 
@@ -729,24 +706,15 @@ class LearningMachine(object):
            self.dEtole       = options['dEtole'] 
            self.dEstop       = options['dEstop'] 
            self.beta         = options['beta'] 
-           # self.mpopt        = options['mpopt'] 
-           # self.regularize   = options['regularize'] 
            self.lambda_reg   = options['lambda_reg'] 
            self.lambda_bd    = options['lambda_bd']
            self.lambda_me    = options['lambda_me']
-           self.lambda_ang   = options['lambda_ang']
-           # self.rmin       = options['rmin'] 
            self.T            = options['T'] 
            self.maxiter      = options['maxiter']
-           # self.max_batch  = options['max_batch']
-           #self.optword      = options['optword']
            self.learn_method     = options['learn_method']
            self.learning_rate= options['learning_rate']
            self.col_frame     = options['col_frame']
            self.CheckZmat    = options['CheckZmat']
-           # self.bore       = options['bore']
-           # self.writelib   = options['writelib']
-           # self.freepairs    = options['freepairs']
            if self.freeatoms!= options['freeatoms']:
               self.freeatoms = options['freeatoms']
               self.a.get_freebond(self.freeatoms)
