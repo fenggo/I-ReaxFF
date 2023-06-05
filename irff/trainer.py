@@ -38,11 +38,11 @@ def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
           spv_bo=False,#boc={},#boup={},
           spv_be=False,belo={},beup={},
           spv_vdw=False,vlo={},vup={},
-          spv_ang=False,
+          #spv_ang=False,
           bore={'others':0.45},
           bom={'others':1.20},
           weight={'others':10.0},
-          lambda_bd=10000.0,lambda_reg=0.0001,lambda_ang=0.02,
+          lambda_bd=10000.0,lambda_reg=0.0001,
           learning_rate=1.0e-4,
           ffield='ffield.json',**kwargs):
     ''' training the force field '''
@@ -97,9 +97,8 @@ def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
                spv_bo=False,#boc={},#boup={},
                spv_be=False,belo={},beup={},
                spv_vdw=False,vlo={},vup={},
-               lambda_me=0.1,lambda_ang=0.02,lambda_bd=1000.0,
+               lambda_me=0.1,lambda_bd=1000.0,
                weight={'others':10.0},
-               spv_ang=False,
                lambda_reg=0.0001, # regularize=True,
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
@@ -145,7 +144,7 @@ def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
               spv_be=spv_be,belo=belo,beup=beup,
               spv_bo=spv_bo,#boup=boup,
               spv_vdw=spv_vdw,vlo=vlo,vup=vup,
-              spv_ang=spv_ang,lambda_ang=lambda_ang,
+              #spv_ang=spv_ang,lambda_ang=lambda_ang,
               weight=weight,lambda_me=lambda_me,
               convergence=convergence,
               lossConvergence=lossConvergence) # Loss Functon can be n2,abs,mse,huber
@@ -190,7 +189,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                spv_bo=False,#boc={},#boup={},
                spv_be=False,belo={},beup={},
                spv_vdw=False,vlo={},vup={},
-               lambda_me=0.1,lambda_ang=0.02,lambda_bd=1000.0,
+               lambda_me=0.1,lambda_bd=1000.0,
                weight={'others':10.0},
                spv_ang=False,
                lambda_reg=0.0001, # regularize=True,
@@ -238,7 +237,6 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               spv_be=spv_be,belo=belo,beup=beup,
               spv_bo=spv_bo,#boup=boup,
               spv_vdw=spv_vdw,vlo=vlo,vup=vup,
-              spv_ang=spv_ang,lambda_ang=lambda_ang,
               weight=weight,lambda_me=lambda_me,
               convergence=convergence,
               lossConvergence=lossConvergence) # Loss Functon can be n2,abs,mse,huber

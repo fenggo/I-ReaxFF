@@ -80,7 +80,7 @@ class LearningMachine(object):
                spv_be=False,beup={},belo={},
                spv_bo=False,
                spv_vdw=False,vup={},vlo={},
-               spv_ang=False,lambda_ang=0.02,
+               # spv_ang=False,lambda_ang=0.02,
                weight={'others':2.0},
                lambda_bd=10000.0,lambda_reg=0.0001, # regularize=True,
                lambda_me=0.1,learning_rate=0.0001,
@@ -165,7 +165,7 @@ class LearningMachine(object):
       self.spv_bo         = spv_bo
       self.spv_vdw        = spv_vdw
       self.spv_be         = spv_be
-      self.spv_ang        = spv_ang
+      #self.spv_ang        = spv_ang
       self.lambda_me      = lambda_me
       self.weight         = weight
       self.lambda_bd      = lambda_bd
@@ -380,7 +380,7 @@ class LearningMachine(object):
                                                      spv_be=self.spv_be,belo=self.belo,beup=self.beup,
                                                      spv_bo=self.spv_bo,#boc=self.boc,#boup=self.boup,
                                                      spv_vdw=self.spv_vdw,vlo=self.vlo,vup=self.vup,
-                                                     spv_ang=self.spv_ang,lambda_ang=self.lambda_ang,
+                                                     #spv_ang=self.spv_ang,lambda_ang=self.lambda_ang,
                                                      lambda_me=self.lambda_me,weight=self.weight,
                                                      lambda_reg=self.lambda_reg,
                                                      lambda_bd=self.lambda_bd,
@@ -784,7 +784,6 @@ if __name__ == '__main__':
                      be_universal_nn=None,#['O-O'],
                      mf_universal_nn=None,#['C'],
                      spv_be=False,bore={'others':0.22},
-                     spv_ang=False,
                      vdw_universal_nn=None,vdwnn=True,
                      weight={# 'no2-l':20.0,
                              'others':2.0},
