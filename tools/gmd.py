@@ -89,7 +89,7 @@ def w(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
     if l==0:
-       runword='opti conv qiterative'
+       runword='opti conv qiterative' # conjugate
     elif l==1:
        runword= 'opti conp qiterative stre atomic_stress'
 
