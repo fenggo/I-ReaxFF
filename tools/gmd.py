@@ -77,18 +77,31 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     system('gulp<inp-gulp>gulp.out')
     xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
 
-def traj(inp='inp.grs'):
+def traj(inp='inp-gulp'):
     xyztotraj('his.xyz',inp=inp,mode='w',scale=False)
 
 def plot(out='out'):
     E,Epot,T,P = get_md_results(out=out)
     plot_md(E,Epot,T,P,show=True)
 
+def w(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
+        x=1,y=1,z=1):
+    A = read(gen,index=i)*(x,y,z)
+    # A = press_mol(A)
+    if l==0:
+       runword='opti conv qiterative'
+    elif l==1:
+       runword= 'opti conp qiterative stre atomic_stress'
+
+    write_gulp_in(A,runword=runword,
+                  T=T,maxcyc=step,
+                  lib='reaxff_nn')
+    print('\n-  write gulp input ...')
 
 if __name__ == '__main__':
    ''' use commond like ./gmd.py nvt --T=2800 to run it'''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,nvt,plot,traj])
+   argh.add_commands(parser, [opt,nvt,plot,traj,w])
    argh.dispatch(parser)
 
 
