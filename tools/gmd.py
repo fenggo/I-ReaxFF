@@ -84,7 +84,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
 
 def traj(inp='inp-gulp'):
-    xyztotraj('his.xyz',inp=inp,mode='w',scale=False)
+    xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
 
 def plot(out='out'):
     E,Epot,T,P = get_md_results(out=out)
