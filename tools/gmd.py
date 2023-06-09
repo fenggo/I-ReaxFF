@@ -9,7 +9,7 @@ from irff.md.gulp import write_gulp_in,xyztotraj,get_md_results,plot_md
 
 
 def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        x=1,y=1,z=1,lib='reaxff_nn'):
+        x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     atoms = read(gen,index=i)*(x,y,z)
     write_gulp_in(atoms,runword='md qiterative conv',
                   T=T,
@@ -17,7 +17,10 @@ def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
                   tot_step=step,
                   lib=lib)
     print('\n-  running gulp nvt ...')
-    system('gulp<inp-gulp>gulp.out')
+    if n==1:
+       system('gulp<inp-gulp>gulp.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
 
@@ -62,7 +65,7 @@ def get_status(wt):
 
 
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
-        x=1,y=1,z=1):
+        x=1,y=1,z=1,n=1):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
     if l==0:
@@ -74,7 +77,10 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
                   T=T,maxcyc=step,
                   lib='reaxff_nn')
     print('\n-  running gulp optimize ...')
-    system('gulp<inp-gulp>gulp.out')
+    if n==1:
+       system('gulp<inp-gulp>gulp.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
 
 def traj(inp='inp-gulp'):
