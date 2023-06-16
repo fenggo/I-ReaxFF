@@ -91,7 +91,7 @@ def plot(out='out'):
     plot_md(E,Epot,T,P,show=True)
 
 def w(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
-        x=1,y=1,z=1):
+        x=1,y=1,z=1,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
     if l==0:
@@ -101,7 +101,7 @@ def w(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
 
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,
-                  lib='reaxff_nn')
+                  lib=lib)
     print('\n-  write gulp input ...')
 
 if __name__ == '__main__':
