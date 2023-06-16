@@ -85,7 +85,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
     print('end', file=finp)
     print('#', file=finp)
     if lib == 'brenner':
-        print('%s' % lib, file=finp)
+        print('{:s}'.format(lib), file=finp)
     else:
         print('library %s' % lib, file=finp)
 
