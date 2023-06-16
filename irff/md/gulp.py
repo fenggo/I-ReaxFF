@@ -135,8 +135,22 @@ def get_reaxff_q(natom, fo='out'):
     return q, ecoul, eself, evdw
 
 
-def get_reax_energy(fo='out'):
+def get_reax_energy(fo='out',e_kw='ReaxFF force field'):
     fout = open(fo, 'r')
+    e=0.0
+    ebond=0.0
+    elp=0.0
+    eover=0.0
+    eunder=0.0 
+    eang=0.0 
+    epen=0.0 
+    tconj=0.0 
+    etor=0.0 
+    fconj=0.0 
+    evdw=0.0 
+    ehb=0.0 
+    ecl=0.0 
+    esl = 0.0
     for line in fout.readlines():
         if line.find('E(bond)') >= 0:
             ebond = float(line.split()[2])
@@ -164,7 +178,7 @@ def get_reax_energy(fo='out'):
             ecl = float(line.split()[2])
         elif line.find('E(self)') >= 0:
             esl = float(line.split()[2])
-        elif line.find('ReaxFF force field') >= 0:
+        elif line.find(e_kw) >= 0:
             e = float(line.split()[4])
     fout.close()
     return e, ebond, elp, eover, eunder, eang, epen, tconj, etor, fconj, evdw, ehb, ecl, esl
@@ -513,10 +527,8 @@ def get_gulp_forces(images, traj='gulp_force.traj', ffield='reaxff_nn', wforce=F
         (e, eb_, el_, eo_, eu_, ea_, ep_,
          etc_, et_, ef_, ev_, ehb_, ecl_, esl_) = get_reax_energy(fo='out')
         #e = atoms.get_potential_energy()
-        calc = SinglePointCalculator(atoms, energy=e,
-                                     forces=forces)
-
-        atoms.set_calculator(calc)
+        atoms.calc = SinglePointCalculator(atoms, energy=e,forces=forces)
+        # atoms.set_calculator(calc)
         his.write(atoms=atoms)
     his.close()
     return atoms
