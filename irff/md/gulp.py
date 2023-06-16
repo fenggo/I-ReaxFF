@@ -179,7 +179,7 @@ def get_reax_energy(fo='out',e_kw='ReaxFF force field'):
         elif line.find('E(self)') >= 0:
             esl = float(line.split()[2])
         elif line.find(e_kw) >= 0:
-            e = float(line.split()[4])
+            e = float(line.split()[-2])
     fout.close()
     return e, ebond, elp, eover, eunder, eang, epen, tconj, etor, fconj, evdw, ehb, ecl, esl
 
