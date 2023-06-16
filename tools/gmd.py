@@ -65,7 +65,7 @@ def get_status(wt):
 
 
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
-        x=1,y=1,z=1,n=1):
+        x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
     if l==0:
@@ -75,7 +75,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
 
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,
-                  lib='reaxff_nn')
+                  lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
        system('gulp<inp-gulp>gulp.out')
