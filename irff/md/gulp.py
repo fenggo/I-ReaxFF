@@ -514,7 +514,7 @@ def get_gulp_force_from_drv(fdrv, wforce=False):
     return np.array(forces)
 
 
-def get_gulp_forces(images, traj='gulp_force.traj', ffield='reaxff_nn', wforce=False):
+def get_gulp_forces(images, traj='gulp_force.traj', ffield='reaxff_nn',e_kw='ReaxFF force field', wforce=False):
     ''' calculate the force by GULP '''
     his = TrajectoryWriter(traj, mode='w')
     for atoms in images:
@@ -525,7 +525,7 @@ def get_gulp_forces(images, traj='gulp_force.traj', ffield='reaxff_nn', wforce=F
         forces = get_gulp_force_from_drv('gulp.drv', wforce=wforce)
         #atoms.forces = forces
         (e, eb_, el_, eo_, eu_, ea_, ep_,
-         etc_, et_, ef_, ev_, ehb_, ecl_, esl_) = get_reax_energy(fo='out')
+         etc_, et_, ef_, ev_, ehb_, ecl_, esl_) = get_reax_energy(fo='out',e_kw=e_kw)
         #e = atoms.get_potential_energy()
         atoms.calc = SinglePointCalculator(atoms, energy=e,forces=forces)
         # atoms.set_calculator(calc)
