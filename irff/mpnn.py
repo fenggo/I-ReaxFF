@@ -155,7 +155,7 @@ class MPNN(ReaxFF):
                vdwnn=False,VdwFunction=1,
                BOFunction=0,
                EnergyFunction=1,
-               MessageFunction=3,
+               MessageFunction=2,
                spec=[],
                lambda_bd=100000.0,
                lambda_pi=1.0,
@@ -472,9 +472,13 @@ class MPNN(ReaxFF):
       elif self.MessageFunction==2:
          self.Dbi[bd]  = Di-h
          self.Dbj[bd]  = Dj-h
-         Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],self.Dbj[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
+         # Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],self.Dbj[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
+         #                      self.m,batch=self.batch,layer=self.mf_layer[1])
+         # Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],self.Dbi[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
+         #                      self.m,batch=self.batch,layer=self.mf_layer[1])
+         Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],h,self.Dbj[bd]],
                               self.m,batch=self.batch,layer=self.mf_layer[1])
-         Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],self.Dbi[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
+         Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],h,self.Dbi[bd]],
                               self.m,batch=self.batch,layer=self.mf_layer[1])
          F    = Fi*Fj
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
@@ -1289,8 +1293,8 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
         nin_  = 5
     elif MessageFunction==5 :
         nin_  = 3 
-    elif MessageFunction==2:
-        nin_  = 5 
+    # elif MessageFunction==2:
+    #     nin_  = 5 
     else:
         nin_  = 3
 
@@ -1395,7 +1399,7 @@ Example:
               regularize_mf=1,regularize_be=1,regularize_bias=1,
               lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.0002,
               mf_layer=[9,1],be_layer=[9,1],
-              EnergyFunction=1,MessageFunction=3,
+              EnergyFunction=1,MessageFunction=2,
               mf_universal_nn=None,be_universal_nn=['C-H'],
               messages=1,
               bdopt=None,    # ['H-N'], 
