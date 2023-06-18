@@ -334,7 +334,8 @@ class ReaxFF_nn(object):
 
       self.Deltap,self.Delta,self.Bp = {},{},{}
       self.delta,self.Di,self.Dj,self.Di_boc,self.Dj_boc={},{},{},{},{}
-      self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
+      self.D,self.D_si,self.D_pi,self.D_pp = {},{},{},{}
+      self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{}
 
       self.SO,self.fbot,self.fhb = {},{},{}
       self.EBD,self.E = {},{}
@@ -469,12 +470,22 @@ class ReaxFF_nn(object):
 
   def get_delta(self,mol):
       ''' compute the uncorrected Delta: the sum of BO '''
-      BOP = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
+      BOP    = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
+      BOP_si = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
+      BOP_pi = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
+      BOP_pp = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
       self.get_bondorder_uc(mol)
+
       BOP              = tf.concat([BOP,self.bop[mol]],0)
-      # BOP            = tf.transpose(BOP,perm=[0,1])
+      BOP_si           = tf.concat([BOP,self.bop_si[mol]],0)
+      BOP_pi           = tf.concat([BOP,self.bop_pi[mol]],0)
+      BOP_pp           = tf.concat([BOP,self.bop_pp[mol]],0)
+
       self.Bp[mol]     = tf.gather_nd(BOP,self.blist[mol])
       self.Deltap[mol] = tf.reduce_sum(input_tensor=self.Bp[mol],axis=1,name='Deltap')
+      self.D_si[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_si,self.blist[mol]),axis=1,name='Deltap_si')]
+      self.D_pi[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pi,self.blist[mol]),axis=1,name='Deltap_pi')]
+      self.D_pp[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pp,self.blist[mol]),axis=1,name='Deltap_pp')]
 
   def get_bond_energy(self,mol):
       self.get_delta(mol)
@@ -559,13 +570,29 @@ class ReaxFF_nn(object):
           hpp  = tf.slice(self.Hpp[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpp_slice')
 
           b    = bd.split('-')
-          self.Dbi[mol][bd]  = Di - h   
-          self.Dbj[mol][bd]  = Dj - h   
-          
-          Fi   = fmessage(flabel,b[0],self.nbd[mol][bd],[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
-                          batch=self.batch[mol],layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],self.nbd[mol][bd],[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
-                          batch=self.batch[mol],layer=self.mf_layer[1])
+
+          if self.MessageFunction==1:
+             Dsi_i = tf.gather_nd(self.D_si[mol][t-1],self.dilink[mol][bd]) - hsi
+             Dsi_j = tf.gather_nd(self.D_si[mol][t-1],self.djlink[mol][bd]) - hsi
+             Dpi_i = tf.gather_nd(self.D_pi[mol][t-1],self.dilink[mol][bd]) - hpi
+             Dpi_j = tf.gather_nd(self.D_pi[mol][t-1],self.djlink[mol][bd]) - hpi
+             Dpp_i = tf.gather_nd(self.D_pp[mol][t-1],self.dilink[mol][bd]) - hpp 
+             Dpp_j = tf.gather_nd(self.D_pp[mol][t-1],self.djlink[mol][bd]) - hpp
+
+             Dpii  = Dpi_i + Dpp_i
+             Dpij  = Dpi_j + Dpp_j
+            
+             Fi    = fmessage(flabel,b[0],self.nbd[bd],[Dsi_i,Dpii,h,Dpij,Dsi_j],
+                                 self.m,batch=self.batch[mol],layer=self.mf_layer[1])
+             Fj    = fmessage(flabel,b[1],self.nbd[bd],[Dsi_j,Dpij,h,Dpii,Dsi_i],
+                                 self.m,batch=self.batch[mol],layer=self.mf_layer[1])
+          elif self.MessageFunction==2:
+             self.Dbi[mol][bd]  = Di - h   
+             self.Dbj[mol][bd]  = Dj - h   
+             Fi   = fmessage(flabel,b[0],self.nbd[mol][bd],[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
+                             batch=self.batch[mol],layer=self.mf_layer[1])
+             Fj   = fmessage(flabel,b[1],self.nbd[mol][bd],[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
+                             batch=self.batch[mol],layer=self.mf_layer[1])
           F    = Fi*Fj
           Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
@@ -581,15 +608,18 @@ class ReaxFF_nn(object):
 
   def message_passing(self,mol):
       ''' finding the final Bond-order with a message passing '''
-      self.H[mol]   = [self.bop[mol]]                     # 
-      self.Hsi[mol] = [self.bop_si[mol]]                  #
-      self.Hpi[mol] = [self.bop_pi[mol]]                  #
-      self.Hpp[mol] = [self.bop_pp[mol]]                  # 
-      self.D[mol]   = [self.Deltap[mol]]                  # get the initial hidden state H[0]
+      self.H[mol]    = [self.bop[mol]]                     # 
+      self.Hsi[mol]  = [self.bop_si[mol]]                  #
+      self.Hpi[mol]  = [self.bop_pi[mol]]                  #
+      self.Hpp[mol]  = [self.bop_pp[mol]]                  # 
+      self.D[mol]    = [self.Deltap[mol]]                  # get the initial hidden state H[0]
 
       for t in range(1,self.messages+1):
           print('-  message passing for {:s} t={:d} ...'.format(mol,t))           
           BO    = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
+          BOsi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
+          BOpi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
+          BOpp  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
           bo,bosi,bopi,bopp = self.get_bondorder(mol,t)
           self.H[mol].append(bo)                      # get the hidden state H[t]
           self.Hsi[mol].append(bosi)
@@ -597,9 +627,19 @@ class ReaxFF_nn(object):
           self.Hpp[mol].append(bopp)
 
           BO      = tf.concat([BO,bo],0)
-          D       = tf.gather_nd(BO,self.blist[mol])  
-          Delta   = tf.reduce_sum(input_tensor=D,axis=1)
+          BOsi    = tf.concat([BOsi,bosi],0)
+          BOpi    = tf.concat([BOpi,bopi],0)
+          BOpp    = tf.concat([BOpp,bopp],0)
+
+          Delta   = tf.reduce_sum(tf.gather_nd(BO,self.blist[mol]),axis=1) 
+          Dsi     = tf.reduce_sum(tf.gather_nd(BOsi,self.blist[mol]),axis=1) 
+          Dpi     = tf.reduce_sum(tf.gather_nd(BOpi,self.blist[mol]),axis=1) 
+          Dpp     = tf.reduce_sum(tf.gather_nd(BOpp,self.blist[mol]),axis=1)  
+
           self.D[mol].append(Delta)                  # degree matrix
+          self.D_si[mol].append(Dsi)
+          self.D_pi[mol].append(Dpi)
+          self.D_pp[mol].append(Dpp)
 
   def get_final_sate(self,mol):     
       self.Delta[mol]  = self.D[mol][-1]
