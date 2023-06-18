@@ -53,7 +53,7 @@ class ReaxFF_nn(object):
                nnopt=True,
                be_universal_nn=None,be_layer=[9,0],
                mf_universal_nn=None,mf_layer=[9,0],
-               messages=1,
+               messages=1,MessageFunction=2,
                bo_layer=None,
                spec=[],
                board=False,
@@ -121,9 +121,10 @@ class ReaxFF_nn(object):
       self.lambda_ang    = lambda_ang
       self.mf_layer      = mf_layer
       self.be_layer      = be_layer
-      self.be_universal_nn= be_universal_nn
-      self.mf_universal_nn= mf_universal_nn
-      self.messages      = messages
+      self.be_universal_nn = be_universal_nn
+      self.mf_universal_nn = mf_universal_nn
+      self.messages        = messages
+      self.MessageFunction = MessageFunction
       self.spv_vdw       = spv_vdw
       self.spv_ang       = spv_ang
       self.spv_bo        = spv_bo
@@ -1673,7 +1674,7 @@ class ReaxFF_nn(object):
               'score':score,
               'BOFunction':0,#self.BOFunction,
               'EnergyFunction':1,# self.EnergyFunction,
-              'MessageFunction':3,# self.MessageFunction, 
+              'MessageFunction': self.MessageFunction, 
               'VdwFunction':1,#self.VdwFunction,
               'messages':self.messages,
               'bo_layer':self.bo_layer,
@@ -1704,7 +1705,7 @@ class ReaxFF_nn(object):
          self.m_  = j['m']
          # self.BOFunction_      = j['BOFunction']
          # self.EnergyFunction_  = j['EnergyFunction'] 
-         # self.MessageFunction_ = j['MessageFunction']
+         self.MessageFunction_ = j['MessageFunction']
          # self.VdwFunction_     = j['VdwFunction']
          self.MolEnergy_         = j['MolEnergy']
          # self.bo_layer_        = j['bo_layer']
