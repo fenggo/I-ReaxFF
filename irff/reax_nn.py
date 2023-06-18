@@ -1215,8 +1215,8 @@ class ReaxFF_nn(object):
       self.get_rcbo()
       self.m = set_matrix(self.m_,self.spec,self.bonds,
                           self.mfopt,self.mpopt,self.bdopt,self.messages,
-                          self.bo_layer,self.bo_layer_,0,0,
-                          self.mf_layer,self.mf_layer_,3,3,
+                          (6,0),(6,0),0,0,
+                          self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal_nn,self.mf_universal_nn,None)
@@ -1250,7 +1250,7 @@ class ReaxFF_nn(object):
       self.m = set_matrix(self.m_,self.spec,self.bonds,
                           self.mfopt,self.mpopt,self.bdopt,self.messages,
                           (6,0),(6,0),0,0,
-                          self.mf_layer,self.mf_layer_,3,3,
+                          self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal_nn,self.mf_universal_nn,None)
