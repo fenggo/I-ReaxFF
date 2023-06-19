@@ -416,8 +416,9 @@ class IRFF_NP(object):
           elif self.MessageFunction==2:
              Dbi   = Di  - self.H[t-1]
              Dbj   = Dj  - self.H[t-1]
-             Fi    = self.f_nn('fm',[Dbj,Dbi,self.Hsi[t-1],self.Hpi[t-1],self.Hpp[t-1]], # +str(t)
-                               layer=self.mf_layer[1])
+             #Fi    = self.f_nn('fm',[Dbj,Dbi,self.Hsi[t-1],self.Hpi[t-1],self.Hpp[t-1]], # +str(t)
+             #                  layer=self.mf_layer[1])
+             Fi    = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1])
              Fj    = np.transpose(Fi,[1,0,2])
              F     = Fi*Fj
              Fsi = F[:,:,0]
@@ -509,10 +510,8 @@ class IRFF_NP(object):
          esi      = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
          self.esi = esi*np.where(self.bo0<0.0000001,0.0,1.0)
       elif self.EnergyFunction==2:
-         # self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1]) 
-         # self.esi = self.esi*np.where(self.bo0<0.0000001,0.0,1.0)
-         e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])  
-         self.esi = self.bo0*e_
+         self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1]) 
+         self.esi = self.esi*np.where(self.bo0<0.0000001,0.0,1.0)
       elif self.EnergyFunction==3: 
          e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])  
          self.esi = self.bo0*e_
