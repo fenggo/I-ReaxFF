@@ -516,8 +516,10 @@ class IRFF(Calculator):
          esi      = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
          self.esi = esi*torch.where(self.bo0<0.0000001,0.0,1.0)
       elif self.EnergyFunction==2:
-         self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1])
-         self.esi = self.esi*tf.where(self.bo0<0.0000001,0.0,1.0)
+         # self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1])
+         # self.esi = self.esi*tf.where(self.bo0<0.0000001,0.0,1.0)
+         e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
+         self.esi = self.bo0*e_
       elif self.EnergyFunction==3: 
          e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
          self.esi = self.bo0*e_
