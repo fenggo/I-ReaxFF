@@ -582,16 +582,16 @@ class ReaxFF_nn(object):
              Dpii  = Dpi_i + Dpp_i
              Dpij  = Dpi_j + Dpp_j
             
-             Fi    = fmessage(flabel,b[0],self.nbd[bd],[Dsi_i,Dpii,h,Dpij,Dsi_j],
+             Fi    = fmessage(flabel,b[0],nbd_,[Dsi_i,Dpii,h,Dpij,Dsi_j],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
-             Fj    = fmessage(flabel,b[1],self.nbd[bd],[Dsi_j,Dpij,h,Dpii,Dsi_i],
+             Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpij,h,Dpii,Dsi_i],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
           elif self.MessageFunction==2:
              self.Dbi[mol][bd]  = Di - h   
              self.Dbj[mol][bd]  = Dj - h   
-             Fi   = fmessage(flabel,b[0],self.nbd[mol][bd],[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
+             Fi   = fmessage(flabel,b[0],nbd_,[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
                              batch=self.batch[mol],layer=self.mf_layer[1])
-             Fj   = fmessage(flabel,b[1],self.nbd[mol][bd],[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
+             Fj   = fmessage(flabel,b[1],nbd_,[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
                              batch=self.batch[mol],layer=self.mf_layer[1])
           F    = Fi*Fj
           Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
