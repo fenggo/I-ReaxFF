@@ -114,7 +114,7 @@ def wi(gen='poscar.gen'):
 
 
 if __name__ == '__main__':
-   ''' use commond like ./cp.py scale-md --T=2800 to run it'''
+   ''' use commond like ./smd.py opt --l=1 --g=*.gen --n=8 to run it'''
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,wi])
    argh.dispatch(parser)
