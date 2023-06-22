@@ -105,7 +105,16 @@ def w(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     print('\n-  write gulp input ...')
 
 if __name__ == '__main__':
-   ''' use commond like ./gmd.py nvt --T=2800 to run it'''
+   ''' use commond like: 
+          ./gmd.py nvt --T=2800 --s=5000 --g=*.gen 
+       to run this script.
+       ---------------------------------------------
+       nvt: NVT MD simulation
+       opt: structure optimization
+       w  : write the gulp input file
+       --g: the atomic structure file 
+
+   '''
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [opt,nvt,plot,traj,w])
    argh.dispatch(parser)
