@@ -114,7 +114,13 @@ def wi(gen='poscar.gen'):
 
 
 if __name__ == '__main__':
-   ''' use commond like ./smd.py opt --l=1 --g=*.gen --n=8 to run it'''
+   ''' use commond like ./smd.py opt --l=1 --g=*.gen --n=8 to run it
+       md : molecular dynamics simulations
+       opt: structure optimization
+       --l: 1,lattice constant optimize 0,fix the lattice constant
+       --g: the structure file
+       --n: the number of the CPU cores will be used
+   '''
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,wi])
    argh.dispatch(parser)
