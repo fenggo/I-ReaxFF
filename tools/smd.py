@@ -105,7 +105,7 @@ def x(f='siesta.XV'):
              c = c_.split()
              print(c[0],c[1],c[2],file=fg)
 
-def wi(gen='poscar.gen'):
+def w(gen='poscar.gen'):
     A = read(gen,index=-1)
     print('\n-  writing siesta input ...')
     write_siesta_in(A,coord='cart', md=False, opt='CG',
@@ -122,7 +122,7 @@ if __name__ == '__main__':
        --n: the number of the CPU cores will be used
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,wi])
+   argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,w])
    argh.dispatch(parser)
 
 
