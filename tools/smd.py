@@ -117,6 +117,9 @@ if __name__ == '__main__':
    ''' use commond like ./smd.py opt --l=1 --g=*.gen --n=8 to run it
        md : molecular dynamics simulations
        opt: structure optimization
+       w: write the siesta input file
+       mde: plot out MD energies profile
+       traj: convert the simulation to a ASE trajectory file
        --l: 1,lattice constant optimize 0,fix the lattice constant
        --g: the structure file
        --n: the number of the CPU cores will be used
