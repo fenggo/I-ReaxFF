@@ -121,7 +121,7 @@ if __name__ == '__main__':
        mde: plot out MD energies profile
        traj: convert the simulation to a ASE trajectory file
        --l: 1,lattice constant optimize 0,fix the lattice constant
-       --g: the structure file
+       --g: the atomic structure file
        --n: the number of the CPU cores will be used
    '''
    parser = argparse.ArgumentParser()
