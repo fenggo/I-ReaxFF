@@ -137,18 +137,21 @@ def train(step=5000,print_step=100,writelib=500,
                best_x[i_] = x_ = float('{:.6f}'.format(x_))
                print('{:16s} {:9.6f} |'.format(cn,x_),end=' ',file=galog)
            print('\n--------------------------------------------------------------------------------------',file=galog)
-           keep_ = True if step==0 else False 
-           while keep_:
+           keep_ = True # if step==0 else False
+           cycle = 0 
+           while keep_ and cycle<30:
                for i,key in enumerate(columns):
                    if key != 'score':
                       if abs(new_row.loc[0,key] - best_x[i])>=0.000001:
                          keep_ = False
                          print('                {:16s} {:9.6f} -> {:9.6f}'.format(key,new_row.loc[0,key],best_x[i]),file=galog)
                if keep_: 
-                  print(' The parameter vector keep best, a random parameter set is chosen ...',file=galog)
-                  i = np.random.choice(de.size_pop)
-                  best_x = de.X[i]
-                  best_y = de.Y[i]
+                  # print(' The parameter vector keep best, a random parameter set is chosen ...',file=galog)
+                  print(' The parameter vector keep best, a second best parameter set is chosen ...',file=galog)
+                  # i = np.random.choice(de.size_pop)
+                  cycle += 1
+                  best_x = de.X[de.global_best_index[cycle]]
+                  best_y = de.Y[de.global_best_index[cycle]]
         else:
            print('  The score of current parameters set looks good, need not do the genetic step.',file=galog)
         print('--------------------------------------------------------------------------------------',file=galog)

@@ -188,8 +188,8 @@ class Evolution:
 
         # print('\n----------------------------------------------------------------',file=logfile)
         # print('',file=logfile)
-        global_best_index = np.array(self.generation_best_Y).argmin()
-        global_best_X = self.generation_best_X[global_best_index]
+        self.global_best_index = np.array(self.generation_best_Y).argsort()
+        global_best_X = self.generation_best_X[self.global_best_index[0]]
         global_best_Y = self.func(np.array([global_best_X]))
         return global_best_X, global_best_Y
 
