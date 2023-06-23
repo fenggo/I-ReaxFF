@@ -139,7 +139,7 @@ def train(step=5000,print_step=100,writelib=500,
            print('\n--------------------------------------------------------------------------------------',file=galog)
            keep_ = True # if step==0 else False
            cycle = 0 
-           while keep_ and cycle<30:
+           while keep_ and cycle<10:
                for i,key in enumerate(columns):
                    if key != 'score':
                       if abs(new_row.loc[0,key] - best_x[i])>=0.000001:
