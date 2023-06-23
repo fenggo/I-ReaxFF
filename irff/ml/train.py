@@ -137,7 +137,7 @@ def train(step=5000,print_step=100,writelib=500,
                best_x[i_] = x_ = float('{:.6f}'.format(x_))
                print('{:16s} {:9.6f} |'.format(cn,x_),end=' ',file=galog)
            print('\n--------------------------------------------------------------------------------------',file=galog)
-           keep_ = True
+           keep_ = True if step==0 else False 
            while keep_:
                for i,key in enumerate(columns):
                    if key != 'score':
