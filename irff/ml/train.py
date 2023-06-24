@@ -82,6 +82,13 @@ def train(step=5000,print_step=100,writelib=500,
     do_gen    = True
     keep_best = 0
     while score<scoreConvergence and it_< max_ml_iter:
+        if step>0:
+           d = evaluate(model=potential,trainer=trainer,
+                        fcsv=fcsv,to_evaluate=0.0,
+                        step=evaluate_step,
+                        evaluate_ffield=evaluate_ffield,pop=init_pop,scale=scale,
+                        n_clusters=n_clusters,parameters=parameters)
+        # d.sort_values(axis=0,by='score',ascending=False,inplace=True)
         size_ = d.shape[0]
         zrow  = d.index[0]
         sizepop = int(size_pop/2)
