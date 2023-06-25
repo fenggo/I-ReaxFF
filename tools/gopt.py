@@ -21,7 +21,7 @@ parser.add_argument('--p',default=0.0,type=float, help='pressure')
 parser.add_argument('--step',default=10,type=int, help='the trajectory frame')
 args    = parser.parse_args(sys.argv[1:])
 
-atoms = read(args.g,index=args.f) 
+atoms = read(args.g,index=args.f)*(args.x,args.y,args.z) 
 his = TrajectoryWriter('opt.traj', mode='w')
 
 for i in range(args.step):
