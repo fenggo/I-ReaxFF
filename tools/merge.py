@@ -20,7 +20,7 @@ def merge(t1='O7H20C2.traj',t2='O7H20C2opt.traj'):
 
 if __name__ == '__main__':
    '''
-       Usage: ./mergeraj.py --t1=md.traj --t2=out.traj
+       Usage: ./merge.py --t1=md.traj --t2=out.traj
    '''
    parser = argparse.ArgumentParser(description='merg the molecular dynamics trajectory')
    parser.add_argument('--t1',default='md1.traj',type=str, help='trajectory 1 file name')
