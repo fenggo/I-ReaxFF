@@ -14,14 +14,14 @@ sudo apt install gfortran
 ## Openmpi安装
 目前使用的是openmpi-2.1.6版本
 ```
-1 ./configure --prefix=/home/feng/siesta/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
- 对于intel ./configure --prefix=/home/feng/siesta/mathlib/openmpi-intel CC=icc CXX=icpc F77=ifort FC=ifort
+1 ./configure --prefix=/home/feng/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
+ 对于intel ./configure --prefix=/home/feng/mathlib/openmpi-intel CC=icc CXX=icpc F77=ifort FC=ifort
 2  make all 
 3  make install
 4 打开 ～/.bashrc 添加环境变量,用vi打开
 vi ~/.bashrc
-   export PATH=/home/feng/siesta/mathlib/openmpi-gnu/bin:$PATH
-   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/feng/siesta/mathlib/openmpi-gnu/lib
+   export PATH=/home/feng/mathlib/openmpi-gnu/bin:$PATH
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/feng/mathlib/openmpi-gnu/lib
 
 5 source ~/.bashrc（重新打开终） 并验证    which mpicc
                             which  mpic＋＋
@@ -63,7 +63,7 @@ http://www.netlib.org/blacs下载MPIBLACS
 ```
 # Section 1:
 BLACS文件夹路径
-BTOPdir = /home/feng/siesta/mathlib/BLACS
+BTOPdir = /home/feng/mathlib/BLACS
 # Section 2:
 # Ensure to use MPI for the communication layer
    COMMLIB = MPI
@@ -150,7 +150,7 @@ SCALAPACK_LIBS= -L/path/scalapack-2.0.2/ -lscalapack
 COMP_LIBS= dc_lapack.a linalg.a
 
 MPI_INTERFACE=libmpi_f90.a
-MPI_INCLUDE=/home/feng/scisoft/openmpi-gnu/include
+MPI_INCLUDE=/home/feng/mathlib/openmpi-gnu/include
 ```
 测试：
 ``` mpirun -np <nproc> siesta < input.fdf > output ```
@@ -193,4 +193,4 @@ LIBS = $(COMP_LIBS) $(SCALAPACK_LIBS) $(BLACS_LIBS)  $(BLAS_LIBS)  -lpthread -li
 COMP_LIBS= dc_lapack.a linalg.a
 
 MPI_INTERFACE=libmpi_f90.a
-MPI_INCLUDE=/home/feng/scisoft/openmpi-gnu/include
+MPI_INCLUDE=/home/feng/mathlib/openmpi-gnu/include
