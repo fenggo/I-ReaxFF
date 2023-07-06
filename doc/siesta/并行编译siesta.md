@@ -183,6 +183,7 @@ make
 
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
+FFLAGS = -w -fallow-argument-mismatch -O2 -fPIC -ftree-vectorize 
 
 BLAS_LIBS=    -lmkl_rt -lmkl_intel_lp64 -lmkl_blas95_lp64
 LAPACK_LIBS=  -lmkl_rt -lmkl_lapack95_lp64
