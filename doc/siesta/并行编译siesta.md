@@ -133,9 +133,6 @@ Then type : make
 在Obj文件夹中执行：
 sh ../Src/obj_setup.sh
 
-在Obj文件夹中执行：
-sh ../Src/obj_setup.sh
-
 ## 修改 arch.make
 
 添加或修改LIB = 下面的内容
