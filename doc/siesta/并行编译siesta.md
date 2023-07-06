@@ -12,7 +12,7 @@ sudo apt install gfortran
 ```
 
 ## Openmpi安装
-目前使用的是openmpi-2.1.6版本
+目前使用的是openmpi-3.1.6版本
 https://www.open-mpi.org/software/ompi/
 ```
 1 ./configure --prefix=/home/feng/mathlib/openmpi-gnu CC=gcc CXX=g++ F77=gfortran FC=gfortran
