@@ -176,15 +176,11 @@ def deb_gulp_energy(images,atomi=0,atomj=1,ffield='reax.lib',show=False):
            GE['etorsion'],GE['fconj'],GE['evdw'],GE['ehb'],GE['ecoul']
 
 if __name__ == '__main__':
-   jax_energy = []
-   gulp_energy = []
-
-   images = Trajectory('gulp.traj')
-   jax_energy = deb_energy(images=images)
-   ffieldtolib()
-   gulp_energy = deb_gulp_energy(images,ffield='reaxff_nn')
-
-   plot_compare(jax_energy,gulp_energy)
+    images = Trajectory('hmx.traj')
+    irff_energy = deb_energy(images=images)
+    # ffieldtolib()
+    gulp_energy = deb_gulp_energy(images, ffield='reaxff_nn')
+    plot_compare(irff_energy, gulp_energy)
  
 
 
