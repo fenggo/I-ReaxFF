@@ -56,7 +56,7 @@ def plot_compare(jax_energy,gulp_energy,show=True,mode=None):
     plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(3,3,6)
-    plt.plot(jax_energy[6],alpha=0.8,linestyle='-',marker='^',color='r',label='jxa-Etor')
+    plt.plot(jax_energy[6],alpha=0.8,linestyle='-',marker='^',color='r',label='irff-Etor')
     plt.legend(loc='best',edgecolor='red')
     plt.plot(gulp_energy[6], alpha=0.8, linestyle='-', marker='o', color='b', label='gulp-Etor')
     plt.legend(loc='best', edgecolor='blue')
