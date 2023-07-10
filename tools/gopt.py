@@ -19,13 +19,14 @@ parser.add_argument('--y',default=1,type=int, help='super cell in y')
 parser.add_argument('--z',default=1,type=int, help='super cell in z')
 parser.add_argument('--p',default=0.0,type=float, help='pressure')
 parser.add_argument('--step',default=10,type=int, help='the trajectory frame')
+parser.add_argument('--n',default=1,type=int, help='the number of CPU to be used')
 args    = parser.parse_args(sys.argv[1:])
 
 atoms = read(args.g,index=args.f)*(args.x,args.y,args.z) 
 his = TrajectoryWriter('opt.traj', mode='w')
 
 for i in range(args.step):
-    e,atoms = opt(atoms=atoms,step=args.i,l=args.l,lib='reaxff_nn',pressure=args.p)
+    e,atoms = opt(atoms=atoms,step=args.i,l=args.l,lib='reaxff_nn',pressure=args.p,ncpu=args.n)
     calc = SinglePointCalculator(atoms, energy=e)
     atoms.set_calculator(calc)
     his.write(atoms=atoms)
