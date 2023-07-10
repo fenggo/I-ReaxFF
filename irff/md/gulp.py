@@ -345,7 +345,7 @@ def opt(atoms=None,T=350,gen='siesta.traj',step=200,i=-1,l=0,
                   lib=lib)
     # print('\n-  running gulp optimize ...')
     if ncpu > 1:
-        system('mpirun -n %d gulp<inp-gulp>gulp.out' % ncpu)
+        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu))
     else:
         system('gulp<inp-gulp>gulp.out')
 
