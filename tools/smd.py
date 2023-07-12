@@ -28,14 +28,14 @@ def npt(ncpu=20,P=10.0,T=300,us='F',tstep=50,dt=1.0,gen='poscar.gen',index=-1):
     print('\n-  running siesta npt ...')
     siesta_md(A,ncpu=ncpu,P=P,T=T,dt=dt,tstep=tstep,us=us,opt='NoseParrinelloRahman')
 
-def opt(ncpu=8,T=2500,us='F',gen='poscar.gen',l=0,i=-1):
+def opt(ncpu=8,T=2500,us='F',gen='poscar.gen',l=0,i=-1,step=200):
     if exists('siesta.MDE') or exists('siesta.MD_CAR'):
        system('rm siesta.MDE siesta.MD_CAR')
     A = read(gen,index=i)
     # A = press_mol(A)
     print('\n-  running siesta opt ...')
     vc = 'true' if l else 'false'
-    siesta_opt(A,ncpu=ncpu,us=us,VariableCell=vc,
+    siesta_opt(A,ncpu=ncpu,us=us,VariableCell=vc,tstep=step,
                xcf='GGA',xca='PBE',basistype='split')
 
 def traj():
