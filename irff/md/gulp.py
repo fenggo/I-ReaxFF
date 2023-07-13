@@ -355,6 +355,8 @@ def opt(atoms=None,T=350,gen='siesta.traj',step=200,i=-1,l=0,
          for line in fo:
              if line.find('Final energy')>=0:
                 e = float(line.split()[3])
+             elif line.find('Final enthalpy')>=0:
+                e = float(line.split()[3])
     return e,atoms
 
 def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
