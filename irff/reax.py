@@ -1317,6 +1317,12 @@ class ReaxFF(object):
       self.v = set_variables(self.p_, self.optword, self.cons, self.opt,self.eaopt,
                              self.punit, self.unit, self.conf_vale,
                              self.ang_v,self.tor_v)
+                             
+      self.ea_var = {}        # parameter list to be optimized with evolutional algrithom
+      for k in self.var:
+            key = k.split('_')[0]
+            if key in self.eaopt:
+               self.ea_var[k] = self.p_[k]
 
       if self.clip_op:
          self.p = clip_parameters(self.p_,self.v,self.clip)
@@ -1484,34 +1490,28 @@ class ReaxFF(object):
                 if kkk[2]=='H':
                    hasH=True
 
-          if k in self.opt or key in self.opt:
-             if not (key in self.cons or k in self.cons):
-                if p is None:
+          # if k in self.opt or key in self.opt:
+          if p is not None:
+             if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
+                if key in p:
                    p_ = self.p_[key]*self.unit if k in self.punit else self.p_[key]
-                   upop.append(tf.compat.v1.assign(self.v[key],p_))
-                else:
+                   if not hasH: upop.append(tf.compat.v1.assign(self.v[key],p_))
+             elif key in self.ea_var:
                    if key in p:
                       p_ = p[key]*self.unit if k in self.punit else p[key]
-                      # print(key,p[key],type(self.v[key]))
-                      if not hasH:
-                         upop.append(tf.compat.v1.assign(self.v[key],p_))
-                         
-      if self.nn and self.resetDeadNeuron:
-         p_,m = self.ic.check(self.p_,self.m_,resetDeadNeuron=True)
-         pref = ['f1','fe','fv']
-         wb   = ['wi','bi','wo','bo']
-         # wbh = ['w','b']
-         for pre in pref:
-             for w in wb:
-                 for bd in self.bonds:
-                     key = pre+w+'_'+bd
-                     upop.append(tf.compat.v1.assign(self.m[key],m[key]))
-                      
-      self.sess.run(upop)
-      # for k in self.v:
-      #     key       = k.split('_')[0]
-      #     self.p[k] = self.v[k]
-      # self.write_lib(libfile=self.libfile.split('.')[0]) 
+                      self.feed_dict[self.var[key]] = p_
+                      self.ea_var[key]              = p[key]
+
+      for mol in self.mols:
+          mol_ = mol.split('-')[0]
+          if reset_emol: self.MolEnergy_[mol_] = 0.0
+          emol_ = 0.0 if mol_ not in self.MolEnergy_  else self.MolEnergy_[mol_]
+          if self.optmol:
+             upop.append(tf.compat.v1.assign(self.MolEnergy[mol_],emol_))     
+          else:
+             self.MolEnergy[mol_] =  tf.constant(emol_)
+      if upop: self.sess.run(upop) 
+
 
   def reset(self,opt=[],libfile=None):
       if self.InitCheck:
