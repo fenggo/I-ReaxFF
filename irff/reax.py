@@ -1259,7 +1259,7 @@ class ReaxFF(object):
       if not libfile is None:
          self.p_,zpe,spec,bonds,offd,angs,torp,hbs = read_ffield(libfile=libfile)
 
-      self.v = {}
+      self.var = {}
       for k in self.p_:
           key = k.split('_')[0]
           ktor= ['cot1','V1','V2','V3']
@@ -1285,22 +1285,22 @@ class ReaxFF(object):
           if key != 'n.u.':
              if (k in self.VariablesToOpt) and (key in self.opt) and (key not in self.cons):
                 if key in self.punit:
-                   self.v[k] = tf.Variable(np.float32(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(np.float32(self.unit*self.p_[k]),name=k)
                 else:
-                   self.v[k] = tf.Variable(np.float32(self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(np.float32(self.p_[k]),name=k)
              else:
                 if key in self.punit:
-                   self.v[k] = tf.constant(np.float32(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.constant(np.float32(self.unit*self.p_[k]),name=k)
                 else:
-                   self.v[k] = tf.constant(np.float32(self.p_[k]),name=k)
+                   self.var[k] = tf.constant(np.float32(self.p_[k]),name=k)
 
       if self.clip_op:
-         self.p = clip_parameters(self.p_,self.v,self.clip)
+         self.p = clip_parameters(self.p_,self.var,self.clip)
       else:
          self.p = {}
-         for k in self.v:
+         for k in self.var:
              key       = k.split('_')[0]
-             self.p[k] = self.v[k]
+             self.p[k] = self.var[k]
              
       self.botol       = 0.01*self.p['cutoff']
       self.checkp()
@@ -1313,8 +1313,8 @@ class ReaxFF(object):
       if not libfile is None:
          self.p_,zpe,spec,bonds,offd,angs,torp,hbs = read_ffield(libfile=libfile)
 
-      self.p,self.v = {},{}
-      self.v = set_variables(self.p_, self.optword, self.cons, self.opt,self.eaopt,
+      self.p,self.var = {},{}
+      self.var = set_variables(self.p_, self.optword, self.cons, self.opt,self.eaopt,
                              self.punit, self.unit, self.conf_vale,
                              self.ang_v,self.tor_v)
                              
@@ -1325,11 +1325,11 @@ class ReaxFF(object):
                self.ea_var[k] = self.p_[k]
 
       if self.clip_op:
-         self.p = clip_parameters(self.p_,self.v,self.clip)
+         self.p = clip_parameters(self.p_,self.var,self.clip)
       else:
-         for k in self.v:
+         for k in self.var:
              key       = k.split('_')[0]
-             self.p[k] = self.v[k]
+             self.p[k] = self.var[k]
 
       self.botol       = 0.01*self.p['cutoff']
       self.atol        = self.p['acut']
@@ -1476,7 +1476,7 @@ class ReaxFF(object):
       # if optcoul==True:
       # else:
       upop = []
-      for key in self.v:
+      for key in self.var:
           k_ = key.split('_')
           k  = k_[0]
           hasH = False
@@ -1495,7 +1495,7 @@ class ReaxFF(object):
              if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
                 if key in p:
                    p_ = self.p_[key]*self.unit if k in self.punit else self.p_[key]
-                   if not hasH: upop.append(tf.compat.v1.assign(self.v[key],p_))
+                   if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
              elif key in self.ea_var:
                    if key in p:
                       p_ = p[key]*self.unit if k in self.punit else p[key]
@@ -1949,7 +1949,7 @@ class ReaxFF(object):
       self.ic     = None
       self.m_     = None
       self.m      = None
-      self.v      = None
+      self.var    = None
       self.p      = None
       self.p_     = None
       self.frc    = None
