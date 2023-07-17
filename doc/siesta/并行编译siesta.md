@@ -178,7 +178,7 @@ make
 修改 arch.make
 添加或修改LIB = 下面的内容
 
-
+```shell
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
 FFLAGS = -w -fallow-argument-mismatch -O2 -fPIC -ftree-vectorize 
@@ -196,3 +196,4 @@ COMP_LIBS= dc_lapack.a linalg.a
 
 MPI_INTERFACE=libmpi_f90.a
 MPI_INCLUDE=/home/feng/mathlib/openmpi-gnu/include
+```
