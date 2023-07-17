@@ -359,7 +359,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            if nout==1:
               print(' ',file=flib) 
 
-       print('  fnn_bo {:d}'.format(mf_layer[0]),file=flib)
+       print('  fnn_bo {:d}'.format(nout),file=flib)
        for sp in spec:
            print('  {:2s}  '.format(sp),end=' ',file=flib) 
            for j in range(nout):
@@ -373,7 +373,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
        for bd in bonds:
            b = bd.split('-') 
            id1 = spec.index(b[0])
-           id2 = spec.index(b[0])
+           id2 = spec.index(b[1])
            print('  {:2d} {:2d}  '.format(id1,id2),end=' ',file=flib) 
            for i in range(nin):
                if i!=0:
@@ -385,10 +385,41 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
        print('enn_bi {:d}'.format(be_layer[0]),file=flib)
        for bd in bonds:
            b = bd.split('-') 
-           print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=flib) 
+           id1 = spec.index(b[0])
+           id2 = spec.index(b[1])
+           print('  {:2d} {:2d}  '.format(id1,id2),end=' ',file=flib) 
            for j in range(be_layer[0]):
                print('{:20.16f}'.format(m['febi_'+bd][j]),end=' ',file=flib)
            print(' ',file=flib)
+
+       if be_layer[1]>0:
+          print('enn_wh {:d} {:d}'.format(be_layer[0],be_layer[0]),file=flib)
+          for bd in bonds:
+              b = bd.split('-') 
+              id1 = spec.index(b[0])
+              id2 = spec.index(b[1])
+              print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=flib) 
+              for l in range(be_layer[1]):
+                  for i in range(be_layer[0]):
+                      if i!=0:
+                         print('               ',end=' ',file=flib)
+                      for j in range(be_layer[0]):
+                          print('{:20.16f}'.format(m['few_'+bd][l][i][j]),end=' ',file=flib)
+                      print(' ',file=flib)
+
+          print('enn_bh {:d}'.format(be_layer[0]),file=flib)
+          for bd in bonds:
+              b = bd.split('-') 
+              id1 = spec.index(b[0])
+              id2 = spec.index(b[1])
+              print('  {:2d} {:2d}  '.format(id1,id2),end=' ',file=flib) 
+              for l in range(be_layer[1]):
+                  if l!=0:
+                     print('                ',end=' ',file=flib)
+                  for j in range(be_layer[0]):
+                      print('{:20.16f}'.format(m['feb_'+bd][l][j]),end=' ',file=flib)
+                  print(' ',file=flib)
+
     flib.close()
 
 def write_lib(p,spec,bonds,offd,angs,tors,hbs,
