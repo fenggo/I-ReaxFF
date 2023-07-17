@@ -13,6 +13,8 @@ def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     atoms = read(gen,index=i)*(x,y,z)
     write_gulp_in(atoms,runword='md qiterative conv',
                   T=T,
+                  ensemble='nvt',
+                  tau_thermostat=0.1,
                   time_step=time_step,
                   tot_step=step,
                   lib=lib)
