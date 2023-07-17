@@ -305,7 +305,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
             txt += '%9.4f' %v
         print(txt,file=flib)
     if m is not None:
-       print('  fnn_wi {:d} {:d}'.format(mf_layer[0],mf_layer[1]),file=flib) ### weight
+       print(' fnn_wi {:d} {:d}'.format(mf_layer[0],mf_layer[1]),file=flib) ### weight
        shap = len(m['fmwo_'+spec[0]][0])
        nin  = 3
        nout = shap # shape of output layer
@@ -317,7 +317,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                for j in range(mf_layer[0]):
                    print('{:20.16f}'.format(m['fmwi_'+sp][i][j]),end=' ',file=flib)
                print(' ',file=flib)
-       print('  fnn_bi {:d}'.format(mf_layer[0]),file=flib) ### bias 
+       print(' fnn_bi {:d}'.format(mf_layer[0]),file=flib) ### bias 
        for sp in spec:
            print(' {:2s}   '.format(sp),end=' ',file=flib) 
            for j in range(mf_layer[0]):
@@ -325,7 +325,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            print(' ',file=flib)
 
        if mf_layer[1]>0:
-          print('  fnn_wh {:d} {:d}'.format(mf_layer[0],mf_layer[0]),file=flib)
+          print(' fnn_wh {:d} {:d}'.format(mf_layer[0],mf_layer[0]),file=flib)
           for sp in spec:
               print(' {:2s}  '.format(sp),end=' ',file=flib) 
               for l in range(mf_layer[1]):
@@ -336,7 +336,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                           print('{:20.16f}'.format(m['fmw_'+sp][l][i][j]),end=' ',file=flib)
                       print(' ',file=flib)
         
-          print('  fnn_bh {:d}'.format(mf_layer[0]),file=flib)
+          print(' fnn_bh {:d}'.format(mf_layer[0]),file=flib)
           for sp in spec:
               print(' {:2s}  '.format(sp),end=' ',file=flib) 
               for l in range(mf_layer[1]):
@@ -346,7 +346,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                       print('{:20.16f}'.format(m['fmb_'+sp][l][j]),end=' ',file=flib)
                   print(' ',file=flib)
 
-       print('  fnn_wo {:d} {:d}'.format(mf_layer[0],mf_layer[1]),file=flib)
+       print(' fnn_wo {:d} {:d}'.format(mf_layer[0],mf_layer[1]),file=flib)
        for sp in spec:
            print(' {:2s}  '.format(sp),end=' ',file=flib) 
            for i in range(mf_layer[0]):
@@ -359,7 +359,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            if nout==1:
               print(' ',file=flib) 
 
-       print('  fnn_bo {:d}'.format(nout),file=flib)
+       print(' fnn_bo {:d}'.format(nout),file=flib)
        for sp in spec:
            print(' {:2s}  '.format(sp),end=' ',file=flib) 
            for j in range(nout):
@@ -382,7 +382,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                    print('{:20.16f}'.format(m['fewi_'+bd][i][j]),end=' ',file=flib)
                print(' ',file=flib)
                
-       print('enn_bi {:d}'.format(be_layer[0]),file=flib)
+       print(' enn_bi {:d}'.format(be_layer[0]),file=flib)
        for bd in bonds:
            b = bd.split('-') 
            id1 = spec.index(b[0])
@@ -393,7 +393,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            print(' ',file=flib)
 
        if be_layer[1]>0:
-          print('enn_wh {:d} {:d}'.format(be_layer[0],be_layer[0]),file=flib)
+          print(' enn_wh {:d} {:d}'.format(be_layer[0],be_layer[0]),file=flib)
           for bd in bonds:
               b = bd.split('-') 
               id1 = spec.index(b[0])
@@ -407,7 +407,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                           print('{:20.16f}'.format(m['few_'+bd][l][i][j]),end=' ',file=flib)
                       print(' ',file=flib)
 
-          print('enn_bh {:d}'.format(be_layer[0]),file=flib)
+          print(' enn_bh {:d}'.format(be_layer[0]),file=flib)
           for bd in bonds:
               b = bd.split('-') 
               id1 = spec.index(b[0])
