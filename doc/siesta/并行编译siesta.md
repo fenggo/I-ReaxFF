@@ -178,9 +178,12 @@ make
 修改 arch.make
 添加或修改LIB = 下面的内容
 
+
 FC=mpif90
 FPPFLAGS= -DFC_HAVE_FLUSH -DFC_HAVE_ABORT -DMPI
 FFLAGS = -w -fallow-argument-mismatch -O2 -fPIC -ftree-vectorize 
+
+# -w -fallow-argument-mismatch -O2 选项可避免gfortran版本过高带来的一些问题
 
 BLAS_LIBS=    -lmkl_rt -lmkl_intel_lp64 -lmkl_blas95_lp64
 LAPACK_LIBS=  -lmkl_rt -lmkl_lapack95_lp64
