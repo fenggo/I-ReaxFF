@@ -21,7 +21,7 @@ def jsontoffield():
     lf.close()
 
     spec,bonds,offd,angs,torp,hbs = init_bonds(p_)
-    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,libfile='ffield')
+    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,m=m_,libfile='ffield')
 
 
 def init_bonds(p_):
