@@ -17,11 +17,14 @@ def jsontoffield():
     j = js.load(lf)
     p_ = j['p']
     m_ = j['m']
-    bo_layer_ = j['bo_layer']
+    mf_layer  = j['mf_layer']
+    be_layer  = j['be_layer']
     lf.close()
 
     spec,bonds,offd,angs,torp,hbs = init_bonds(p_)
-    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,m=m_,libfile='ffield')
+    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,
+                 m=m_,mf_layer=mf_layer,be_layer=be_layer,
+                 libfile='ffield')
 
 
 def init_bonds(p_):
