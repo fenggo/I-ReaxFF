@@ -54,7 +54,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
     elif rw[0] == 'md':
         #  if rw[1]=='conv':
         #     print('ensemble nvt',file=finp)
-        #     print('tau_thermostat     0.05 ps',file=finp)
+        #     print('tau_thermostat     0.1 ps',file=finp)
         #  if rw[1]=='conp':
         #     print('integrator leapfrog verlet',file=finp)
         #     print('ensemble           npt',file=finp)
