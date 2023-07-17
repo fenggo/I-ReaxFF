@@ -319,7 +319,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                print(' ',file=flib)
        print(' fnn_bi {:d}'.format(mf_layer[0]),file=flib) ### bias 
        for sp in spec:
-           print(' {:2s}   '.format(sp),end=' ',file=flib) 
+           print(' {:2s} '.format(sp),end=' ',file=flib) 
            for j in range(mf_layer[0]):
                print('{:20.16f}'.format(m['fmbi_'+sp][j]),end=' ',file=flib)
            print(' ',file=flib)
@@ -361,7 +361,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
 
        print(' fnn_bo {:d}'.format(nout),file=flib)
        for sp in spec:
-           print(' {:2s}  '.format(sp),end=' ',file=flib) 
+           print(' {:2s} '.format(sp),end=' ',file=flib) 
            for j in range(nout):
                print('{:20.16f}'.format(m['fmbo_'+sp][j]),end=' ',file=flib)
            print(' ',file=flib)
@@ -441,7 +441,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            b = bd.split('-') 
            id1 = spec.index(b[0]) + 1
            id2 = spec.index(b[1]) + 1
-           print(' {:2d} {:2d}  '.format(id1,id2),end=' ',file=flib) 
+           print(' {:2d} {:2d} '.format(id1,id2),end=' ',file=flib) 
            for j in range(nout):
                print('{:20.16f}'.format(m['febo_'+bd][j]),end=' ',file=flib)
            print(' ',file=flib)
