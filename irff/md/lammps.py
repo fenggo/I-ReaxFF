@@ -1,14 +1,13 @@
 from __future__ import print_function
 from os import system
-from .emdk import get_structure,emdk
 # from .findmole import check_decomposed
 from ase.io import read,write
 from ase import Atoms
 from ase.calculators.lammpsrun import write_lammps_data
 from ase.calculators.lammps import Prism,convert
 from ase.io.trajectory import TrajectoryWriter
-from .molecule import molecules,enlarge
-from .getNeighbors import get_neighbors
+from ..molecule import molecules,enlarge
+from ..getNeighbors import get_neighbors
 import matplotlib.pyplot as plt
 import numpy as np
 
