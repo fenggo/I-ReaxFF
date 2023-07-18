@@ -257,24 +257,17 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     '''
         pair_style     reaxff control.reax checkqeq yes
         pair_coeff     * * ffield.reax.rdx C H O N
-        ---control.reax---
-        simulation_name         enery_material  ! output files will carry this name + their specific extension
-
-        tabulate_long_range     0 ! denotes the granularity of long range tabulation, 0 means no tabulation
-        energy_update_freq      0
-        nbrhood_cutoff          3.5  ! near neighbors cutoff for bond calculations
-        hbond_cutoff            10.0  ! cutoff distance for hydrogen bond interactions
-        bond_graph_cutoff       0.3  ! bond strength cutoff for bond graphs
-        thb_cutoff              0.001 ! cutoff value for three body interactions
-
-        write_freq              50   ! write trajectory after so many steps
-        traj_compress           0    ! 0: no compression  1: uses zlib to compress trajectory output
-        traj_title              dump ! (no white spaces)
-        atom_info               0    ! 0: no atom info, 1: print basic atom info in the trajectory file
-        atom_forces             0    ! 0: basic atom format, 1: print force on each atom in the trajectory file
-        atom_velocities         0    ! 0: basic atom format, 1: print the velocity of each atom in the trajectory file
-        bond_info               0    ! 0: do not print bonds, 1: print bonds in the trajectory file
-        angle_info              0    ! 0: do not print angles, 1: print angles in the trajectory file 
+        --- control ---
+        tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation
+        nbrhood_cutoff		3.5  ! near neighbors cutoff for bond calculations
+        hbond_cutoff		7.5  ! cutoff distance for hydrogen bond interactions
+        bond_graph_cutoff	0.3  ! bond strength cutoff for bond graphs
+        thb_cutoff		    0.001 ! cutoff value for three body interactions
+        nnflag              1    ! 0: do not use neural network potential
+        mflayer_m           9
+        mflayer_n           1
+        belayer_m           9
+        belayer_n           1
     '''
     fin = open('inp.lammps','w')
     print('units       real', file=fin)
