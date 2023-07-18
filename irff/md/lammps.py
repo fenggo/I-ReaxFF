@@ -263,15 +263,11 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
 
         tabulate_long_range     0 ! denotes the granularity of long range tabulation, 0 means no tabulation
         energy_update_freq      0
-        remove_CoM_vel          500 ! remove the trans. & rot. vel around the CoM every 'this many' steps
-
-        nbrhood_cutoff          4.0  ! near neighbors cutoff for bond calculations in A
+        nbrhood_cutoff          3.5  ! near neighbors cutoff for bond calculations
         hbond_cutoff            10.0  ! cutoff distance for hydrogen bond interactions
         bond_graph_cutoff       0.3  ! bond strength cutoff for bond graphs
-        thb_cutoff              0.01 ! cutoff value for three body interactions
-        q_err                   1e-6  ! average per atom error norm allowed in GMRES convergence
+        thb_cutoff              0.001 ! cutoff value for three body interactions
 
-        geo_format              0    ! 0: xyz, 1: pdb, 2: bgf
         write_freq              50   ! write trajectory after so many steps
         traj_compress           0    ! 0: no compression  1: uses zlib to compress trajectory output
         traj_title              dump ! (no white spaces)
@@ -312,7 +308,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
     print(' ', file=fin)
     print(fix, file=fin)
     print(fix_modify, file=fin)
-    print('fix    reax all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
+    print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
     print(' ', file=fin)
     print(more_commond, file=fin)
     print(' ', file=fin)
