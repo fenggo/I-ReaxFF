@@ -140,7 +140,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.close()
     return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a  # N ,atoms number, t0 temperature, p0 pressure, e0 energy v0,volume
 
-def writeLammpsData(atoms,data='data',specorder=None, 
+def writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
@@ -277,7 +277,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
         bond_info               0    ! 0: do not print bonds, 1: print bonds in the trajectory file
         angle_info              0    ! 0: do not print angles, 1: print angles in the trajectory file 
     '''
-    fin = open('inp-lammps','w')
+    fin = open('inp.lammps','w')
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
