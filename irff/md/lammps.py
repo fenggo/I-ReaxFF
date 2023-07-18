@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
 def run_lammps(inp_name='inp-lam',label='eos',np=4):
     print('mpirun -n %d lammps<%s> %s.out \n' %(np,inp_name, label))
     system('mpirun -n %d lammps<%s> %s.out' %(np,inp_name, label))
@@ -28,7 +27,6 @@ def check_decomposed(traj='lammps.trj',nmol=1):
        print('-  structure already decomposed, exit now!')
        send_msg('-  structure already decomposed, exit now!')
        exit()
-
 
 def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
@@ -142,7 +140,6 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.close()
     return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a  # N ,atoms number, t0 temperature, p0 pressure, e0 energy v0,volume
 
-
 def writeLammpsData(atoms,data='data',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
@@ -250,18 +247,16 @@ def writeLammpsData(atoms,data='data',specorder=None,
     f.flush()
     f.close()
 
-
-
 def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
-              pair_coeff ='* * ffield.reax.lg C H O N',
-              pair_style = 'reax/c control.reax lgvdw yes checkqeq yes',  # without lg set lgvdw no
+              pair_coeff ='* * ffield C H O N',
+              pair_style = 'reaxff control checkqeq yes',  # without lg set lgvdw no
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               restartfile='restart.eq'):
     '''
-        pair_style     reax/c control.reax checkqeq yes
+        pair_style     reaxff control.reax checkqeq yes
         pair_coeff     * * ffield.reax.rdx C H O N
         ---control.reax---
         simulation_name         enery_material  ! output files will carry this name + their specific extension
@@ -296,7 +291,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
     print(' ', file=fin)
     print('pair_style     %s'  %pair_style, file=fin) 
     print('pair_coeff     %s'  %pair_coeff, file=fin)
-    print('compute       reax all pair reax/c', file=fin)
+    print('compute       reax all pair reaxff', file=fin)
     print('variable eb   equal c_reax[1]', file=fin)
     print('variable ea   equal c_reax[2]', file=fin)
     print('variable elp  equal c_reax[3]', file=fin)
@@ -317,7 +312,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
     print(' ', file=fin)
     print(fix, file=fin)
     print(fix_modify, file=fin)
-    print('fix    rxc all qeq/reax 1 0.0 10.0 1.0e-6 reax/c', file=fin)
+    print('fix    reax all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
     print(' ', file=fin)
     print(more_commond, file=fin)
     print(' ', file=fin)
@@ -465,7 +460,7 @@ def LammpsHistory(traj='ase.lammpstrj',frame=0,atomType=['C','H','O','N']):
 if __name__ == '__main__':
   # relax system first
   eos = EOS(pair_coeff = '* * ffield.reax.lg C    H    O    N',
-            pair_style = 'reax/c control.reax lgvdw yes checkqeq yes',
+            pair_style = 'reaxff control lgvdw yes checkqeq yes',
             struc = 'hmx',
             supercell=[4,4,4],
             fac = 1.25,
