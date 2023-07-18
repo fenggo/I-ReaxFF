@@ -246,7 +246,7 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
     f.flush()
     f.close()
 
-def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data= None,restart=None,
+def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               pair_coeff ='* * ffield C H O N',
               pair_style = 'reaxff control checkqeq yes',  # without lg set lgvdw no
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
