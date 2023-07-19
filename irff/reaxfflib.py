@@ -689,7 +689,8 @@ def write_lib(p,spec,bonds,offd,angs,tors,hbs,
        print('belayer {:d} {:d}'.format(be_layer[0],be_layer[1]),file=glib)
        print(' ',file=glib)
        print('reaxff2_enn wi',file=glib)
-
+       nin  = 3
+       nout = 1
        for bd in bonds:
            b = bd.split('-') 
            print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
