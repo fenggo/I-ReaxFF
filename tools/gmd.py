@@ -84,9 +84,9 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-def traj(fil='his_3D.arc'):
+def traj(fil='his_3D.arc',c=0):
     # xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
-    arctotraj(fil,traj='md.traj',checkMol=False)
+    arctotraj(fil,traj='md.traj',checkMol=c)
 
 def plot(out='out'):
     E,Epot,T,P = get_md_results(out=out)
