@@ -6,6 +6,7 @@ from ase import Atoms
 from ase.io import read  # ,write
 from ase.io.trajectory import TrajectoryWriter
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.cell import Cell
 import matplotlib.pyplot as plt
 from ..molecule import press_mol
 from ..reaxfflib import write_lib
@@ -25,7 +26,7 @@ GULP calculation;
 end;
 
 library reax;
-output movie xyz his.xyz;
+output movie arc his;
 dump 100 restart.grs;
 
 '''
@@ -90,7 +91,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         print('library %s' % lib, file=finp)
 
     if output is None:
-        print('output movie {:d} xyz his.xyz'.format(
+       print('output movie {:d} arc his.arc'.format(
             movieFrequency), file=finp)
     else:
         print('output {:s}'.format(output), file=finp)
@@ -328,6 +329,43 @@ def xyztotraj(fxyz, inp='inp-gulp', checkMol=False, mode='w', traj='gulp.traj', 
         A.set_calculator(calc)
         his.write(atoms=A)
         del A
+    his.close()
+
+def arctotraj(arc,checkMol=False,traj='gulp.traj'):
+    his = TrajectoryWriter(traj, mode=mode)
+
+    with open(arc,'r') as f:
+        lines = f.readlines()
+
+    atom_read_start = False
+    natom           = 0
+    pos             = []
+    atom_name       = []
+    e               = 0.0
+    cell            = [10.0,10.0,10.0]
+    for line in lines:   #  get number of atoms
+        l = line.split()
+        if line.find('PBC')>0 and len(l)>=7:
+           atom_read_start = True
+           cell = Cell.fromcellpar([float(l[1]),float(l[2]),float(l[3]), 
+                                    float(l[4]),float(l[5]),float(l[6])])
+        elif line.find('end')>0 :
+           atom_read_start = False
+           if pos:
+              A = Atoms(atom_name, pos, cell=cell, pbc=[True, True, True])
+              if checkMol:
+                 A = press_mol(A)
+              A.calc = SinglePointCalculator(A, energy=e)
+              his.write(atoms=A)
+           pos       = []
+           atom_name = []
+        elif line.find('GULP calculation')>0 :
+           e = float(l[2])/23.0604
+        if atom_read_start and l[0]!='PBC' and len(l)==9:
+           natom += 1
+           pos.append([float(l[1]),float(l[2]),float(l[3])])
+           atom_name.append(l[0])
+
     his.close()
 
 def opt(atoms=None,T=350,gen='siesta.traj',step=200,i=-1,l=0,
