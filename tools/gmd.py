@@ -115,7 +115,8 @@ if __name__ == '__main__':
        opt: structure optimization
        w  : write the gulp input file
        --g: the atomic structure file 
-
+       --T: The temperature of the system
+       --s: The run step of the simulation
    '''
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [opt,nvt,plot,traj,w])
