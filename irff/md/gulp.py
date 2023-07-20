@@ -357,6 +357,7 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
                  A = press_mol(A)
               A.calc = SinglePointCalculator(A, energy=e)
               his.write(atoms=A)
+              del A
            pos       = []
            atom_name = []
         elif line.find('GULP calculation')>0 :

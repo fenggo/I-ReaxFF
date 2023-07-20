@@ -54,7 +54,6 @@ def get_status(wt):
           elif line.find('Job Finished')>=0:
              return False
 
-
 # def npt(T=350,time_step=0.1,tot_step=10.0):
 #     A = read('packed.gen')
 #     write_gulp_in(A,runword='md conp qiterative',
@@ -64,7 +63,6 @@ def get_status(wt):
 #                   lib='reax')
 #     system('gulp<inp-gulp>gulp.out')
 #     xyztotraj('his.xyz')
-
 
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
