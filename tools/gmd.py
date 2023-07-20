@@ -5,7 +5,7 @@ from os import system,popen
 import time
 from ase.io import read # ,write
 # from ase import Atoms
-from irff.md.gulp import write_gulp_in,xyztotraj,get_md_results,plot_md
+from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md
 
 
 def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
@@ -23,8 +23,8 @@ def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        system('gulp<inp-gulp>gulp.out')
     else:
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
-    xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
-
+    # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 def nvt_wt(T=350,time_step=0.1,tot_step=100,gen='poscar.gen',mode='w',wt=10):
     A = read(gen,index=-1)
@@ -37,7 +37,7 @@ def nvt_wt(T=350,time_step=0.1,tot_step=100,gen='poscar.gen',mode='w',wt=10):
     print('\n-  running gulp nvt ...')
     system('nohup gulp<inp-gulp>gulp.out 2>&1 &')
     nan_ = get_status(wt)
-    xyztotraj('his.xyz',mode=mode)
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 
 def get_status(wt):
@@ -83,10 +83,12 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
        system('gulp<inp-gulp>gulp.out')
     else:
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
-    xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
+    # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 def traj(inp='inp-gulp'):
-    xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
+    # xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=False)
 
 def plot(out='out'):
     E,Epot,T,P = get_md_results(out=out)
