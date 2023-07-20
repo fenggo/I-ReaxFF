@@ -331,7 +331,7 @@ def xyztotraj(fxyz, inp='inp-gulp', checkMol=False, mode='w', traj='gulp.traj', 
         del A
     his.close()
 
-def arctotraj(arc,checkMol=False,traj='gulp.traj'):
+def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     his = TrajectoryWriter(traj, mode=mode)
 
     with open(arc,'r') as f:
