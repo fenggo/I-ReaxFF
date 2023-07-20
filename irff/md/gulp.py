@@ -345,11 +345,11 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     cell            = [10.0,10.0,10.0]
     for line in lines:   #  get number of atoms
         l = line.split()
-        if line.find('PBC')>0 and len(l)>=7:
+        if line.find('PBC')>=0 and len(l)>=7:
            atom_read_start = True
            cell = Cell.fromcellpar([float(l[1]),float(l[2]),float(l[3]), 
                                     float(l[4]),float(l[5]),float(l[6])])
-        elif line.find('end')>0 :
+        elif line.find('end')>=0 :
            atom_read_start = False
            if pos:
               A = Atoms(atom_name, pos, cell=cell, pbc=[True, True, True])
@@ -360,7 +360,7 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
               del A
            pos       = []
            atom_name = []
-        elif line.find('GULP calculation')>0 :
+        elif line.find('GULP calculation')>=0 :
            e = float(l[2])/23.0604
         if atom_read_start and l[0]!='PBC' and len(l)==9:
            natom += 1
