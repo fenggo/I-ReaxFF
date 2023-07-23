@@ -268,7 +268,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
         belayer_m           9
         belayer_n           1
     '''
-    fin = open('inp.lammps','w')
+    fin = open('in.lammps','w')
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
