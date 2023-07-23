@@ -31,7 +31,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        # system('/home/feng/mlff/lammps/src/lmp_serial<inp.lammps>out')
        system('/home/feng/lammps/src/lmp_serial<inp.lammps>out')
     else:
-       system('mpirun -n {:d} lammps<inp.lammps>out'.format(n))
+       system('mpirun -n {:d} lammps<in.lammps>out'.format(n))
     # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
 
