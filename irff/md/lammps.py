@@ -1,4 +1,3 @@
-from __future__ import print_function
 from os import system
 # from .findmole import check_decomposed
 from ase.io import read,write
