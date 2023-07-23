@@ -152,7 +152,7 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
             )
         atoms = atoms[0]
 
-    f.write("{0} (written by ASE) \n\n".format(f.name))
+    f.write("{0} \n\n".format(f.name))
 
     symbols = atoms.get_chemical_symbols()
     n_atoms = len(symbols)
