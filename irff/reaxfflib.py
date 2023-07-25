@@ -1,4 +1,3 @@
-from __future__ import print_function
 from os import system, getcwd, chdir,listdir
 from os.path import isfile,exists,isdir
 import numpy as np
