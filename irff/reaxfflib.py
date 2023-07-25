@@ -218,6 +218,10 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                 pn_ = pn+'_'+bs
                 if pn=='n.u.':
                    v = 0.0
+                elif pn=='ovcorr':
+                   v = p[pn_] if m is None else 0.0
+                elif pn=='corr13':
+                   v = p[pn_] if m is None else 2.0
                 else:
                    if pn_ in p:
                       v = p[pn_]
