@@ -72,13 +72,19 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         print('production         %f ps' %
               float(tot_step*time_step/1000.0), file=finp)
         print('equilibration      0.0 ps', file=finp)
-        print('write              1', file=finp)
-        print('sample             1', file=finp)
+        if 'write_MD' in kwargs:
+            print('write_MD           {:d}'.format(kwargs['write_MD']), file=finp)
+        else:
+            print('write_MD           10  ', file=finp)
+        if 'sample' in kwargs:
+            print('sample             {:d}'.format(kwargs['sample']), file=finp)
+        else:
+            print('sample             1', file=finp)
         
     if 'T' in kwargs: 
        print('temperature          {:f} K'.format(kwargs['T']),file=finp)
     if 'pressure' in kwargs:
-       print('pressure          {:f} GPa'.format(kwargs['pressure']),file=finp)
+       print('pressure             {:f} GPa'.format(kwargs['pressure']),file=finp)
 
     print('#', file=finp)
     print('title', file=finp)
