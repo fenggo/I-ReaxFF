@@ -23,8 +23,8 @@ def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        system('gulp<inp-gulp>gulp.out')
     else:
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
-    # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
-    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
+    # arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 def nvt_wt(T=350,time_step=0.1,tot_step=100,gen='poscar.gen',mode='w',wt=10):
     A = read(gen,index=-1)

@@ -97,7 +97,10 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         print('library %s' % lib, file=finp)
 
     if output is None:
-       print('output movie arc his.arc', file=finp)
+       if rw[0] == 'md':
+          print('output movie xyz his.xyz', file=finp)
+       else:
+          print('output movie arc his.arc', file=finp)
     else:
        print('output {:s}'.format(output), file=finp)
     print('output cif gulp produces gulp.cif', file=finp)
