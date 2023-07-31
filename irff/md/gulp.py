@@ -63,9 +63,9 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         #     print('tau_barostat       0.1 ps',file=finp)
         #     print('tau_thermostat     0.1 ps',file=finp)
         if 'ensemble' in kwargs:
-            print('ensemble   =  {:s} '.format(kwargs['ensemble']), file=finp)
+            print('ensemble          {:s} '.format(kwargs['ensemble']), file=finp)
         if 'tau_thermostat' in kwargs:
-            print('tau_thermostat   =  {:f} ps'.format(kwargs['tau_thermostat']), file=finp)
+            print('tau_thermostat    {:f} ps'.format(kwargs['tau_thermostat']), file=finp)
 
         # print('temperature        %f K' % T, file=finp)
         print('timestep           %f fs' % time_step, file=finp)
