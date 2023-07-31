@@ -75,7 +75,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         if 'write_MD' in kwargs:
             print('write_MD           {:d}'.format(kwargs['write_MD']), file=finp)
         else:
-            print('write_MD           10  ', file=finp)
+            print('write_MD           1  ', file=finp)
         if 'sample' in kwargs:
             print('sample             {:d}'.format(kwargs['sample']), file=finp)
         else:
