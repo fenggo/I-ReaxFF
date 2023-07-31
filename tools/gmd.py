@@ -5,7 +5,7 @@ from os import system,popen
 import time
 from ase.io import read # ,write
 # from ase import Atoms
-from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md
+from irff.md.gulp import write_gulp_in,xyztotraj,arctotraj,get_md_results,plot_md
 
 
 def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
