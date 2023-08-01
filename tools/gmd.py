@@ -64,7 +64,7 @@ def get_status(wt):
 #     system('gulp<inp-gulp>gulp.out')
 #     xyztotraj('his.xyz')
 
-def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
+def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
@@ -74,7 +74,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
        runword= 'opti conp qiterative stre atomic_stress'
 
     write_gulp_in(A,runword=runword,
-                  T=T,maxcyc=step,
+                  T=T,maxcyc=step,pressure=p,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
