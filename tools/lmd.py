@@ -29,7 +29,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               restartfile='restart.eq')
     print('\n-  running lammps nvt ...')
     if n==1:
-       # system('/home/feng/mlff/lammps/src/lmp_serial<inp.lammps>out')
+       # system('/home/feng/mlff/lammps/src/lmp_serial<in.lammps>out')
        system('/home/feng/lammps/src/lmp_serial<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps<in.lammps>out'.format(n))
