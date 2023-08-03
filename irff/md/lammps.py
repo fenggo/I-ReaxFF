@@ -271,9 +271,11 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
         belayer_m           9
         belayer_n           1
     '''
+    species_name = {'H':'hydrogen','O':'oxygen','N': 'nitrogen','C':'carbon'}
     fin = open('in.lammps','w')
     for i,sp in enumerate(species):
-        print('#/atom {:d} {:s}'.format(i+1,sp), file=fin)
+        species_ = sp if sp not in species_name else species_name[sp]
+        print('#/atom {:d} {:s}'.format(i+1,species_), file=fin)
     for i in range(len(species)):
         for j in range(i,len(species)):
             bd = species[i]+'-'+species[j]
