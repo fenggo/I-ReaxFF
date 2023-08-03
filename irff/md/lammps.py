@@ -286,7 +286,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
                bc = bond_cutoff[bdr]
             else:
                bc = bond_cutoff['other']
-            print('#/bond {:d} {:d} 2.0'.format(i+1,j+1,bc), file=fin)
+            print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
 
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
