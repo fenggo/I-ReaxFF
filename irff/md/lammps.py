@@ -273,7 +273,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     '''
     fin = open('in.lammps','w')
     for i,sp in enumerate(species):
-        print('#/atom {:d} {:s}'.format(i,sp), file=fin)
+        print('#/atom {:d} {:s}'.format(i+1,sp), file=fin)
     for i in range(len(species)):
         for j in range(i,len(species)):
             bd = species[i]+'-'+species[j]
