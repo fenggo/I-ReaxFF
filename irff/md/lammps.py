@@ -246,6 +246,9 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
     f.close()
 
 def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
+              species=['C','H','O','N'],
+              bond_cutoff={'H-H':1.5,'H-C':1.6,'H-O':1.6,'H-N':1.6,
+                           'C-C':2.0,'other':2.0}
               pair_coeff ='* * ffield C H O N',
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
@@ -269,32 +272,20 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
         belayer_n           1
     '''
     fin = open('in.lammps','w')
-    #/atom 1 carbon  
-#/atom 2 hydrogen 
-#/atom 3 nitrogen 
-#/atom 4 oxygen 
-#/bond 1 1 2.0
-#/bond 1 2 1.7
-#/bond 2 2 1.7
-#/bond 3 4 1.7
-#/bond 1 3 2.0
-#/bond 3 3 2.0
-#/bond 2 4 1.7
-#/bond 4 4 1.7
-    print('#/atom 1 carbon', file=fin)
-    print('#/atom 2 hydrogen', file=fin)
-    print('#/atom 3 nitrogen', file=fin)
-    print('#/atom 4 oxygen ', file=fin)
-    print('#/bond 1 1 2.0', file=fin)
-    print('#/bond 1 2 1.7', file=fin)
-    print('#/bond 1 3 2.0', file=fin)
-    print('#/bond 1 4 2.0', file=fin)
-    print('#/bond 2 2 1.7', file=fin)
-    print('#/bond 2 3 1.7', file=fin)
-    print('#/bond 2 4 1.7', file=fin)
-    print('#/bond 3 3 2.0', file=fin)
-    print('#/bond 3 4 2.0', file=fin)
-    print('#/bond 4 4 2.0', file=fin)
+    for i,sp in enumerate(species):
+        print('#/atom {:d} {:s}'.format(i,sp), file=fin)
+    for i in len(species):
+        for j in range(i,len(species)):
+            bd = species[i]+'-'+species[j]
+            bdr= species[j]+'-'+species[i]
+            if bd in bond_cutoff:
+               bc = bond_cutoff[bd]
+            elif bdr in bond_cutoff:
+               bc = bond_cutoff[bdr]
+            else:
+               bc = bond_cutoff['other']
+            print('#/bond {:d} {:d} 2.0'.format(i,j,bc), file=fin)
+
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
