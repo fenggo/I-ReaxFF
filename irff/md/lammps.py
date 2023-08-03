@@ -269,6 +269,32 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
         belayer_n           1
     '''
     fin = open('in.lammps','w')
+    #/atom 1 carbon  
+#/atom 2 hydrogen 
+#/atom 3 nitrogen 
+#/atom 4 oxygen 
+#/bond 1 1 2.0
+#/bond 1 2 1.7
+#/bond 2 2 1.7
+#/bond 3 4 1.7
+#/bond 1 3 2.0
+#/bond 3 3 2.0
+#/bond 2 4 1.7
+#/bond 4 4 1.7
+    print('#/atom 1 carbon', file=fin)
+    print('#/atom 2 hydrogen', file=fin)
+    print('#/atom 3 nitrogen', file=fin)
+    print('#/atom 4 oxygen ', file=fin)
+    print('#/bond 1 1 2.0', file=fin)
+    print('#/bond 1 2 1.7', file=fin)
+    print('#/bond 1 3 2.0', file=fin)
+    print('#/bond 1 4 2.0', file=fin)
+    print('#/bond 2 2 1.7', file=fin)
+    print('#/bond 2 3 1.7', file=fin)
+    print('#/bond 2 4 1.7', file=fin)
+    print('#/bond 3 3 2.0', file=fin)
+    print('#/bond 3 4 2.0', file=fin)
+    print('#/bond 4 4 2.0', file=fin)
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
