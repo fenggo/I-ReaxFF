@@ -248,7 +248,7 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
 def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               species=['C','H','O','N'],
               bond_cutoff={'H-H':1.5,'H-C':1.6,'H-O':1.6,'H-N':1.6,
-                           'C-C':2.0,'other':2.0}
+                           'C-C':2.0,'other':2.0},
               pair_coeff ='* * ffield C H O N',
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
