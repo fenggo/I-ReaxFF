@@ -421,14 +421,15 @@ def lattice(a,b,c):
     return ra,rb,rc,alpha,beta,gamma
 
 
-def LammpsHistory(traj='ase.lammpstrj',frame=0,atomType=['C','H','O','N']):
+def LammpsHistory(traj='lammps.trj',atomType=['C','H','O','N']):
     fl = open(traj,'r')
     lines = fl.readlines()
     nl    = len(lines) 
     fl.close()
     natom     = int(lines[3])
+    frame     = 0
 
-    his       = TrajectoryWriter(traj.split('.')[0]+'.traj',mode='w')
+    his       = TrajectoryWriter('md.traj',mode='w')#traj.split('.')[0]+
     n         = 0
     block     = natom+9
 
