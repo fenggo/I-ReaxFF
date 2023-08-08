@@ -451,7 +451,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     natom     = int(lines[3])
     frame     = 0
     nframe    = len(e)
-    print(e)
+    #print(e)
 
     his       = TrajectoryWriter('md.traj',mode='w')#traj.split('.')[0]+
     n         = 0
