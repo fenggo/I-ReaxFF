@@ -421,7 +421,15 @@ def lattice(a,b,c):
     return ra,rb,rc,alpha,beta,gamma
 
 
-def LammpsHistory(traj='lammps.trj',atomType=['C','H','O','N']):
+def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
+    # atomType=['C','H','O','N']
+    with open(inp,'r') as fi:
+         lines = fl.readlines()
+         for line in lines:
+             if line.find('pair_coeff')>=0:
+                l = line.split()
+                atomType = l[4:]
+                
     fl = open(traj,'r')
     lines = fl.readlines()
     nl    = len(lines) 
