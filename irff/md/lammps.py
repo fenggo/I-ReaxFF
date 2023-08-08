@@ -438,7 +438,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
              readenergy = False
              if line.find('Step          Temp          E_pair         TotEng')>=0:
                 readenergy = True
-             elif line.find('Loop time'):
+             elif line.find('Loop time')>=0:
                 readenergy = False
              l = line.split()
              if readenergy and l[0]!='Step':
@@ -450,6 +450,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     fl.close()
     natom     = int(lines[3])
     frame     = 0
+    nframe    = len(e)
 
     his       = TrajectoryWriter('md.traj',mode='w')#traj.split('.')[0]+
     n         = 0
@@ -476,7 +477,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
 
-        if frame>len(e)-1:
+        if frame>=nframe:
            break
         atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True])
         atoms.calc = SinglePointCalculator(atoms, energy=e[frame])
