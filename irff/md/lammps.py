@@ -431,8 +431,8 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
                 l = line.split()
                 atomType = l[4:]
     e = []
-    with open('lmp.log','r'):
-         lines = fi.readlines()
+    with open('lmp.log','r') as fl:
+         lines = fl.readlines()
          for line in lines:
              readenergy = False
              if line.find('Step          Temp          E_pair         TotEng')>=0:
