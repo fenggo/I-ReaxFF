@@ -66,8 +66,8 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
        system('mpirun -n {:d} /home/feng/mlff/lammps/src/lmp_serial<inp.lammps>out'.format(n))
     # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
-def traj(inp='inp-gulp'):
-    LammpsHistory('lammps.trj',inp='in.lammps')
+def traj(inp='in.lammps'):
+    LammpsHistory('lammps.trj',inp=inp)
 
 def plot(out='out'):
     get_lammps_thermal(logname='lmp.log',supercell=[1,1,1])
