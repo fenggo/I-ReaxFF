@@ -4,6 +4,7 @@ from ase.io import read,write
 from ase import Atoms
 from ase.calculators.lammpsrun import write_lammps_data
 from ase.calculators.lammps import Prism,convert
+from ase.calculators.singlepoint import SinglePointCalculator
 from ase.io.trajectory import TrajectoryWriter
 from ..molecule import molecules,enlarge
 from ..getNeighbors import get_neighbors
