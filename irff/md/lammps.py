@@ -442,7 +442,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
                 readenergy = False
              l = line.split()
              if readenergy and l[0]!='Step':
-                e.append(float(l[2]))
+                e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
 
     fl = open(traj,'r')
     lines = fl.readlines()
