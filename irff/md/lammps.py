@@ -430,6 +430,18 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
              if line.find('pair_coeff')>=0:
                 l = line.split()
                 atomType = l[4:]
+    e = []
+    with open('lmp.log','r'):
+         lines = fi.readlines()
+         for line in lines:
+             readenergy = False
+             if line.find('Step          Temp          E_pair         TotEng')>=0:
+                readenergy = True
+             elif line.find('Loop time'):
+                readenergy = False
+             l = line.split()
+             if readenergy and l[0]!='Step':
+                e.append(float(l[2]))
 
     fl = open(traj,'r')
     lines = fl.readlines()
@@ -464,6 +476,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             positions[id_][2] = float(line[4])
             
         atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True])
+        atoms.calc = SinglePointCalculator(atoms, energy=e[frame])
         his.write(atoms=atoms)
         frame += 1
         n = block*frame + 9
@@ -556,7 +569,162 @@ def read_lammps_dump_text(fileobj, index=-1, **kwargs):
 
     return images[index]
 
-    
+def lammps_data_to_ase_atoms(
+    data,
+    colnames,
+    cell,
+    celldisp,
+    pbc=False,
+    atomsobj=Atoms,
+    order=True,
+    specorder=None,
+    prismobj=None,
+    units="metal",
+):
+    """Extract positions and other per-atom parameters and create Atoms
+
+    :param data: per atom data
+    :param colnames: index for data
+    :param cell: cell dimensions
+    :param celldisp: origin shift
+    :param pbc: periodic boundaries
+    :param atomsobj: function to create ase-Atoms object
+    :param order: sort atoms by id. Might be faster to turn off.
+    Disregarded in case `id` column is not given in file.
+    :param specorder: list of species to map lammps types to ase-species
+    (usually .dump files to not contain type to species mapping)
+    :param prismobj: Coordinate transformation between lammps and ase
+    :type prismobj: Prism
+    :param units: lammps units for unit transformation between lammps and ase
+    :returns: Atoms object
+    :rtype: Atoms
+
+    """
+
+    # read IDs if given and order if needed
+    if "id" in colnames:
+        ids = data[:, colnames.index("id")].astype(int)
+        if order:
+            sort_order = np.argsort(ids)
+            data = data[sort_order, :]
+
+    # determine the elements
+    if "element" in colnames:
+        # priority to elements written in file
+        elements = data[:, colnames.index("element")]
+    elif "type" in colnames:
+        # fall back to `types` otherwise
+        elements = data[:, colnames.index("type")].astype(int)
+
+        # reconstruct types from given specorder
+        if specorder:
+            elements = [specorder[t - 1] for t in elements]
+    else:
+        # todo: what if specorder give but no types?
+        # in principle the masses could work for atoms, but that needs
+        # lots of cases and new code I guess
+        raise ValueError("Cannot determine atom types form LAMMPS dump file")
+
+    def get_quantity(labels, quantity=None):
+        try:
+            cols = [colnames.index(label) for label in labels]
+            if quantity:
+                return convert(data[:, cols].astype(float), quantity,
+                               units, "ASE")
+
+            return data[:, cols].astype(float)
+        except ValueError:
+            return None
+
+    # Positions
+    positions = None
+    scaled_positions = None
+    if "x" in colnames:
+        # doc: x, y, z = unscaled atom coordinates
+        positions = get_quantity(["x", "y", "z"], "distance")
+    elif "xs" in colnames:
+        # doc: xs,ys,zs = scaled atom coordinates
+        scaled_positions = get_quantity(["xs", "ys", "zs"])
+    elif "xu" in colnames:
+        # doc: xu,yu,zu = unwrapped atom coordinates
+        positions = get_quantity(["xu", "yu", "zu"], "distance")
+    elif "xsu" in colnames:
+        # xsu,ysu,zsu = scaled unwrapped atom coordinates
+        scaled_positions = get_quantity(["xsu", "ysu", "zsu"])
+    else:
+        raise ValueError("No atomic positions found in LAMMPS output")
+
+    velocities = get_quantity(["vx", "vy", "vz"], "velocity")
+    charges = get_quantity(["q"], "charge")
+    forces = get_quantity(["fx", "fy", "fz"], "force")
+    # !TODO: how need quaternions be converted?
+    quaternions = get_quantity(["c_q[1]", "c_q[2]", "c_q[3]", "c_q[4]"])
+
+    # convert cell
+    cell = convert(cell, "distance", units, "ASE")
+    celldisp = convert(celldisp, "distance", units, "ASE")
+    if prismobj:
+        celldisp = prismobj.vector_to_ase(celldisp)
+        cell = prismobj.update_cell(cell)
+
+    if quaternions:
+        out_atoms = Quaternions(
+            symbols=elements,
+            positions=positions,
+            cell=cell,
+            celldisp=celldisp,
+            pbc=pbc,
+            quaternions=quaternions,
+        )
+    elif positions is not None:
+        # reverse coordinations transform to lammps system
+        # (for all vectors = pos, vel, force)
+        if prismobj:
+            positions = prismobj.vector_to_ase(positions, wrap=True)
+
+        out_atoms = atomsobj(
+            symbols=elements,
+            positions=positions,
+            pbc=pbc,
+            celldisp=celldisp,
+            cell=cell
+        )
+    elif scaled_positions is not None:
+        out_atoms = atomsobj(
+            symbols=elements,
+            scaled_positions=scaled_positions,
+            pbc=pbc,
+            celldisp=celldisp,
+            cell=cell,
+        )
+
+    if velocities is not None:
+        if prismobj:
+            velocities = prismobj.vector_to_ase(velocities)
+        out_atoms.set_velocities(velocities)
+    if charges is not None:
+        out_atoms.set_initial_charges(charges)
+    if forces is not None:
+        if prismobj:
+            forces = prismobj.vector_to_ase(forces)
+        # !TODO: use another calculator if available (or move forces
+        #        to atoms.property) (other problem: synchronizing
+        #        parallel runs)
+        calculator = SinglePointCalculator(out_atoms, energy=0.0,
+                                           forces=forces)
+        out_atoms.calc = calculator
+
+    # process the extra columns of fixes, variables and computes
+    #    that can be dumped, add as additional arrays to atoms object
+    for colname in colnames:
+        # determine if it is a compute or fix (but not the quaternian)
+        if (colname.startswith('f_') or colname.startswith('v_') or
+                (colname.startswith('c_') and not colname.startswith('c_q['))):
+            out_atoms.new_array(colname, get_quantity([colname]),
+                                dtype='float')
+
+    return out_atoms
+
 if __name__ == '__main__':
   # relax system first
   eos = EOS(pair_coeff = '* * ffield.reax.lg C    H    O    N',

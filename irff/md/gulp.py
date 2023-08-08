@@ -333,8 +333,7 @@ def xyztotraj(fxyz, inp='inp-gulp', checkMol=False, mode='w', traj='gulp.traj', 
         if checkMol:
             A = press_mol(A)
 
-        calc = SinglePointCalculator(A, energy=e[i])
-        A.set_calculator(calc)
+        A.calc = SinglePointCalculator(A, energy=e[i])
         his.write(atoms=A)
         del A
     his.close()
