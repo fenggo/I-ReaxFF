@@ -471,6 +471,8 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     while n<=nl:    
         for i in range(natom):
             n = block*frame + i + 9
+            if n >= len(lines):
+                 break 
             line = lines[n].split()
             id_  = int(line[0])-1
             atomName[id_]=atomType[int(line[1])-1]
