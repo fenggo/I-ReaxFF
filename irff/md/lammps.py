@@ -438,7 +438,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
          for line in lines:
              if line.find('Step          Temp          E_pair         TotEng')>=0:
                 readenergy = True
-             elif line.find('Loop time')>=0:
+             elif line.find('Loop time')>=0 or line.find('ERROR')>=0:
                 readenergy = False
              l = line.split()
              if readenergy and l[0]!='Step':
