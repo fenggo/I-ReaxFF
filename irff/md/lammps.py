@@ -424,12 +424,12 @@ def lattice(a,b,c):
 def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     # atomType=['C','H','O','N']
     with open(inp,'r') as fi:
-         lines = fl.readlines()
+         lines = fi.readlines()
          for line in lines:
              if line.find('pair_coeff')>=0:
                 l = line.split()
                 atomType = l[4:]
-                
+
     fl = open(traj,'r')
     lines = fl.readlines()
     nl    = len(lines) 
