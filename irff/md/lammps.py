@@ -475,7 +475,9 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             positions[id_][0] = float(line[2])
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
-            
+
+        if frame>len(e)-1:
+           break
         atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True])
         atoms.calc = SinglePointCalculator(atoms, energy=e[frame])
         his.write(atoms=atoms)
