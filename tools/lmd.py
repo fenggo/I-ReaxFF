@@ -3,7 +3,7 @@ import argh
 import argparse
 from os import system #,popen
 from ase.io import read # ,write
-from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal
+from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,LammpsHistory
 
 
 def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
@@ -29,11 +29,11 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               restartfile='restart.eq')
     print('\n-  running lammps nvt ...')
     if n==1:
-       # system('/home/feng/mlff/lammps/src/lmp_serial<in.lammps>out')
-       system('/home/feng/lammps/src/lmp_serial<in.lammps>out')
+       system('/home/feng/mlff/lammps/src/lmp_serial<in.lammps>out')
+       # system('/home/feng/lammps/src/lmp_serial<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps<in.lammps>out'.format(n))
-    # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
+    LammpsHistory('lammps.trj',inp='in.lammps')
 
 
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
@@ -67,7 +67,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
 def traj(inp='inp-gulp'):
-    xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
+    LammpsHistory('lammps.trj',inp='in.lammps')
 
 def plot(out='out'):
     get_lammps_thermal(logname='lmp.log',supercell=[1,1,1])
