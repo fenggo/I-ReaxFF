@@ -323,7 +323,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     print(more_commond, file=fin)
     print(' ', file=fin)
-    print('thermo        50', file=fin)
+    print('thermo        {:d}'.format(dump_interval), file=fin)
     print(thermo_style, file=fin)
     print(' ', file=fin)
     print('timestep      %f' %timestep, file=fin)
