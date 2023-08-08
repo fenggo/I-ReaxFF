@@ -254,6 +254,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
               fix_modify = ' ',
               more_commond = ' ',
+              dump_interval=1,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               restartfile='restart.eq'):
     '''
@@ -327,7 +328,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     print('timestep      %f' %timestep, file=fin)
     print(' ', file=fin)
-    print('dump          1 all custom 100 lammps.trj id type x y z q', file=fin)
+    print('dump          1 all custom {:%d} lammps.trj id type xu yu zu q fx fy fz'.format(dump_interval), file=fin)
     print(' ', file=fin)
     print('log           %s'  %log, file=fin)
     print(' ', file=fin)
