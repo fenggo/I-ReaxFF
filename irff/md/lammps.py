@@ -434,8 +434,8 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     e = []
     with open('lmp.log','r') as fl:
          lines = fl.readlines()
+         readenergy = False
          for line in lines:
-             readenergy = False
              if line.find('Step          Temp          E_pair         TotEng')>=0:
                 readenergy = True
              elif line.find('Loop time')>=0:
