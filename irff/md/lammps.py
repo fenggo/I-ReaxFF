@@ -257,7 +257,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               more_commond = ' ',
               dump_interval=1,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              restartfile='restart.eq'):
+              restartfile='restart'):
     '''
         pair_style     reaxff control.reax checkqeq yes
         pair_coeff     * * ffield.reax.rdx C H O N
