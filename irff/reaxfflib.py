@@ -451,18 +451,18 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            print(' ',file=flib)
 
        with open('control','w') as fc:
-           print('tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation',file=flib)
+           print('tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation',file=fc)
            if rcut is None:
               mrcut = 3.5
            else:
               mrcut = max(rcut.values())
-           print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=flib)
-           print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=flib)
-           print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=flib)
-           print('mflayer_m		        {:d} ! cutoff value for three body interactions'.format(mf_layer[0]),file=flib)
-           print('mflayer_n		        {:d} ! cutoff value for three body interactions'.format(mf_layer[1]),file=flib)
-           print('belayer_m		        {:d} ! cutoff value for three body interactions'.format(be_layer[0]),file=flib)
-           print('belayer_n		        {:d} ! cutoff value for three body interactions'.format(be_layer[1]),file=flib)
+           print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=fc)
+           print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=fc)
+           print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=fc)
+           print('mflayer_m		        {:d} ! cutoff value for three body interactions'.format(mf_layer[0]),file=fc)
+           print('mflayer_n		        {:d} ! cutoff value for three body interactions'.format(mf_layer[1]),file=fc)
+           print('belayer_m		        {:d} ! cutoff value for three body interactions'.format(be_layer[0]),file=fc)
+           print('belayer_n		        {:d} ! cutoff value for three body interactions'.format(be_layer[1]),file=fc)
     flib.close()
 
 def write_lib(p,spec,bonds,offd,angs,tors,hbs,
