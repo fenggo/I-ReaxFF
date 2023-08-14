@@ -160,7 +160,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                  p_name=p_name,line_spec=line_spec,
                  line_bond=line_bond,line_offd=line_offd,
                  line_ang=line_ang,line_tor=line_tor,line_hb=line_hb,
-                 m=None,mf_layer=(9,1),be_layer=(9,1),loss=None,
+                 m=None,mf_layer=(9,1),be_layer=(9,1),loss=None,rcut=None,
                  logo='!-ReaxFF-Parameter-From-Machine-Learning-Computational-Materials-Science-172-(2020)-109393'):
     flib = open(libfile,'w')
 
@@ -449,6 +449,20 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            for j in range(nout):
                print('{:20.16f}'.format(m['febo_'+bd][j]),end=' ',file=flib)
            print(' ',file=flib)
+
+       with open('control','w') as fc:
+           print('tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation',file=flib)
+           if rcut is None:
+              mrcut = 3.5
+           else:
+              mrcut = max(rcut.values())
+           print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=flib)
+           print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=flib)
+           print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=flib)
+           print('mflayer_m		        {:d} ! cutoff value for three body interactions'.format(mf_layer[0]),file=flib)
+           print('mflayer_n		        {:d} ! cutoff value for three body interactions'.format(mf_layer[1]),file=flib)
+           print('belayer_m		        {:d} ! cutoff value for three body interactions'.format(be_layer[0]),file=flib)
+           print('belayer_n		        {:d} ! cutoff value for three body interactions'.format(be_layer[1]),file=flib)
     flib.close()
 
 def write_lib(p,spec,bonds,offd,angs,tors,hbs,
