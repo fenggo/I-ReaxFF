@@ -459,10 +459,10 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
            print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=fc)
            print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=fc)
            print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=fc)
-           print('mflayer_m		        {:d} ! cutoff value for three body interactions'.format(mf_layer[0]),file=fc)
-           print('mflayer_n		        {:d} ! cutoff value for three body interactions'.format(mf_layer[1]),file=fc)
-           print('belayer_m		        {:d} ! cutoff value for three body interactions'.format(be_layer[0]),file=fc)
-           print('belayer_n		        {:d} ! cutoff value for three body interactions'.format(be_layer[1]),file=fc)
+           print('mflayer_m		        {:d} ! neural network width'.format(mf_layer[0]),file=fc)
+           print('mflayer_n		        {:d} ! number of hidden layer'.format(mf_layer[1]),file=fc)
+           print('belayer_m		        {:d} ! neural network width'.format(be_layer[0]),file=fc)
+           print('belayer_n		        {:d} ! number of hidden layer'.format(be_layer[1]),file=fc)
     flib.close()
 
 def write_lib(p,spec,bonds,offd,angs,tors,hbs,
