@@ -487,8 +487,8 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
 
         if frame>=nframe:
            break
-        atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True],forces=forces)
-        atoms.calc = SinglePointCalculator(atoms, energy=e[frame])
+        atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True])
+        atoms.calc = SinglePointCalculator(atoms, energy=e[frame],forces=forces)
         his.write(atoms=atoms)
         frame += 1
         n = block*frame + 9
