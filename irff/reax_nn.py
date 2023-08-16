@@ -37,7 +37,7 @@ class ReaxFF_nn(object):
                hbshort=6.75,hblong=7.5,
                vdwcut=10.0,
                atol=0.001,
-               hbtol=0.001,
+               # hbtol=0.001,
                bore={'others':0.0},
                weight={'others':1.0},
                spv_vdw=False,vlo={'others':[(0.0,0.0)]},vup={'others':[(10.0,0.0)]},
@@ -161,7 +161,7 @@ class ReaxFF_nn(object):
 
       if not self.libfile.endswith('.json'):
          self.p_['acut']    = atol
-         self.p_['hbtol']   = hbtol
+         self.p_['hbtol']   = atol
 
       self.torp          = self.checkTors(self.torp)
       
@@ -1078,7 +1078,7 @@ class ReaxFF_nn(object):
                    'tor3','tor4','cot2','coa4','ovun4',               # 
                    'ovun3','val8','val9','val10',
                    'coa3','pen2','pen3','pen4','vdw1',
-                   'cutoff','hbtol','acut'] # # 
+                   'cutoff','acut'] # # 'hbtol',
                    # 'trip2','trip1','trip4','trip3' ,'swa','swb'
                    # tor3,tor4>0 
 
@@ -1137,7 +1137,7 @@ class ReaxFF_nn(object):
       if self.optword.find('novdw')>=0:
          cons = cons + ['gammaw','vdw1','rvdw','Devdw','alfa'] 
       if self.optword.find('nohb')>=0:
-         cons = cons + ['Dehb','rohb','hb1','hb2','hbtol'] 
+         cons = cons + ['Dehb','rohb','hb1','hb2'] #,'hbtol'
 
       self.tor_v = ['tor2','tor3','tor4','V1','V2','V3','tor1','cot1','cot2'] 
 

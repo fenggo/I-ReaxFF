@@ -113,7 +113,7 @@ class ReaxFF(object):
                hbshort=6.75,hblong=7.5,
                vdwcut=10.0,
                atol=0.001,
-               hbtol=0.001,
+               # hbtol=0.001,
                bore={'others':0.0},
                weight={'others':1.0},
                spv_vdw=False,vlo={'others':[(0.0,0.0)]},vup={'others':[(10.0,0.0)]},
@@ -217,7 +217,7 @@ class ReaxFF(object):
       
       if not self.libfile.endswith('.json'):
          self.p_['acut']    = atol        
-         self.p_['hbtol']   = hbtol    
+         self.p_['hbtol']   = atol    
       
       self.torp          = self.checkTors(self.torp)
 
@@ -1168,7 +1168,7 @@ class ReaxFF(object):
                    'tor3','tor4','cot2','coa4','ovun4',               # 
                    'ovun3','val8','val9','val10',
                    'coa3','pen2','pen3','pen4','vdw1',
-                   'cutoff','hbtol','acut'] # # 
+                   'cutoff','acut'] # # 'hbtol',
                    # 'trip2','trip1','trip4','trip3' ,'swa','swb'
                    # tor3,tor4>0 
 
@@ -1227,7 +1227,7 @@ class ReaxFF(object):
       if self.optword.find('nolone')>=0:
          cons = cons + ['lp2','lp3'] # 'lp1'
       if self.optword.find('nohb')>=0:
-         cons = cons + ['Dehb','rohb','hb1','hb2','hbtol'] 
+         cons = cons + ['Dehb','rohb','hb1','hb2'] #,'hbtol'
 
       self.tor_v = ['tor2','tor3','tor4','V1','V2','V3','tor1','cot1','cot2'] 
 
@@ -2083,6 +2083,7 @@ def set_variables(p_,optword,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
                   v[k] = tf.constant(np.float32(p_[k]),name=k)
         else:
             v[k] = tf.constant(p_[k])
+    v['hbtol'] = v['acut']
     return v
 
 def clip_parameters(p_,v,clip):
