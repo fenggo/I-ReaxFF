@@ -481,9 +481,9 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
 
-            forces[id_][0]    = float(line[6])
-            forces[id_][1]    = float(line[7])
-            forces[id_][2]    = float(line[8])
+            forces[id_][0]    = float(line[6])*4.3364432032e-2
+            forces[id_][1]    = float(line[7])*4.3364432032e-2
+            forces[id_][2]    = float(line[8])*4.3364432032e-2
 
         if frame>=nframe:
            break
