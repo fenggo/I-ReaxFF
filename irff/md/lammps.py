@@ -467,6 +467,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     cell[2][2]= float(line[1])-float(line[0])
 
     positions = np.zeros([natom,3])
+    forces    = np.zeros([natom,3])
 
     while n<=nl:    
         for i in range(natom):
@@ -479,6 +480,10 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             positions[id_][0] = float(line[2])
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
+
+            forces[id_][0]    = float(line[6])
+            forces[id_][1]    = float(line[7])
+            forces[id_][2]    = float(line[8])
 
         if frame>=nframe:
            break
