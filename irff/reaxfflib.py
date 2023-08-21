@@ -458,6 +458,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
               mrcut = max(rcut.values())
            print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=fc)
            print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=fc)
+           print('hbond_cutoff	        7.5 ! cutoff distance for hydrogen bond interactions',file=fc)
            print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=fc)
            print('mflayer_m		        {:d} ! neural network width'.format(mf_layer[0]),file=fc)
            print('mflayer_n		        {:d} ! number of hidden layer'.format(mf_layer[1]),file=fc)
