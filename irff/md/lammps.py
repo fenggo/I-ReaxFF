@@ -196,7 +196,7 @@ def get_reaxff_energies(logname='lmp.log'):
                  eco  = float(l[clm_eco])*4.3364432032e-2
                  ew   = float(l[clm_ew])*4.3364432032e-2
                  ep   = float(l[clm_ep])*4.3364432032e-2
-                 print(eb,ev,et,ehb,ew,ep) # pressure GPa
+                 # print(eb,ev,et,ehb,ew,ep) # pressure GPa
     flog.close()
     if n == 0:
        print('Error: n=0!')
