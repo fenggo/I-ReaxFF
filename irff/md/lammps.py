@@ -139,7 +139,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.close()
     return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a  # N ,atoms number, t0 temperature, p0 pressure, e0 energy v0,volume
 
-def get_reaxff_energies(logname='lmp.log'):
+def get_reaxff_energies(logname='lmp.log',supercell=[1,1,1]):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
     e,t = [],[]
     a,b,c = [],[],[]
