@@ -139,11 +139,11 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.close()
     return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a  # N ,atoms number, t0 temperature, p0 pressure, e0 energy v0,volume
 
-def get_reaxff_energies(logname='lmp.log',supercell=[1,1,1]):
+def get_reaxff_energies(logname='lmp.log'):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
     e,t = [],[]
-    a,b,c = [],[],[]
-    alpha_a,beta_a,gamma_a,alpha,beta,gamma=0.0,0.0,0.0,[],[],[] 
+    eb,elp,ev = [],[],[]
+    epen,ecoa,ehb,et,eco,ew=[],[],[],[],[],[] 
     n, N, step,steps = 0,0,0,[]
     
     flog = open(logname,'r')
@@ -163,14 +163,17 @@ def get_reaxff_energies(logname='lmp.log',supercell=[1,1,1]):
                  #print lent
                  clm_t = l.index('Temp')
                  clm_e = l.index('TotEng')
-                 clm_p = l.index('Press')
-                 clm_v = l.index('Volume')
-                 clm_a = l.index('Cella')
-                 clm_b = l.index('Cellb')
-                 clm_c = l.index('Cellc')
-                 clm_al= l.index('CellAlpha')
-                 clm_be= l.index('CellBeta')
-                 clm_ga= l.index('CellGamma')
+                 clm_eb = l.index('v_eb')
+                 clm_ea = l.index('v_ea')
+                 clm_elp = l.index('v_elp')
+                 clm_ev = l.index('v_ev')
+                 clm_epen = l.index('v_epen')
+                 clm_ecoa= l.index('v_ecoa')
+                 clm_ehb= l.index('v_ehb')
+                 clm_et= l.index('v_et')
+                 clm_eco= l.index('v_eco')
+                 clm_ew= l.index('v_ew')
+                 clm_ep= l.index('v_ep')
            if lread:
               if l[0] != 'Step' and len(l) ==lent:
                  # print('I do nothing!')
@@ -183,18 +186,16 @@ def get_reaxff_energies(logname='lmp.log',supercell=[1,1,1]):
                  step = int(l[0])
                  steps.append(step)
                  n += 1
-                 a.append(float(l[clm_a])/supercell[0])
-                 b.append(float(l[clm_b])/supercell[1])
-                 c.append(float(l[clm_c])/supercell[2])
-                 alpha.append(float(l[clm_al]))
-                 beta.append(float(l[clm_be]))
-                 gamma.append(float(l[clm_ga]))
-                 aa += float(l[clm_a])/supercell[0]
-                 ba += float(l[clm_b])/supercell[1]
-                 ca += float(l[clm_c])/supercell[2]
-                 alpha_a += float(l[clm_al])
-                 beta_a  += float(l[clm_be])
-                 gamma_a += float(l[clm_ga])
+                 eb.append(float(l[clm_eb]))
+                 elp.append(float(l[clm_elp]))
+                 ev.append(float(l[clm_ev]))
+                 epen.append(float(l[clm_epen]))
+                 ecoa.append(float(l[clm_ecoa]))
+                 ehb.append(float(l[clm_ehb]))
+                 et.append(float(l[clm_et]))
+                 eco.append(float(l[clm_eco]))
+                 ew.append(float(l[clm_ew]))
+                 ep.append(float(l[clm_ep]))
                  print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001,l[clm_v],file=flg) # pressure GPa
     flg.close()
     flog.close()
@@ -205,16 +206,10 @@ def get_reaxff_energies(logname='lmp.log',supercell=[1,1,1]):
        p0=p0/n
        e0=e0/n
        v0=v0/n
-       aa=aa/n
-       ba=ba/n
-       ca=ca/n
-       alpha_a=alpha_a/n
-       beta_a=beta_a/n
-       gamma_a=gamma_a/n
     if N == 0:
        print('Error: N=0!')
-    return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a 
-
+    return e,eb,[],[],elp,ev,ecoa,epen,et,eco,ew,ehb,ep 
+ 
 def writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
