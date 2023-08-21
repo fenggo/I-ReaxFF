@@ -141,9 +141,9 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
 
 def get_reaxff_energies(logname='lmp.log'):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
-    e,t = [],[]
-    eb,elp,ev,ep = [],[],[],[]
-    epen,ecoa,ehb,et,eco,ew=[],[],[],[],[],[] 
+    t = []
+    # eb,elp,ev,ep = [],[],[],[]
+    # epen,ecoa,ehb,et,eco,ew=[],[],[],[],[],[] 
     n, N, step,steps = 0,0,0,[]
     
     flog = open(logname,'r')
@@ -179,23 +179,23 @@ def get_reaxff_energies(logname='lmp.log'):
                  # print('I do nothing!')
                  t0 += float(l[clm_t]) # colume number of T
                  e0 += float(l[clm_e])
-                 e.append(float(l[clm_e])*4.3364432032e-2)
+                 e = float(l[clm_e])*4.3364432032e-2
                  t.append(float(l[clm_t]))
                  p0 += float(l[clm_p])
                  # v0 += float(l[clm_v])
                  step = int(l[0])
                  steps.append(step)
                  n += 1
-                 eb.append(float(l[clm_eb])*4.3364432032e-2)
-                 elp.append(float(l[clm_elp])*4.3364432032e-2)
-                 ev.append(float(l[clm_ev])*4.3364432032e-2)
-                 epen.append(float(l[clm_epen])*4.3364432032e-2)
-                 ecoa.append(float(l[clm_ecoa])*4.3364432032e-2)
-                 ehb.append(float(l[clm_ehb])*4.3364432032e-2)
-                 et.append(float(l[clm_et])*4.3364432032e-2)
-                 eco.append(float(l[clm_eco])*4.3364432032e-2)
-                 ew.append(float(l[clm_ew])*4.3364432032e-2)
-                 ep.append(float(l[clm_ep])*4.3364432032e-2)
+                 eb   = float(l[clm_eb])*4.3364432032e-2
+                 elp  = float(l[clm_elp])*4.3364432032e-2
+                 ev   = float(l[clm_ev])*4.3364432032e-2
+                 epen = float(l[clm_epen])*4.3364432032e-2
+                 ecoa = float(l[clm_ecoa])*4.3364432032e-2
+                 ehb  = float(l[clm_ehb])*4.3364432032e-2
+                 et   = float(l[clm_et])*4.3364432032e-2
+                 eco  = float(l[clm_eco])*4.3364432032e-2
+                 ew   = float(l[clm_ew])*4.3364432032e-2
+                 ep   = float(l[clm_ep])*4.3364432032e-2
                  print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001) # pressure GPa
     flog.close()
     if n == 0:
@@ -207,7 +207,7 @@ def get_reaxff_energies(logname='lmp.log'):
        # v0=v0/n
     if N == 0:
        print('Error: N=0!')
-    return e,eb,elp,[],[],ev,epen,ecoa,et,eco,ew,ehb,ep,[] 
+    return e,eb,elp,0.0,0.0,ev,epen,ecoa,et,eco,ew,ehb,ep,0.0
  
 def writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
