@@ -183,7 +183,7 @@ def get_reaxff_energies(logname='lmp.log'):
                  e.append(float(l[clm_e]))
                  t.append(float(l[clm_t]))
                  p0 += float(l[clm_p])
-                 v0 += float(l[clm_v])
+                 # v0 += float(l[clm_v])
                  step = int(l[0])
                  steps.append(step)
                  n += 1
@@ -197,7 +197,7 @@ def get_reaxff_energies(logname='lmp.log'):
                  eco.append(float(l[clm_eco]))
                  ew.append(float(l[clm_ew]))
                  ep.append(float(l[clm_ep]))
-                 print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001,l[clm_v],file=flg) # pressure GPa
+                 print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001,file=flg) # pressure GPa
     flg.close()
     flog.close()
     if n == 0:
@@ -206,7 +206,7 @@ def get_reaxff_energies(logname='lmp.log'):
        t0=t0/n          # for average
        p0=p0/n
        e0=e0/n
-       v0=v0/n
+       # v0=v0/n
     if N == 0:
        print('Error: N=0!')
     return e,eb,[],[],elp,ev,ecoa,epen,et,eco,ew,ehb,ep 
