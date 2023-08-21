@@ -124,7 +124,8 @@ class Intelligent_Check(object):
              ang= pr.split('-')
              if  ang[1]=='H':
                 p[key] = value(0.0,key)
- 
+          if k == 'valboc': 
+             p[key] = value(p['valang_'+key.split('_')[1]],key)
           if k in ['V1','V2','V3']: 
              pr = key.split('_')[1]
              tor= pr.split('-')
