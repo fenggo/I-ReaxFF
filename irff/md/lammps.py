@@ -193,9 +193,9 @@ def get_reaxff_energies(logname='lmp.log'):
                  ecoa.append(float(l[clm_ecoa])*4.3364432032e-2)
                  ehb.append(float(l[clm_ehb])*4.3364432032e-2)
                  et.append(float(l[clm_et])*4.3364432032e-2)
-                 eco.append(float(l[clm_eco]*4.3364432032e-2))
-                 ew.append(float(l[clm_ew]*4.3364432032e-2))
-                 ep.append(float(l[clm_ep]*4.3364432032e-2))
+                 eco.append(float(l[clm_eco])*4.3364432032e-2)
+                 ew.append(float(l[clm_ew])*4.3364432032e-2)
+                 ep.append(float(l[clm_ep])*4.3364432032e-2)
                  print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001) # pressure GPa
     flog.close()
     if n == 0:
