@@ -240,5 +240,5 @@ if __name__ == '__main__':
     # ffieldtolib()
     # gulp_energy = deb_gulp_energy(images, ffield='reaxff_nn')
     lmp_energy = deb_lammps_energy(images, ffield='ffield')
-    plot_compare(irff_energy, lmp_energy)
- 
+    plot_compare(irff_energy, lmp_energy,label='LAMMPS')
+
