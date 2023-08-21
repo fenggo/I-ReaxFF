@@ -209,7 +209,7 @@ def get_reaxff_energies(logname='lmp.log'):
        # v0=v0/n
     if N == 0:
        print('Error: N=0!')
-    return e,eb,[],[],elp,ev,ecoa,epen,et,eco,ew,ehb,ep 
+    return e,eb,elp,[],[],ev,epen,ecoa,et,eco,ew,ehb,ep,[] 
  
 def writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
