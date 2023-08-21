@@ -1390,7 +1390,7 @@ class IRFF_NP(object):
                  tor3 =  t4+'-'+t2+'-'+t3+'-'+t1
                  tor4 = 'X'+'-'+t2+'-'+t3+'-'+'X'
                  tor5 = 'X'+'-'+t3+'-'+t2+'-'+'X'
-               #   if tor1 in self.torp:
+               #   if tor1 in self.torp:               ## consistent with lammps
                #      try:
                #         self.p[key+'_'+tor] = self.p[key+'_'+tor1]
                #      except:

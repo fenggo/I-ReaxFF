@@ -23,12 +23,14 @@ def plot_compare(jax_energy,gulp_energy,show=True,mode=None,label='gulp'):
     plt.figure(figsize=(15, 10))
     plt.subplot(2,3,1)
     # fig, ax1 = plt.subplots(3,3)
-    plt.plot(jax_energy[1],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ebond')
+    plt.plot(jax_energy[1],alpha=0.8,linestyle='-',marker='^',
+             markerfacecolor='none',ms=8,color='r',label='IRFF-Ebond')
     # plt.yticks([-0.096,-0.0959,-0.0958,-0.0957,-0.0956,-0.0955,-0.0954,-0.0953,-0.0952,-0.0951,-0.0950,-0.0925,-0.0924,-0.0923,-0.0922,-0.0921,-0.0920,-0.0919,-0.0918,-0.0917,])
     # plt.yticks(jnp.arange(-0.95175,-0.95155,0.005))
     plt.legend(loc='best', edgecolor='red')
     # ax1.twiny()
-    plt.plot(gulp_energy[1], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Ebond'.format(label))
+    plt.plot(gulp_energy[1], alpha=0.8, linestyle='-', marker='o',
+             markerfacecolor='none',ms=3, color='b', label='{:s}-Ebond'.format(label))
     # plt.yticks(jnp.arange(-65.27,-65.25,0.005))
     plt.legend(loc='best', edgecolor='blue')
 
@@ -45,43 +47,55 @@ def plot_compare(jax_energy,gulp_energy,show=True,mode=None,label='gulp'):
     # plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(2,3,2)
-    plt.plot(jax_energy[5],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Eang')
+    plt.plot(jax_energy[5],alpha=0.8,linestyle='-',marker='^',
+             markerfacecolor='none',ms=8,color='r',label='IRFF-Eang')
     plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[5], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Eang'.format(label))
+    plt.plot(gulp_energy[5], alpha=0.8, linestyle='-', marker='o', 
+             markerfacecolor='none',ms=3,color='b', label='{:s}-Eang'.format(label))
     plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(2,3,3)
-    plt.plot(jax_energy[12],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ecoul')
+    plt.plot(jax_energy[12],alpha=0.8,linestyle='-',marker='^',
+              markerfacecolor='none',ms=8,color='r',label='IRFF-Ecoul')
     plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[12], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Ecoul'.format(label))
+    plt.plot(gulp_energy[12], alpha=0.8, linestyle='-', marker='o', 
+              markerfacecolor='none',ms=3,color='b', label='{:s}-Ecoul'.format(label))
     plt.legend(loc='best', edgecolor='blue')
 
-    # plt.subplot(2,3,3)
-    # plt.plot(jax_energy[6],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Etor')
-    # plt.legend(loc='best',edgecolor='red')
-    # plt.plot(gulp_energy[6], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Etor'.format(label))
-    # plt.legend(loc='best', edgecolor='blue')
+    plt.subplot(2,3,4)
+    plt.plot(jax_energy[8],alpha=0.8,linestyle='-',marker='^',
+             markerfacecolor='none',ms=8,color='r',label='IRFF-Etor')
+    plt.legend(loc='best',edgecolor='red')
+    plt.plot(gulp_energy[8], alpha=0.8, linestyle='-', marker='o',
+             markerfacecolor='none',ms=3, color='b', label='{:s}-Etor'.format(label))
+    plt.legend(loc='best', edgecolor='blue')
 
 
     # Ebv = np.array(Ev) + np.array(Eb) + np.array(Eo) + np.array(Eu)
-    plt.subplot(2,3,4)
-    plt.plot(jax_energy[11],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ehb')
-    plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[11], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Ehb'.format(label))
-    plt.legend(loc='best', edgecolor='blue')
+    # plt.subplot(2,3,4)
+    # plt.plot(jax_energy[11],alpha=0.8,linestyle='-',marker='^',
+    #          markerfacecolor='none',ms=8,color='r',label='IRFF-Ehb')
+    # plt.legend(loc='best',edgecolor='red')
+    # plt.plot(gulp_energy[11], alpha=0.8, linestyle='-', marker='o', 
+    #          ms=3,color='b', label='{:s}-Ehb'.format(label))
+    # plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(2,3,5)
-    plt.plot(jax_energy[10],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Evdw')
+    plt.plot(jax_energy[10],alpha=0.8,linestyle='-',marker='^',
+             markerfacecolor='none',ms=8,color='r',label='IRFF-Evdw')
     plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[10], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Evdw'.format(label))
+    plt.plot(gulp_energy[10], alpha=0.8, linestyle='-', marker='o', 
+             markerfacecolor='none',ms=3,color='b', label='{:s}-Evdw'.format(label))
     plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(2,3,6)
     e = np.array(jax_energy[0]) - min(jax_energy[0])
-    plt.plot(e,alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Total Energy')
+    plt.plot(e,alpha=0.8,linestyle='-',marker='^',color='r',
+             markerfacecolor='none',ms=8,label='IRFF-Total Energy')
     plt.legend(loc='best',edgecolor='red')
     e = np.array(gulp_energy[0]) - min(gulp_energy[0])
-    plt.plot(e, alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Total Energy'.format(label))
+    plt.plot(e, alpha=0.8, linestyle='-', marker='o', color='b', 
+             markerfacecolor='none',ms=3,label='{:s}-Total Energy'.format(label))
     plt.legend(loc='best', edgecolor='blue')
     plt.savefig('deb_energies.pdf')
     # if show: plt.show()
