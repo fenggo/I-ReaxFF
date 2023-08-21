@@ -162,6 +162,7 @@ def get_reaxff_energies(logname='lmp.log'):
                  lent = len(l)
                  #print lent
                  clm_t = l.index('Temp')
+                 clm_p = l.index('Press')
                  clm_e = l.index('TotEng')
                  clm_eb = l.index('v_eb')
                  clm_ea = l.index('v_ea')
