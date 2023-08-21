@@ -142,7 +142,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
 def get_reaxff_energies(logname='lmp.log'):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
     e,t = [],[]
-    eb,elp,ev = [],[],[]
+    eb,elp,ev,ep = [],[],[],[]
     epen,ecoa,ehb,et,eco,ew=[],[],[],[],[],[] 
     n, N, step,steps = 0,0,0,[]
     
