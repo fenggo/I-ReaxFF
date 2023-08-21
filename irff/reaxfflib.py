@@ -14,9 +14,9 @@ p_name = ['boc1','boc2','coa2','trip4','trip3','kc2','ovun6','trip2',
          
 line_spec = []
 line_spec.append(['rosi','val','mass','rvdw','Devdw','gamma','ropi','vale'])
-line_spec.append(['alfa','gammaw','valang','ovun5','n.u.','chi','mu','atomic'])
+line_spec.append(['alfa','gammaw','valang','ovun5','n.u.','chi','mu','hbond'])
 line_spec.append(['ropp','lp2','n.u.','boc4','boc3','boc5','n.u.','n.u.'])
-line_spec.append(['ovun2','val3','n.u.','valboc','val5','n.u.','n.u.','n.u.'])
+line_spec.append(['ovun2','val3','n.u.','valboc','val5','n.u.','n.u.','atomic'])
 
 line_bond = []
 line_bond.append(['Desi','Depi','Depp','be1','bo5','corr13','bo6','ovun1'])
