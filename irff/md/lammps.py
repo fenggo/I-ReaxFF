@@ -147,7 +147,6 @@ def get_reaxff_energies(logname='lmp.log'):
     n, N, step,steps = 0,0,0,[]
     
     flog = open(logname,'r')
-    flg = open('thermo.log','w')
     lread = False
     for line in flog.readlines():
         l = line.split()
@@ -197,8 +196,7 @@ def get_reaxff_energies(logname='lmp.log'):
                  eco.append(float(l[clm_eco]))
                  ew.append(float(l[clm_ew]))
                  ep.append(float(l[clm_ep]))
-                 print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001,file=flg) # pressure GPa
-    flg.close()
+                 print(l[0],l[clm_t],l[clm_e],float(l[clm_p])*0.0001) # pressure GPa
     flog.close()
     if n == 0:
        print('Error: n=0!')
