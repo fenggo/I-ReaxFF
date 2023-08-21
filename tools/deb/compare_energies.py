@@ -14,13 +14,13 @@ from ase import units
 from irff.irff_np import IRFF_NP
 # from .irff.AtomDance import AtomDance
 from irff.md.gulp import write_gulp_in,get_reax_energy
-from irff.md.lammps import writeLammpsIn,get_reaxff_energies
+from irff.md.lammps import writeLammpsIn,writeLammpsData,get_reaxff_energies
 import matplotlib.pyplot as plt
 from irff.tools.ffieldtolib import ffieldtolib
 
  
 def plot_compare(jax_energy,gulp_energy,show=True,mode=None,label='gulp'):
-    plt.figure(figsize=(15, 20))
+    plt.figure(figsize=(15, 10))
     plt.subplot(2,3,1)
     # fig, ax1 = plt.subplots(3,3)
     plt.plot(jax_energy[1],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ebond')
@@ -50,17 +50,17 @@ def plot_compare(jax_energy,gulp_energy,show=True,mode=None,label='gulp'):
     plt.plot(gulp_energy[5], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Eang'.format(label))
     plt.legend(loc='best', edgecolor='blue')
 
-    # plt.subplot(3,2,3)
-    # plt.plot(jax_energy[12],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ecoul')
-    # plt.legend(loc='best',edgecolor='red')
-    # plt.plot(gulp_energy[12], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Ecoul'.format(label))
-    # plt.legend(loc='best', edgecolor='blue')
-
     plt.subplot(2,3,3)
-    plt.plot(jax_energy[6],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Etor')
+    plt.plot(jax_energy[12],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Ecoul')
     plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[6], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Etor'.format(label))
+    plt.plot(gulp_energy[12], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Ecoul'.format(label))
     plt.legend(loc='best', edgecolor='blue')
+
+    # plt.subplot(2,3,3)
+    # plt.plot(jax_energy[6],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Etor')
+    # plt.legend(loc='best',edgecolor='red')
+    # plt.plot(gulp_energy[6], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Etor'.format(label))
+    # plt.legend(loc='best', edgecolor='blue')
 
 
     # Ebv = np.array(Ev) + np.array(Eb) + np.array(Eo) + np.array(Eu)
@@ -77,9 +77,11 @@ def plot_compare(jax_energy,gulp_energy,show=True,mode=None,label='gulp'):
     plt.legend(loc='best', edgecolor='blue')
 
     plt.subplot(2,3,6)
-    plt.plot(jax_energy[0],alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Total Energy')
+    e = np.array(jax_energy[0]) - min(jax_energy[0])
+    plt.plot(e,alpha=0.8,linestyle='-',marker='^',color='r',label='IRFF-Total Energy')
     plt.legend(loc='best',edgecolor='red')
-    plt.plot(gulp_energy[0], alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Total Energy'.format(label))
+    e = np.array(gulp_energy[0]) - min(gulp_energy[0])
+    plt.plot(e, alpha=0.8, linestyle='-', marker='o', color='b', label='{:s}-Total Energy'.format(label))
     plt.legend(loc='best', edgecolor='blue')
     plt.savefig('deb_energies.pdf')
     # if show: plt.show()
@@ -194,6 +196,11 @@ def deb_lammps_energy(images,atomi=0,atomj=1,ffield='ffield'):
     species = sorted(set(symbols))
     sp      = ' '.join(species)
     for atoms in images: 
+        writeLammpsData(atoms,data='data.lammps',specorder=None, 
+                        masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
+                                'N':14.0000,'F':18.9980},
+                        force_skew=False,
+                        velocities=False,units="real",atom_style='charge')
         writeLammpsIn(log='lmp.log',timestep=0.1,total=0,restart=None,
                 species=species,
                 pair_coeff ='* * {:s} {:s}'.format('ffield',sp),
