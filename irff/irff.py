@@ -1371,12 +1371,12 @@ class IRFF(Calculator):
                  tor3 =  t4+'-'+t2+'-'+t3+'-'+t1
                  tor4 = 'X'+'-'+t2+'-'+t3+'-'+'X'
                  tor5 = 'X'+'-'+t3+'-'+t2+'-'+'X'
-                 # if tor1 in self.torp:
-                 #    self.p[key+'_'+tor] = self.p[key+'_'+tor1] # consistent with lammps
-                 if tor2 in self.torp:
+                 if tor1 in self.torp:
+                    self.p[key+'_'+tor] = self.p[key+'_'+tor1] # consistent with lammps
+                 elif tor2 in self.torp:
                     self.p[key+'_'+tor] = self.p[key+'_'+tor2]
-                 # elif tor3 in self.torp:
-                 #   self.p[key+'_'+tor] = self.p[key+'_'+tor3]    
+                 elif tor3 in self.torp:
+                    self.p[key+'_'+tor] = self.p[key+'_'+tor3]    
                  elif tor4 in self.torp:
                     self.p[key+'_'+tor] = self.p[key+'_'+tor4]  
                  elif tor5 in self.torp:
