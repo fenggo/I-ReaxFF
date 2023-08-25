@@ -547,7 +547,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
                  break 
             line = lines[n].split()
             id_  = int(line[0])-1
-            atomName[id_]=atomType[int(line[1])-1]
+            atomName[id_]=int(line[1])-1]
             positions[id_][0] = float(line[2])
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
@@ -748,11 +748,13 @@ def lammps_data_to_ase_atoms(
         elements = data[:, colnames.index("element")]
     elif "type" in colnames:
         # fall back to `types` otherwise
-        elements = atomType[data[:, colnames.index("type")].astype(int)]
+        elements = data[:, colnames.index("type")].astype(int)
 
         # reconstruct types from given specorder
         if specorder:
             elements = [specorder[t - 1] for t in elements]
+        elements = np.array(atomType)[elements]
+ 
     else:
         # todo: what if specorder give but no types?
         # in principle the masses could work for atoms, but that needs
