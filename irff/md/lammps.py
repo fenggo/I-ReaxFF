@@ -753,6 +753,7 @@ def lammps_data_to_ase_atoms(
         # reconstruct types from given specorder
         if specorder:
             elements = [specorder[t - 1]-1 for t in elements]
+        print(elements)
         elements = np.array(atomType)[elements]
  
     else:
