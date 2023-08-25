@@ -1,4 +1,5 @@
 from os import system
+from collections import deque
 # from .findmole import check_decomposed
 from ase.io import read,write
 from ase import Atoms
@@ -567,20 +568,50 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
     lines= None
     return atoms
 
-def read_lammps_dump_text(fileobj, index=-1, **kwargs):
-    """Process cleartext lammps dumpfiles
+def get_max_index(index):
+    if np.isscalar(index):
+        return index
+    elif isinstance(index, slice):
+        return index.stop if (index.stop is not None) else float("inf")
 
-    :param fileobj: filestream providing the trajectory data
-    :param index: integer or slice object (default: get the last timestep)
+def construct_cell(diagdisp, offdiag):
+    """Help function to create an ASE-cell with displacement vector from
+    the lammps coordination system parameters.
+
+    :param diagdisp: cell dimension convoluted with the displacement vector
+    :param offdiag: off-diagonal cell elements
+    :returns: cell and cell displacement vector
+    :rtype: tuple
+    """
+    xlo, xhi, ylo, yhi, zlo, zhi = diagdisp
+    xy, xz, yz = offdiag
+
+    # create ase-cell from lammps-box
+    xhilo = (xhi - xlo) - abs(xy) - abs(xz)
+    yhilo = (yhi - ylo) - abs(yz)
+    zhilo = zhi - zlo
+    celldispx = xlo - min(0, xy) - min(0, xz)
+    celldispy = ylo - min(0, yz)
+    celldispz = zlo
+    cell = np.array([[xhilo, 0, 0], [xy, yhilo, 0], [xz, yz, zhilo]])
+    celldisp = np.array([celldispx, celldispy, celldispz])
+    return cell, celldisp
+
+def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',**kwargs):
+    """Process cleartext lammps dumpfiles
+    :param filename: trajectory file name
     :returns: list of Atoms objects
     :rtype: list
     """
     # Load all dumped timesteps into memory simultaneously
-    lines = deque(fileobj.readlines())
+    with open(filename,'r') as ft:
+         lines = deque(ft.readlines())
     index_end = get_max_index(index)
 
     n_atoms = 0
     images = []
+
+    his = TrajectoryWriter(traj, mode=mode)
 
     # avoid references before assignment in case of incorrect file structure
     cell, celldisp, pbc = None, None, False
@@ -645,10 +676,8 @@ def read_lammps_dump_text(fileobj, index=-1, **kwargs):
                 **kwargs
             )
             images.append(out_atoms)
-
-        if len(images) > index_end >= 0:
-            break
-
+            his.write(atoms=out_atoms)
+    his.close()
     return images[index]
 
 def lammps_data_to_ase_atoms(
