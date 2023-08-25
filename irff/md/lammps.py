@@ -694,7 +694,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
                 atomsobj=Atoms,
                 pbc=pbc,
                 energy=e[i_],
-                atomType)
+                atomType=atomType)
             images.append(out_atoms)
             his.write(atoms=out_atoms)
             i_ += 1
