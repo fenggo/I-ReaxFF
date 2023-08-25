@@ -687,9 +687,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
                 celldisp=celldisp,
                 atomsobj=Atoms,
                 pbc=pbc,
-                energy=e[i_],
-                **kwargs
-            )
+                energy=e[i_])
             images.append(out_atoms)
             his.write(atoms=out_atoms)
             i_ += 1
@@ -707,8 +705,7 @@ def lammps_data_to_ase_atoms(
     specorder=None,
     prismobj=None,
     units="real",
-    energy=0.0,
-):
+    energy=0.0):
     """Extract positions and other per-atom parameters and create Atoms
 
     :param data: per atom data
