@@ -3,7 +3,7 @@ import argh
 import argparse
 from os import system #,popen
 from ase.io import read # ,write
-from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,LammpsHistory
+from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
 def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
@@ -21,7 +21,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp 300 300 100.0 ',
+              fix = 'fix   1 all nve temp 300 300 100.0 ',
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
@@ -29,16 +29,16 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               restartfile='restart.eq')
     print('\n-  running lammps nvt ...')
     if n==1:
-       system('/home/feng/mlff/lammps/src/lmp_serial<in.lammps>out')
+       system('lammps<in.lammps>out')
        # system('/home/feng/lammps/src/lmp_serial<in.lammps>out')
     else:
-       system('mpirun -n {:d} lammps<in.lammps>out'.format(n))
-    LammpsHistory('lammps.trj',inp='in.lammps')
+       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
 
 
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
-    A = read(gen,index=i)*(x,y,z)
+    atoms = read(gen,index=i)*(x,y,z)
     # A = press_mol(A)
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
@@ -67,7 +67,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,
     # xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
 def traj(inp='in.lammps'):
-    LammpsHistory('lammps.trj',inp=inp)
+    lammpstraj_to_ase('lammps.trj',inp=inp)
 
 def plot(out='out'):
     get_lammps_thermal(logname='lmp.log',supercell=[1,1,1])
@@ -110,3 +110,4 @@ if __name__ == '__main__':
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [opt,nvt,plot,traj,w])
    argh.dispatch(parser)
+
