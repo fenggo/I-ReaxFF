@@ -615,6 +615,12 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
              l = line.split()
              if readenergy and l[0]!='Step':
                 e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
+    with open(inp,'r') as fi:
+         lines = fi.readlines()
+         for line in lines:
+             if line.find('pair_coeff')>=0:
+                l = line.split()
+                atomType = l[4:]
 
     # Load all dumped timesteps into memory simultaneously
     with open(filename,'r') as ft:
@@ -687,7 +693,8 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
                 celldisp=celldisp,
                 atomsobj=Atoms,
                 pbc=pbc,
-                energy=e[i_])
+                energy=e[i_],
+                atomType)
             images.append(out_atoms)
             his.write(atoms=out_atoms)
             i_ += 1
@@ -705,7 +712,8 @@ def lammps_data_to_ase_atoms(
     specorder=None,
     prismobj=None,
     units="real",
-    energy=0.0):
+    energy=0.0,
+    atomType):
     """Extract positions and other per-atom parameters and create Atoms
 
     :param data: per atom data
@@ -739,7 +747,7 @@ def lammps_data_to_ase_atoms(
         elements = data[:, colnames.index("element")]
     elif "type" in colnames:
         # fall back to `types` otherwise
-        elements = data[:, colnames.index("type")].astype(int)
+        elements = atomType[data[:, colnames.index("type")].astype(int)]
 
         # reconstruct types from given specorder
         if specorder:
