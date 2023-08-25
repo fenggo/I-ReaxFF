@@ -597,7 +597,7 @@ def construct_cell(diagdisp, offdiag):
     celldisp = np.array([celldispx, celldispy, celldispz])
     return cell, celldisp
 
-def lammpstraj_to_ase(filename='lammps.traj',index=,traj='md.traj', mode='w',
+def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
                       inp='in.lammps',**kwargs):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
