@@ -547,7 +547,7 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
                  break 
             line = lines[n].split()
             id_  = int(line[0])-1
-            atomName[id_]=int(line[1])-1]
+            atomName[id_]=atomType[int(line[1])-1]
             positions[id_][0] = float(line[2])
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
