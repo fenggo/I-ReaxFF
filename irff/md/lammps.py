@@ -752,8 +752,8 @@ def lammps_data_to_ase_atoms(
 
         # reconstruct types from given specorder
         if specorder:
-            elements = [specorder[t - 1] for t in elements]
-        elements = np.array(atomType)[elements-1]
+            elements = [specorder[t - 1]-1 for t in elements]
+        elements = np.array(atomType)[elements]
  
     else:
         # todo: what if specorder give but no types?
