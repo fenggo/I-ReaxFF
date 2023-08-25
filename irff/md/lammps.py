@@ -21,7 +21,7 @@ def run_lammps(inp_name='inp-lam',label='eos',np=4):
 def check_decomposed(traj='lammps.trj',nmol=1):
     mol_ = findmole(filename=traj,trjtype=1,
                frame=1000000000,timeinterval=0.005,runtype=2) # check molecule if decomposed
-    mol  = mol_[-1]
+    mol  = mol_[]
     nmol_= len(mol)
     if nmol_>nmol:
        print('-  structure already decomposed, exit now!')
@@ -480,7 +480,7 @@ class EOS(object):
 def lattice(a,b,c):
     # a =  [ 14.90415061,    -0.12901043,   0.43404866 ]
     # b =  [  -6.08713737  ,  13.39520243  ,   0.32422886 ]
-    # c =  [ -0.40595224  ,  -1.58474125  ,  16.43906506  ]
+    # c =  [ -0.40595224  ,  .58474125  ,  16.43906506  ]
 
     ra = np.sqrt(np.dot(a,a))
     rb = np.sqrt(np.dot(b,b))
@@ -546,8 +546,8 @@ def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
             if n >= len(lines):
                  break 
             line = lines[n].split()
-            id_  = int(line[0])-1
-            atomName[id_]=atomType[int(line[1])-1]
+            id_  = int(line[0])
+            atomName[id_]=atomType[int(line[1])]
             positions[id_][0] = float(line[2])
             positions[id_][1] = float(line[3])
             positions[id_][2] = float(line[4])
@@ -597,7 +597,7 @@ def construct_cell(diagdisp, offdiag):
     celldisp = np.array([celldispx, celldispy, celldispz])
     return cell, celldisp
 
-def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
+def lammpstraj_to_ase(filename='lammps.traj',index=,traj='md.traj', mode='w',
                       inp='in.lammps',**kwargs):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
@@ -748,12 +748,11 @@ def lammps_data_to_ase_atoms(
         elements = data[:, colnames.index("element")]
     elif "type" in colnames:
         # fall back to `types` otherwise
-        elements = data[:, colnames.index("type")].astype(int)
-
+        elements = data[:, colnames.index("type")].astype(int) -1
+      
         # reconstruct types from given specorder
         if specorder:
-            elements = [specorder[t - 1]-1 for t in elements]
-        print(elements)
+            elements = [specorder[t - 1] for t in elements]
         elements = np.array(atomType)[elements]
  
     else:
