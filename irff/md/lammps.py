@@ -603,6 +603,19 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
     :returns: list of Atoms objects
     :rtype: list
     """
+    e = []
+    with open('lmp.log','r') as fl:
+         lines = fl.readlines()
+         readenergy = False
+         for line in lines:
+             if line.find('Step          Temp          E_pair         TotEng')>=0:
+                readenergy = True
+             elif line.find('Loop time')>=0 or line.find('ERROR')>=0:
+                readenergy = False
+             l = line.split()
+             if readenergy and l[0]!='Step':
+                e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
+
     # Load all dumped timesteps into memory simultaneously
     with open(filename,'r') as ft:
          lines = deque(ft.readlines())
@@ -615,6 +628,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
 
     # avoid references before assignment in case of incorrect file structure
     cell, celldisp, pbc = None, None, False
+    i_ = 0
 
     while len(lines) > n_atoms:
         line = lines.popleft()
@@ -673,10 +687,12 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',*
                 celldisp=celldisp,
                 atomsobj=Atoms,
                 pbc=pbc,
+                energy=e[i_],
                 **kwargs
             )
             images.append(out_atoms)
             his.write(atoms=out_atoms)
+            i_ += 1
     his.close()
     return images[index]
 
@@ -690,7 +706,8 @@ def lammps_data_to_ase_atoms(
     order=True,
     specorder=None,
     prismobj=None,
-    units="metal",
+    units="real",
+    energy=0.0,
 ):
     """Extract positions and other per-atom parameters and create Atoms
 
@@ -820,8 +837,8 @@ def lammps_data_to_ase_atoms(
             forces = prismobj.vector_to_ase(forces)
         # !TODO: use another calculator if available (or move forces
         #        to atoms.property) (other problem: synchronizing
-        #        parallel runs)
-        calculator = SinglePointCalculator(out_atoms, energy=0.0,
+        #        parallel runs
+        calculator = SinglePointCalculator(out_atoms, energy=energy,
                                            forces=forces)
         out_atoms.calc = calculator
 
