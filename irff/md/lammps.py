@@ -21,7 +21,7 @@ def run_lammps(inp_name='inp-lam',label='eos',np=4):
 def check_decomposed(traj='lammps.trj',nmol=1):
     mol_ = findmole(filename=traj,trjtype=1,
                frame=1000000000,timeinterval=0.005,runtype=2) # check molecule if decomposed
-    mol  = mol_[]
+    mol  = mol_[-1]
     nmol_= len(mol)
     if nmol_>nmol:
        print('-  structure already decomposed, exit now!')
