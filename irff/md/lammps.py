@@ -713,7 +713,7 @@ def lammps_data_to_ase_atoms(
     prismobj=None,
     units="real",
     energy=0.0,
-    atomType):
+    atomType=None):
     """Extract positions and other per-atom parameters and create Atoms
 
     :param data: per atom data
