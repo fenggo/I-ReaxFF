@@ -1604,10 +1604,10 @@ class ReaxFF(object):
                                         feed_dict=self.feed_dict)
                 self.plot_result(i,E,dfte)
                 
-                if close_session:
-                   i = 0
-                else:
+                if accu>self.convergence:
                    totrain = False
+                else:
+                   i = 0
 
           if accu>=self.convergence and loss_<=self.lossConvergence:
              self.accu = accu

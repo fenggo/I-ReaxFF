@@ -1573,10 +1573,10 @@ class ReaxFF_nn(object):
                 # E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
                 #                           feed_dict=self.feed_dict)
                 # self.plot_result(i,E,dfte)
-                if close_session:
-                   i = 0
-                else:
+                if accu>self.convergence:
                    totrain = False
+                else:
+                   i = 0
              if not close_session:
                 if i<=200:
                    _loss = loss_
