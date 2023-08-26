@@ -112,7 +112,7 @@ rn = MPNN(libfile='ffield.json',
           messages=1,
           bdopt=None,    # ['H-N'], 
           mfopt=None,    # ['N'], 
-          batch_size=batch,
+          batch_size=args.batch,
           fixrcbo=False,
           losFunc='n2',  # n2, mse, huber,abs
           convergence=0.95) 
