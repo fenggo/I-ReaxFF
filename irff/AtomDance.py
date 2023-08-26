@@ -397,6 +397,8 @@ class AtomDance(object):
          ry  = np.sqrt(np.sum(np.square(vy)))
          if ry>0.00000001:  # paralell
             uy = vy/ry
+         else:
+            uy = np.array([0.0,0.0,1.0])
          #print(uy)
       else:
          vkl = atoms.positions[k] - atoms.positions[l] 
@@ -406,9 +408,9 @@ class AtomDance(object):
          vy  = ukl - rk*ux
          ry  = np.sqrt(np.sum(np.square(vy)))
          if ry>0.00000001:
-            uy = np.array([0.0,0.0,1.0])
-         else:
             uy  = vy/ry 
+         else:
+            uy = np.array([0.0,0.0,1.0])
 
       if ry>0.00000001 and abs(ang - 180.0)>0.00000001:
          a   = ang*3.141593/180.0
