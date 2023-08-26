@@ -28,7 +28,7 @@ parser.add_argument('--t',default=0,type=int,help='optimize the three-boday term
 parser.add_argument('--h',default=0,type=int,help='optimize the hydrogen bond term flag')
 parser.add_argument('--a',default=0,type=int,help='surpvise the angle term flag')
 parser.add_argument('--f',default=0,type=int,help='optimize the four-boday term flag')
-parser.add_argument('--bo',default=1,type=int,help='optimize the bond term flag')
+#parser.add_argument('--bo',default=1,type=int,help='optimize the bond term flag')
 parser.add_argument('--zpe',default=0,type=int,help='optimize the zero point energy')
 parser.add_argument('--vdw',default=1,type=int,help='optimize the vdw energy')
 args = parser.parse_args(sys.argv[1:])
@@ -98,15 +98,6 @@ if not args.vdw:
 if not args.h:
    cons += ['rohb','Dehb','hb1','hb2']
 
-if not args.bo:
-   cons += ['Depi','Depp','Desi',
-            'rosi','ropi','ropp',
-            'bo1','bo2','bo3','bo4','bo5','bo6',
-            'vdw1','gammaw','rvdw','alfa','Devdw',
-            ] ### 
-   mpopt = [0,0,0,0] # neural network for BO,MF,BE,VDW
-
-       
        
 rn = MPNN(libfile='ffield.json',
           dataset=dataset,            
