@@ -117,7 +117,7 @@ rn = MPNN(libfile='ffield.json',
           losFunc='n2',  # n2, mse, huber,abs
           convergence=0.95) 
 
-rn.run(learning_rate=lr,
+rn.run(learning_rate=args.lr,
        step=args.step,
        print_step=args.pr,
        writelib=args.writelib,
