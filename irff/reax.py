@@ -1539,7 +1539,10 @@ class ReaxFF(object):
       accs_={}
       libfile = self.libfile.split('.')[0]
 
-      for i in range(step+1):
+      totrain = True
+      i       = 0
+
+      while totrain:
           if i==0:
              loss,lpenalty,ME_,accu,accs = self.sess.run([self.Loss,
                                                       self.loss_penalty,
@@ -1600,6 +1603,11 @@ class ReaxFF(object):
                 E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
                                         feed_dict=self.feed_dict)
                 self.plot_result(i,E,dfte)
+                
+                if close_session:
+                   i = 0
+                else:
+                   totrain = False
 
           if accu>=self.convergence and loss_<=self.lossConvergence:
              self.accu = accu
@@ -1609,7 +1617,8 @@ class ReaxFF(object):
              self.write_lib(libfile=libfile,loss=loss_)
              print('-  Convergence Occurred, job compeleted.')
              break
-      
+          i += 1
+
       self.get_pentalty()
       self.loss_ = loss_ if not (np.isnan(loss) or np.isinf(loss)) else 9999999.9
       if self.loss_ < 9999999.0:
