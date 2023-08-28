@@ -90,7 +90,11 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
     lammpstraj_to_ase('lammps.trj',inp='in.lammps')
 
-def traj(inp='in.lammps',atomid=None):
+def traj(inp='in.lammps',s=0,e=0):
+    if e==0:
+       atomid = None
+    else:
+       atomid = (s,e)
     lammpstraj_to_ase('lammps.trj',inp=inp,atomid=atomid)
 
 def plot(out='out'):
