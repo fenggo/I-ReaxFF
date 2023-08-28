@@ -806,7 +806,7 @@ def lammps_data_to_ase_atoms(
         cell = prismobj.update_cell(cell)
 
     if quaternions:
-        if atomid is None:
+        if not atomid is None:
            elements = elements[atomid[0]:atomid[1]]
            positions = positions[atomid[0]:atomid[1]]
            quaternions = quaternions[atomid[0]:atomid[1]]
@@ -823,7 +823,7 @@ def lammps_data_to_ase_atoms(
         # (for all vectors = pos, vel, force)
         if prismobj:
             positions = prismobj.vector_to_ase(positions, wrap=True)
-        if atomid is None:
+        if not atomid is None:
            elements = elements[atomid[0]:atomid[1]]
            positions = positions[atomid[0]:atomid[1]]
 
@@ -835,7 +835,7 @@ def lammps_data_to_ase_atoms(
             cell=cell
         )
     elif scaled_positions is not None:
-        if atomid is None:
+        if not atomid is None:
            elements = elements[atomid[0]:atomid[1]]
            scaled_positions = scaled_positions[atomid[0]:atomid[1]]
            # quaternions = quaternions[atomid[0]:atomid[1]]
@@ -850,17 +850,17 @@ def lammps_data_to_ase_atoms(
     if velocities is not None:
         if prismobj:
             velocities = prismobj.vector_to_ase(velocities)
-        if atomid is None:
+        if not atomid is None:
            velocities = velocities[atomid[0]:atomid[1]]
         out_atoms.set_velocities(velocities)
     if charges is not None:
-        if atomid is None:
+        if not atomid is None:
            charges = np.squeeze(charges)[atomid[0]:atomid[1]]
         out_atoms.set_initial_charges(np.squeeze(charges))
     if forces is not None:
         if prismobj:
             forces = prismobj.vector_to_ase(forces)
-        if atomid is None:
+        if not atomid is None:
            forces = forces[atomid[0]:atomid[1]]
         # !TODO: use another calculator if available (or move forces
         #        to atoms.property) (other problem: synchronizing
