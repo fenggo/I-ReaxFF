@@ -689,18 +689,19 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
             colnames = line.split()[2:]
             datarows = [lines.popleft() for _ in range(n_atoms)]
             data = np.loadtxt(datarows, dtype=str)
-            out_atoms = lammps_data_to_ase_atoms(
-                data=data,
-                colnames=colnames,
-                cell=cell,
-                celldisp=celldisp,
-                atomsobj=Atoms,
-                pbc=pbc,
-                energy=e[i_],
-                atomType=atomType,
-                atomid=atomid)
-            images.append(out_atoms)
-            his.write(atoms=out_atoms)
+            if i_<len(e):
+               out_atoms = lammps_data_to_ase_atoms(
+                    data=data,
+                    colnames=colnames,
+                    cell=cell,
+                    celldisp=celldisp,
+                    atomsobj=Atoms,
+                    pbc=pbc,
+                    energy=e[i_],
+                    atomType=atomType,
+                    atomid=atomid)
+               images.append(out_atoms)
+               his.write(atoms=out_atoms)
             i_ += 1
     his.close()
     return images[index]
