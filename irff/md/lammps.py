@@ -611,10 +611,12 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
          for line in lines:
              if line.find('Step          Temp          E_pair         TotEng')>=0:
                 readenergy = True
+                l = line.split()
+                nt = len(l)
              elif line.find('Loop time')>=0 or line.find('ERROR')>=0:
                 readenergy = False
              l = line.split()
-             if readenergy and l[0]!='Step':
+             if readenergy and l[0]!='Step' and len(l)==nt:
                 e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
     with open(inp,'r') as fi:
          lines = fi.readlines()
