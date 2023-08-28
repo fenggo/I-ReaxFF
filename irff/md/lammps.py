@@ -598,7 +598,7 @@ def construct_cell(diagdisp, offdiag):
     return cell, celldisp
 
 def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
-                      inp='in.lammps',**kwargs):
+                      inp='in.lammps',atomid=None):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
     :returns: list of Atoms objects
@@ -695,7 +695,8 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
                 atomsobj=Atoms,
                 pbc=pbc,
                 energy=e[i_],
-                atomType=atomType)
+                atomType=atomType,
+                atomid=atomid)
             images.append(out_atoms)
             his.write(atoms=out_atoms)
             i_ += 1
@@ -804,6 +805,10 @@ def lammps_data_to_ase_atoms(
         cell = prismobj.update_cell(cell)
 
     if quaternions:
+        if atomid is None:
+           elements = elements[atomid[0]:atomid[1]]
+           positions = positions[atomid[0]:atomid[1]]
+           quaternions = quaternions[atomid[0]:atomid[1]]
         out_atoms = Quaternions(
             symbols=elements,
             positions=positions,
@@ -817,6 +822,9 @@ def lammps_data_to_ase_atoms(
         # (for all vectors = pos, vel, force)
         if prismobj:
             positions = prismobj.vector_to_ase(positions, wrap=True)
+        if atomid is None:
+           elements = elements[atomid[0]:atomid[1]]
+           positions = positions[atomid[0]:atomid[1]]
 
         out_atoms = atomsobj(
             symbols=elements,
@@ -826,6 +834,10 @@ def lammps_data_to_ase_atoms(
             cell=cell
         )
     elif scaled_positions is not None:
+        if atomid is None:
+           elements = elements[atomid[0]:atomid[1]]
+           scaled_positions = scaled_positions[atomid[0]:atomid[1]]
+           # quaternions = quaternions[atomid[0]:atomid[1]]
         out_atoms = atomsobj(
             symbols=elements,
             scaled_positions=scaled_positions,
@@ -837,12 +849,18 @@ def lammps_data_to_ase_atoms(
     if velocities is not None:
         if prismobj:
             velocities = prismobj.vector_to_ase(velocities)
+        if atomid is None:
+           velocities = velocities[atomid[0]:atomid[1]]
         out_atoms.set_velocities(velocities)
     if charges is not None:
+        if atomid is None:
+           charges = np.squeeze(charges)[atomid[0]:atomid[1]]
         out_atoms.set_initial_charges(np.squeeze(charges))
     if forces is not None:
         if prismobj:
             forces = prismobj.vector_to_ase(forces)
+        if atomid is None:
+           forces = forces[atomid[0]:atomid[1]]
         # !TODO: use another calculator if available (or move forces
         #        to atoms.property) (other problem: synchronizing
         #        parallel runs
