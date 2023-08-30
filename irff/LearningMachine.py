@@ -324,10 +324,10 @@ class LearningMachine(object):
           # atoms.set_constraint(self.fixatoms)
           # atoms.write('poscar.gen')                                    # for aimd
 
-          if learn_method==1: 
+          if learn_method<=2: 
              dft_step = self.dft_step
           elif Deformed>=1.0 or uncertainty_zv is not None:
-             dft_step = relax_step
+             dft_step = self.dft_step
           else:
              dft_step = self.col_frame # int(mdsteps/self.col_frame)+1
 
@@ -546,22 +546,30 @@ class LearningMachine(object):
             images = siesta_md(label=self.label,ncpu=self.ncpu,T=self.T,dt=self.dt_aimd,us='F',tstep=tstep,
                                atoms=atoms,FreeAtoms=self.freeatoms,
                                xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
-            # images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=False,us='F',
-            #                     tstep=tstep,gen=cwd+'/'+gen,
-            #                     xcf=self.xcf,xca=self.xca,basistype=self.basistype)
             ind_   = 'Molecular Dynamics Simulation'
          elif self.dft=='qe':
             images = qemd(label=self.label,ncpu=self.ncpu,T=self.T,dt=self.dt_aimd,tstep=tstep,
                           atoms=atoms,kpts=self.kpts,**self.kwargs)      ## geomentry optimize
-            # images = qeopt(atoms=atoms,label=self.label,ncpu=self.ncpu,
-            #                gen=cwd+'/'+gen,
-            #                kpts=self.kpts,**self.kwargs) ## geomentry optimize
             ind_   = 'Geomentry Optimization'
          else:
             raise RuntimeError('-  This method not implimented!')
          eaimd = [images[0].get_potential_energy()]
          system('cp %s ../../md.traj' %(self.label+'.traj'))
-      elif learn_method>=2:
+      elif learn_method==2:
+         if self.dft=='siesta':
+            images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=True,us='F',
+                                tstep=tstep,FreeAtoms=self.freeatoms,
+                                xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
+            ind_   = 'Molecular Dynamics Simulation'
+         elif self.dft=='qe':
+            images = qeopt(atoms=atoms,label=self.label,ncpu=self.ncpu,tstep=tstep,
+                           kpts=self.kpts,**self.kwargs) ## geomentry optimize
+            ind_   = 'Geomentry Optimization'
+         else:
+            raise RuntimeError('-  This method not implimented!')
+         eaimd = [images[0].get_potential_energy()]
+         system('cp %s ../../md.traj' %(self.label+'.traj'))
+      elif learn_method>2:
          # print('-  files in this dir \n',cwd+'/'+run_dir,'\n',listdir())
          E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
                                                  frame=tstep,select=True,
