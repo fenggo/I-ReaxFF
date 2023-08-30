@@ -8,8 +8,8 @@ from ase.constraints import FixAtoms
 import matplotlib.pyplot as plt
 from math import ceil
 from .molecule import packmol
-from .dft.siesta import siesta_md # siesta_opt 
-from .dft.qe import qemd # qeopt  
+from .dft.siesta import siesta_md,siesta_opt 
+from .dft.qe import qemd,qeopt  
 from .dft.SinglePointEnergy import SinglePointEnergies
 from .dft.CheckEmol import check_emol
 #from .md.gulp import nvt as gulp_nvt
