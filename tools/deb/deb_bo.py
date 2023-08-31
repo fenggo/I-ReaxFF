@@ -27,6 +27,7 @@ parser.add_argument('--elements',default='CC',type=str,help='the element pair')
 parser.add_argument('--traj',default=None,type=str,help='the trajectory name')
 parser.add_argument('--i',default=0,type=int,help='id of atom i')
 parser.add_argument('--j',default=1,type=int,help='id of atom j')
+parser.add_argument('--d',default=1,type=int,help='show the value of Delta')
 parser.add_argument('--s',default=1,type=int,help='show the figure, if False, then save figure to pdf')
 args = parser.parse_args(sys.argv[1:])
 
@@ -43,5 +44,5 @@ if args.traj is None:
 else:
    images = Trajectory(args.traj)
 
-deb_bo(images,i=args.i,j=args.j,show=args.s,more=True,x_distance=True,print_=True,nn=True)
+deb_bo(images,i=args.i,j=args.j,show=args.s,delta=args.d,x_distance=True,print_=True,nn=True)
 
