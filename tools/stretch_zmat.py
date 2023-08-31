@@ -35,15 +35,33 @@ def wz(gen='cbd.gen',i=-1):
     ad.close()
 
 
-def stretch(gen='cbd.gen',i=-1):
-    atoms  = read(gen,index=i)
+def stretch(gen='poscar.gen',i=0,j=1,f=-1,s=1.2,e=1.9,dr=0.1):
+    atoms  = read(gen,index=f)
     ad     = AtomDance(atoms=atoms,rmax=1.25)
     zmat   = ad.InitZmat
     traj   = TrajectoryWriter('md.traj',mode='w')
+    
+    # find index
+    ii = ad.zmat_id.index(i)
+    jj = ad.zmat_id.index(j)
+    
+    find = False
+    if j == ad.zmat_index[ii][0]:
+       find = True
+       i_ = ii
+    elif i == ad.zmat_index[jj][0]:
+       find = True
+       i_ = jj
+    else:
+       print('this bond is not found in the zmatrix!')
+       return 
+    
+           
     # view(atoms)
-    r = 1.47 
-    for i_ in range(23):
-        zmat[46][0] = r+0.01*i_
+    r = s
+    while r<e:
+        r += dr
+        zmat[i_][0] = r
         atoms  = ad.zmat_to_cartation(atoms,zmat)
         ad.ir.calculate(atoms)
 
