@@ -35,7 +35,7 @@ def wz(gen='cbd.gen',i=-1):
     ad.close()
 
 
-def pes(gen='cbd.gen',i=-1):
+def stretch(gen='cbd.gen',i=-1):
     atoms  = read(gen,index=i)
     ad     = AtomDance(atoms=atoms,rmax=1.25)
     zmat   = ad.InitZmat
@@ -54,5 +54,5 @@ def pes(gen='cbd.gen',i=-1):
 if __name__ == '__main__':
    ''' use commond like ./zmat_pes.py w --T=2800 to run it'''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [wz,pes])
+   argh.add_commands(parser, [wz,stretch])
    argh.dispatch(parser)
