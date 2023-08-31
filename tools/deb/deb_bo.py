@@ -12,7 +12,7 @@ from ase.visualize import view
 from irff.irff_np import IRFF_NP
 # from irff.tools import deb_energy
 import matplotlib.pyplot as plt
-from irff.plot.deb_bde import deb_bp,deb_bo # ,deb_vdw
+from irff.deb.deb_bde import deb_bp,deb_bo # ,deb_vdw
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
 
