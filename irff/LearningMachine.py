@@ -78,9 +78,9 @@ class LearningMachine(object):
                mf_universal_nn=None,vdw_universal_nn=None,
                BOFunction=0,EnergyFunction=1,MessageFunction=3,VdwFunction=1,
                spv_be=False,beup={},belo={},
-               spv_bo=False,
+               bo_clip=False,
                spv_vdw=False,vup={},vlo={},
-               spv_pi=False,# lambda_ang=0.02,
+               pi_clip=False,# lambda_ang=0.02,
                weight={'others':2.0},
                lambda_bd=10000.0,lambda_reg=0.0001, # regularize=True,
                lambda_me=0.1,learning_rate=0.0001,
@@ -160,10 +160,10 @@ class LearningMachine(object):
       self.belo           = belo
       self.vup            = vup
       self.vlo            = vlo
-      self.spv_bo         = spv_bo
+      self.spv_bo         = bo_clip
       self.spv_vdw        = spv_vdw
       self.spv_be         = spv_be
-      self.spv_pi         = spv_pi
+      self.spv_pi         = pi_clip
       self.lambda_me      = lambda_me
       self.weight         = weight
       self.lambda_bd      = lambda_bd
@@ -375,7 +375,7 @@ class LearningMachine(object):
                                                      MessageFunction=self.MessageFunction,
                                                      # bore=self.bore, # bom=self.bom,
                                                      spv_be=self.spv_be,belo=self.belo,beup=self.beup,
-                                                     spv_bo=self.spv_bo,spv_pi=self.spv_pi,
+                                                     bo_clip=self.spv_bo,pi_clip=self.spv_pi,
                                                      spv_vdw=self.spv_vdw,vlo=self.vlo,vup=self.vup,
                                                      lambda_me=self.lambda_me,weight=self.weight,
                                                      lambda_reg=self.lambda_reg,
