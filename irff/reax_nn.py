@@ -41,7 +41,7 @@ class ReaxFF_nn(object):
                bore={'others':0.0},
                weight={'others':1.0},
                spv_vdw=False,vlo={'others':[(0.0,0.0)]},vup={'others':[(10.0,0.0)]},
-               spv_bo=None,                 # e.g. spv_bo={'C-C':(1.3,8.5,8.5,0.0,0.0)}
+               bo_clip=None,                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
                ro_scale=0.1,
                clip_op=True,
@@ -127,7 +127,7 @@ class ReaxFF_nn(object):
       self.MessageFunction = MessageFunction
       self.spv_vdw       = spv_vdw
       self.spv_ang       = spv_ang
-      self.spv_bo        = spv_bo
+      self.bo_clip       = bo_clip
       self.vlo           = vlo
       self.vup           = vup
       self.bo_layer      = bo_layer
@@ -1839,10 +1839,10 @@ class ReaxFF_nn(object):
                  fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= 0.0 that e = 0.0
                  self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu(self.esi[mol][bd]*fesi))
                  
-                 if self.spv_bo:
-                     if (bd in self.spv_bo) or (bdr in self.spv_bo):
-                        bd_  = bd if bd in self.spv_bo else bdr
-                     for sbo in self.spv_bo[bd_]:
+                 if self.bo_clip:
+                     if (bd in self.bo_clip) or (bdr in self.bo_clip):
+                        bd_  = bd if bd in self.bo_clip else bdr
+                     for sbo in self.bo_clip[bd_]:
                          r,d_i,d_j,bo_l,bo_u = sbo
                          fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
                                                          tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),

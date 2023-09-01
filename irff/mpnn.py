@@ -136,8 +136,8 @@ class MPNN(ReaxFF):
                vup={'others':[(10.0,0.0)]},
                # pim={'others':10.0},
                spv_be=False,                             
-               spv_bo=None,                      # e.g. spv_bo={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
-               spv_pi=False,                     # e.g. spv_pi={'C-C-C':[(7.5,8.5,0.8,1.8)]}
+               bo_clip=None,                      # e.g. bo_clip={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
+               pi_clip=False,                     # e.g. pi_clip={'C-C-C':[(7.5,8.5,0.8,1.8)]}
                #spv_ang=False,                    
                spv_vdw=False,
                fixrcbo=False,
@@ -188,11 +188,11 @@ class MPNN(ReaxFF):
       self.MessageFunction  = MessageFunction
       self.BOFunction       = BOFunction
       #self.pim              = pim
-      self.spv_bo           = spv_bo
+      self.bo_clip          = bo_clip
+      self.pi_clip          = pi_clip
       self.spv_be           = spv_be
       self.beup             = beup
       self.belo             = belo
-      self.spv_pi           = spv_pi
       #self.spv_ang         = spv_ang
       self.spv_vdw          = spv_vdw
       self.vup              = vup
@@ -915,14 +915,14 @@ class MPNN(ReaxFF):
              #    self.penalty_s[bd]  = tf.reduce_sum(input_tensor=self.bo0[bd]*fe_)
              #    penalty  = tf.add(self.penalty_s[bd]*self.lambda_bd,penalty)    ## penalty iterm for bond order
 
-             if self.spv_bo:
+             if self.bo_clip:
                 #fe_ = tf.where(tf.greater(self.S[bd],0.00001),1.0,0.0) 
                 #self.penalty_s[bd]  = tf.reduce_sum(input_tensor=self.bo0[bd]*fe_)
                 #penalty  = tf.add(self.penalty_s[bd]*self.lambda_bd,penalty)      ## penalty iterm for bond order
                 self.penalty_bo[bd] = tf.constant(0.0)
-                if (bd in self.spv_bo) or (bdr in self.spv_bo):
-                   bd_  = bd if bd in self.spv_bo else bdr
-                   for sbo in self.spv_bo[bd_]:
+                if (bd in self.bo_clip) or (bdr in self.bo_clip):
+                   bd_  = bd if bd in self.bo_clip else bdr
+                   for sbo in self.bo_clip[bd_]:
                        r,dil,diu,djl,dju,bo_l,bo_u = sbo
                        fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
                                                       tf.logical_and(tf.logical_and(tf.greater_equal(self.Dbi[bd],dil),
@@ -1386,7 +1386,7 @@ def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn
 Example:
     rn = MPNN(libfile='ffield.json',
               dataset=dataset,            
-              spv_bo={'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
+              bo_clip={'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
                       'H-O':[(1.3,2.0,11,2.78,11,0.0,0.0)],
                       'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)] },
               spv_pi={'N-C-N':[(7.8,8.7,1.65,1.8)],
