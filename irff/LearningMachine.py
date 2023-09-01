@@ -160,10 +160,10 @@ class LearningMachine(object):
       self.belo           = belo
       self.vup            = vup
       self.vlo            = vlo
-      self.spv_bo         = bo_clip
+      self.bo_clip        = bo_clip
       self.spv_vdw        = spv_vdw
       self.spv_be         = spv_be
-      self.spv_pi         = pi_clip
+      self.pi_clip         = pi_clip
       self.lambda_me      = lambda_me
       self.weight         = weight
       self.lambda_bd      = lambda_bd
@@ -375,7 +375,7 @@ class LearningMachine(object):
                                                      MessageFunction=self.MessageFunction,
                                                      # bore=self.bore, # bom=self.bom,
                                                      spv_be=self.spv_be,belo=self.belo,beup=self.beup,
-                                                     bo_clip=self.spv_bo,pi_clip=self.spv_pi,
+                                                     bo_clip=self.bo_clip,pi_clip=self.pi_clip,
                                                      spv_vdw=self.spv_vdw,vlo=self.vlo,vup=self.vup,
                                                      lambda_me=self.lambda_me,weight=self.weight,
                                                      lambda_reg=self.lambda_reg,

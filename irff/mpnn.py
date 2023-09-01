@@ -982,11 +982,11 @@ class MPNN(ReaxFF):
                 penalty  = tf.add(self.penalty_vdw[bd]*self.lambda_bd,penalty)
 
       if self.optword.find('noang')<0:
-         if self.spv_pi:                        # regularize pi term
-            for ang in self.spv_pi: 
+         if self.pi_clip:                        # regularize pi term
+            for ang in self.pi_clip: 
                 if self.nang[ang]>0:
                    self.penalty_pi[ang] = tf.constant(0.0)
-                   for spi in self.spv_pi[ang]:
+                   for spi in self.pi_clip[ang]:
                        Dl,Du,pil,piu = spi
                        fpi = tf.where(tf.logical_and(tf.less_equal(self.D_p[ang],Du), 
                                                     tf.greater_equal(self.D_p[ang],Dl)),
@@ -1389,7 +1389,7 @@ Example:
               bo_clip={'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
                       'H-O':[(1.3,2.0,11,2.78,11,0.0,0.0)],
                       'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)] },
-              spv_pi={'N-C-N':[(7.8,8.7,1.65,1.8)],
+              pi_clip={'N-C-N':[(7.8,8.7,1.65,1.8)],
                       'C-C-C':[(7.8,8.7,1.61,1.8)],
                       'C-C-H':[(8.0,8.8,1.61,1.8),(10.0,13,0,0.75)],
                       'H-C-H':[(8.0,8.8,1.61,1.8)]},
