@@ -51,7 +51,7 @@ def get_zpe(p,atom_name):
 
 class LearningMachine(object):
   ''' recursive learning machine constructed by I-ReaxFF and siesta '''
-  def __init__(self,initConfig='poscar.gen',
+  def __init__(self,config='poscar.gen',
                dataset=None,ncpu=40,
                maxiter=100,
                dt_mlmd=0.1, dt_aimd=0.3,dft_step=5,
@@ -91,8 +91,8 @@ class LearningMachine(object):
               batch: batch size
       '''
       self.kwargs         = kwargs
-      self.initConfig     = initConfig
-      self.label          = initConfig.split('.')[0]
+      self.config         = config
+      self.label          = config.split('.')[0]
       self.aidir          = 'aimd_' + self.label
       self.accCriteria    = accCriteria # accuracy convergence criteria
       self.lossCriteria   = lossCriteria    
@@ -176,7 +176,7 @@ class LearningMachine(object):
       self.writelib       = writelib
       self.freeatoms      = free_atoms
       self.freepairs      = FreePairs
-      self.a              = AtomDance(poscar=self.initConfig,nn=self.nn,
+      self.a              = AtomDance(poscar=self.config,nn=self.nn,
                                     ffield=ffield,
                                     rmin=self.rmin-0.05,rmax=self.rmax,
                                     FirstAtom=first_atom,freeatoms=self.freeatoms)
@@ -279,7 +279,7 @@ class LearningMachine(object):
              # print('-  atomic structure from MD trajectories.')
           else:
              print('-  cannot find MD trajectory, use learn_method=1 in the first iter.')
-             atoms = read(self.initConfig)
+             atoms = read(self.config)
              learn_method = 4 if self.learn_method==4 else 1
           if not self.freeatoms is None:
              atoms = self.a.check_momenta(atoms,freeatoms=self.freeatoms)
@@ -399,9 +399,9 @@ class LearningMachine(object):
 
           if self.CheckZmat:
              # if not zmatopt is None:
-             #    optlog,_ = self.a.get_optimal_zv(atoms,zmatopt,optgen=self.initConfig)
+             #    optlog,_ = self.a.get_optimal_zv(atoms,zmatopt,optgen=self.config)
              if mdsteps>10:
-                uncertainty_zv,u_zvlo,u_zvhi,optlog = self.a.get_zmat_uncertainty(atoms,optgen=self.initConfig)
+                uncertainty_zv,u_zvlo,u_zvhi,optlog = self.a.get_zmat_uncertainty(atoms,optgen=self.config)
 
           if mdsteps<10: mdsteps = 10
           # zmats    = None
@@ -737,7 +737,7 @@ if __name__ == '__main__':
    dataset = {'nm6_5':'/home/feng/siesta/nm6_5',
               'nm6_14':'/home/feng/siesta/nm6_14' }
 
-   lm = LearningMachine(initConfig='c14.gen',
+   lm = LearningMachine(config='c14.gen',
                      dataset=dataset,ncpu=8,
                      maxiter=1,
                      step=50000,md_step=100,MaxMDstep=1000,mom_step=50,col_frame=100,
