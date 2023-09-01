@@ -175,7 +175,7 @@ if __name__ == '__main__':
    ''' train ''' 
    rn = MPNN(libfile='ffield.json',
              dataset=dataset,            
-             clip_bo=bo_clip,
+             bo_clip=bo_clip,
              pi_clip=pi_clip,
              weight=weight,
              optword='nocoul',
