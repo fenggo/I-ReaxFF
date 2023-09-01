@@ -149,7 +149,7 @@ if not args.bo:
 
 
 if args.pi:
-    spv_pi ={'C-C-C':[(7.8,9.1,1.63,1.81)],
+    pi_clip={'C-C-C':[(7.8,9.1,1.63,1.81)],
             'C-C-H':[(8.0,8.8,1.63,1.8),(10.0,13,0,0.6)],
             #'H-C-H':[(8.0,8.8,1.65,1.78),(10,12,0.24,0.5)],
             'O-N-N':[(7.2,9,0.84,1.2)],
@@ -161,37 +161,37 @@ if args.pi:
             'N-C-N':[(7.8,8.4,1.61,1.78)],
             }
 else:
-    spv_pi = False
-spv_bo = {'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
-          'H-O':[(1.19,2,9,2.78,9,0.0,0.0)],
-          'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)],
-          'O-O':[(1.6,2.5,3,2.4,3,0.0,0.0)],
-          'O-N':[(1.75,2.5,9,7.4,9,0.0,0.0)],
-          'C-N':[(1.8,10,13,8,9,0.0,0.0)],
-          'N-N':[(1.75,7.5,9,7.5,9,0.0,0.0)],
-          'H-H':[(0.95,2,9,2,9,0.0,0.0)]}
+    pi_clip= False
+bo_clip = {'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
+           'H-O':[(1.19,2,9,2.78,9,0.0,0.0)],
+           'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)],
+           'O-O':[(1.6,2.5,3,2.4,3,0.0,0.0)],
+           'O-N':[(1.75,2.5,9,7.4,9,0.0,0.0)],
+           'C-N':[(1.8,10,13,8,9,0.0,0.0)],
+           'N-N':[(1.75,7.5,9,7.5,9,0.0,0.0)],
+           'H-H':[(0.95,2,9,2,9,0.0,0.0)]}
        
 if __name__ == '__main__':
    ''' train ''' 
    rn = MPNN(libfile='ffield.json',
-            dataset=dataset,            
-            spv_bo=spv_bo,
-            spv_pi=spv_pi,
-            weight=weight,
-            optword='nocoul',
-            cons=cons,clip=clip,
-            regularize_mf=1,regularize_be=1,regularize_bias=1,
-            lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.001,lambda_pi=0.003,
-            mf_layer=[9,1],be_layer=[9,1],
-            EnergyFunction=1,MessageFunction=3,
-            mf_universal_nn=None,be_universal_nn=['C-H','O-O'],
-            messages=1,
-            bdopt=None,    # ['H-N'], 
-            mfopt=None,    # ['N'], 
-            batch_size=args.batch,
-            fixrcbo=False,
-            losFunc='n2',  # n2, mse, huber,abs
-            convergence=0.95) 
+             dataset=dataset,            
+             clip_bo=bo_clip,
+             pi_clip=pi_clip,
+             weight=weight,
+             optword='nocoul',
+             cons=cons,clip=clip,
+             regularize_mf=1,regularize_be=1,regularize_bias=1,
+             lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.001,lambda_pi=0.003,
+             mf_layer=[9,1],be_layer=[9,1],
+             EnergyFunction=1,MessageFunction=3,
+             mf_universal_nn=None,be_universal_nn=['C-H','O-O'],
+             messages=1,
+             bdopt=None,    # ['H-N'], 
+             mfopt=None,    # ['N'], 
+             batch_size=args.batch,
+             fixrcbo=False,
+             losFunc='n2',  # n2, mse, huber,abs
+             convergence=0.95) 
 
    rn.run(learning_rate=args.lr,
           step=args.step,
