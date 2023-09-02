@@ -5,10 +5,10 @@ from os import system,popen
 import time
 from ase.io import read # ,write
 # from ase import Atoms
-from irff.md.gulp import write_gulp_in,xyztotraj,arctotraj,get_md_results,plot_md
+from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
 
 
-def nvt(T=350,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
+def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     atoms = read(gen,index=i)*(x,y,z)
     write_gulp_in(atoms,runword='md qiterative conv',
@@ -54,6 +54,7 @@ def get_status(wt):
           elif line.find('Job Finished')>=0:
              return False
 
+
 # def npt(T=350,time_step=0.1,tot_step=10.0):
 #     A = read('packed.gen')
 #     write_gulp_in(A,runword='md conp qiterative',
@@ -64,13 +65,14 @@ def get_status(wt):
 #     system('gulp<inp-gulp>gulp.out')
 #     xyztotraj('his.xyz')
 
+
 def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
-    # A = press_mol(A)
+    # A = press_mol(A) 
     if l==0:
        runword='opti conv qiterative'
-    elif l==1:
+    elif l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
 
     write_gulp_in(A,runword=runword,
@@ -84,9 +86,9 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-def traj(fil='his_3D.arc',c=0):
-    # xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
-    arctotraj(fil,traj='md.traj',checkMol=c)
+def traj(inp='inp-gulp',c=0):
+    #xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 def plot(out='out'):
     E,Epot,T,P = get_md_results(out=out)
@@ -115,11 +117,9 @@ if __name__ == '__main__':
        opt: structure optimization
        w  : write the gulp input file
        --g: the atomic structure file 
-       --T: The temperature of the system
-       --s: The run step of the simulation
+
    '''
    parser = argparse.ArgumentParser()
    argh.add_commands(parser, [opt,nvt,plot,traj,w])
    argh.dispatch(parser)
-
 
