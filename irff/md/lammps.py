@@ -407,7 +407,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('restart       10000 restart', file=fin)
     print('run           %d'  %total, file=fin)
     print(' ', file=fin)
-    print('write_restart %s'  %restartfile, file=fin)
+    print('write_restart {:s}'.format(restartfile), file=fin)
     print(' ', file=fin)
     fin.close()
 
