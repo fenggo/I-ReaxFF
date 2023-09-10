@@ -83,10 +83,10 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
     for s in ids:
         work_dir = root_dir+'/'+str(s)
 
-        if exists(s):
+        if exists(str(s)):
            continue
         else:
-           mkdir(s)
+           mkdir(str(s))
 
         chdir(work_dir)
         system('cp ../*.psf ./')
@@ -107,9 +107,11 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
 
 if __name__=='__main__': 
    parser = argparse.ArgumentParser(description='nohup ./train.py --v=1 --h=0> py.log 2>&1 &')
-   parser.add_argument('--d',default=0.0001,type=float, help='the density that big than this value')
+   parser.add_argument('--d',default=1.95,type=float, help='the density that big than this value')
+   parser.add_argument('--n',default=8,type=int, help='number of CPU to be used')
+   parser.add_argument('--s',default=30,type=int, help='number of optimization step')
    args = parser.parse_args(sys.argv[1:])
 
-   ids = range(190,239)
-   calc_strutures('../structures.traj',ids=ids,step=30,ncpu=8)
+   # ids = range(190,239)
+   calc_strutures('../structures.traj',density=args.d,step=args.s,ncpu=args.n)
    
