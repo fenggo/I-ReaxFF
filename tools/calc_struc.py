@@ -72,7 +72,8 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
 
        res = read_individuals()
 
-       for i,e,d in res:
+       for r in res:
+           i,d,e = r
            if d>density:
               ids.append(i)
 
