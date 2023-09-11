@@ -93,6 +93,7 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
         img = siesta_opt(images[s-1],ncpu=ncpu,us='F',VariableCell='true',tstep=step,
                          xcf='GGA',xca='PBE',basistype='split')
         system('mv siesta.out siesta-{:d}.out'.format(s))
+        system('mv siesta.traj md_{:d}.traj'.format(s))
         system('rm siesta.* ')
         atoms = img[-1]
         masses = np.sum(atoms.get_masses())
