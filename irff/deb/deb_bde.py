@@ -370,6 +370,8 @@ def deb_eang(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,frame=[0])
     if print_: print('\n Angle specified: \n')
 
     for i_,atoms in enumerate(images):  
+        ir.calculate(atoms)
+        
         found = False 
         for na,angle in enumerate(ir.angs):  
             i_,j_,k_ = angle
@@ -379,7 +381,6 @@ def deb_eang(images,ang=[0,1,2],figsize=(8,6),show=False,print_=False,frame=[0])
         if not found:
            # print('Warning: no angle found for {:s} in this trajector frame!'.format(ang))   
            continue 
-        ir.calculate(atoms)
 
         eang.append(ir.eang[a])    
         # ecoa.append(ir.Etcon)
