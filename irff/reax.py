@@ -1470,6 +1470,13 @@ class ReaxFF(object):
 
       self.sess.run(tf.compat.v1.global_variables_initializer())  
       self.sess_build = True
+      
+  def get_zpe(self):
+      e,edft = self.sess.run([self.E,self.dft_energy],feed_dict=self.feed_dict)                                           
+      for mol in e:
+          mol_ = mol.split('-')[0]
+          self.MolEnergy_[mol_] = np.mean(edft[mol]) - np.mean(e[mol]) 
+      return self.MolEnergy_
 
   def update(self,p=None,reset_emol=False):
       self.logger.info('-  updating variables ...')
