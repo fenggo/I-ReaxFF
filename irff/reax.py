@@ -1662,6 +1662,10 @@ class ReaxFF(object):
              feed_dict[self.rhb[hb]]   = self.lk.rhb[hb]
              feed_dict[self.frhb[hb]]  = self.lk.frhb[hb]
              feed_dict[self.hbthe[hb]] = self.lk.hbthe[hb]
+      for k in self.ea_var:
+          key = k.split('_')[0]
+          p_  = self.p_[k]*self.unit if key in self.punit else self.p_[k]
+          feed_dict[self.var[k]] = p_
       return feed_dict
 
   def calculate_energy(self):
