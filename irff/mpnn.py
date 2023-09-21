@@ -171,7 +171,7 @@ class MPNN(ReaxFF):
                maxstep=60000,
                emse=0.9,
                convergence=0.97,
-               lossConvergence=1000.0,
+               lossConvergence=0.0001,
                losFunc='n2',
                conf_vale=None,
                huber_d=30.0,
