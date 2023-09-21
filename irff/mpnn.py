@@ -124,7 +124,7 @@ class MPNN(ReaxFF):
                      ], # 
                nn=True,
                optmol=True,lambda_me=0.1,
-               opt=None,optword='nocoul',
+               opt=None,optword='nocoul',eaopt=[],
                mpopt=None,bdopt=None,mfopt=None,
                VariablesToOpt=None,
                batch_size=200,sample='uniform',
@@ -226,7 +226,7 @@ class MPNN(ReaxFF):
       self.bdopt    = bdopt
       self.mfopt    = mfopt               # specify the element of message function to be optimized
       ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
-                      dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,
+                      dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,eaopt=eaopt,
                       VariablesToOpt=VariablesToOpt,optmol=optmol,lambda_me=lambda_me,
                       batch_size=batch_size,sample=sample,
                       hbshort=hbshort,hblong=hblong,vdwcut=vdwcut,
