@@ -1471,7 +1471,7 @@ class ReaxFF(object):
       self.sess.run(tf.compat.v1.global_variables_initializer())  
       self.sess_build = True
 
-  def update(self,p=None):
+  def update(self,p=None,reset_emol=False):
       self.logger.info('-  updating variables ...')
       # if optcoul==True:
       # else:
