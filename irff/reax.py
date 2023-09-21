@@ -1507,7 +1507,7 @@ class ReaxFF(object):
                    if key in p:
                       p_ = p[key]*self.unit if k in self.punit else p[key]
                       self.feed_dict[self.var[key]] = p_
-                      self.ea_var[key]              = p_
+                      self.ea_var[key]              = p[key]
 
       for mol in self.mols:
           mol_ = mol.split('-')[0]
