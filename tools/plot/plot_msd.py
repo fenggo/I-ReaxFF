@@ -17,7 +17,9 @@ msd_x = data[:,1]
 msd_y = data[:,2]
 msd_z = data[:,3]
 msd   = data[:,4]
- 
+
+print('the average msd: ',np.mean(msd))
+
 plt.figure()     
 plt.plot(t,msd_x,alpha=0.8,linewidth=1,linestyle='-',color='k',
          marker='v', markeredgecolor='b', markeredgewidth=1,markersize=5,markerfacecolor='none',
