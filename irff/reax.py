@@ -1624,16 +1624,6 @@ class ReaxFF(object):
                 else:
                    i = 0
 
-             if not close_session:
-                if i<=200:
-                   _loss = loss_
-                else:
-                   if loss_>=_loss:
-                      self.logger.info('-  No other minimum found, optimization compeleted.')
-                      break
-                   else:
-                      _loss = loss_
-
           if accu>=self.convergence and loss_<=self.lossConvergence:
              self.accu = accu
              E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
