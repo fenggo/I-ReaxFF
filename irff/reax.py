@@ -1479,7 +1479,7 @@ class ReaxFF(object):
       return self.MolEnergy_
 
   def update(self,p=None,reset_emol=False):
-      self.logger.info('-  updating variables (reax)...')
+      self.logger.info('-  updating variables ...')
       # if optcoul==True:
       # else:
       upop = []
@@ -1506,7 +1506,7 @@ class ReaxFF(object):
                 elif key in self.ea_var:
                    self.feed_dict[self.var[key]] = p_
                    self.ea_var[key]              = p[key]
-                   self.logger.info('{:s} {:f}'.format(key,p[key]))
+                   # self.logger.info('{:s} {:f}'.format(key,p[key]))
 
       for mol in self.mols:
           mol_ = mol.split('-')[0]
