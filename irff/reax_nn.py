@@ -1232,7 +1232,7 @@ class ReaxFF_nn(object):
       self.ea_var = {}        # parameter list to be optimized with evolutional algrithom
       for k in self.var:
             key = k.split('_')[0]
-            if key in self.eaopt:
+            if key in self.eaopt or k in self.eaopt:
                self.ea_var[k] = self.p_[k]
 
       if self.clip_op:
