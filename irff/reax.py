@@ -1499,6 +1499,7 @@ class ReaxFF(object):
 
           # if k in self.opt or key in self.opt:
           if p is not None:
+             print(p)
              if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
                 if key in p:
                    p_ = self.p_[key]*self.unit if k in self.punit else self.p_[key]
