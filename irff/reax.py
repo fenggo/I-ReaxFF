@@ -1472,10 +1472,19 @@ class ReaxFF(object):
       self.sess_build = True
       
   def get_zpe(self):
-      e,edft = self.sess.run([self.E,self.dft_energy],feed_dict=self.feed_dict)                                           
+      e,edft = self.sess.run([self.E,self.dft_energy],feed_dict=self.feed_dict)  
+      molecules = {}                                     
       for mol in e:
-          mol_ = mol.split('-')[0]
-          self.MolEnergy_[mol_] = np.mean(edft[mol]) - np.mean(e[mol]) 
+          molecules[mol] = 0.0
+
+      for m in molecules:
+          i = 0
+          for mol in e:
+              mol_ = mol.split('-')[0]
+              if mol_==m:
+                 molecules[m] += np.sum(edft[mol] - e[mol])
+                 i += 1
+          self.MolEnergy_[m] = molecules[m]/(i*self.batch)
       return self.MolEnergy_
 
   def update(self,p=None,reset_emol=False):
