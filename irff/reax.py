@@ -1479,7 +1479,7 @@ class ReaxFF(object):
       return self.MolEnergy_
 
   def update(self,p=None,reset_emol=False):
-      self.logger.info('-  updating variables ...')
+      self.logger.info('-  updating variables (reax)...')
       # if optcoul==True:
       # else:
       upop = []
@@ -1499,14 +1499,11 @@ class ReaxFF(object):
 
           # if k in self.opt or key in self.opt:
           if p is not None:
-             print(p)
-             if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
-                if key in p:
-                   p_ = self.p_[key]*self.unit if k in self.punit else self.p_[key]
+             if key in p:
+                p_ = p[key]*self.unit if k in self.punit else p[key]
+                if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
                    if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
-             elif key in self.ea_var:
-                if key in p:
-                   p_ = p[key]*self.unit if k in self.punit else p[key]
+                elif key in self.ea_var:
                    self.feed_dict[self.var[key]] = p_
                    self.ea_var[key]              = p[key]
                    self.logger.info('{:s} {:f}'.format(key,p[key]))
