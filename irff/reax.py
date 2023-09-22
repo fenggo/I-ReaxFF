@@ -1504,10 +1504,11 @@ class ReaxFF(object):
                    p_ = self.p_[key]*self.unit if k in self.punit else self.p_[key]
                    if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
              elif key in self.ea_var:
-                   if key in p:
-                      p_ = p[key]*self.unit if k in self.punit else p[key]
-                      self.feed_dict[self.var[key]] = p_
-                      self.ea_var[key]              = p[key]
+                if key in p:
+                   p_ = p[key]*self.unit if k in self.punit else p[key]
+                   self.feed_dict[self.var[key]] = p_
+                   self.ea_var[key]              = p[key]
+                   print(key,p[key])
 
       for mol in self.mols:
           mol_ = mol.split('-')[0]

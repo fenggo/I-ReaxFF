@@ -719,9 +719,13 @@ class MPNN(ReaxFF):
              k_ = k.split('_')[1]
              if k_ not in self.torp:
                 continue
-          self.p_[k] = float(p_[k])
-          if key in self.punit:
-             self.p_[k] = float(p_[k]/self.unit)
+          if k in self.ea_var:
+             self.p_[k] = self.ea_var[k]
+          else:
+             if key in self.punit:
+                self.p_[k] = float(p_[k]/self.unit)
+             else:
+                self.p_[k] = float(p_[k])
 
       score = loss if loss is None else -loss
          
