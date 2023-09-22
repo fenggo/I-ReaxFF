@@ -86,55 +86,61 @@ def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.cs
 
     for s in spec:
         for k in p_spec:
+            kn = k+'_'+s 
             if parameters is None:
-               p_name.append(k+'_'+s)
+               p_name.append(kn)
             else:
-               if k in parameters:
-                  p_name.append(k+'_'+s)
+               if k in parameters or kn in parameters:
+                  p_name.append(kn)
 
     for bd in bonds:
         for k in p_bond:
+            kn = k+'_'+bd 
             if parameters is None:
-               p_name.append(k+'_'+bd)
+               p_name.append(kn)
             else:
-               if k in parameters:
-                  p_name.append(k+'_'+bd)
+               if k in parameters or kn in parameters:
+                  p_name.append(kn)
 
     for bd in offd:
         for k in p_offd:
+            kn = k+'_'+bd 
             if parameters is None:
-               p_name.append(k+'_'+bd)
+               p_name.append(kn)
             else:
-               if k in parameters:
-                  p_name.append(k+'_'+bd)
+               if k in parameters or kn in parameters:
+                  p_name.append(kn)
 
     for ang in angs:
         a = ang.split('-')
         if a[1]!='H':
            for k in p_ang:
+               kn = k+'_'+ang
                if parameters is None:
-                  p_name.append(k+'_'+ang)
+                  p_name.append(kn)
                else:
-                  if k in parameters:
-                     p_name.append(k+'_'+ang)
+                  if k in parameters or kn in parameters:
+                     p_name.append(kn)
 
     for tor in torp:
         a = tor.split('-')
         if a[1]!='H' and a[2]!='H':
            for k in p_tor:
+               kn = k+'_'+tor
                if parameters is None:
-                  p_name.append(k+'_'+tor)
+                  p_name.append(kn)
                else:
-                  if k in parameters:
-                     p_name.append(k+'_'+tor)
+                  if k in parameters or kn in parameters:
+                     p_name.append(kn)
 
     for hb in hbs:
         for k in p_hb:
+            kn = k+'_'+hb
             if parameters is None:
-               p_name.append(k+'_'+hb)
+               p_name.append(kn)
             else:
-               if k in parameters:
-                  p_name.append(k+'_'+hb)
+               if k in parameters or kn in parameters:
+                  p_name.append(kn)
                   
     p_name.append('score')
 
