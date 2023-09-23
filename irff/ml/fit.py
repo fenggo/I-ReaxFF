@@ -127,6 +127,7 @@ class Linear_bo(object):
             for i in range(self.j['mf_layer'][1]):
                 self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][i],name='fmwh_'+sp))
                 self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
+                
         for bd in self.bonds:
             self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='D_%s' %bd)
             self.D_t[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='Dt_%s' %bd)
