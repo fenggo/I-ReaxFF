@@ -151,7 +151,7 @@ class Linear_bo(object):
 
             b_pred = self.Bp[bd]*ao*ao_t
             # loss+= tf.sqrt(tf.reduce_sum(tf.square(b-b_pred)))
-            loss  += tf.nn.l2_loss(self.B[bd]-b_pred)
+            loss  += tf.compat.v1.losses.absolute_difference(self.B[bd]-b_pred)
         return loss
 
     def session(self,learning_rate=3.0-4,method='AdamOptimizer'):
