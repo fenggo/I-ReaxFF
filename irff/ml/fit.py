@@ -142,11 +142,23 @@ class Linear_bo(object):
         for bd in self.bonds:
             atomi,atomj = bd.split('-')
             ai   = tf.sigmoid(tf.matmul(self.D[bd],self.m['fmwi_'+atomi])  + self.m['fmbi_'+atomi])
-            ah   = tf.sigmoid(tf.matmul(ai,self.m['fmw_'+atomi][0]) + self.m['fmb_'+atomi][0])
+            for i in range(self.j['mf_layer'][1]):
+                if i==0:
+                   a_ = ai
+                else:
+                   a_ = ah
+                ah   = tf.sigmoid(tf.matmul(a_,self.m['fmw_'+atomi][i]) + self.m['fmb_'+atomi][i])
+                
             ao   = tf.sigmoid(tf.matmul(ah,self.m['fmwo_'+atomi]) + self.m['fmbo_'+atomi])
 
             ai_t = tf.sigmoid(tf.matmul(self.D_t[bd],self.m['fmwi_'+atomj]) + self.m['fmbi_'+atomj])
-            ah_t = tf.sigmoid(tf.matmul(ai_t,self.m['fmw_'+atomj][0]) + self.m['fmb_'+atomj][0])
+            for i in range(self.j['mf_layer'][1]):
+                if i==0:
+                   a_ = ai_t
+                else:
+                   a_ = ah_t
+                ah_t  = tf.sigmoid(tf.matmul(a_,self.m['fmw_'+atomj][i]) + self.m['fmb_'+atomj][i])
+            #ah_t = tf.sigmoid(tf.matmul(ai_t,self.m['fmw_'+atomj][0]) + self.m['fmb_'+atomj][0])
             ao_t = tf.sigmoid(tf.matmul(ah_t,self.m['fmwo_'+atomj]) + self.m['fmbo_'+atomj])
 
             b_pred = self.Bp[bd]*ao*ao_t
