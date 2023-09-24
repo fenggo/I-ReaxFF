@@ -334,7 +334,7 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
               print(' {:2s} '.format(sp),end=' ',file=flib) 
               for l in range(mf_layer[1]):
                   for i in range(mf_layer[0]):
-                      if i!=0:
+                      if i!=0 :
                          print('    ',end=' ',file=flib)
                       for j in range(mf_layer[0]):
                           print('{:20.16f}'.format(m['fmw_'+sp][l][i][j]),end=' ',file=flib)
