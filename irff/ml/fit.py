@@ -163,7 +163,7 @@ class Linear_bo(object):
             ao_t = tf.sigmoid(tf.matmul(ah_t,self.m['fmwo_'+atomj]) + self.m['fmbo_'+atomj])
 
             b_pred = self.Bp[bd]*ao*ao_t
-            loss+= tf.sqrt(tf.reduce_sum(tf.square(b-b_pred)))
+            loss+= tf.sqrt(tf.reduce_sum(tf.square(self.B[bd]-b_pred)))
             # loss+= tf.nn.l2_loss(self.B[bd]-b_pred)
             # loss+= tf.compat.v1.losses.absolute_difference(self.B[bd]-b_pred)
         return loss
