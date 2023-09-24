@@ -57,7 +57,12 @@ class Linear_be(object):
         for bd in self.bonds:
             ai   = tf.sigmoid(tf.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
             if self.j['be_layer'][1]>0:
-               ah = tf.sigmoid(tf.matmul(ai,self.m['few_'+bd][0]) + self.m['feb_'+bd][0])
+               for i in range(self.j['be_layer'][1]):
+                   if i==0:
+                      a_ = ai
+                   else:
+                      a_ = ah
+                   ah = tf.sigmoid(tf.matmul(a_,self.m['few_'+bd][i]) + self.m['feb_'+bd][i])
                ao = tf.sigmoid(tf.matmul(ah,self.m['fewo_'+bd]) + self.m['febo_'+bd])
             else:
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
