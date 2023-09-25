@@ -56,7 +56,7 @@ def train(step=5000,print_step=100,writelib=500,
            if key in scale:
               scale_.append(scale[key])
            else:
-              scale_.append(0.01)
+              scale_.append(0.001)
 
     scale_  = np.array(scale_)
     new_row = pd.DataFrame(new_row)
