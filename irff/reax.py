@@ -1475,7 +1475,8 @@ class ReaxFF(object):
       e,edft = self.sess.run([self.E,self.dft_energy],feed_dict=self.feed_dict)  
       molecules = {}                                     
       for mol in e:
-          molecules[mol] = 0.0
+          mol_ = mol.split('-')[0]
+          molecules[mol_] = 0.0
 
       for m in molecules:
           i = 0
