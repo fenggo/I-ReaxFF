@@ -1593,9 +1593,10 @@ class ReaxFF(object):
                 break
 
           if self.optmol:
-             loss_ = loss - lpenalty - ME_*self.lambda_me
+             los_ = loss - lpenalty - ME_*self.lambda_me
           else:
-             loss_ = loss - lpenalty
+             los_ = loss - lpenalty
+          loss_ = los_ if i==0 else min(loss_,los_)
 
           if i%print_step==0:
              current = time.time()
@@ -1607,7 +1608,7 @@ class ReaxFF(object):
                     acc += key+': %6.4f ' %accs[key]
 
              self.logger.info('-  step: %d loss: %6.4f accs: %f %s spv: %6.4f me: %6.4f time: %6.4f' %(i,
-                             loss_,accu,acc,lpenalty,ME_,elapsed_time))
+                             los_,accu,acc,lpenalty,ME_,elapsed_time))
              self.time = current
 
           if i%writelib==0 or i==step:
