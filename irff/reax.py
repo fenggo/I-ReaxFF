@@ -1560,7 +1560,7 @@ class ReaxFF(object):
 
       while totrain:
           if i==0:
-             loss,lpenalty,ME_,accu,accs = self.sess.run([self.Loss,
+             loss,lpenalty,self.ME_,accu,accs = self.sess.run([self.Loss,
                                                       self.loss_penalty,
                                                       self.ME,
                                                       self.accuracy,
@@ -1568,7 +1568,7 @@ class ReaxFF(object):
                                                   feed_dict=self.feed_dict)
              accMax = accu
           else:
-             loss,lpenalty,ME_,accu,accs,_ = self.sess.run([self.Loss,
+             loss,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
                                                       self.loss_penalty,
                                                       self.ME,
                                                       self.accuracy,
@@ -1593,7 +1593,7 @@ class ReaxFF(object):
                 break
 
           if self.optmol:
-             los_ = loss - lpenalty - ME_*self.lambda_me
+             los_ = loss - lpenalty - self.ME_*self.lambda_me
           else:
              los_ = loss - lpenalty
           loss_ = los_ if i==0 else min(loss_,los_)
@@ -1608,7 +1608,7 @@ class ReaxFF(object):
                     acc += key+': %6.4f ' %accs[key]
 
              self.logger.info('-  step: %d loss: %6.4f accs: %f %s spv: %6.4f me: %6.4f time: %6.4f' %(i,
-                             los_,accu,acc,lpenalty,ME_,elapsed_time))
+                             los_,accu,acc,lpenalty,self.ME_,elapsed_time))
              self.time = current
 
           if i%writelib==0 or i==step:
