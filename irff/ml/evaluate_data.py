@@ -158,7 +158,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                   if item:
                      if item != 'score':
                         d.loc[j, item]= float('{:.6f}'.format(p_[item]))         ## 参数有所变化，重新更新值  
-                        print(item,p_[item])
+                        print('parameter: {:s} {:f}'.format(item,p_[item]))
            d.loc[j, 'score'] = -loss
         d.to_csv(fcsv)
     # model.close()
