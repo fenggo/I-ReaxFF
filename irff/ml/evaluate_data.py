@@ -153,7 +153,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
            if np.isnan(loss) or np.isinf(loss) or loss>99999999999.9:
               loss = 99999999999.9
            else:
-              for item in columns:                       ## 对所有列遍历
+              for item in columns:                                ## 对所有列遍历
                   if item:
                      if item != 'score':
                         d.loc[j, item]= float('{:.6f}'.format(p_[item]))         ## 参数有所变化，重新更新值  
