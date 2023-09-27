@@ -1617,8 +1617,7 @@ class ReaxFF(object):
                 
              if i==step:
                 if saveffield: self.write_lib(libfile=libfile,loss=loss_)
-                E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
-                                        feed_dict=self.feed_dict)
+                E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],feed_dict=self.feed_dict)
                 self.plot_result(i,E,dfte)
                 
                 if not close_session or accu>self.convergence:
@@ -1628,8 +1627,7 @@ class ReaxFF(object):
 
           if accu>=self.convergence and loss_<=self.lossConvergence:
              self.accu = accu
-             E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
-                                     feed_dict=self.feed_dict)
+             E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],feed_dict=self.feed_dict)
              self.plot_result(None,E,dfte)
              self.write_lib(libfile=libfile,loss=loss_)
              print('-  Convergence Occurred, job compeleted.')
