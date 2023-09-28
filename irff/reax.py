@@ -1489,7 +1489,7 @@ class ReaxFF(object):
       return self.MolEnergy_
 
   def update(self,p=None,reset_emol=False):
-      self.logger.info('-  updating variables ...')
+      # self.logger.info('-  updating variables ...')
       # if optcoul==True:
       # else:
       upop = []
