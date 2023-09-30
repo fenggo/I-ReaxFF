@@ -80,19 +80,20 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # ax.spines['bottom'].set_position(('data', 0))
 
     plt.plot(r,e2,alpha=0.8,
-             linestyle='-',#marker='s',markerfacecolor='none',
-             #markeredgewidth=1,markeredgecolor='r',markersize=3,
-             color='red',label=r'$ReaxFF$-$RDX$')
+             linestyle='-',marker='^',markerfacecolor='none',
+             markeredgewidth=1,markeredgecolor='b',markersize=8,
+             color='b',label=r'$ReaxFF$-$RDX$')
 
     plt.plot(r,e1,alpha=0.8,
              linestyle='-',marker='o',markerfacecolor='none',
-             markeredgewidth=1,markeredgecolor='b',markersize=10,
-             color='k',label=r'$ReaxFF-nn$')
+             markeredgewidth=1,markeredgecolor='r',markersize=8,
+             color='r',label=r'$ReaxFF-nn$')
 
     plt.plot(r,e3,alpha=0.8,
-             linestyle='-',#marker='s',markerfacecolor='none',
-             #markeredgewidth=1,markeredgecolor='r',markersize=3,
-             color='blue',label=r'$ReaxFF$-$lg$')
+             linestyle='-',marker='s',markerfacecolor='none',
+             markeredgewidth=1,markeredgecolor='k',markersize=8,
+             color='k',label=r'$ReaxFF$-$lg$')
+             
     # ediff = np.abs(e - ei)
     # plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
     #                  alpha=0.2)
