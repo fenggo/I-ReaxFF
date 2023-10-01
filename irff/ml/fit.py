@@ -32,7 +32,7 @@ class Linear_be(object):
         self.bonds = bonds_ if bonds is None else bonds 
         self.m = {}
         hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
-        self.be_layer = self.j['be_layer'] if be_layer is None else be_layer[1]
+        self.be_layer = self.j['be_layer'] if be_layer is None else be_layer
 
         self.E,self.B = {},{}
         for bd in self.bonds:
