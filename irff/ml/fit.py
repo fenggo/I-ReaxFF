@@ -54,6 +54,7 @@ class Linear_be(object):
     def build_graph(self):
         #print('build graph ...')
         loss = 0.0
+        self.E_pred = {}
         for bd in self.bonds:
             ai   = tf.sigmoid(tf.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
             if self.j['be_layer'][1]>0:
@@ -67,9 +68,9 @@ class Linear_be(object):
             else:
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
 
-            e_pred = ao
+            self.E_pred[bd] = ao
             # loss+= tf.reduce_sum(tf.square(self.E[bd]-e_pred))
-            loss  += tf.nn.l2_loss(self.E[bd]-e_pred)
+            loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
         return loss
 
     def session(self,learning_rate=3.0e-4,method='AdamOptimizer'):
