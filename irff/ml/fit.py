@@ -43,12 +43,16 @@ class Linear_be(object):
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
-                w = np.array(self.j['m']['few_'+bd][i])
-                b = np.array(self.j['m']['few_'+bd][i])
-                m,n = w.shape
-                print('hidden layer:',i,m,n)
-                self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
-                self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
+                # w = np.array(self.j['m']['few_'+bd][i])
+                # b = np.array(self.j['m']['few_'+bd][i])
+                # m,n = w.shape
+                # print('hidden layer:',i,m,n)
+                if i+1 > self.j['be_layer'][1]:
+                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i-1],name='fewh_'+bd))
+                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i-1],name='febh_'+bd))
+                else:
+                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
+                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
          
         for bd in self.bonds:
             self.E[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,1],name='E_%s' %bd)
