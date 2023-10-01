@@ -67,7 +67,7 @@ class Linear_be(object):
             else:
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
 
-            e_pred = ao*self.j['p']['Desi_'+bd]*4.3364432032e-2
+            e_pred = -ao*self.j['p']['Desi_'+bd]*4.3364432032e-2
             loss+= tf.sqrt(tf.reduce_sum(tf.square(self.E[bd]-e_pred)))
             # loss  += tf.nn.l2_loss((self.E[bd]-e_pred)*self.j['p']['Desi_'+bd]*4.3364432032e-2)
         return loss
