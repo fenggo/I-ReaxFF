@@ -48,10 +48,10 @@ class Linear_be(object):
                 # m,n = w.shape
                 # print('hidden layer:',i,m,n)
                 if i+1 > self.j['be_layer'][1]:
-                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i-1],name='fewh_'+bd))
-                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i-1],name='febh_'+bd))
-                   self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][i-1])
-                   self.j['m']['feb_'+bd].append(self.j['m']['feb_'+bd][i-1])
+                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][-1],name='fewh_'+bd))
+                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][-1],name='febh_'+bd))
+                   self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][-1])
+                   self.j['m']['feb_'+bd].append(self.j['m']['feb_'+bd][-1])
                 else:
                    self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
                    self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
