@@ -25,13 +25,15 @@ def resolve():
 
 
 class Linear_be(object):
-    def __init__(self,Bp,D,B,E,bonds=None):
+    def __init__(self,Bp,D,B,E,be_layer=None,bonds=None,random_init=0):
         with open('ffield.json','r') as lf:
             self.j = js.load(lf)
         self.spec,bonds_,offd,angs,torp,hbs = init_bonds(self.j['p'])
         self.bonds = bonds_ if bonds is None else bonds 
         self.m = {}
-        hidelayer  = self.j['be_layer'][1]
+        hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
+        self.be_layer = self.j['be_layer'] be_layer is None else be_layer[1]
+
         self.E,self.B = {},{}
         for bd in self.bonds:
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
@@ -41,6 +43,10 @@ class Linear_be(object):
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
+                w = np.array(self.j['m']['few_'+bd][i])
+                b = np.array(self.j['m']['few_'+bd][i])
+                m,n = w.shape
+                print('hidden layer:',i,m,n)
                 self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
                 self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
          
@@ -57,8 +63,8 @@ class Linear_be(object):
         self.E_pred = {}
         for bd in self.bonds:
             ai   = tf.sigmoid(tf.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
-            if self.j['be_layer'][1]>0:
-               for i in range(self.j['be_layer'][1]):
+            if self.be_layer[1]>0:
+               for i in range(self.be_layer[1]):
                    if i==0:
                       a_ = ai
                    else:
@@ -108,7 +114,7 @@ class Linear_be(object):
             self.j['m']['fewo_'+bd] = self.sess.run(self.m['fewo_'+bd]).tolist()
             self.j['m']['febo_'+bd] = self.sess.run(self.m['febo_'+bd]).tolist()
 
-            for i in range(self.j['be_layer'][1]):
+            for i in range(self.be_layer[1]):
                 self.j['m']['few_'+bd][i] = self.sess.run(self.m['few_'+bd][i]).tolist()
                 self.j['m']['feb_'+bd][i] = self.sess.run(self.m['feb_'+bd][i]).tolist()
         
