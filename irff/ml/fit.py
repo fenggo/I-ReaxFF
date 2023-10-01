@@ -34,6 +34,7 @@ class Linear_be(object):
         hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
         self.be_layer = self.j['be_layer'] if be_layer is None else be_layer
 
+
         self.E,self.B = {},{}
         for bd in self.bonds:
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
@@ -55,7 +56,8 @@ class Linear_be(object):
                 else:
                    self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
                    self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
-         
+        if hidelayer > self.j['be_layer'][1]:
+           self.j['be_layer'][1] = hidelayer
         for bd in self.bonds:
             self.E[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,1],name='E_%s' %bd)
             self.B[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='B_%s' %bd)
