@@ -667,13 +667,13 @@ class IRFF(Calculator):
                 if sp1 != 'H':
                     for sp2 in self.spec:
                         if sp2 != 'H':
-                        hb = sp1+'-H-'+sp2
-                        if hb not in self.Hbs:
-                            self.Hbs.append(hb) # 'rohb','Dehb','hb1','hb2'
-                            self.p['rohb_'+hb] = 1.9
-                            self.p['Dehb_'+hb] = 0.0
-                            self.p['hb1_'+hb]  = 2.0
-                            self.p['hb2_'+hb]  = 19.0
+                            hb = sp1+'-H-'+sp2
+                            if hb not in self.Hbs:
+                                self.Hbs.append(hb) # 'rohb','Dehb','hb1','hb2'
+                                self.p['rohb_'+hb] = 1.9
+                                self.p['Dehb_'+hb] = 0.0
+                                self.p['hb1_'+hb]  = 2.0
+                                self.p['hb2_'+hb]  = 19.0
 
     def check_offd(self):
         p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
