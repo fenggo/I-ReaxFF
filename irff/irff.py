@@ -1,5 +1,13 @@
 import json as js
+import ctypes
 import numpy as np
+from numpy.linalg import norm
+from ase.calculators.calculator import Calculator
+from ase.data import (atomic_numbers as ase_atomic_numbers,
+                      chemical_symbols as ase_chemical_symbols,
+                      atomic_masses as ase_atomic_masses)
+from ase.calculators.lammps import convert
+from ase.geometry import wrap_positions
 from ase import Atoms
 from ase.io import read,write
 from ase.calculators.calculator import Calculator, all_changes
