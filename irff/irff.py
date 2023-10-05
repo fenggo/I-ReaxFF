@@ -111,9 +111,9 @@ def relu(x):
 
 
 class IRFF(Calculator):
-  '''Intelligent Machine-Learning ASE calculator based on LAMMPS Python module
-     Modified from ASE LAMMPSlib.py
-  '''
+    '''Intelligent Machine-Learning ASE calculator based on LAMMPS Python module
+       Modified from ASE LAMMPSlib.py
+    '''
     name = "IRFF"
     implemented_properties = ['energy', 'forces', 'stress']
 
