@@ -183,9 +183,9 @@ class IRFF(Calculator):
             else:
                 mol_ = mol.split('-')[0]
                 if mol_ in self.MolEnergy_:
-                self.emol = self.MolEnergy_[mol_]
+                   self.emol = self.MolEnergy_[mol_]
                 else:
-                self.emol = 0.0
+                   self.emol = 0.0
 
             self.spec,self.bonds,self.offd,self.angs,self.torp,self.hbs = init_bonds(self.p)
             write_ffield(self.p,self.spec,self.bonds,self.offd,self.angs,self.torp,self.hbs,
