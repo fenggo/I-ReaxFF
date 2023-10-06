@@ -138,7 +138,7 @@ class IRFF(Calculator):
             read_molecular_info=False,
             comm=None)
 
-    def __init__(self,atoms=None,
+    def __init__(self,
                  mol=None,
                  libfile='ffield.json',
                  vdwcut=10.0,
@@ -147,10 +147,6 @@ class IRFF(Calculator):
                  active_learning=False,
                  *args,**kwargs):
         Calculator.__init__(self,label=label, **kwargs)
-        self.atoms        = atoms
-        self.cell         = atoms.get_cell()
-        self.atom_name    = self.atoms.get_chemical_symbols()
-        self.natom        = len(self.atom_name)
         self.spec         = []
         self.GPa          = 1.60217662*1.0e2
         self.active_learning = active_learning
@@ -200,6 +196,7 @@ class IRFF(Calculator):
             self.emol     = 0.0
             rcut          = None
             rcuta         = None
+            re            = None
             self.vdwnn    = False
             self.EnergyFunction  = 0
             self.MessageFunction = 0
@@ -660,6 +657,11 @@ class IRFF(Calculator):
         self.lmp.command('variable fz atom fz')
         self.lmp.command('variable pe equal pe')
         self.lmp.command("neigh_modify delay 0 every 1 check yes")
+        # self.atoms      = atoms
+        self.cell         = atoms.get_cell()
+        self.atom_name    = atoms.get_chemical_symbols()
+        self.natom        = len(self.atom_name)
+
         self.initialized = True
 
     def check_hb(self):
