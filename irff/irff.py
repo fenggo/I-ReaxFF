@@ -13,7 +13,7 @@ from ase.io import read,write
 from ase.calculators.calculator import Calculator, all_changes
 # from .qeq import qeq
 from .RadiusCutOff import setRcut
-from .reaxfflib import read_ffield,write_lib
+from .reaxfflib import read_ffield,write_lib,write_ffield
 from .intCheck import init_bonds
 # from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
