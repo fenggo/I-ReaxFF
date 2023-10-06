@@ -1064,24 +1064,24 @@ class IRFF(Calculator):
         for key in p_g:
             self.P[key] = self.p[key]
     
-        for key in self.p_ang:
-            unit_ = self.unit if key in self.punit else 1.0
-            for a in self.Angs:
-                pn = key + '_' + a
-                self.p[pn] = self.p[pn]*unit_
+        # for key in self.p_ang:
+        #     unit_ = self.unit if key in self.punit else 1.0
+        #     for a in self.Angs:
+        #         pn = key + '_' + a
+        #         self.p[pn] = self.p[pn]*unit_
 
-        for key in self.p_tor:
-            unit_ = self.unit if key in self.punit else 1.0
-            for t in self.Tors:
-                pn = key + '_' + t
-                if pn in self.p:
-                    self.p[pn] = self.p[pn]*unit_
-                else:
-                    self.p[pn] = 0.0
+        # for key in self.p_tor:
+        #     unit_ = self.unit if key in self.punit else 1.0
+        #     for t in self.Tors:
+        #         pn = key + '_' + t
+        #         if pn in self.p:
+        #             self.p[pn] = self.p[pn]*unit_
+        #         else:
+        #             self.p[pn] = 0.0
 
-        for h in self.Hbs:
-            pn = 'Dehb_' + h
-            self.p[pn] = self.p[pn]*self.unit
+        # for h in self.Hbs:
+        #     pn = 'Dehb_' + h
+        #     self.p[pn] = self.p[pn]*self.unit
 
         if self.nn:
             self.set_m(m)
