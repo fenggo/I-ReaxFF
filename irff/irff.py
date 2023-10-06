@@ -204,11 +204,7 @@ class IRFF(Calculator):
             self.p['acut']   = 0.0001
             self.p['hbtol']  = 0.0001
 
-        self.nn=False if m is None else True
-        for sp in self.atom_name:
-            if sp not in self.spec:
-                self.spec.append(sp)
-
+        self.nn        = False if m is None else True
         self.hbshort   = hbshort
         self.hblong    = hblong
         self.set_rcut(rcut,rcuta,re)
@@ -661,8 +657,7 @@ class IRFF(Calculator):
         self.cell         = atoms.get_cell()
         self.atom_name    = atoms.get_chemical_symbols()
         self.natom        = len(self.atom_name)
-
-        self.initialized = True
+        self.initialized  = True
 
     def check_hb(self):
         if 'H' in self.spec:
