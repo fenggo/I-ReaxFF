@@ -139,7 +139,7 @@ class IRFF(Calculator):
             comm=None)
 
     def __init__(self,
-                 mol=None,
+                 mol=None,atoms=None,
                  libfile='ffield.json',
                  vdwcut=10.0,
                  hbshort=6.75,hblong=7.5,
@@ -203,7 +203,11 @@ class IRFF(Calculator):
             self.VdwFunction     = 0
             self.p['acut']   = 0.0001
             self.p['hbtol']  = 0.0001
-
+        # self.atoms      = atoms
+        self.cell         = atoms.get_cell()
+        self.atom_name    = atoms.get_chemical_symbols()
+        self.natom        = len(self.atom_name)
+        
         self.nn        = False if m is None else True
         self.hbshort   = hbshort
         self.hblong    = hblong
@@ -653,10 +657,6 @@ class IRFF(Calculator):
         self.lmp.command('variable fz atom fz')
         self.lmp.command('variable pe equal pe')
         self.lmp.command("neigh_modify delay 0 every 1 check yes")
-        # self.atoms      = atoms
-        self.cell         = atoms.get_cell()
-        self.atom_name    = atoms.get_chemical_symbols()
-        self.natom        = len(self.atom_name)
         self.initialized  = True
 
     def check_hb(self):
