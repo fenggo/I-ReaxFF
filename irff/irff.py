@@ -188,8 +188,8 @@ class IRFF(Calculator):
                 else:
                    self.emol = 0.0
 
-            self.spec,self.bonds,self.offd,self.angs,self.torp,self.hbs = init_bonds(self.p)
-            write_ffield(self.p,self.spec,self.bonds,self.offd,self.angs,self.torp,self.hbs,
+            self.spec,self.bonds,self.offd,self.angs,self.torp,self.Hbs = init_bonds(self.p)
+            write_ffield(self.p,self.spec,self.bonds,self.offd,self.angs,self.torp,self.Hbs,
                         m=m,mf_layer=self.mf_layer,be_layer=self.be_layer,
                         libfile='ffield')
         else:
