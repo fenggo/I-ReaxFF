@@ -7,11 +7,10 @@ from ase import Atoms
 import matplotlib.pyplot as plt
 import numpy as np
 from irff.irff_np import IRFF_NP
-from ase.calculators.lammpslib import LAMMPSlib
+# from ase.calculators.lammpslib import LAMMPSlib
+from irff.irff import IRFF
 
-LAMMPSlib.default_parameters['lammps_header'] =  ['units real',
-                                                  'atom_style charge',
-                                                  'atom_modify map array sort 0 0']
+IRFF.default_parameters['keep_alive'] = False
 
 cmd1 = ["pair_style     reaxff control nn yes checkqeq yes",
         "pair_coeff     * * ffield C H N O",
@@ -27,10 +26,10 @@ cmd3 = ["pair_style     reaxff control.lg lgvdw yes checkqeq yes",
 
 def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     ffield = 'ffield.json' if nn else 'ffield'
-    images         = Trajectory(traj)
-    step,e1,ei,e2  = [],[],[],[]
-    e3             = []
-    r              = []
+    images          = Trajectory(traj)
+    step,e1,ei,e2,e = [],[],[],[],[]
+    e3              = []
+    r               = []
 
     ir = IRFF_NP(atoms=images[0],
               libfile=ffield,
@@ -42,15 +41,15 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         step.append(i_)
         atoms1=atoms.copy()
         atoms2=atoms.copy()
-        # e.append(atoms.get_potential_energy())
+        e.append(atoms.get_potential_energy())
 
         ir.calculate(atoms)
         ei.append(ir.E)
         r.append(ir.r[i][j])
 
-        lmp1 = LAMMPSlib(lmpcmds=cmd1, log_file='test1.log')
-        lmp2 = LAMMPSlib(lmpcmds=cmd2, log_file='test2.log')
-        lmp3 = LAMMPSlib(lmpcmds=cmd3, log_file='test3.log')
+        lmp1 = IRFF(atoms=atoms,lmpcmds=cmd1, log_file='test1.log')
+        lmp2 = IRFF(atoms=atoms,lmpcmds=cmd2, log_file='test2.log')
+        lmp3 = IRFF(atoms=atoms,lmpcmds=cmd3, log_file='test3.log')
         atoms.calc = lmp1
         e1.append(atoms.get_potential_energy())
         atoms1.calc = lmp2
@@ -59,6 +58,8 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         e3.append(atoms2.get_potential_energy())
         print("Energy: ", e1[-1],e2[-1],e3[-1],ir.E)
 
+    e_max = min(e)
+    e = np.array(e) - e_max
     e_max = min(e1)
     e1 = np.array(e1) - e_max
     e_max = min(ei)
@@ -67,9 +68,6 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     e2   = np.array(e2) - e_max
     e_max = min(e3)
     e3   = np.array(e3) - e_max
-
-    if i==0 and j==0:
-       r = [i_ for i_ in range(len(e))]
     plt.figure()   
     plt.ylabel(r'$Energy$ ($eV$)')
     plt.xlabel(r'$Time$ $Step$ ($fs$)')
@@ -81,7 +79,13 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # ax.spines['top'].set_color('none')
     # ax.spines['left'].set_position(('data',0))
     # ax.spines['bottom'].set_position(('data', 0))
-
+    if i==0 and j==0:
+       r = [i_ for i_ in range(len(e))]
+    plt.plot(r,e,alpha=0.8,
+             linestyle='-',marker='*',markerfacecolor='none',
+             markeredgewidth=1,markeredgecolor='yellowgreen',markersize=8,
+             color='yellowgreen',label=r'$DFT(SIESTA)$')
+    
     plt.plot(r,e2,alpha=0.8,
              linestyle='-',marker='^',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='b',markersize=8,
@@ -96,7 +100,6 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
              linestyle='-',marker='s',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='k',markersize=8,
              color='k',label=r'$ReaxFF$-$lg$')
-             
     # ediff = np.abs(e - ei)
     # plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
     #                  alpha=0.2)
@@ -120,5 +123,3 @@ if __name__ == '__main__':
    parser.add_argument('--j', default=0,type=int, help='atom j')
    args = parser.parse_args(sys.argv[1:])
    trajplot(traj=args.t,i=args.i,j=args.j)
-
-
