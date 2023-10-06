@@ -54,6 +54,9 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     e2    = np.array(e2) - e_max
     e_max = min(e)
     e     = np.array(e) - e_max
+
+    if i==0 and j==0:
+       r = [i_ for i_ in range(len(e))]
     plt.figure()   
     plt.ylabel(r'$Energy$ ($eV$)')
     plt.xlabel(r'$Time$ $Step$ ($fs$)')
@@ -105,7 +108,7 @@ if __name__ == '__main__':
    parser = argparse.ArgumentParser(description='stretch molecules')
    parser.add_argument('--t', default='gulp.traj',type=str, help='trajectory file')
    parser.add_argument('--i', default=0,type=int, help='atom i')
-   parser.add_argument('--j', default=1,type=int, help='atom j')
+   parser.add_argument('--j', default=0,type=int, help='atom j')
    args = parser.parse_args(sys.argv[1:])
    trajplot(traj=args.t,i=args.i,j=args.j)
 
