@@ -14,6 +14,7 @@ from ase.calculators.calculator import Calculator, all_changes
 # from .qeq import qeq
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib
+from .intCheck import init_bonds
 # from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
 def is_upper_triangular(arr, atol=1e-8):
@@ -177,7 +178,7 @@ class IRFF(Calculator):
             rcuta               = j['rcutBond']
             re                  = j['rEquilibrium']
             lf.close()
-            self.init_bonds()
+            #self.init_bonds()
             if mol is None:
                 self.emol = 0.0
             else:
