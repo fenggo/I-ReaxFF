@@ -139,7 +139,7 @@ class IRFF(Calculator):
 
     def __init__(self,atoms=None,
                  mol=None,
-                 libfile='ffield',
+                 libfile='ffield.json',
                  vdwcut=10.0,
                  hbshort=6.75,hblong=7.5,
                  label="IRFF", 
