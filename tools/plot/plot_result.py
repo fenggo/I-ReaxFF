@@ -17,8 +17,8 @@ c = np.abs(Y-Yp)
 cmap = plt.get_cmap("Reds")  # cm.coolwarm # 
 
 plt.figure()
-plt.xlabel('E(DFT)')
-plt.ylabel('E(ReaxFF-nn)')
+plt.xlabel('E(DFT)',fontsize=14)
+plt.ylabel('E(ReaxFF-nn)',fontsize=14)
 cb = plt.scatter(Y, Yp,
                  marker='o', edgecolor='r', s=25,
                  color='none',# cmap=cmap, c=c,  # zorder=-10,
