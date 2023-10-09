@@ -44,10 +44,14 @@ def read_individuals():
                    i = int(l[1])
                    e = float(l[3])
                    d = float(l[5])
-                   if g in gene:  
-                      gene[g].append((i,e,d))
+                   if l[0].find('N/A')>0:
+                     f = 100001
                    else:
-                      gene[g] = [(i,e,d)]
+                     f = float(l[6])
+                   if g in gene:  
+                      gene[g].append((i,e,d,f))
+                   else:
+                      gene[g] = [(i,e,d,f)]
                    # enthalpy.append(float(l[3]))
          st.close()
 
@@ -72,8 +76,8 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
 
        res = read_individuals()
 
-       for i,e,d in res:
-           if d>density:
+       for i,e,d,f in res:
+           if d>density and f<0.0:
               ids.append(i)
 
     root_dir   = getcwd()
