@@ -81,8 +81,9 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
               ids.append(i)
 
     root_dir   = getcwd()
-    with open('density.log','w') as fd:
-         print('# Crystal_id Density',file=fd)
+    if not exists('density.log'):
+       with open('density.log','w') as fd:
+            print('# Crystal_id Density',file=fd)
          
     for s in ids:
         work_dir = root_dir+'/'+str(s)
