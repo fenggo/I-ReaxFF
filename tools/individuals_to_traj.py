@@ -32,7 +32,7 @@ def poscars_to_traj(fposcar):
     lines = fbp.readlines()
     fbp.close()
 
-    traj =  TrajectoryWriter('structures.traj',mode='w')
+    traj =  TrajectoryWriter('Individuals.traj',mode='w')
     k        = 0
     s        = 0 
     energies = []
