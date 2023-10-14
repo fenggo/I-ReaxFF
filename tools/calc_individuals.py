@@ -60,7 +60,7 @@ def read_individuals():
     return gene[k_]
 
 
-def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
+def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
     images = Trajectory(traj)
     if not ids:
        ids = []
@@ -110,5 +110,5 @@ if __name__=='__main__':
    args = parser.parse_args(sys.argv[1:])
 
    # ids = range(190,239)
-   calc_strutures('Individuals.traj',density=args.d,step=300,ncpu=args.n)
+   calc_individuals('Individuals.traj',density=args.d,step=300,ncpu=args.n)
    
