@@ -59,15 +59,6 @@ def read_individuals():
     k_ = max(k)
     return gene[k_]
 
-def opt_structure(ncpu=8,T=2500,us='F',gen='poscar.gen',l=0,i=-1,step=200):
-    if exists('siesta.MDE') or exists('siesta.MD_CAR'):
-       system('rm siesta.MDE siesta.MD_CAR')
-    A = read(gen,index=i)
-    # A = press_mol(A)
-    print('\n-  running siesta opt ...')
-    vc = 'true' if l else 'false'
-    siesta_opt(A,ncpu=ncpu,us=us,VariableCell=vc,tstep=step,
-               xcf='GGA',xca='PBE',basistype='split')
 
 def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
     images = Trajectory(traj)
@@ -114,8 +105,9 @@ def calc_strutures(traj,density=1.88,ids=None,step=50,ncpu=8):
 if __name__=='__main__': 
    parser = argparse.ArgumentParser(description='nohup ./train.py --v=1 --h=0> py.log 2>&1 &')
    parser.add_argument('--d',default=1.95,type=float, help='the density that big than this value')
+   parser.add_argument('--n',default=8,type=int, help='the number of CPU used to calculate')
    args = parser.parse_args(sys.argv[1:])
 
    # ids = range(190,239)
-   calc_strutures('Individuals.traj',density=args.d,step=300,ncpu=8)
+   calc_strutures('Individuals.traj',density=args.d,step=300,ncpu=args.n)
    
