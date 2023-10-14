@@ -110,5 +110,5 @@ if __name__=='__main__':
    args = parser.parse_args(sys.argv[1:])
 
    # ids = range(190,239)
-   calc_individuals('Individuals.traj',density=args.d,step=300,ncpu=args.n)
+   calc_individuals('Individuals.traj',ids=args.i,density=args.d,step=300,ncpu=args.n)
    
