@@ -44,7 +44,7 @@ def read_individuals():
                    i = int(l[1])
                    e = float(l[3])
                    d = float(l[5])
-                   if l[0].find('N/A')>0:
+                   if l.find('N/A')>0:
                      f = 100001
                    else:
                      f = float(l[6])
