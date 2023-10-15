@@ -45,7 +45,7 @@ def read_individuals():
                    e = float(l[3])
                    d = float(l[5])
                    if l.find('N/A')>0:
-                     f = 100001
+                     f = 99999
                    else:
                      f = float(l[6])
                    if g in gene:  
