@@ -365,8 +365,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
-       print(' velocity    all create 300 {:d}'.format(random.seed()), file=fin)
        print('read_data    %s' %data, file=fin)
+       print(' velocity    all create 300 {:d}'.format(random.seed()), file=fin)
     if restart != None and restart != 'None':
        print('read_restart %s' %restart, file=fin)
     print(' ', file=fin)
