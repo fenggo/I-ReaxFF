@@ -1,5 +1,6 @@
 from os import system
 from collections import deque
+import random
 # from .findmole import check_decomposed
 from ase.io import read,write
 from ase import Atoms
@@ -364,6 +365,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
+       print(' velocity    all create 300 {:d}'.format(random.seed()), file=fin)
        print('read_data    %s' %data, file=fin)
     if restart != None and restart != 'None':
        print('read_restart %s' %restart, file=fin)
