@@ -106,6 +106,7 @@ if __name__=='__main__':
    parser = argparse.ArgumentParser(description='nohup ./calc_individuals.py --d=1.9 --n=8> py.log 2>&1 &')
    parser.add_argument('--d',default=1.95,type=float, help='the density that big than this value')
    parser.add_argument('--n',default=8,type=int, help='the number of CPU used to calculate')
+   parser.add_argument('--s',default=300,type=int, help='the max number of steps used for geometry optimiztion')
    parser.add_argument('--i',default=[],type=list, help='the list of crystal id to be calculated')
    args = parser.parse_args(sys.argv[1:])
 
