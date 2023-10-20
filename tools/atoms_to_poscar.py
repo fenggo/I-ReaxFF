@@ -14,3 +14,18 @@ atoms = read(args.gen,index=args.i)
 structure = AseAtomsAdaptor.get_structure(atoms)
 
 structure.to(filename="POSCAR")
+
+with open('POSCAR','r') as f:
+     lines = f.readlines()
+
+
+with open('POSCAR','w') as f:
+     card = False
+     for line in lines:
+         if line.find('direct')>=0:
+            card = True
+         if card and line.find('direct')<0:
+            print(line[:-3],file=f)
+         else:
+            print(line[:-1],file=f)
+            
