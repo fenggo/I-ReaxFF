@@ -18,7 +18,6 @@ structure.to(filename="POSCAR")
 with open('POSCAR','r') as f:
      lines = f.readlines()
 
-
 with open('POSCAR','w') as f:
      card = False
      for line in lines:
