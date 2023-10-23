@@ -40,21 +40,21 @@ for gen in gens:
 
 plt.figure()   
 plt.ylabel(r'$Density$ ($g/cm^3$)')
-plt.xlabel(r'$HB$ $Energy \times -1$ ($eV$)')
+plt.xlabel(r'$-1 \times HB$ $Energy$ ($eV$)')
 
 # plt.subplot(2,1,1)
 plt.scatter(Ehb,D,alpha=0.8,
-            edgecolor='r', s=20,color='none',
+            edgecolor='r', s=35,color='none',marker='o',
             label=r'$Total$ $HB$ $Energy$')
 
 plt.scatter(Ehb1,D,alpha=0.8,
-            edgecolor='b', s=20,color='none',
+            edgecolor='b', s=35,color='none',marker='s',
             label=r'$HB(C-H\dots O)$ $Energy$')
 
-x = np.linspace(0.59,0.78)
-y = x*0.75 + 1.3
+x = np.linspace(0.59,0.77)
+y = x*0.67 + 1.41
 
-plt.plot(x,y,color='k',linestyle=':')
+plt.plot(x,y,color='k',linestyle='-.')
 # plt.subplot(2,1,2)
 # plt.scatter(E,D,alpha=0.8,
 #             edgecolor='r', s=20,color='none',
