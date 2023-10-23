@@ -33,8 +33,8 @@ for gen in gens:
     print('Ehbond: {:8.4f}, Density: {:9.6}'.format(Ehb[-1],density) )
 
 plt.figure()   
-plt.ylabel(r'$Hydrogen Bond Energy$ ($\times -1 eV$)')
-plt.xlabel(r'$Density$ ($g/cm^3$)')
+plt.ylabel(r'$Density$ ($g/cm^3$)')
+plt.xlabel(r'$HB$ $Energy \times -1$ ($eV$)')
 
 
 plt.scatter(Ehb,D,alpha=0.8,
