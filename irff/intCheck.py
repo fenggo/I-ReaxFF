@@ -113,7 +113,12 @@ class Intelligent_Check(object):
 
       for key in p:
           k = key.split('_')[0]
-          if k in self.clip: 
+          if key in self.clip: 
+             if p[key]>self.clip[key][1]:
+                p[key] = value(self.clip[key][1],key)
+             if p[key]<self.clip[key][0]:
+                p[key] = value(self.clip[key][0],key)
+          elif k in self.clip: 
              if p[key]>self.clip[k][1]:
                 p[key] = value(self.clip[k][1],key)
              if p[key]<self.clip[k][0]:
