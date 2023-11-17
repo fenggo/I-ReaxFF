@@ -109,7 +109,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     # plt.scatter(ph[i],vh[i],marker = 'o', color = cmap.to_rgba(t), s=50, alpha=0.4)
     plt.plot(steps,e,label=r'$energy .vs. step$', color='black', linewidth=1.5, linestyle='-.')
     plt.legend()
-    plt.savefig('energy.eps') 
+    plt.savefig('energy.pdf') 
     plt.close()
 
     plt.figure()
@@ -117,7 +117,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.xlabel(r'$Step$')
     plt.plot(steps,t,label=r'$Temperature .vs. step$', color='black', linewidth=1.5, linestyle='-.')
     plt.legend()
-    plt.savefig('temperature.eps') 
+    plt.savefig('temperature.pdf') 
     plt.close()
 
     plt.figure()
@@ -127,7 +127,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.plot(steps,b,label=r'$b$', color='blue', linewidth=1.5, linestyle='-.')
     plt.plot(steps,c,label=r'$c$', color='black', linewidth=1.5, linestyle=':')
     plt.legend()
-    plt.savefig('lattice.eps') 
+    plt.savefig('lattice.pdf') 
     plt.close()
 
     plt.figure()
@@ -137,7 +137,7 @@ def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     plt.plot(steps,beta,label=r'$beta$', color='blue', linewidth=1.5, linestyle='-.')
     plt.plot(steps,gamma,label=r'$gamma$', color='black', linewidth=1.5, linestyle=':')
     plt.legend()
-    plt.savefig('angle.eps') 
+    plt.savefig('angle.pdf') 
     plt.close()
     return step,N,t0,p0,e0,v0,aa,ba,ca,alpha_a,beta_a,gamma_a  # N ,atoms number, t0 temperature, p0 pressure, e0 energy v0,volume
 
