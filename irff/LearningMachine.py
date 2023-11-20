@@ -560,11 +560,25 @@ class LearningMachine(object):
             images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=True,us='F',
                                 tstep=tstep,FreeAtoms=self.freeatoms,
                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
-            ind_   = 'Molecular Dynamics Simulation'
+            system('cp {:s}.traj md.traj'.format(self.label))
+            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
+                                                 frame=tstep,select=True,
+                                                 dE=self.dEtole,colmin=self.col_min_interval,
+                                                 dft=self.dft,kpts=self.kpts,
+                                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,
+                                                 cpu=self.ncpu,**self.kwargs)
+            ind_   = 'Geomentry Optimization'
          elif self.dft=='qe':
             images = qeopt(atoms=atoms,label=self.label,ncpu=self.ncpu,tstep=tstep,
                            kpts=self.kpts,**self.kwargs) ## geomentry optimize
             ind_   = 'Geomentry Optimization'
+            system('cp {:s}.traj md.traj'.format(self.label))
+            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
+                                                 frame=tstep,select=True,
+                                                 dE=self.dEtole,colmin=self.col_min_interval,
+                                                 dft=self.dft,kpts=self.kpts,
+                                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,
+                                                 cpu=self.ncpu,**self.kwargs)
          else:
             raise RuntimeError('-  This method not implimented!')
          eaimd = [images[0].get_potential_energy()]
