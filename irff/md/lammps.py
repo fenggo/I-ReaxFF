@@ -345,6 +345,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
         belayer_m           9
         belayer_n           1
     '''
+    random.seed()
     species_name = {'H':'hydrogen','O':'oxygen','N': 'nitrogen','C':'carbon'}
     fin = open('in.lammps','w')
     for i,sp in enumerate(species):
@@ -365,8 +366,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('units       real', file=fin)
     print('atom_style  charge', file=fin)
     if data != None and data != 'None':
-       print('read_data    %s' %data, file=fin)
-       print(' velocity    all create 300 {:d}'.format(random.seed()), file=fin)
+       print('read_data    {:s}'.format(data), file=fin)
+       print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
     if restart != None and restart != 'None':
        print('read_restart %s' %restart, file=fin)
     print(' ', file=fin)
