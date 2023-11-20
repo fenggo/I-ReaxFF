@@ -275,7 +275,7 @@ class LearningMachine(object):
           elif isfile('md.traj'): 
              atoms = read('md.traj',index=-1) 
              consistance = self.check_atoms(atoms)
-             assert consistance,'-  The species or cell parameter in md.traj is not consistant with initial configuration!'
+             assert consistance,'-  The species in md.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
           else:
              print('-  cannot find MD trajectory, use learn_method=1 in the first iter.')
