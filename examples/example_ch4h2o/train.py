@@ -127,7 +127,7 @@ if __name__ == '__main__':
              lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.001,lambda_pi=0.003,
              mf_layer=[9,1],be_layer=[9,1],
              EnergyFunction=1,MessageFunction=3,
-             mf_universal_nn=None,be_universal_nn=['C-H','O-O'],
+             mf_universal_nn=None,be_universal_nn=['C-H','O-O'], # share the same weight and bias matrix
              messages=1,
              bdopt=None,    # ['H-N'], 
              mfopt=None,    # ['N'], 

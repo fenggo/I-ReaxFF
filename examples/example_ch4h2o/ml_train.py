@@ -37,55 +37,20 @@ args = parser.parse_args(sys.argv[1:])
 
 getdata = ColData()
  
-strucs = ['cl20','cl1','ch3nh2','cl',
-          'hmx','hmx1','hmxc','hmx2','hc11','hc12',
-          'fox','fox7','rdx','cf11',
-          'tnt','tnt1',
-          'ch3no2','ch4no2',
-          'c2h6','c3h8','c3h5','c2h4','c4h6',
-          'nmc','h2o2','nm2','ch4w2','h2o16',
-          'nh3','n2h4','n22',
-          'co2','no2','o22',
-          #'nomb_c2h4',
-          #'nomb_ch3nh2',
-          #'nomb_cl20',
-          #'nomb_fox',
-          #'nomb_hc11',
-          #'nomb_hc12',
-          #'nomb_hc211',
-          #'nomb_hc22',
-          #'nomb_hc23',
-          #'nomb_hc24',
-          #'nomb_hc25',
-          #'nomb_hc26',
-          #'nomb_c3h8F',
-          #'nomb_c3h8F2',
-          ]  
-#strucs = ['hmx','hmx1','hmxc','hmx2','hc11']
+strucs = ['h2o2','ch4w2','h2o16']  
 
-weight={'cl20-no2':100.0,
-        'hmx-no2':50.0,
-        'hc11-2':50.0,
-        'rdx':10.0,
-        #'nomb_cl20':0.0,'nomb_h2o2':0.0,
-        #'nomb_fox':0.0,
-        'nomb_hc11':0.0,'nomb_hc12':0.0,'nomb_hc21':0.0,'nomb_hc211':0.0,
-        'nomb_hc22':0.0,'nomb_hc23':0.0,'nomb_hc24':0.0,
-        'nomb_hc25':0.0,'nomb_hc26':0.0,
-        #'nomb_tnt':0.0,'nomb_c3h5':0.0,
-        'nomb_c3h8F':0.0,'nomb_c3h8F2':0.0,'nomb_c3h5F':0.0,
+
+weight={'h2o2':2.0,
         'others':2.0}
 
+
 dataset = {'h22-v':'aimd_h22/h22-v.traj',
-           'cl20-no2':'cl20_no2.traj',
-           'hmx-no2':'hmxs.traj',
            }
 batchs  = {'others':args.batch}
 for mol in strucs:
     b = batchs[mol] if mol in batchs else batchs['others']
     trajs = getdata(label=mol,batch=b)
     dataset.update(trajs)
-# check_emol(dataset)
 
 clip = {'Desi':(125.0,750.0),
         'bo1':(-0.08,-0.02),'bo2':(5.0,9.0),
@@ -175,38 +140,13 @@ if not args.vdw:
    parameters = ['Devdw_N','Devdw_C-O','Devdw_O-N','rvdw_C-O']
    cons      += parameters
    scale      = {'Devdw_N':0.0001,'Devdw_C-O':0.0001,'Devdw_O-N':0.0001,'rvdw_C-O':0.0001}
-
-if args.pi:
-    pi_clip={'C-C-C':[(7.8,9.1,1.63,1.81)],
-            'C-C-H':[(8.0,8.8,1.63,1.8),(10.0,13,0,0.6)],
-            #'H-C-H':[(8.0,8.8,1.65,1.78),(10,12,0.24,0.5)],
-            'O-N-N':[(7.2,9,0.84,1.2)],
-            'O-N-O':[(7.2,9,0.84,1.2)],
-            'C-N-O':[(7.2,9,0.84,1.2)],
-            #'H-N-H':[(7.8,8.4,0.0,0.55)],
-            'H-O-H':[(3,5,0.57,0.77)],
-            'C-C-N':[(7.8,8.6,1.61,1.78),(8.7,9.3,1.61,1.78),(10,12,0.3,0.6)],
-            'N-C-N':[(7.8,8.4,1.61,1.78)],
-            }
-else:
-    pi_clip= False
-bo_clip = {'C-H':[(1.8,9.5,11,2,11,0.0,0.0)],
-           'H-O':[(1.19,2,9,2.78,9,0.0,0.0)],
-           'C-C':[(1.9,7.9,11,7.9,11,0.0,0.0)],
-           'O-O':[(1.6,2.5,3,2.4,3,0.0,0.0)],
-           'O-N':[(1.75,2.5,9,7.4,9,0.0,0.0)],
-           'C-N':[(1.8,10,13,8,9,0.0,0.0)],
-           'N-N':[(1.75,7.5,9,7.5,9,0.0,0.0)],
-           'H-H':[(0.95,2,9,2,9,0.0,0.0)]}
        
-be_universal_nn = ['C-H','O-O']
+be_universal_nn = ['C-H','O-O'] # share the same weight and bias matrix
 
 if __name__ == '__main__':
    ''' train ''' 
    rn = MPNN(libfile='ffield.json',
              dataset=dataset,            
-             bo_clip=bo_clip,
-             pi_clip=pi_clip,
              weight=weight,
              optword='nocoul',
              cons=cons,clip=clip,
