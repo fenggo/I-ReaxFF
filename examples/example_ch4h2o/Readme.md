@@ -1,4 +1,4 @@
-## Introductions for this example
+## Introductions for building a mathine learning potential
 
 ### Use the following command to run the train process
 ```bash
