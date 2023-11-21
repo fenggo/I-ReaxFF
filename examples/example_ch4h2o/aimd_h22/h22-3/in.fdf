@@ -1,0 +1,67 @@
+
+################## Species and atoms ##################
+SystemName       siesta
+SystemLabel      siesta
+NumberOfSpecies   1
+NumberOfAtoms     4
+   
+   
+%block ChemicalSpeciesLabel
+1 1 H
+%endblock ChemicalSpeciesLabel
+   
+   
+SolutionMethod   Diagon # ## OrderN or Diagon
+MaxSCFIterations 500
+PAO.BasisType    split
+%block PAO.Basis
+H     2
+ n=1    0    2  S .7020340
+   4.4302740  0.0
+   1.000   1.000
+ n=2    1    1
+   4.7841521
+   1.000
+%endblock PAO.Basis
+SpinPolarized    F
+   
+   
+DM.MixingWeight      0.4   
+DM.NumberPulay       9
+DM.Tolerance         1.d-4
+   
+   
+   
+   
+################### FUNCTIONAL ###################
+XC.functional    GGA    # Exchange-correlation functional type
+XC.Authors       PBE    # Particular parametrization of xc func
+   
+   
+MeshCutoff       200. Ry # Equivalent planewave cutoff for the grid 
+KgridCutoff      12.000000 Ang
+   
+   
+WriteCoorInitial T
+WriteCoorXmol    T
+WriteMDhistory   T
+WriteMullikenPop 1
+WriteForces      T
+   
+###################  GEOMETRY  ###################
+
+LatticeConstant  1.00 Ang
+%block LatticeVectors
+12.0 0.0 0.0
+0.0 12.0 0.0
+0.0 0.0 12.0
+%endblock LatticeVectors
+   
+AtomicCoordinatesFormat Ang
+   
+%block AtomicCoordinatesAndAtomicSpecies
+3.917083774935344 3.69373315051698 4.12065573346065 1
+4.414896644052805 3.520936319033012 4.593231714151679 1
+1.5272302974573169 4.389944011723035 2.446173387879595 1
+1.0657249670679318 4.519232132337925 1.9308927458173581 1
+%endblock AtomicCoordinatesAndAtomicSpecies
