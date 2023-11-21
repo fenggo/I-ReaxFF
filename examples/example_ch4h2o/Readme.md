@@ -1,6 +1,6 @@
 ## Introductions for this example
 
-### using the following command to run the train process
+### Use the following command to run the train process
 ```bash
 nohup ./train.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 ```
