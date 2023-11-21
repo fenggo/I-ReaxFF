@@ -12,5 +12,5 @@ nohup ./train.py --f=1 --t=1 --pi=0 --s=10000 --z=1 > py.log 2>&1 &
 
 --h: whether optimize the hydrogen-bond parameter
 
-### Add data to current training data-set
+### Add data to the current training data-set
 
