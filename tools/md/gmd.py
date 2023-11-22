@@ -70,10 +70,11 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A) 
-    if l==0:
-       runword='opti conv qiterative'
-    elif l==1 or p>0.0000001:
+
+    if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
+    elif l==0:
+       runword='opti conv qiterative'
 
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,pressure=p,
