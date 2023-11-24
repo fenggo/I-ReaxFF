@@ -63,9 +63,11 @@ def poscars_to_traj(fposcar):
             if k>0:
                 fpos.close()
                 atoms = read('POSCAR')
-
-                atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
-                traj.write(atoms=atoms)
+                if s>=len(energies):
+                   break
+                else:
+                   atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
+                   traj.write(atoms=atoms)
                 s += 1
 
             fpos = open('POSCAR','w')
@@ -75,10 +77,10 @@ def poscars_to_traj(fposcar):
             print(line[:-1], file=fpos)
     
     fpos.close()
-    
-    atoms = read('POSCAR')
-    atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
-    traj.write(atoms=atoms)
+    if s<len(energies):
+       atoms = read('POSCAR')
+       atoms.calc = SinglePointCalculator(atoms,energy=energies[s])
+       traj.write(atoms=atoms)
 
     traj.close()
 
