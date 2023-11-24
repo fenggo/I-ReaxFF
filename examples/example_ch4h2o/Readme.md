@@ -29,3 +29,5 @@ atoms.write('structure_name.gen')
 
 2. prepare the md.traj file
 
+   The md.traj file contains the structures from the potential energy surface, it canbe the trajectories of a short time molecular dynamics simulations, or it canbe strech the valence bond, or rotate the a functional group, or swing a valence angle. 
+
