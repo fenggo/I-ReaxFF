@@ -85,7 +85,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
            mkdir(str(s))
 
         chdir(work_dir)
-        system('cp ../*.psf ./')
+        system('cp ../../Specific/*.psf ./')
         img = siesta_opt(images[s-1],ncpu=ncpu,us='F',VariableCell='true',tstep=step,
                          xcf='GGA',xca='PBE',basistype='split')
         system('mv siesta.out siesta-{:d}.out'.format(s))
