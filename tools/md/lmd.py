@@ -100,8 +100,9 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     sp      = ' '.join(species)
     if r == 0:
        r = None
-       d = None
+       data = None
     else:
+       data = 'data.lammps'
        writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
@@ -116,7 +117,7 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data='data.lammps',
+              data=data,
               restartfile='restart')
     print('\n-  running lammps msst ...')
     if n==1:
