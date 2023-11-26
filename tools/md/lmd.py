@@ -113,7 +113,7 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix msst all msst {:s} {:f} {:f} mu 3e2 tscale 0.01 '.format(d,v,q),
+              fix = 'fix msst all msst {:s} {:f} q {:f} mu 3e2 tscale 0.01 '.format(d,v,q),
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
