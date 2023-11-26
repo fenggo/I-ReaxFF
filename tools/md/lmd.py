@@ -100,11 +100,14 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     sp      = ' '.join(species)
     if r == 0:
        r = None
-    writeLammpsData(atoms,data='data.lammps',specorder=None, 
+       d = None
+    else:
+       writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
                     velocities=False,units="real",atom_style='charge')
+                    
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
