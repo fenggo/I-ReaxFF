@@ -99,7 +99,6 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     species = sorted(set(symbols))
     sp      = ' '.join(species)
     if r == 0:
-       r = None
        data = 'data.lammps'
        writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
@@ -109,7 +108,7 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     else:
        data = None
                     
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r,
+    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart='restart',
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
