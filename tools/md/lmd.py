@@ -93,7 +93,7 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
         x=1,y=1,z=1,n=1,
         d='z',v=8.0,q=100,
-        lib='ffield',r='restart'):
+        lib='ffield',r=1):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
