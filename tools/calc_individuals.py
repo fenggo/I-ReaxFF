@@ -44,7 +44,7 @@ def read_individuals():
                    i = int(l[1])
                    e = float(l[3])
                    d = float(l[5])
-                   if l[6]=='N/A':
+                   if l[6]=='N/A' and l[6]!='N/A':
                      f = 99999
                    else:
                      f = float(l[6])
