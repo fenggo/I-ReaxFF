@@ -34,14 +34,14 @@ def deb_eover(images,i=0,j=1,figsize=(10,8),show=False,print_=True):
         r.append(ir.r[i][j])
         
         if print_:
-           print('r: {:6.4f} bo: {:6.4f} eu: {:6.4f} ev: {:6.4f} eb: {:6.4f}'.format(ir.r[i][j],
-                 ir.bo0[i][j],ir.eover[i],ir.eover[j],ir.ebond[i][j]))
+           print('r: {:6.4f} bo: {:6.4f} eov: {:6.4f} eov_i: {:6.4f} eov_j: {:6.4f}'.format(ir.r[i][j],
+                 ir.bo0[i][j],ir.eover[i]+ir.eover[j],ir.eover[i],ir.eover[j]))
     
     
     plt.figure(figsize=figsize)     
     # plt.plot(r,bo0,alpha=0.8,linewidth=2,linestyle='-',color='g',label=r'$BO^{t=0}$')
     # plt.plot(r,bo1,alpha=0.8,linewidth=2,linestyle='-',color='y',label=r'$BO^{t=1}$')
-    plt.plot(r,eb,alpha=0.8,linewidth=2,linestyle='-',color='r',label=r'$E_{bond}$')
+    #plt.plot(r,bo1,alpha=0.8,linewidth=2,linestyle='-',color='r',label=r'$E_{bond}$')
     plt.plot(r,eo,alpha=0.8,linewidth=2,linestyle='-',color='indigo',label=r'$E_{over}$')
     #plt.plot(r,eu,alpha=0.8,linewidth=2,linestyle='-',color='b',label=r'$E_{under}$ ')
     plt.legend(loc='best',edgecolor='yellowgreen')
@@ -59,5 +59,5 @@ args = parser.parse_args(sys.argv[1:])
 
 images = Trajectory(args.traj)
 
-deb_eover(images,i=args.i,j=args.j,show=args.s,print_=False)
+deb_eover(images,i=args.i,j=args.j,show=args.s,print_=True)
 
