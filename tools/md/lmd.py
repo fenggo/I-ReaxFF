@@ -7,7 +7,7 @@ from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lamm
 
 
 def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        r=0,x=1,y=1,z=1,n=1,lib='ffield'):
+        r=0,x=1,y=1,z=1,n=1,lib='ffield',tfreq=100.0):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
@@ -27,7 +27,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp 300 300 100.0 ',
+              fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tfreq),
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
@@ -41,6 +41,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     lammpstraj_to_ase('lammps.trj',inp='in.lammps')
 
 def npt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
+        tfreq=100.0,pfreq=100.0,
         p=0.0,r=0,x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
@@ -61,7 +62,7 @@ def npt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all npt temp {:f} {:f} 100 iso {:f} {:f} 100'.format(T,T,p,p), 
+              fix = 'fix   1 all npt temp {:f} {:f} {:f} iso {:f} {:f} {:f}'.format(T,T,tfreq,p,p,pfreq), 
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
