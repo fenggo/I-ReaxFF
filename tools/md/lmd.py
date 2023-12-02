@@ -23,7 +23,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     else:
        r_ = 'restart'
        data = None
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
+    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
@@ -31,7 +31,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data='data.lammps',
+              data=data,
               restartfile='restart')
     print('\n-  running lammps nvt ...')
     if n==1:
@@ -57,7 +57,7 @@ def npt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     else:
        r_ = 'restart'
        data = None
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
+    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
@@ -65,7 +65,7 @@ def npt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data='data.lammps',
+              data=data,
               restartfile='restart')
     print('\n-  running lammps npt ...')
     if n==1:
