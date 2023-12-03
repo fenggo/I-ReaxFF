@@ -19,7 +19,7 @@ def plot_thermal():
         e     = data[:,2]
     
         # plt.scatter(ph[i],vh[i],marker = 'o', color = cmap.to_rgba(t), s=50, alpha=0.4)
-        plt.plot(steps,e,label=r'$energy .vs. step$', color=cs[i], linewidth=1.5, 
+        plt.plot(steps,e,label=r'$v={:5.2f}$'.format(float(v)), color=cs[i], linewidth=1.5, 
                  linestyle='-')
   
     plt.legend()
