@@ -13,7 +13,7 @@ def plot_thermal():
     cs = ['r','b','g']
 
     for i,v in enumerate(vs):
-        fil   = 'themal-{:s}.log'.format(v)
+        fil   = 'thermo-{:s}.log'.format(v)
         data  = np.loadtxt(fil)
         steps = data[:,0]
         e     = data[:,2]
