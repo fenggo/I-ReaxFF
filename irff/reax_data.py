@@ -957,7 +957,7 @@ class reax_data(object):
       self.energy_nw = np.array(energy_nw)
       self.x         = np.array(x)
       self.cell      = np.array(cell)
-      self.forces    = np.array(forces) # ,dtype=np.float32)
+      #self.forces   = np.array(forces) # ,dtype=np.float32)
       # print(len(self.x),len(self.cell),len(self.forces))
 
   def set_parameters(self):
