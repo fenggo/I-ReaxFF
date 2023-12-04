@@ -36,4 +36,7 @@ atoms.write('structure_name.gen')
   
    This step is iteratively repeated, till performence of the potential satisfactory. 
 
-
+3. run the lm.py script to call DFT calculation and trian the new data 
+```bash
+nohup ./lm.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
+```
