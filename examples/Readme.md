@@ -51,4 +51,4 @@ to LAMMPS format
 ./json_to_ffield.py
 ```
 These two script can be found in "I-ReaxFF/tools/" directory.
-5. Introduction of "train.py" script
+### III Introduction of "train.py" script and "lm.py" script
