@@ -50,3 +50,4 @@ to LAMMPS format
 ```bash
 ./json_to_ffield.py
 ```
+The two script can be found in "I-ReaxFF/tools/" directory.
