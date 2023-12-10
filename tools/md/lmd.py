@@ -7,31 +7,27 @@ from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lamm
 
 
 def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        r=0,x=1,y=1,z=1,n=1,lib='ffield',tfreq=100.0):
+        freeatoms=[],
+        x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
-    if r == 0:
-       r_=None
-       data = 'data.lammps'
-       writeLammpsData(atoms,data='data.lammps',specorder=None, 
+    writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
                     velocities=False,units="real",atom_style='charge')
-    else:
-       r_ = 'restart'
-       data = None
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
+    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tfreq),
+              fix = 'fix   1 all nvt temp 300 300 100.0 ',
+              freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data=data,
+              data='data.lammps',
               restartfile='restart')
     print('\n-  running lammps nvt ...')
     if n==1:
