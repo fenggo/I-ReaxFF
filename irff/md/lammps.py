@@ -407,7 +407,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(fix_modify, file=fin)
     print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
     print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
-    print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
+    if freeatoms:
+       print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
     print(' ', file=fin)
     print(more_commond, file=fin)
     print(' ', file=fin)
