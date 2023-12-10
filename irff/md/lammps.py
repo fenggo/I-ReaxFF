@@ -327,7 +327,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
               fix_modify = ' ',
               more_commond = ' ',
-              dump_interval=1,
+              dump_interval=10,
               freeatoms=None,natoms=None,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               restartfile='restart'):
