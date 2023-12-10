@@ -210,7 +210,7 @@ def get_reaxff_energies(logname='lmp.log'):
     if N == 0:
        print('Error: N=0!')
     return e,eb,elp,0.0,0.0,ev,epen,ecoa,et,eco,ew,ehb,ep,0.0
- 
+
 def writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
@@ -328,6 +328,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               fix_modify = ' ',
               more_commond = ' ',
               dump_interval=1,
+              freeatoms=None,natoms=None,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               restartfile='restart'):
     '''
@@ -392,6 +393,15 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('neighbor 2.5  bin', file=fin)
     print('neigh_modify  every 1 delay 1 check no page 200000', file=fin)
     print(' ', file=fin)
+    if not freeatoms:
+       free = set(freeatoms)
+       fixatom = [j for i in range(natoms) if j not in free]
+       print('group free id ',end=' ', file=fin)
+       for j in free
+           print(j,end=' ', file=fin) 
+       print(' ', file=fin)
+       print('group fixed subtract all free',end=' ', file=fin)
+       print('fix freeze fixed setforce 0.0 0.0 0.0', file=fin)
     print(fix, file=fin)
     print(fix_modify, file=fin)
     print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
