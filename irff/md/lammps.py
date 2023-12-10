@@ -403,6 +403,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('group fixed subtract all free', file=fin)
        print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
        print(' ', file=fin)
+       fix.replace('all','free')
     print(fix, file=fin)
     print(fix_modify, file=fin)
     if freeatoms:
