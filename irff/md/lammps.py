@@ -396,6 +396,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     if freeatoms:
        free = set(freeatoms)
        fixatom = [j for i in range(natoms) if j not in free]
+       print(fixatom)
        print('group free id ',end=' ', file=fin)
        for j in free:
            print(j,end=' ', file=fin) 
