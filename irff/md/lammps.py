@@ -393,7 +393,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('neighbor 2.5  bin', file=fin)
     print('neigh_modify  every 1 delay 1 check no page 200000', file=fin)
     print(' ', file=fin)
-    if not freeatoms:
+    if freeatoms:
        free = set(freeatoms)
        fixatom = [j for i in range(natoms) if j not in free]
        print('group free id ',end=' ', file=fin)
