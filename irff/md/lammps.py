@@ -402,6 +402,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print(' ', file=fin)
        print('group fixed subtract all free', file=fin)
        print('fix freeze fixed setforce 0.0 0.0 0.0', file=fin)
+       print(' ', file=fin)
     print(fix, file=fin)
     print(fix_modify, file=fin)
     print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
