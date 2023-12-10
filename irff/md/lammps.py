@@ -396,11 +396,11 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     if freeatoms:
        # fixatom = [i for i in range(natoms) if i not in free]
        # print(freeatoms)
-       print('group free id ',end=' ', file=fin)
+       print('group  free id ',end=' ', file=fin)
        for j in freeatoms:
            print(j,end=' ', file=fin) 
        print(' ', file=fin)
-       print('group fixed subtract all free', file=fin)
+       print('group  fixed subtract all free', file=fin)
        print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
        print(' ', file=fin)
        fix = fix.replace('all','free')
