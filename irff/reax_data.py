@@ -934,6 +934,7 @@ class reax_data(object):
       cell      = []
       forces    = []
       energy_nw = []
+      force_has_none = False
       for i,ind_ in enumerate(self.indexs):
           imag = images[ind_]
           if i==0:
@@ -951,16 +952,17 @@ class reax_data(object):
              force_ = imag.get_forces()
           except:
              force_ = None
+             force_has_none = True
              # print('-  ignoring the forces as are not available.')
           forces.append(force_)
           energy_nw.append(e)
       self.energy_nw = np.array(energy_nw)
       self.x         = np.array(x)
       self.cell      = np.array(cell)
-      if all(forces):
-         self.forces = np.array(forces) # ,dtype=np.float32)
-      else:
+      if force_has_none:
          self.forces = None
+      else:
+         self.forces = np.array(forces) # ,dtype=np.float32)
       # print(len(self.x),len(self.cell),len(self.forces))
 
   def set_parameters(self):
