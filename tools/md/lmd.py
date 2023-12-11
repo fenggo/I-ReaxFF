@@ -6,8 +6,8 @@ from ase.io import read # ,write
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
-def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        free=[],
+def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
+        free=' ',
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
@@ -23,7 +23,7 @@ def nvt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp 300 300 100.0 ',
+              fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump),
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
               more_commond = ' ',
