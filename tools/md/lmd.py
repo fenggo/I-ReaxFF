@@ -7,7 +7,7 @@ from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lamm
 
 
 def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        free=' ',
+        free=' ',dump_interval=10,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
@@ -26,7 +26,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0
               fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump),
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
-              more_commond = ' ',
+              dump_interval=dump_interval,more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               data='data.lammps',
               restartfile='restart')
