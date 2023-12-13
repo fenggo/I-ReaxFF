@@ -14,6 +14,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0
     species = sorted(set(symbols))
     sp      = ' '.join(species)
     freeatoms = free.split()
+    freeatoms = [int(i)+1 for i in freeatoms]
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
