@@ -18,7 +18,7 @@ parser.add_argument('--s',default=1.4,type=float, help='start radius')
 parser.add_argument('--e',default=1.9,type=float, help='end radius')
 parser.add_argument('--auto',default=1,type=int, help='automaticly determin the moving group')
 parser.add_argument('--f',default=-1,type=int, help='the trajectory frame')
-
+parser.add_argument('--n',default=9,type=int, help='the number of trajectory frame')
 args    = parser.parse_args(sys.argv[1:])
 
 
@@ -30,7 +30,7 @@ if args.auto:
 else:
    to_move = [args.j]
 
-images  = ad.stretch([args.i,args.j],nbin=50,rst=args.s,red=args.e,
+images  = ad.stretch([args.i,args.j],nbin=args.n,rst=args.s,red=args.e,
                      ToBeMoved=to_move,
                      scale=1.26,traj='md.traj')
 ad.close()
