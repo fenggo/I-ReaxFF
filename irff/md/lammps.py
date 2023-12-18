@@ -718,9 +718,8 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
                     pbc=pbc,
                     energy=e[i_],
                     atomType=atomType,
-                    atomid=atomid)
-               if recover:
-                  out_atoms = press_mol(out_atoms)
+                    atomid=atomid,
+                    recover=False)
                images.append(out_atoms)
                his.write(atoms=out_atoms)
             i_ += 1
@@ -740,7 +739,8 @@ def lammps_data_to_ase_atoms(
     units="real",
     energy=0.0,
     atomType=None,
-    atomid=None):
+    atomid=None,
+    recover=False):
     """Extract positions and other per-atom parameters and create Atoms
 
     :param data: per atom data
@@ -889,6 +889,8 @@ def lammps_data_to_ase_atoms(
         # !TODO: use another calculator if available (or move forces
         #        to atoms.property) (other problem: synchronizing
         #        parallel runs
+        if recover:
+           out_atoms = press_mol(out_atoms)
         calculator = SinglePointCalculator(out_atoms, energy=energy,
                                            forces=forces)
         out_atoms.calc = calculator
