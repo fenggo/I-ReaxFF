@@ -617,7 +617,7 @@ def construct_cell(diagdisp, offdiag):
     return cell, celldisp
 
 def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
-                      inp='in.lammps',atomid=None):
+                      inp='in.lammps',atomid=None,recover=False):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
     :returns: list of Atoms objects
@@ -719,6 +719,8 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
                     energy=e[i_],
                     atomType=atomType,
                     atomid=atomid)
+               if recover:
+                  out_atoms = press_mol(out_atoms)
                images.append(out_atoms)
                his.write(atoms=out_atoms)
             i_ += 1

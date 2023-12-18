@@ -120,7 +120,6 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         print(sp, 'core', x[0], x[1], x[2], 0.0, 1.0, 0.0, 1, 1, 1, file=finp)
     finp.close()
 
-
 def get_reaxff_q(natom, fo='out'):
     q = []
     fout = open(fo, 'r')
@@ -142,7 +141,6 @@ def get_reaxff_q(natom, fo='out'):
         l = line.split()
         q.append(float(l[2]))
     return q, ecoul, eself, evdw
-
 
 def get_reax_energy(fo='out',e_kw='ReaxFF force field'):
     fout = open(fo, 'r')
@@ -244,7 +242,6 @@ def plot_md(E, Epot, T, P, show=True):
         plt.savefig('MD_results.pdf')
     plt.close()
 
-
 def plot_optimize(log='gulp.out'):
     ''' plot the energies or other from gulp log file'''
     flog = open(log, 'r')
@@ -267,7 +264,6 @@ def plot_optimize(log='gulp.out'):
     plt.savefig('energy_vs_iteration.png')
     plt.close()
 
-
 def get_lattice(inp='inp-gulp'):
     finp = open(inp, 'r')
     il = 0
@@ -285,7 +281,6 @@ def get_lattice(inp='inp-gulp'):
             il += 1
     finp.close()
     return np.array(cell)
-
 
 def reaxyz(fxyz):
     # cell = get_lattice()
