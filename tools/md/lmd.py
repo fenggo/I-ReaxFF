@@ -28,7 +28,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        units      = "real"
        atom_style = 'charge'
     if thermo_fix is None:
-       thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump) 
+       thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:d} '.format(T,T,tdump) 
 
     thermo_style = 'thermo_style  custom step temp epair etotal press vol \
        cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz'
