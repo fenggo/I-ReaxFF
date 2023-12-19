@@ -366,8 +366,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
             print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
 
     if 'units' in kwargs:
+       units = kwargs['units']
        print('units     {:s}'.format(kwargs['units']), file=fin)
     else:
+       units = 'real'
        print('units     real', file=fin)
     if 'atom_style' in kwargs:
        print('atom_style     {:s}'.format(kwargs['atom_style']), file=fin)
