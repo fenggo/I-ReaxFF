@@ -24,7 +24,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump),
+              fix = 'fix   1 all nvt temp {:f} {:f} {:d} '.format(T,T,tdump),
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
               dump_interval=dump_interval,more_commond = ' ',
