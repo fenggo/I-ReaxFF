@@ -634,7 +634,8 @@ def construct_cell(diagdisp, offdiag):
     celldisp = np.array([celldispx, celldispy, celldispz])
     return cell, celldisp
 
-def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
+def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', 
+                      mode='w',model='reaxff',
                       inp='in.lammps',atomid=None,recover=False):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
@@ -660,8 +661,12 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', mode='w',
          for line in lines:
              if line.find('pair_coeff')>=0:
                 l = line.split()
-                atomType = l[4:]
-
+                if model.find('reaxff')>=0:
+                   atomType = l[4:]
+                elif model.find('quip')>=0:
+                   atomType = l[5:]
+                else:
+                   atomType = l[4:]
     # Load all dumped timesteps into memory simultaneously
     with open(filename,'r') as ft:
          lines = deque(ft.readlines())
