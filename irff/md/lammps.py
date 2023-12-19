@@ -330,7 +330,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               dump_interval=10,
               freeatoms=None,natoms=None,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              restartfile='restart'):
+              restartfile='restart',
+              **kwargs):
     '''
         pair_style     reaxff control.reax checkqeq yes
         pair_coeff     * * ffield.reax.rdx C H O N
@@ -364,8 +365,15 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
                bc = bond_cutoff['other']
             print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
 
-    print('units       real', file=fin)
-    print('atom_style  charge', file=fin)
+    if 'units' in kwargs:
+       print('units     {:s}'.format(kwargs['units']), file=fin)
+    else:
+       print('units     real', file=fin)
+    if 'atom_style' in kwargs:
+       print('atom_style     {:s}'.format(kwargs['atom_style']), file=fin)
+    else:
+       print('atom_style     charge', file=fin)
+
     if data != None and data != 'None':
        print('read_data    {:s}'.format(data), file=fin)
        print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
@@ -374,21 +382,22 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     print('pair_style     %s'  %pair_style, file=fin) 
     print('pair_coeff     %s'  %pair_coeff, file=fin)
-    print('compute       reax all pair reaxff', file=fin)
-    print('variable eb   equal c_reax[1]', file=fin)
-    print('variable ea   equal c_reax[2]', file=fin)
-    print('variable elp  equal c_reax[3]', file=fin)
-    print('variable emol equal c_reax[4]', file=fin)
-    print('variable ev   equal c_reax[5]', file=fin)
-    print('variable epen equal c_reax[6]', file=fin)
-    print('variable ecoa equal c_reax[7]', file=fin)
-    print('variable ehb  equal c_reax[8]', file=fin)
-    print('variable et   equal c_reax[9]', file=fin)
-    print('variable eco  equal c_reax[10]', file=fin)
-    print('variable ew   equal c_reax[11]', file=fin)
-    print('variable ep   equal c_reax[12]', file=fin)
-    print('variable efi  equal c_reax[13]', file=fin)
-    print('variable eqeq equal c_reax[14]', file=fin)
+    if pair_style.find('reaxff')>=0:
+       print('compute       reax all pair reaxff', file=fin)
+       print('variable eb   equal c_reax[1]', file=fin)
+       print('variable ea   equal c_reax[2]', file=fin)
+       print('variable elp  equal c_reax[3]', file=fin)
+       print('variable emol equal c_reax[4]', file=fin)
+       print('variable ev   equal c_reax[5]', file=fin)
+       print('variable epen equal c_reax[6]', file=fin)
+       print('variable ecoa equal c_reax[7]', file=fin)
+       print('variable ehb  equal c_reax[8]', file=fin)
+       print('variable et   equal c_reax[9]', file=fin)
+       print('variable eco  equal c_reax[10]', file=fin)
+       print('variable ew   equal c_reax[11]', file=fin)
+       print('variable ep   equal c_reax[12]', file=fin)
+       print('variable efi  equal c_reax[13]', file=fin)
+       print('variable eqeq equal c_reax[14]', file=fin)
     print(' ', file=fin)
     print('neighbor 2.5  bin', file=fin)
     print('neigh_modify  every 1 delay 1 check no page 200000', file=fin)
@@ -406,11 +415,12 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        fix = fix.replace('all','free')
     print(fix, file=fin)
     print(fix_modify, file=fin)
-    if freeatoms:
-       print('fix    rex free qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
-    else:
-       print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
-    print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
+    if pair_style.find('reaxff')>=0:
+       if freeatoms:
+          print('fix    rex free qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
+       else:
+          print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
+       print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
     print(' ', file=fin)
     print(more_commond, file=fin)
     print(' ', file=fin)
