@@ -17,7 +17,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     freeatoms = [int(i)+1 for i in freeatoms]
     
     if model == 'quip':
-       pair_style = 'reaxff control nn yes checkqeq yes' 
+       pair_style = 'quip'  
        pair_coeff = '* * Carbon_GAP_20.xml "" 6'
        units      = "metal"
        atom_style = 'atomic'
@@ -29,6 +29,8 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     if thermo_fix is None:
        thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump) 
 
+    thermo_style = '''thermo_style  custom step temp epair etotal press vol 
+       cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz''',
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
@@ -43,7 +45,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
               dump_interval=dump_interval,more_commond = ' ',
-              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
+              thermo_style =thermo_style,
               data='data.lammps',
               restartfile='restart')
     print('\n-  running lammps nvt ...')
@@ -61,7 +63,7 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix)
 
-def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
+def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
@@ -87,51 +89,14 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c)
 
-def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        x=1,y=1,z=1,n=1,
-        d='z',v=8.0,q=100,
-        lib='ffield',r=1):
-    atoms = read(gen,index=i)*(x,y,z)
-    symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
-    sp      = ' '.join(species)
-    if r == 0:
-       r_=None
-       data = 'data.lammps'
-       writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
-                    force_skew=False,
-                    velocities=False,units="real",atom_style='charge')
-    else:
-       r_ = 'restart'
-       data = None
-                    
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
-              species=species,
-              pair_coeff ='* * {:s} {:s}'.format(lib,sp),
-              pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix msst all msst {:s} {:f} q {:f} mu 3e2 tscale 0.01 '.format(d,v,q),
-              fix_modify = ' ',
-              more_commond = ' ',
-              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data=data,
-              restartfile='restart')
-    print('\n-  running lammps msst ...')
-    if n==1:
-       system('lammps<in.lammps>out')
-    else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
-
-def traj(inp='in.lammps',s=0,e=0):
+def traj(inp='in.lammps',s=0,e=0,c=0):
     if e==0:
        atomid = None
     else:
        atomid = (s,e)
-    lammpstraj_to_ase('lammps.trj',inp=inp,atomid=atomid)
+    lammpstraj_to_ase('lammps.trj',inp=inp,atomid=atomid,recover=c)
 
 def plot(out='out'):
     get_lammps_thermal(logname='lmp.log',supercell=[1,1,1])
@@ -172,6 +137,6 @@ if __name__ == '__main__':
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nvt,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nvt,plot,traj,w])
    argh.dispatch(parser)
 
