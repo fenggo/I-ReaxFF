@@ -664,9 +664,10 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
              if line.find('pair_style')>=0:
                 if line.find('quip')>0:
                    model = 'quip'
+             
              if line.find('pair_coeff')>=0:
                 l = line.split()
-
+                print(model)
                 if model=='quip':
                    atomType = l[5:]
                    atomType = [chemical_symbols[int(a)] for a in atomType if a.find('\"')<0 and len(a)<=2]
