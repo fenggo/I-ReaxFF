@@ -18,7 +18,8 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     
     if model == 'quip':
        pair_style = 'quip'  
-       pair_coeff = '* * Carbon_GAP_20.xml "" 6'
+       lib        = 'Carbon_GAP_20.xml \"\"'
+       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
        units      = "metal"
        atom_style = 'atomic'
     else:
