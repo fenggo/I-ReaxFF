@@ -6,25 +6,38 @@ from ase.io import read # ,write
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
-def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
+def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         free=' ',dump_interval=10,
-        x=1,y=1,z=1,n=1,lib='ffield'):
+        x=1,y=1,z=1,n=1,lib='ffield',thermo_fix=None):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
     freeatoms = free.split()
     freeatoms = [int(i)+1 for i in freeatoms]
+    
+    if model == 'quip':
+       pair_style = 'reaxff control nn yes checkqeq yes'  
+       units      = "metal"
+       atom_style = 'atomic'
+    else:
+       pair_style = 'reaxff control nn yes checkqeq yes'   # without lg set lgvdw no
+       units      = "real"
+       atom_style = 'charge'
+    if thermo_fix is None:
+       thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:f} '.format(T,T,tdump) 
+
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
-                    velocities=False,units="real",atom_style='charge')
+                    velocities=False,units=units,atom_style=atom_style)
+    
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
-              pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all nvt temp {:f} {:f} {:d} '.format(T,T,tdump),
+              pair_style = pair_style,  # without lg set lgvdw no
+              fix = thermo_fix,
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
               dump_interval=dump_interval,more_commond = ' ',
@@ -36,42 +49,15 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c)
 
-def npt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
-        tfreq=100.0,pfreq=100.0,
-        p=0.0,r=0,x=1,y=1,z=1,n=1,lib='ffield'):
-    atoms = read(gen,index=i)*(x,y,z)
-    symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
-    sp      = ' '.join(species)
-    if r == 0:
-       r_=None
-       data = 'data.lammps'
-       writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
-                    force_skew=False,
-                    velocities=False,units="real",atom_style='charge')
-    else:
-       r_ = 'restart'
-       data = None
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
-              species=species,
-              pair_coeff ='* * {:s} {:s}'.format(lib,sp),
-              pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix   1 all npt temp {:f} {:f} {:f} iso {:f} {:f} {:f}'.format(T,T,tfreq,p,p,pfreq), 
-              fix_modify = ' ',
-              more_commond = ' ',
-              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data=data,
-              restartfile='restart')
-    print('\n-  running lammps npt ...')
-    if n==1:
-       system('lammps<in.lammps>out')
-    else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10):
+    thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
+                  T,tdump,p,p,tdump)
+    nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+        free=free,dump_interval=dump_interval,
+        x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix)
 
 def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
