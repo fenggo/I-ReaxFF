@@ -635,7 +635,7 @@ def construct_cell(diagdisp, offdiag):
     return cell, celldisp
 
 def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', 
-                      mode='w',model='reaxff',
+                      mode='w',
                       inp='in.lammps',atomid=None,recover=False):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
@@ -668,6 +668,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
 
                 if model=='quip':
                    atomType = l[5:]
+                   atomType = [ for a in atomType]
                 else:
                    atomType = l[4:]
     # Load all dumped timesteps into memory simultaneously
