@@ -4,6 +4,7 @@ import random
 # from .findmole import check_decomposed
 from ase.io import read,write
 from ase import Atoms
+from ase.data import atomic_numbers,chemical_symbols
 from ase.calculators.lammpsrun import write_lammps_data
 from ase.calculators.lammps import Prism,convert
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -668,7 +669,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
 
                 if model=='quip':
                    atomType = l[5:]
-                   atomType = [ for a in atomType]
+                   atomType = [chemical_symbols[int(a)] for a in atomType]
                 else:
                    atomType = l[4:]
     # Load all dumped timesteps into memory simultaneously
