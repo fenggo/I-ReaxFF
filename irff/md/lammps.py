@@ -669,7 +669,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
 
                 if model=='quip':
                    atomType = l[5:]
-                   atomType = [chemical_symbols[int(a)] for a in atomType]
+                   atomType = [chemical_symbols[int(a)] for a in atomType if a.find('\"')<0 and len(a)<=2]
                 else:
                    atomType = l[4:]
     # Load all dumped timesteps into memory simultaneously
