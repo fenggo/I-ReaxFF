@@ -3,6 +3,7 @@ import argh
 import argparse
 from os import system #,popen
 from ase.io import read # ,write
+from ase.data import atomic_numbers
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
@@ -19,7 +20,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     if model == 'quip':
        pair_style = 'quip'  
        lib        = 'Carbon_GAP_20.xml \"\"'
-       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
+       pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
        units      = "metal"
        atom_style = 'atomic'
     else:

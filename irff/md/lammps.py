@@ -429,7 +429,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     print('timestep      %f' %timestep, file=fin)
     print(' ', file=fin)
-    print('dump          1 all custom {:d} lammps.trj id type x y z q fx fy fz'.format(dump_interval), file=fin)
+    if pair_style.find('reaxff')>=0:
+       print('dump          1 all custom {:d} lammps.trj id type x y z q fx fy fz'.format(dump_interval), file=fin)
+    else:
+       print('dump          1 all custom {:d} lammps.trj id type x y z fx fy fz'.format(dump_interval), file=fin) 
     print(' ', file=fin)
     print('log           %s'  %log, file=fin)
     print(' ', file=fin)
