@@ -104,40 +104,13 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
 
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,
-        d='z',v=8.0,q=100,
+        axis='z',v=8.0,q=100,
         lib='ffield',r=1):
-    atoms = read(gen,index=i)*(x,y,z)
-    symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
-    sp      = ' '.join(species)
-    if r == 0:
-       r_=None
-       data = 'data.lammps'
-       writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
-                    force_skew=False,
-                    velocities=False,units="real",atom_style='charge')
-    else:
-       r_ = 'restart'
-       data = None
- 
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
-              species=species,
-              pair_coeff ='* * {:s} {:s}'.format(lib,sp),
-              pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'fix msst all msst {:s} {:f} q {:f} mu 3e2 tscale 0.01 '.format(d,v,q),
-              fix_modify = ' ',
-              more_commond = ' ',
-              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data=data,
-              restartfile='restart')
-    print('\n-  running lammps msst ...')
-    if n==1:
-       system('lammps<in.lammps>out')
-    else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+    thermo_fix = 'fix msst all msst {:s} {:f} q {:f} mu 3e2 tscale 0.01 '.format(axis,v,q)
+
+    nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+        free=free,dump_interval=dump_interval,
+        x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
 def traj(inp='in.lammps',s=0,e=0,c=0):
     if e==0:
