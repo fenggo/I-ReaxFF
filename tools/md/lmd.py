@@ -17,11 +17,13 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     freeatoms = [int(i)+1 for i in freeatoms]
     
     if model == 'quip':
-       pair_style = 'reaxff control nn yes checkqeq yes'  
+       pair_style = 'reaxff control nn yes checkqeq yes' 
+       pair_coeff = '* * Carbon_GAP_20.xml "" 6'
        units      = "metal"
        atom_style = 'atomic'
     else:
        pair_style = 'reaxff control nn yes checkqeq yes'   # without lg set lgvdw no
+       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
        units      = "real"
        atom_style = 'charge'
     if thermo_fix is None:
@@ -35,7 +37,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
               species=species,
-              pair_coeff ='* * {:s} {:s}'.format(lib,sp),
+              pair_coeff = pair_coeff,
               pair_style = pair_style,  # without lg set lgvdw no
               fix = thermo_fix,
               freeatoms=freeatoms,natoms=len(atoms),
