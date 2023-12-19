@@ -429,7 +429,9 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('thermo        {:d}'.format(dump_interval), file=fin)
     print(thermo_style, file=fin)
     print(' ', file=fin)
-    timestep = convert(timestep, "time", "ASE", units)
+    # timestep = convert(timestep, "time", "ASE", units)
+    if units == 'metal':
+       timestep = timestep*0.001
     print('timestep      {:f}'.format(timestep), file=fin)
     print(' ', file=fin)
     if pair_style.find('reaxff')>=0:
