@@ -659,11 +659,14 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
     with open(inp,'r') as fi:
          lines = fi.readlines()
          for line in lines:
+             model = 'reaxff'
+             if line.find('pair_style')>=0:
+                if line.find('quip')>0:
+                   model = 'quip'
              if line.find('pair_coeff')>=0:
                 l = line.split()
-                if model.find('reaxff')>=0:
-                   atomType = l[4:]
-                elif model.find('quip')>=0:
+
+                if model=='quip':
                    atomType = l[5:]
                 else:
                    atomType = l[4:]
