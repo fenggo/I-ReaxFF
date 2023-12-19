@@ -105,10 +105,11 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,
         axis='z',v=8.0,q=100,
+        dump_interval=10,free='',
         lib='ffield',r=1):
     thermo_fix = 'fix msst all msst {:s} {:f} q {:f} mu 3e2 tscale 0.01 '.format(axis,v,q)
 
-    nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+    nvt(T=T,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
