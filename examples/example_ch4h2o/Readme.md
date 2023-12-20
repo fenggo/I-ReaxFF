@@ -1,3 +1,6 @@
+1. example_ch4h2o: A example for building a machine learning potential from SIESTA calculations for a simple system, contains H2O and CH4 molecules.
+2. example_c: A example for building a machine learning potential from Quantum Espresso DFT calculations for a Carbon.
+
 ## Introductions for building a mathine learning potential
 
 ### I. Use the following command to run the train process
@@ -32,3 +35,20 @@ atoms.write('structure_name.gen')
    The md.traj file contains the structures from the potential energy surface, it canbe the trajectories of a short time molecular dynamics simulations, or it canbe strech the valence bond, or rotate the a functional group, or swing a valence angle. 
   
    This step is iteratively repeated, till performence of the potential satisfactory. 
+
+3. run the lm.py script to call DFT calculation and trian the new data 
+```bash
+nohup ./lm.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
+```
+4. convert the parameter file "ffield.json" to the GULP format or lammps format
+
+to GULP format
+```bash
+./json_to_lib.py
+```
+to LAMMPS format
+```bash
+./json_to_ffield.py
+```
+These two script can be found in "I-ReaxFF/tools/" directory.
+
