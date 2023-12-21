@@ -18,9 +18,9 @@ cell = atoms.get_cell()
 cell = cell[:].astype(dtype=np.float32)
 rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
 positions = atoms.get_positions()
-xf        = np.dot(positions,rcell)
+fy   = args.gen[:-4] + '.yaml'
 
-with open('poscar.yaml','w') as f:
+with open(fy,'w') as f:
      print('unit_cell:',file=f)
      print('  lattice:',file=f)
      print('    - [{:f},{:f},{:f}] '.format(cell[0][0],cell[0][1],cell[0][2],),file=f)
