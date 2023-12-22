@@ -18,6 +18,8 @@ cell = atoms.get_cell()
 cell = cell[:].astype(dtype=np.float32)
 rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
 positions = atoms.get_positions()
+xf        = np.dot(positions,rcell)
+xf        = np.mod(xf,1.0)
 fy   = args.gen[:-4] + '.yaml'
 
 with open(fy,'w') as f:
