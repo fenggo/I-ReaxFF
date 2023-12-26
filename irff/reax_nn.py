@@ -1843,12 +1843,13 @@ class ReaxFF_nn(object):
                                                          tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
                                                                         tf.greater_equal(self.Dbj[bd],d_j))),
                                           1.0,0.0)   ##### r< r_e that bo > bore_
-                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe))
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.esi[bd])*fe))
+                                                                                          # self.bo0[bd]
                          fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
                                                          tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
                                                                         tf.greater_equal(self.Dbj[bd],d_j))),
                                           1.0,0.0)  ##### r> r_e that bo < bore_
-                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-bo_u)*fe))
 
               if self.spv_ang:
                  self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
