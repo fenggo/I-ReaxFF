@@ -1328,14 +1328,14 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
 
     nin_ = 1 if VdwFunction==1 else 3
 
-    # if vdwnn:
-    #    reuse_m = True if vdw_layer==vdw_layer_ and VdwFunction==VdwFunction_ else False
-    #    if not vdw_universal_nn is None:
-    #       set_universal_wb(m_=m_,pref='fv',bd=vdw_universal_nn[0],reuse_m=reuse_m,
-    #                         nin=nin_,nout=1,layer=vdw_layer,
-    #                         nnopt=mpopt[t+1],bias=0.867)
-    #    set_wb(m_=m_,pref='fv',reuse_m=reuse_m,nin=nin_,nout=1,layer=vdw_layer,
-    #                 vlist=bonds,nnopt=mpopt[-1],bias=0.867)
+    if vdwnn:
+       reuse_m = True if vdw_layer==vdw_layer_ and VdwFunction==VdwFunction_ else False
+       if not vdw_universal_nn is None:
+          set_universal_wb(m_=m_,pref='fv',bd=vdw_universal_nn[0],reuse_m=reuse_m,
+                            nin=nin_,nout=1,layer=vdw_layer,
+                            nnopt=mpopt[t+1],bias=0.867)
+       set_wb(m_=m_,pref='fv',reuse_m=reuse_m,nin=nin_,nout=1,layer=vdw_layer,
+                    vlist=bonds,nnopt=mpopt[-1],bias=0.867)
     return m
 
 def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn,mf_universal_nn):
