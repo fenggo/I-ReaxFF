@@ -1328,7 +1328,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
 
     nin_ = 1 if VdwFunction==1 else 3
 
-    if vdwnn:
+    if  VdwFunction>0:
        reuse_m = True if vdw_layer==vdw_layer_ and VdwFunction==VdwFunction_ else False
        if not vdw_universal_nn is None:
           set_universal_wb(m_=m_,pref='fv',bd=vdw_universal_nn[0],reuse_m=reuse_m,
