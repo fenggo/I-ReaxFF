@@ -149,7 +149,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            hb = spec[hb1-1] + '-' +spec[hb2-1] + '-' +spec[hb3-1]
            hbs.append(hb)
            for ip,pn in enumerate(line_hb):
-               p[pn+'_'+hb] = np.float(l[3+ip])
+               p[pn+'_'+hb] = float(l[3+ip])
     else:
        print('-  Error: lib file is not found!')
        p = None
