@@ -136,7 +136,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
               (not tor1 in tors) and (not torr1 in tors):
               tors.append(tor)
               for ip,pn in enumerate(line_tor):
-                  p[pn+'_'+tor] = np.float(l[4+ip])
+                  p[pn+'_'+tor] = float(l[4+ip])
 
        # ---------   parameters for HBs   ---------
        hbs = []
