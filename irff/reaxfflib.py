@@ -69,7 +69,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            for il,line in enumerate(line_spec):
                ls = 1 if il == 0 else 0
                for ip,pn in enumerate(line):
-                   p[pn+'_'+spec[i]] = np.float(lines[nofc+npar+nsc+i*nsl+il].split()[ls+ip])
+                   p[pn+'_'+spec[i]] = float(lines[nofc+npar+nsc+i*nsl+il].split()[ls+ip])
 
        # ---------  parameters for bonds   ---------
        bonds = []
@@ -84,7 +84,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            for il,line in enumerate(line_bond):
                ls = 2 if il == 0 else 0
                for ip,pn in enumerate(line):
-                   p[pn+'_'+bond] = np.float(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl+il].split()[ls+ip])
+                   p[pn+'_'+bond] = float(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl+il].split()[ls+ip])
 
        # ---------   parameters for off-diagonal bonds   ---------
        offd  = []
