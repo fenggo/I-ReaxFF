@@ -98,7 +98,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            bond = spec[b1-1] + '-' +spec[b2-1]
            offd.append(bond)
            for ip,pn in enumerate(line_offd):
-               p[pn+'_'+bond] = np.float(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[2+ip])
+               p[pn+'_'+bond] = float(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[2+ip])
            
        # ---------   parameters for angles   ---------
        angs = []
@@ -114,7 +114,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            if (not ang in angs) and (not angr in angs):
               angs.append(ang)
               for ip,pn in enumerate(line_ang):
-                  p[pn+'_'+ang] = np.float(l[3+ip])
+                  p[pn+'_'+ang] = float(l[3+ip])
 
        # ---------   parameters for torsions   --------- 
        ntl  = 1 
