@@ -11,7 +11,7 @@ p_name = ['boc1','boc2','coa2','trip4','trip3','kc2','ovun6','trip2',
          'val9','val10','n.u.','pen2','pen3','pen4','n.u.','tor2',
          'tor3','tor4','n.u.','cot2','vdw1','cutoff','coa4','ovun4',
          'ovun3','val8','acut','hbtol','n.u.','n.u.','coa3']
-         
+
 line_spec = []
 line_spec.append(['rosi','val','mass','rvdw','Devdw','gamma','ropi','vale'])
 line_spec.append(['alfa','gammaw','valang','ovun5','n.u.','chi','mu','hbond'])
