@@ -294,7 +294,8 @@ class IRFF(Calculator):
         #        self.lmp.put_coosrds(lmp_c_positions)
         self.lmp.scatter_atoms('x', 1, 3, lmp_c_positions)
 
-    def calculate(self, atoms, properties, system_changes):
+    def calculate(self, atoms, properties=['energy', 'forces','charges','stress'],
+                  system_changes=['positions',  'cell','numbers', 'charges']):
         if self.active_learning:
            self.calculate_bond_order(atoms)
         self.propagate(atoms, properties, system_changes, 0)
