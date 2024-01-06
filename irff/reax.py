@@ -1514,7 +1514,7 @@ class ReaxFF(object):
                 if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
                    if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
                 elif key in self.ea_var:
-                   self.feed_dict[self.var[key]] = p_
+                   self.feed_dict[self.var[key]] = np.float32(p_)
                    self.ea_var[key]              = p[key]
                    # self.logger.info('{:s} {:f}'.format(key,p[key]))
 
