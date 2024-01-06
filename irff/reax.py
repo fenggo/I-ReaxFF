@@ -1327,6 +1327,7 @@ class ReaxFF(object):
       if self.clip_op:
          self.p = clip_parameters(self.p_,self.var,self.clip)
       else:
+         self.p = {}
          for k in self.var:
              key       = k.split('_')[0]
              self.p[k] = self.var[k]
