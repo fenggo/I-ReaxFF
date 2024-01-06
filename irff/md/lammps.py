@@ -19,17 +19,6 @@ def run_lammps(inp_name='inp-lam',label='eos',np=4):
     print('mpirun -n %d lammps<%s> %s.out \n' %(np,inp_name, label))
     system('mpirun -n %d lammps<%s> %s.out' %(np,inp_name, label))
 
-
-def check_decomposed(traj='lammps.trj',nmol=1):
-    mol_ = findmole(filename=traj,trjtype=1,
-               frame=1000000000,timeinterval=0.005,runtype=2) # check molecule if decomposed
-    mol  = mol_[-1]
-    nmol_= len(mol)
-    if nmol_>nmol:
-       print('-  structure already decomposed, exit now!')
-       send_msg('-  structure already decomposed, exit now!')
-       exit()
-
 def get_lammps_thermal(logname='lmp.log',supercell=[1,1,1]):
     e0,p0,t0,v0,aa,ba,ca = 0.0,0.0,0.0,0.0,0,0,0
     e,t = [],[]
@@ -510,9 +499,8 @@ class EOS(object):
      print("****************************************************************",file=feos)
      feos.close()
 
-
-  def check_species(self,species=1):
-      check_decomposed(traj='lammps.trj',nmol=species)
+#   def check_species(self,species=1):
+#       check_decomposed(traj='lammps.trj',nmol=species)
 
 
 def lattice(a,b,c):
@@ -948,7 +936,7 @@ if __name__ == '__main__':
       restart = None if i==0 else 'restart.x'
       # restart = 'restart.x'
       eos.run(totalstep=2000,restart=restart,P=100.0,T=280.0,pfreq=10,tfreq=10)
-      eos.check_species(species=1)
+      # eos.check_species(species=1)
 
   eos.run(totalstep=100000,restart='restart.x',P=100.0,T=280.0,pfreq=1000,tfreq=1000)
 
