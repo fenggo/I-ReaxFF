@@ -734,8 +734,8 @@ class ReaxFF_nn(object):
       #self.so[atom]     = tf.gather_nd(self.SO,self.atomlist[atom])
       otrm1              = DIV_IF(1.0,self.Delta_lpcorr[mol]+val)
       # self.otrm2[atom] = tf.math.divide(1.0,1.0+tf.exp(self.p['ovun2_'+atom]*self.Delta_lpcorr[atom]))
-      otrm2             = tf.sigmoid(-ovun2*self.Delta_lpcorr[mol])
-      self.EOV[mol]     = self.SO[mol] *otrm1*self.Delta_lpcorr[mol]*otrm2
+      otrm2              = tf.sigmoid(-ovun2*self.Delta_lpcorr[mol])
+      self.EOV[mol]      = self.SO[mol] *otrm1*self.Delta_lpcorr[mol]*otrm2
 
   def get_eunder(self,mol,ovun2,ovun5):
       expeu1            = tf.exp(self.p['ovun6']*self.Delta_lpcorr[mol])
