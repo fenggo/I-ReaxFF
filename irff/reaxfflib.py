@@ -49,13 +49,13 @@ def read_ffield(p={},zpe=False,libfile='ffield',
           for i in range(int(len(lin)/2-1)):
               k = lin[i*2+1]
               try:
-                 zpe_[k] = float(lin[i*2])
+                 zpe_[k] = np.float32(lin[i*2])
               except ValueError:
                  zpe_[k] = 0.0
 
        for i in range(npar):
            pn = p_name[i]
-           p[pn] = float(lines[2+i].split()[0]) 
+           p[pn] = np.float32(lines[2+i].split()[0]) 
 
        # ---------   parameters for species   ---------
        nofc   = 1                 #  number of command line
@@ -69,7 +69,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            for il,line in enumerate(line_spec):
                ls = 1 if il == 0 else 0
                for ip,pn in enumerate(line):
-                   p[pn+'_'+spec[i]] = float(lines[nofc+npar+nsc+i*nsl+il].split()[ls+ip])
+                   p[pn+'_'+spec[i]] = np.float32(lines[nofc+npar+nsc+i*nsl+il].split()[ls+ip])
 
        # ---------  parameters for bonds   ---------
        bonds = []
@@ -84,7 +84,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            for il,line in enumerate(line_bond):
                ls = 2 if il == 0 else 0
                for ip,pn in enumerate(line):
-                   p[pn+'_'+bond] = float(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl+il].split()[ls+ip])
+                   p[pn+'_'+bond] = np.float32(lines[nofc+npar+nsc+nspec*nsl+nbc+i*nbl+il].split()[ls+ip])
 
        # ---------   parameters for off-diagonal bonds   ---------
        offd  = []
@@ -98,7 +98,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            bond = spec[b1-1] + '-' +spec[b2-1]
            offd.append(bond)
            for ip,pn in enumerate(line_offd):
-               p[pn+'_'+bond] = float(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[2+ip])
+               p[pn+'_'+bond] = np.float32(lines[nofc+npar+nsc+nspec*nsl+nbc+nbond*nbl+noc+i].split()[2+ip])
            
        # ---------   parameters for angles   ---------
        angs = []
@@ -114,7 +114,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            if (not ang in angs) and (not angr in angs):
               angs.append(ang)
               for ip,pn in enumerate(line_ang):
-                  p[pn+'_'+ang] = float(l[3+ip])
+                  p[pn+'_'+ang] = np.float32(l[3+ip])
 
        # ---------   parameters for torsions   --------- 
        ntl  = 1 
@@ -136,7 +136,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
               (not tor1 in tors) and (not torr1 in tors):
               tors.append(tor)
               for ip,pn in enumerate(line_tor):
-                  p[pn+'_'+tor] = float(l[4+ip])
+                  p[pn+'_'+tor] = np.float32(l[4+ip])
 
        # ---------   parameters for HBs   ---------
        hbs = []
@@ -149,7 +149,7 @@ def read_ffield(p={},zpe=False,libfile='ffield',
            hb = spec[hb1-1] + '-' +spec[hb2-1] + '-' +spec[hb3-1]
            hbs.append(hb)
            for ip,pn in enumerate(line_hb):
-               p[pn+'_'+hb] = float(l[3+ip])
+               p[pn+'_'+hb] = np.float32(l[3+ip])
     else:
        print('-  Error: lib file is not found!')
        p = None
