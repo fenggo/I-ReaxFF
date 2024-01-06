@@ -437,7 +437,7 @@ class ReaxFF_nn(object):
                                             name='forces_%s' %mol)
 
   def build_graph(self):
-      print('-  building graph ...')
+      print('-  building graph: ')
       self.accuracy   = tf.constant(0.0,name='accuracy')
       self.accuracies = {}
       for mol in self.mols:
@@ -616,7 +616,7 @@ class ReaxFF_nn(object):
       self.D[mol]    = [self.Deltap[mol]]                  # get the initial hidden state H[0]
 
       for t in range(1,self.messages+1):
-          print('-  message passing for {:s} t={:d} ...'.format(mol,t))           
+          print('- {:s} ...'.format(mol))           
           BO    = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
           BOsi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
           BOpi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
