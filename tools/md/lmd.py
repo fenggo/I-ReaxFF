@@ -3,7 +3,7 @@ import argh
 import argparse
 from os import system #,popen
 from ase.io import read # ,write
-from ase.data import atomic_numbers
+from ase.data import atomic_numbers, atomic_masses
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
@@ -17,6 +17,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     sp      = ' '.join(species)
     freeatoms = free.split()
     freeatoms = [int(i)+1 for i in freeatoms]
+    masses    = {s:atomic_masses[atomic_numbers[s]] for s in species }
     
     if model == 'quip':
        pair_style = 'quip'  
@@ -39,10 +40,9 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        r_=None
        data = 'data.lammps'
        writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
-                    force_skew=False,
-                    velocities=False,units=units,atom_style=atom_style)
+                       masses=masses,
+                       force_skew=False,
+                       velocities=False,units=units,atom_style=atom_style)
     else:
        r_ = 'restart'
        data = None
