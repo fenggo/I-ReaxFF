@@ -5,10 +5,11 @@ import random
 from ase.io import read,write
 from ase import Atoms
 from ase.data import atomic_numbers,chemical_symbols
-from ase.calculators.lammpsrun import write_lammps_data
+#from ase.calculators.lammpsrun import write_lammps_data
 from ase.calculators.lammps import Prism,convert
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.io.trajectory import TrajectoryWriter
+from ase.data import atomic_numbers, atomic_masses
 from ..molecule import molecules,enlarge,press_mol
 from ..getNeighbors import get_neighbors
 import matplotlib.pyplot as plt
@@ -202,8 +203,7 @@ def get_reaxff_energies(logname='lmp.log'):
     return e,eb,elp,0.0,0.0,ev,epen,ecoa,et,eco,ew,ehb,ep,0.0
 
 def writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
+                    masses=None,
                     force_skew=False,
                     velocities=False,units="real",atom_style='charge'):
     """Write atomic structure data to a LAMMPS data_ file."""
@@ -231,6 +231,8 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
         species = specorder
     n_atom_types = len(species)
     f.write("{0}  atom types\n".format(n_atom_types))
+
+    masses  = {s:atomic_masses[atomic_numbers[s]] for s in species }
 
     p = Prism(atoms.get_cell())
     xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(), "distance",
