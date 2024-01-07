@@ -232,7 +232,8 @@ def writeLammpsData(atoms,data='data.lammps',specorder=None,
     n_atom_types = len(species)
     f.write("{0}  atom types\n".format(n_atom_types))
 
-    masses  = {s:atomic_masses[atomic_numbers[s]] for s in species }
+    if not masses:
+       masses  = {s:atomic_masses[atomic_numbers[s]] for s in species }
 
     p = Prism(atoms.get_cell())
     xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(), "distance",
