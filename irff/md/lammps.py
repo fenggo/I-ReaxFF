@@ -926,6 +926,40 @@ def lammps_data_to_ase_atoms(
 
     return out_atoms
 
+def get_lammps_forces(atoms,lmp='lammps',
+                      ffield='ffield',
+                      pair_style='reaxff control nn yes checkqeq yes',
+                      atom_style='charge',units='real',
+                      ncpu=1):
+    '''
+    Using lammps to compute atoms object forces
+    atoms: ASE atoms object
+    lmp:   lammps run command,your lammps run command, for e.g., lammps, lmp, ./lmp_ubuntu ... 
+    '''
+    symbols = atoms.get_chemical_symbols()
+    species = sorted(set(symbols))
+    sp      = ' '.join(species)
+    writeLammpsData(atoms,data='data.lammps',specorder=None,
+                    force_skew=False,
+                    velocities=False,units=units,atom_style=atom_style)
+    writeLammpsIn(log='lmp.log',timestep=0.1,total=0,restart=None,
+              species=species,
+              pair_coeff ='* * {:s} {:s}'.format(ffield,sp),
+              pair_style =pair_style,  # without lg set lgvdw no
+              fix = '  ',
+              fix_modify = ' ',
+              more_commond = ' ',
+              thermo_style ='thermo_style  custom step temp epair etotal press vol pxx pyy pzz pxy pxz pyz',
+              data='data.lammps',
+              restartfile='restart')
+    print('\n-  running lammps nvt ...')
+    if ncpu==1:
+       system('{:s} <in.lammps>out'.format(lmp))
+    else:
+       system('mpirun -n {:d} {:s} -i in.lammps>out'.format(ncpu,lmp))
+    atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+    return atoms
+
 if __name__ == '__main__':
   # relax system first
   eos = EOS(pair_coeff = '* * ffield.reax.lg C    H    O    N',
