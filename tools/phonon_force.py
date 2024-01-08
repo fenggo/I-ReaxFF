@@ -16,20 +16,23 @@ parser = argparse.ArgumentParser(description='stretch molecules')
 parser.add_argument('--n',default=1,type=int, help='displacement number')
 parser.add_argument('--f',default='in.fdf',type=str, help='fdf file name')
 parser.add_argument('--g',default='POSCAR',type=str, help='geomentry file name')
+parser.add_argument('--c',default='lammps',type=str, help='calculator name')
 args    = parser.parse_args(sys.argv[1:])
 
 # system('cp geo.genS-00{:d} geo-s{:d}.gen'.format(args.n,args.n))
-atoms = read(args.g)
-write_siesta_in(atoms, coord='cart',md=False, opt='CG',
-                VariableCell='true', xcf='VDW', xca='DRSLL',
-                basistype='DZP')
+# atoms = read(args.g)
+# write_siesta_in(atoms, coord='cart',md=False, opt='CG',
+#                 VariableCell='true', xcf='VDW', xca='DRSLL',
+#                 basistype='DZP')
 
 spec  = parse_fdf_species(fdf='in.fdf')
 atoms = parse_fdf('supercell-00{:d}'.format(args.n),spec=spec)
 #view(atoms)
 
-# get_gulp_forces([atoms])
-atoms = get_lammps_forces(atoms)
+if args.c=='gulp':  
+   get_gulp_forces([atoms])
+else:
+   atoms = get_lammps_forces(atoms)
 forces = atoms.get_forces()
 
 with open('Forces.FA', 'w') as ff:
