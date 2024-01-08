@@ -28,7 +28,15 @@ spec  = parse_fdf_species(fdf='in.fdf')
 atoms = parse_fdf('supercell-00{:d}'.format(args.n),spec=spec)
 #view(atoms)
 
-# get_gulp_forces([atoms],wforce=True)
-get_lammps_forces([atoms],wforce=True)
+# get_gulp_forces([atoms])
+atoms = get_lammps_forces(atoms)
+forces = atoms.get_forces()
+
+with open('Forces.FA', 'w') as ff:
+    print(len(atoms), file=ff)
+    for i, f in enumerate(forces):
+        print('{:4d} {:12.8f} {:12.8f} {:12.8f}'.format(
+              i+1, f[0], f[1], f[2]), file=ff)   
+
 system('mv Forces.FA Forces-00{:d}.FA'.format(args.n))
 
