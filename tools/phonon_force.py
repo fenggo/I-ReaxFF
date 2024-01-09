@@ -30,7 +30,7 @@ atoms = parse_fdf('supercell-00{:d}'.format(args.n),spec=spec)
 #view(atoms)
 
 if args.c=='gulp':  
-   get_gulp_forces([atoms])
+   atoms = get_gulp_forces([atoms])
 else:
    atoms = get_lammps_forces(atoms)
 forces = atoms.get_forces()
