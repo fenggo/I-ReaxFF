@@ -930,11 +930,14 @@ def get_lammps_forces(atoms,lmp='lammps',
                       ffield='ffield',
                       pair_style='reaxff control nn yes checkqeq yes',
                       atom_style='charge',units='real',
-                      ncpu=1):
+                      ncpu=1,**kwargs):
     '''
     Using lammps to compute atoms object forces
     atoms: ASE atoms object
     lmp:   lammps run command,your lammps run command, for e.g., lammps, lmp, ./lmp_ubuntu ... 
+    example, the use of GAP potential:
+        pair_style    quip
+        pair_coeff    * * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6
     '''
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
@@ -942,10 +945,14 @@ def get_lammps_forces(atoms,lmp='lammps',
     writeLammpsData(atoms,data='data.lammps',specorder=None,
                     force_skew=False,
                     velocities=False,units=units,atom_style=atom_style)
+    if pair_coeff in kwargs:
+       pair_coeff = kwargs['pair_coeff']
+    else:
+       pair_coeff =  '* * {:s} {:s}'.format(ffield,sp)
     writeLammpsIn(log='lmp.log',timestep=0.1,total=0,restart=None,
               species=species,
-              pair_coeff ='* * {:s} {:s}'.format(ffield,sp),
               pair_style =pair_style,  # without lg set lgvdw no
+              pair_coeff =pair_coeff,
               fix = '  ',
               fix_modify = ' ',
               more_commond = ' ',
