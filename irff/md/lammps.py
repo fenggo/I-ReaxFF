@@ -373,10 +373,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('read_data    {:s}'.format(data), file=fin)
        print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
     if restart != None and restart != 'None':
-       print('read_restart %s' %restart, file=fin)
+       print('read_restart {:s}'.format(restart), file=fin)
     print(' ', file=fin)
-    print('pair_style     %s'  %pair_style, file=fin) 
-    print('pair_coeff     %s'  %pair_coeff, file=fin)
+    print('pair_style     {:s}'.format(pair_style), file=fin) 
+    print('pair_coeff     {:s}'.format(pair_coeff), file=fin)
     if pair_style.find('reaxff')>=0:
        print('compute       reax all pair reaxff', file=fin)
        print('variable eb   equal c_reax[1]', file=fin)
@@ -505,7 +505,6 @@ class EOS(object):
 #   def check_species(self,species=1):
 #       check_decomposed(traj='lammps.trj',nmol=species)
 
-
 def lattice(a,b,c):
     # a =  [ 14.90415061,    -0.12901043,   0.43404866 ]
     # b =  [  -6.08713737  ,  13.39520243  ,   0.32422886 ]
@@ -521,81 +520,6 @@ def lattice(a,b,c):
 
     # print(alpha*180.0/3.14159,beta*180.0/3.14159,gamma*180.0/3.14159)
     return ra,rb,rc,alpha,beta,gamma
-
-
-def LammpsHistory(traj='lammps.trj',inp='in.lammps'):
-    # atomType=['C','H','O','N']
-    with open(inp,'r') as fi:
-         lines = fi.readlines()
-         for line in lines:
-             if line.find('pair_coeff')>=0:
-                l = line.split()
-                atomType = l[4:]
-    e = []
-    with open('lmp.log','r') as fl:
-         lines = fl.readlines()
-         readenergy = False
-         for line in lines:
-             if line.find('Step          Temp          E_pair         TotEng')>=0:
-                readenergy = True
-             elif line.find('Loop time')>=0 or line.find('ERROR')>=0:
-                readenergy = False
-             l = line.split()
-             if readenergy and l[0]!='Step':
-                e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
-
-    fl = open(traj,'r')
-    lines = fl.readlines()
-    nl    = len(lines) 
-    fl.close()
-    natom     = int(lines[3])
-    frame     = 0
-    nframe    = len(e)
-    #print(e)
-
-    his       = TrajectoryWriter('md.traj',mode='w')#traj.split('.')[0]+
-    n         = 0
-    block     = natom+9
-
-    atomName  = [' ' for i in range(natom)]
-    cell      = np.zeros([3,3])
-    line      = lines[block*frame + 5].split()
-    cell[0][0]= float(line[1])-float(line[0])
-    line      = lines[block*frame + 6].split()
-    cell[1][1]= float(line[1])-float(line[0])
-    line      = lines[block*frame + 7].split()
-    cell[2][2]= float(line[1])-float(line[0])
-
-    positions = np.zeros([natom,3])
-    forces    = np.zeros([natom,3])
-
-    while n<=nl:    
-        for i in range(natom):
-            n = block*frame + i + 9
-            if n >= len(lines):
-                 break 
-            line = lines[n].split()
-            id_  = int(line[0])
-            atomName[id_]=atomType[int(line[1])]
-            positions[id_][0] = float(line[2])
-            positions[id_][1] = float(line[3])
-            positions[id_][2] = float(line[4])
-
-            forces[id_][0]    = float(line[6])*4.3364432032e-2
-            forces[id_][1]    = float(line[7])*4.3364432032e-2
-            forces[id_][2]    = float(line[8])*4.3364432032e-2
-
-        if frame>=nframe:
-           break
-        atoms  = Atoms(atomName,positions,cell=cell,pbc=[True,True,True])
-        atoms.calc = SinglePointCalculator(atoms, energy=e[frame],forces=forces)
-        his.write(atoms=atoms)
-        frame += 1
-        n = block*frame + 9
-
-    his.close()
-    lines= None
-    return atoms
 
 def get_max_index(index):
     if np.isscalar(index):
