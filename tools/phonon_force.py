@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='stretch molecules')
 parser.add_argument('--n',default=1,type=int, help='displacement number')
 parser.add_argument('--f',default='in.fdf',type=str, help='fdf file name')
 parser.add_argument('--g',default='POSCAR',type=str, help='geomentry file name')
-parser.add_argument('--c',default='lammps',type=str, help='calculator name')
+parser.add_argument('--c',default='gulp',type=str, help='calculator name')
 args    = parser.parse_args(sys.argv[1:])
 
 # system('cp geo.genS-00{:d} geo-s{:d}.gen'.format(args.n,args.n))
@@ -31,6 +31,10 @@ atoms = parse_fdf('supercell-00{:d}'.format(args.n),spec=spec)
 
 if args.c=='gulp':  
    atoms = get_gulp_forces([atoms])
+elif args.c=='gap':
+   atoms = get_lammps_forces(atoms,pair_style='quip',
+       pair_coeff='* * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6',
+       units='metal',atom_style='atomic')
 else:
    atoms = get_lammps_forces(atoms)
 forces = atoms.get_forces()
