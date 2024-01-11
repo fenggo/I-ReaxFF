@@ -882,6 +882,7 @@ def get_lammps_forces(atoms,lmp='lammps',
               more_commond = ' ',
               thermo_style ='thermo_style  custom step temp epair etotal press vol pxx pyy pzz pxy pxz pyz',
               data='data.lammps',
+              units=units,atom_style=atom_style,
               restartfile='restart')
     print('\n-  running lammps nvt ...')
     if ncpu==1:
