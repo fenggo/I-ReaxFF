@@ -869,7 +869,7 @@ def get_lammps_forces(atoms,lmp='lammps',
     writeLammpsData(atoms,data='data.lammps',specorder=None,
                     force_skew=False,
                     velocities=False,units=units,atom_style=atom_style)
-    if pair_coeff in kwargs:
+    if 'pair_coeff' in kwargs:
        pair_coeff = kwargs['pair_coeff']
     else:
        pair_coeff =  '* * {:s} {:s}'.format(ffield,sp)
