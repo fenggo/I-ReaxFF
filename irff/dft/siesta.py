@@ -892,10 +892,11 @@ def parse_fdf(label='siesta',spec={}):
         if ns and natom:
            break
 
-    positions = []
-    atom_name = []
-    cell      = []
-
+    positions  = []
+    atom_name  = []
+    cell       = []
+    fractional = False
+    
     for i,line in enumerate(lines):
         l = line.split()
         if len(l)>0:
@@ -924,10 +925,14 @@ def parse_fdf(label='siesta',spec={}):
                  unit = 0.529177249
               else:
                  unit = 1.0
-              cell      = np.array(cell)*unit
+              
            elif l[0]=='AtomicCoordinatesFormat':
               if line.find('Fractional')>0 or line.find('fractional')>0:
-                 positions = np.dot(positions,cell)
+                 fractional = True
+                 
+    cell      = np.array(cell)*unit
+    if fractional:
+       positions = np.dot(positions,cell)
     A = Atoms(atom_name,positions,cell=cell,pbc=[True,True,True])
     # A.write(label+'.gen')
     return A
