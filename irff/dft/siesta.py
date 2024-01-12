@@ -875,7 +875,7 @@ def parse_out(outfile='siesta.out',spec={}):
     return atoms 
 
 def parse_fdf(label='siesta',spec={}):
-    fin = open(label+'.fdf','r') 
+    fin = open('{:s}.fdf'.format(label),'r') 
     lines= fin.readlines()
     fin.close()                     # getting informations from input file
     atom_name = []
@@ -924,8 +924,10 @@ def parse_fdf(label='siesta',spec={}):
                  unit = 0.529177249
               else:
                  unit = 1.0
-    cell      = np.array(cell)*unit
-    positions = np.dot(positions,cell)
+              cell      = np.array(cell)*unit
+           elif l[0]=='AtomicCoordinatesFormat':
+              if line.find('Fractional')>0 or line.find('fractional')>0:
+                 positions = np.dot(positions,cell)
     A = Atoms(atom_name,positions,cell=cell,pbc=[True,True,True])
     # A.write(label+'.gen')
     return A
