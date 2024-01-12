@@ -863,6 +863,13 @@ def get_lammps_forces(atoms,lmp='lammps',
         pair_style    quip
         pair_coeff    * * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6
     '''
+    if pair_style.find('reaxff')>=0:
+       units      = 'real'
+       atom_style = 'charge'
+    else:
+       units      = 'metal'
+       atom_style = 'atomic'
+
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
