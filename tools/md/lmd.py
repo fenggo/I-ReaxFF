@@ -74,7 +74,7 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
-def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
+def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
@@ -87,6 +87,7 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
                     force_skew=False,
                     velocities=False,units=units,atom_style='charge')
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
+              dump_interval=1,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
