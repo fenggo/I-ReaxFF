@@ -64,7 +64,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c)
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
 
 def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
@@ -80,11 +80,12 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
+    units   = "real"
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
-                    velocities=False,units="real",atom_style='charge')
+                    velocities=False,units=units,atom_style='charge')
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
@@ -100,7 +101,7 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c)
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
 
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,

@@ -550,8 +550,8 @@ def construct_cell(diagdisp, offdiag):
     celldisp = np.array([celldispx, celldispy, celldispz])
     return cell, celldisp
 
-def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj', 
-                      mode='w',
+def lammpstraj_to_ase(filename='lammps.trj',index=-1,traj='md.traj', 
+                      mode='w',units='real',
                       inp='in.lammps',atomid=None,recover=False):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
@@ -663,6 +663,7 @@ def lammpstraj_to_ase(filename='lammps.traj',index=-1,traj='md.traj',
                     energy=e[i_],
                     atomType=atomType,
                     atomid=atomid,
+                    units=units,
                     recover=False)
                images.append(out_atoms)
                his.write(atoms=out_atoms)
