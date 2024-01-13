@@ -418,6 +418,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
     print(' ', file=fin)
     print(more_commond, file=fin)
+    
+    if 'minimize' in kwargs:
+        print('minimize {:s}'.format(kwargs['minimize']), file=fin)
+
     print(' ', file=fin)
     print('thermo        {:d}'.format(dump_interval), file=fin)
     print(thermo_style, file=fin)

@@ -90,9 +90,9 @@ def opt(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
               species=species,
               pair_coeff ='* * {:s} {:s}'.format(lib,sp),
               pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
-              fix = 'minimize	1e-5 1e-5 2000 2000', 
+              fix = ' ', 
               fix_modify = ' ',
-              more_commond = ' ',
+              minimize   = '1e-5 1e-5 2000 2000',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               data='data.lammps',
               restartfile='restart')
