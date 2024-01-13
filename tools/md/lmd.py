@@ -114,12 +114,13 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
-def traj(inp='in.lammps',s=0,e=0,c=0):
+def traj(inp='in.lammps',s=0,e=0,c=0,units='real'):
+    ''' usage: ./lmd.py traj --inp=in.lammps --unit=metal '''
     if e==0:
        atomid = None
     else:
        atomid = (s,e)
-    lammpstraj_to_ase('lammps.trj',inp=inp,atomid=atomid,recover=c)
+    lammpstraj_to_ase('lammps.trj',inp=inp,units=units,atomid=atomid,recover=c)
 
 def plot(out='out'):
     get_lammps_thermal(logname='lmp.log',supercell=[1,1,1])
