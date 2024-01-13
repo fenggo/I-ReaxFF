@@ -897,7 +897,7 @@ def get_lammps_forces(atoms,lmp='lammps',
        system('{:s} <in.lammps>out'.format(lmp))
     else:
        system('mpirun -n {:d} {:s} -i in.lammps>out'.format(ncpu,lmp))
-    atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps')
+    atoms = lammpstraj_to_ase('lammps.trj',units=units,inp='in.lammps')
     return atoms
 
 if __name__ == '__main__':
