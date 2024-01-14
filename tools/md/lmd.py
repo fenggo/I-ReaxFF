@@ -59,7 +59,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
               units=units,atom_style=atom_style,
               data=data,
               restartfile='restart')
-    print('\n-  running lammps nvt ...')
+    print('\n-  running lammps ...')
     if n==1:
        system('lammps<in.lammps>out')
     else:
