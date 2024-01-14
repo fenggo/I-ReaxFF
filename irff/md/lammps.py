@@ -371,7 +371,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
 
     if data != None and data != 'None':
        print('read_data    {:s}'.format(data), file=fin)
-       print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
+       if 'T' in kwargs:
+          print('velocity     all create {:d} {:d}'.format(kwargs['T'],random.randint(0,10000)), file=fin)
+       else:
+          print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
     if restart != None and restart != 'None':
        print('read_restart {:s}'.format(restart), file=fin)
     print(' ', file=fin)

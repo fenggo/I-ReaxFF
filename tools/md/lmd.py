@@ -57,7 +57,7 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
               dump_interval=dump_interval,more_commond = ' ',
               thermo_style =thermo_style,
               units=units,atom_style=atom_style,
-              data=data,
+              data=data,T=T,
               restartfile='restart')
     print('\n-  running lammps ...')
     if n==1:
