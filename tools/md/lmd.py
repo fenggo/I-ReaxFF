@@ -79,7 +79,7 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
 
     if x>1 or y>1 or z>1:
        ncell     = x*y*z
-       natoms    = len(atoms)/ncell
+       natoms    = int(len(atoms)/ncell)
        species   = atoms.get_chemical_symbols()
        positions = atoms.get_positions()
        forces    = atoms.get_forces()
