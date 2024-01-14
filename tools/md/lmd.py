@@ -92,9 +92,9 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        pos       = np.dot(posf, cell)
        A         = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
-       A.write('POSCAR.npt')
+       A.write('POSCAR.unitcell')
     else:
-       atoms.write('POSCAR.npt')
+       atoms.write('POSCAR.unitcell')
 
 def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
