@@ -78,6 +78,12 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
                 free=free,dump_interval=dump_interval,
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
+    return atoms
+
+def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn', 
+        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=100):
+    atoms = npt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,
+                p=p,x=x,y=y,z=z,n=n,lib=lib,free=free,dump_interval=dump_interval)
     if x>1 or y>1 or z>1:
        ncell     = x*y*z
        natoms    = int(len(atoms)/ncell)
@@ -90,13 +96,13 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        pos_      = np.dot(positions[0:natoms], u)
        posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
        pos       = np.dot(posf, cell)
-       A         = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
-       A.write('POSCAR.unitcell')
-    else:
-       atoms.write('POSCAR.unitcell')
+   
+     atoms.write('POSCAR.unitcell')
+     return atoms
 
-def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
