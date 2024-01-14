@@ -4,6 +4,7 @@ import argparse
 from os import system #,popen
 from ase.io import read # ,write
 from ase.data import atomic_numbers, atomic_masses
+from ase.calculators.singlepoint import SinglePointCalculator
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 
 
@@ -64,15 +65,30 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
+    atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
+    return atoms
 
 def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
     thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
                   T,tdump,p,p,tdump)
-    nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
-        free=free,dump_interval=dump_interval,
-        x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
+    atoms = nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+                free=free,dump_interval=dump_interval,
+                x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
+
+    if x>1 or y>1 or z>1:
+       ncell     = x*y*z
+       natoms    = len(atoms)/ncell
+       species   = atoms.get_chemical_symbols()
+       positions = atoms.get_positions()
+       forces    = atoms.get_forces()
+       cell      = atoms.get_cell()
+       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
+       A = Atoms(species[0:natoms],positions[0:natoms],forces=forces[0:natoms],
+                 cell=cell,pbc=[True,True,True])
+       A.write('POSCAR.npt')
+    else:
+       atoms.write('POSCAR.npt')
 
 def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
