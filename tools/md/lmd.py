@@ -2,6 +2,7 @@
 import argh
 import argparse
 from os import system #,popen
+import numpy as np
 from ase import Atoms
 from ase.io import read # ,write
 from ase.data import atomic_numbers, atomic_masses
