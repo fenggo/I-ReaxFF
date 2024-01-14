@@ -49,8 +49,8 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
 
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=r_,
               species=species,
-              
-              pair_style = pair_style,  # without lg set lgvdw no
+              pair_style= pair_style,  # without lg set lgvdw no
+              pair_coeff=pair_coeff
               fix = thermo_fix,
               freeatoms=freeatoms,natoms=len(atoms),
               fix_modify = ' ',
