@@ -85,8 +85,12 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        forces    = atoms.get_forces()
        cell      = atoms.get_cell()
        cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
-       A = Atoms(species[0:natoms],positions[0:natoms],#forces=forces[0:natoms],
-                 cell=cell,pbc=[True,True,True])
+       u         = np.linalg.inv(cell)
+       pos_      = np.dot(positions[0:natoms], u)
+       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
+       pos       = np.dot(posf, cell)
+       A         = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+                         cell=cell,pbc=[True,True,True])
        A.write('POSCAR.npt')
     else:
        atoms.write('POSCAR.npt')
