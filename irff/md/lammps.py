@@ -420,7 +420,9 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(more_commond, file=fin)
     
     if 'minimize' in kwargs:
-        print('minimize {:s}'.format(kwargs['minimize']), file=fin)
+        print('min_style   cg', file=fin)
+        print('min_modify  line quadratic', file=fin)
+        print('minimize    {:s}'.format(kwargs['minimize']), file=fin)
 
     print(' ', file=fin)
     print('thermo        {:d}'.format(dump_interval), file=fin)
