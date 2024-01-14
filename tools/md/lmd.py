@@ -74,18 +74,28 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
-def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='w',c=0,
+def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
-    units   = "real"
+    if model == 'quip':
+       pair_style = 'quip'  
+       lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
+       pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
+       units      = "metal"
+       atom_style = 'atomic'
+    else:
+       pair_style = 'reaxff control nn yes checkqeq yes'   # without lg set lgvdw no
+       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
+       units      = "real"
+       atom_style = 'charge'
     writeLammpsData(atoms,data='data.lammps',specorder=None, 
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
-                    velocities=False,units=units,atom_style='charge')
+                    velocities=False,units=units,atom_style=atom_style)
     writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
               dump_interval=1,
               species=species,
@@ -95,7 +105,7 @@ def opt(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='w',c=0,
               fix_modify = ' ',
               minimize   = '1e-5 1e-5 2000 2000',
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data='data.lammps',
+              data='data.lammps',units=units,atom_style=atom_style,
               restartfile='restart')
     print('\n-  running lammps minimize ...')
     if n==1:
