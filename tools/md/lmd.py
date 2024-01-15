@@ -99,8 +99,8 @@ def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-
        atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
    
-     atoms.write('POSCAR.unitcell')
-     return atoms
+    atoms.write('POSCAR.unitcell')
+    return atoms
 
 def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
