@@ -82,7 +82,6 @@ def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,
                   atoms.calc = SinglePointCalculator(atoms,energy=energy,
                                                   forces=forces)
                except:
-                  continue
                   if must_have_force:
                      continue
                   else:
