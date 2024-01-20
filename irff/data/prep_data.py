@@ -76,7 +76,10 @@ def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,dft='
            traj    = TrajectoryWriter(tn_,mode='w')
            for atoms in images_:
                energy = atoms.get_potential_energy()
-               forces = atoms.get_forces()
+               try:
+                  forces = atoms.get_forces()
+               except:
+                  continue
                atoms.calc = SinglePointCalculator(atoms,energy=energy,
                                                   forces=forces)
                traj.write(atoms=atoms)
