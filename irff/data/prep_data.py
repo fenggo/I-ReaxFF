@@ -8,7 +8,8 @@ from math import ceil
 import numpy as np
 
 
-def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,dft='siesta'):
+def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,
+              dft='siesta',must_have_force=False):
     ''' To sort data must have same atom number and atom types 
           images: contains all atom image in all directions
           frame : collect this number to images
@@ -78,10 +79,14 @@ def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,dft='
                energy = atoms.get_potential_energy()
                try:
                   forces = atoms.get_forces()
+                  atoms.calc = SinglePointCalculator(atoms,energy=energy,
+                                                  forces=forces)
                except:
                   continue
-               atoms.calc = SinglePointCalculator(atoms,energy=energy,
-                                                  forces=forces)
+                  if must_have_force:
+                     continue
+                  else:
+                     atoms.calc = SinglePointCalculator(atoms,energy=energy)
                traj.write(atoms=atoms)
            traj.close()
            trajs[tn] = tn_

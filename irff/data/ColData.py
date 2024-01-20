@@ -9,7 +9,6 @@ class ColData(object):
       '''
       self.max_batch    = max_batch   # max number in direcs to train
 
-
   def __call__(self,label=None,dft='ase',batch=50,endstep=None,startstep=0,increase=1):
       self.label  = label
       cwd         = getcwd()
@@ -38,7 +37,8 @@ class ColData(object):
                     
       trajs_ = prep_data(label=self.label,direcs=data_dir,
                          split_batch=batch,max_batch=self.max_batch,
-                         frame=100000,dft=dft)              # get trajs for training
+                         frame=100000,dft=dft,
+                         must_have_force=must_have_force)              # get trajs for training
       return trajs_
 
 class ColRawData(object):
