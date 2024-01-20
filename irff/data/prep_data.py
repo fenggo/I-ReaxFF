@@ -3,6 +3,7 @@ from .mdtodata import MDtoData
 from os import getcwd,mkdir
 from os.path import exists
 from ase.io.trajectory import TrajectoryWriter,Trajectory
+from ase.calculators.singlepoint import SinglePointCalculator
 from math import ceil
 import numpy as np
 
@@ -74,6 +75,10 @@ def prep_data(label=None,direcs=None,split_batch=100,frame=50,max_batch=50,dft='
            tn_     = 'data/'+tn +'.traj'
            traj    = TrajectoryWriter(tn_,mode='w')
            for atoms in images_:
+               energy = atoms.get_potential_energy()
+               forces = atoms.get_forces()
+               atoms.calc = SinglePointCalculator(atoms,energy=energy,
+                                                  forces=forces)
                traj.write(atoms=atoms)
            traj.close()
            trajs[tn] = tn_
