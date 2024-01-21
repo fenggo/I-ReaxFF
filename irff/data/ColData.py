@@ -9,7 +9,7 @@ class ColData(object):
       '''
       self.max_batch    = max_batch   # max number in direcs to train
 
-  def __call__(self,label=None,dft='ase',batch=50,endstep=None,startstep=0,
+  def __call__(self,label=None,dft='ase',batch=1000000,endstep=None,startstep=0,
                increase=1,must_have_force=False):
       self.label  = label
       cwd         = getcwd()
