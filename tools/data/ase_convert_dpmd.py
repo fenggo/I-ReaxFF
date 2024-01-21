@@ -19,8 +19,9 @@ for filename in path_list:
        sys = dpdata.MultiSystems.from_file(file_name=file, fmt='ase/structure')
        print(sys.systems)
        ms.append(sys)
-       # ms.to_deepmd_npy('training_data/') 
+       # sys.to_deepmd_npy('training_data/') 
        sys.to_deepmd_npy('dp_data/{:s}'.format(fil)) 
+       
  
 
 print(ms.systems)
