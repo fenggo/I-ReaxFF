@@ -379,7 +379,11 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('read_restart {:s}'.format(restart), file=fin)
     print(' ', file=fin)
     print('pair_style     {:s}'.format(pair_style), file=fin) 
-    print('pair_coeff     {:s}'.format(pair_coeff), file=fin)
+    if isinstance(pair_coeff, list):
+       for pc in pair_coeff:
+           print('pair_coeff     {:s}'.format(pc), file=fin)
+    else:
+       print('pair_coeff     {:s}'.format(pair_coeff), file=fin)
     if pair_style.find('reaxff')>=0:
        print('compute       reax all pair reaxff', file=fin)
        print('variable eb   equal c_reax[1]', file=fin)
