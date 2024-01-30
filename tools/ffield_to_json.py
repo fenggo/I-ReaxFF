@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from irff.reaxfflib import read_lib,write_lib
+from irff.reaxfflib import read_ffield,write_lib
 # from irff.irnnlib_new import write_lib
 from irff.qeq import qeq
 from ase.io import read
@@ -10,7 +10,7 @@ from os import environ,system
 
 
 def ffieldtojson():
-    p,zpe,spec,bonds,offd,angs,torp,hbs= read_lib(libfile='ffield')
+    p,zpe,spec,bonds,offd,angs,torp,hbs= read_ffield(libfile='ffield')
 
     fj = open('ffield.json','w')
     # j = {'p':p,'m':[],'bo_layer':[],'zpe':[]}
