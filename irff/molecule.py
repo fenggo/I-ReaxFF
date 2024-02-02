@@ -98,14 +98,14 @@ def select_mol(A=None,step=0,index=None,rcut=None,inbox=False):
        A.set_cell(cel)
     cel = A.get_cell()
     box = np.array([cel[0][0],cel[1][1],cel[2][2]])
-    natm,atoms,X,table = get_neighbors(Atoms=A,r_cut=rcut,cell=box) #,exception=['O-O','H-H']
+    natm,atoms,table = get_neighbors(Atoms=A,r_cut=rcut,cell=box) #,exception=['O-O','H-H']
 
-    M = molecules(natm,atoms,X,
+    M = molecules(natm,atoms,
                   cell=box,
                   table=table,
                   check=True,inbox=inbox)
 
-    elems,x = [],[]
+    elems = [],[]
     ind     = []
     # flog    = open('log.txt','a')
     for mol in M:
@@ -117,7 +117,7 @@ def select_mol(A=None,step=0,index=None,rcut=None,inbox=False):
            # print(step,mol.mol_index,file=flog)
            # print(step,mol.atom_name,file=flog)
     # flog.close()
-    A = Atoms(elems,x,cell=cel,charges=ind,tags=ind)
+    A = Atoms(elems,cell=cel,charges=ind,tags=ind)
     return A
 
 
@@ -200,11 +200,11 @@ def packmol(strucs=[],supercell=[1,1,1],w=False,sizeiscell=True):
 
 def press_mol(atoms,fac=1.0,inbox=False,check=True):
     cell = atoms.get_cell()
-    natm,atoms,X,table = get_neighbors(Atoms=atoms,
+    natm,atoms,table = get_neighbors(Atoms=atoms,
                                 r_cut=None,
                                 cell=cell) #,exception=['O-O','H-H']
     
-    M = molecules(natm,atoms,X,
+    M = molecules(natm,atoms,
                   cell=cell,
                   table=table,
                   check=check,
@@ -234,7 +234,9 @@ def enlarge(m,cell=None,fac=1.0,supercell=None):
     for mol in m:
         natm += mol.natom
 
-    elems,x = [None for na in range(natm)],[None for na in range(natm)]
+    elems = [None for na in range(natm)] 
+    x     = [None for na in range(natm)]
+    
     for mol in m:
         for i,na in enumerate(mol.mol_index):
             elems[na] = mol.atom_name[i]
@@ -281,10 +283,10 @@ def moltoatoms(mols):
 
 def Molecules(atoms,rcut=None,check=False):
     cell = atoms.get_cell()
-    natm,atoms,X,table = get_neighbors(Atoms=atoms,
+    natm,atoms,table = get_neighbors(Atoms=atoms,
                                        r_cut=rcut,
                                        cell=cell) #,exception=['O-O','H-H']
-    m = molecules(natm,atoms,X,
+    m = molecules(natm,atoms,
                   cell=cell,
                   table=table,
                   check=check,
@@ -293,7 +295,7 @@ def Molecules(atoms,rcut=None,check=False):
     return m
 
 
-def molecules(natom,specs,X,cell=None,table=None,
+def molecules(natom,specs,cell=None,table=None,
               check=False,
               inbox=False,
               sizeiscell=True):
@@ -473,8 +475,8 @@ class molecule(object):
 if __name__ == '__main__':
    get_structure(struc='rdx',output='dftb',recover=True,center=True,supercell=[1,1,1])
    A = read('card.gen')
-   natm,atoms,X,table = get_neighbors(Atoms=A,r_cut=None,exception=['O-O','H-H'])
-   m = molecules(natm,atoms,X,table)
+   natm,atoms,table = get_neighbors(Atoms=A,r_cut=None,exception=['O-O','H-H'])
+   m = molecules(natm,atoms,table)
    cell = A.get_cell()
 
 
