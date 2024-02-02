@@ -40,6 +40,7 @@ lammps = LAMMPS(files=files)
 lammps.set(pair_style='quip')
 lammps.set(pair_coeff=['* * Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\" 6'])
 lammps.set(tmp_dir='./')
+lammps.set(keep_alive=False)
 # lammps.set(keep_tmp_files=True)
 G.calc = lammps
 print("Energy ", G.get_potential_energy())
