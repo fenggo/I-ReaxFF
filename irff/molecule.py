@@ -220,6 +220,7 @@ def SuperCell(m,cell=None,fac=1.0,supercell=None):
 
 
 def enlarge(m,cell=None,fac=1.0,supercell=None):
+    cell = cell*fac
     a = cell[0]
     b = cell[1]
     c = cell[2]
@@ -258,9 +259,9 @@ def enlarge(m,cell=None,fac=1.0,supercell=None):
                           elems.extend(m[n_mol].atom_name)
                           x.extend(m_x)
  
-       a = [r*supercell[0]*fac for r in a]
-       b = [r*supercell[1]*fac for r in b]
-       c = [r*supercell[2]*fac for r in c]
+       a = [r*supercell[0] for r in a]
+       b = [r*supercell[1] for r in b]
+       c = [r*supercell[2] for r in c]
  
     A = Atoms(elems, x)
     A.set_cell([a,b,c])
