@@ -10,9 +10,8 @@
 ## Requirement
  the following package need to be installed
 1. TensorFlow, pip install tensorflow --user or conda install tensorflow
-2. PyTorch, conda install pyTorch
-3. Numpy,pip install numpy --user
-4. matplotlib, pip install matplotlib --user
+2. Numpy,pip install numpy --user
+3. matplotlib, pip install matplotlib --user
 
 Install this package after download this package and run commond in shell ``` python setup install --user ```. 
 Alternatively, this package can be install without download the package through pip
