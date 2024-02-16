@@ -15,12 +15,15 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     images = Trajectory(traj)
     step,e,ei      = [],[],[]
     r              = []
-
-    ir = IRFF_NP(atoms=images[0],
+    d              = []
+    v              = []
+    atoms = images[0]
+    ir = IRFF_NP(atoms=atoms,
               libfile=ffield,
               nn=nn)
 
-    ir.calculate(images[0])
+    ir.calculate(atoms)
+    masses = np.sum(atoms.get_masses())
 
     for i_,atoms in enumerate(images):
         step.append(i_)
@@ -28,6 +31,10 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         ir.calculate(atoms)
         ei.append(ir.E)
         r.append(ir.r[i][j])
+        
+        volume = atoms.get_volume()
+        density = masses/volume/0.602214129
+        d.append(density)
 
     e_max = min(e)
     e = np.array(e) - e_max
@@ -46,12 +53,12 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # ax.spines['left'].set_position(('data',0))
     # ax.spines['bottom'].set_position(('data', 0))
 
-    plt.plot(r,e,alpha=0.8,
-             linestyle='-',#marker='s',markerfacecolor='none',
-             #markeredgewidth=1,markeredgecolor='r',markersize=3,
+    plt.plot(d,e,alpha=0.8,
+             linestyle='-',marker='s',markerfacecolor='none',
+             markeredgewidth=1,markeredgecolor='r',markersize=10,
              color='red',label=r'$DFT$ ($SIESTA$)')
 
-    plt.plot(r,ei,alpha=0.8,
+    plt.plot(d,ei,alpha=0.8,
              linestyle='-',marker='o',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='b',markersize=10,
              color='k',label=r'$ReaxFF-nn$')
@@ -79,5 +86,4 @@ if __name__ == '__main__':
    parser.add_argument('--j', default=1,type=int, help='atom j')
    args = parser.parse_args(sys.argv[1:])
    trajplot(traj=args.t,i=args.i,j=args.j)
-
 
