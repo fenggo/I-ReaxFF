@@ -1319,8 +1319,8 @@ class AtomDance(object):
              print('Atoms too closed.')
              break
              
-          calc = SinglePointCalculator(atoms_,energy=self.ir.E)
-          atoms_.set_calculator(calc)
+          atoms_.calc = SinglePointCalculator(atoms_,energy=self.ir.E)
+          # atoms_.set_calculator(calc)
           images.append(atoms_)
           if not traj is None: his.write(atoms=atoms_)
       return images
