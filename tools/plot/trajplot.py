@@ -43,7 +43,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
 
     plt.figure()   
     plt.ylabel(r'$Energy$ ($eV$)')
-    plt.xlabel(r'$Time$ $Step$ ($fs$)')
+    plt.xlabel(r'$Density$ ($g/cm^3$)')
     # plt.xlim(0,i)
     # plt.ylim(0,np.max(hist)+0.01)
 
@@ -64,7 +64,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
              color='k',label=r'$ReaxFF-nn$')
 
     ediff = np.abs(e - ei)
-    plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
+    plt.fill_between(d,ei - ediff, ei + ediff, color='palegreen',
                      alpha=0.2)
 
     # pdiff = np.abs(pdft - preax)
