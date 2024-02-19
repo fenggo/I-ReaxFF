@@ -54,8 +54,9 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.3,'H':0.2,'N':0.32,'O':0.35}
-colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
+radius = {'C':0.5,'H':0.2,'N':0.45,'O':0.4}
+# colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
+colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 #bond_radius = {'C':0.15,'H':0.05,'N':0.15,'O':0.15}
 #------------------------ 画出原子　------------------------
 for atom in atoms:
