@@ -284,7 +284,7 @@ def moltoatoms(mols):
 
 def Molecules(atoms,rcut=None,check=False):
     cell = atoms.get_cell()
-    natm,atoms,table = get_neighbors(Atoms=atoms,
+    natm,atoms,X,table = get_neighbors(Atoms=atoms,
                                        r_cut=rcut,
                                        cell=cell) #,exception=['O-O','H-H']
     m = molecules(natm,atoms,
