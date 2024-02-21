@@ -8,8 +8,10 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from irff.molecule import Molecules,enlarge # SuperCell,moltoatoms
 #from irff.md.lammps import writeLammpsData
 from irff.irff_np import IRFF_NP
+from irff.molecule import press_mol
 
 A = read('hmxc.gen')
+A = press_mol(A)
 x = A.get_positions()
 m = np.min(x,axis=0)
 x_ = x - m
