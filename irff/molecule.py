@@ -98,11 +98,12 @@ def select_mol(A=None,step=0,index=None,rcut=None,inbox=False):
        A.set_cell(cel)
     cel = A.get_cell()
     box = np.array([cel[0][0],cel[1][1],cel[2][2]])
-    natm,atoms,table = get_neighbors(Atoms=A,r_cut=rcut,cell=box) #,exception=['O-O','H-H']
+    natm,atoms,X,table = get_neighbors(Atoms=A,r_cut=rcut,cell=box) #,exception=['O-O','H-H']
 
     M = molecules(natm,atoms,
                   cell=box,
                   table=table,
+                  X=X,
                   check=True,inbox=inbox)
 
     elems = [],[]
@@ -200,13 +201,14 @@ def packmol(strucs=[],supercell=[1,1,1],w=False,sizeiscell=True):
 
 def press_mol(atoms,fac=1.0,inbox=False,check=True):
     cell = atoms.get_cell()
-    natm,atoms,table = get_neighbors(Atoms=atoms,
+    natm,atoms,X,table = get_neighbors(Atoms=atoms,
                                 r_cut=None,
                                 cell=cell) #,exception=['O-O','H-H']
     
     M = molecules(natm,atoms,
                   cell=cell,
                   table=table,
+                  X=X,
                   check=check,
                   inbox=inbox,
                   sizeiscell=True)
