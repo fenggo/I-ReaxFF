@@ -290,6 +290,7 @@ def Molecules(atoms,rcut=None,check=False):
     m = molecules(natm,atoms,
                   cell=cell,
                   table=table,
+                  X=X,
                   check=check,
                   inbox=False,
                   sizeiscell=True)
@@ -297,7 +298,7 @@ def Molecules(atoms,rcut=None,check=False):
 
 
 def molecules(natom,specs,cell=None,table=None,
-              check=False,
+              X=None,check=False,
               inbox=False,
               sizeiscell=True):
     m = []
