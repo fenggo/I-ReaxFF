@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
+import sys
+import argparse
 import numpy as np
 import copy
 from ase.io import read
@@ -10,7 +12,11 @@ from irff.molecule import Molecules,enlarge # SuperCell,moltoatoms
 from irff.irff_np import IRFF_NP
 from irff.molecule import press_mol
 
-A = read('hmxc.gen')
+parser = argparse.ArgumentParser(description='eos by scale crystal box')
+parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
+args = parser.parse_args(sys.argv[1:])
+
+A = read(args.g)
 A = press_mol(A)
 x = A.get_positions()
 m = np.min(x,axis=0)
@@ -26,7 +32,8 @@ ir = IRFF_NP(atoms=A,
 
 print('\nnumber of molecules:',nmol)
 
-ff = [0.92,0.94,0.96,0.98,1.0,1.02,1.04,1.06,1.08,1.1,1.12]
+ff = [0.94,0.96,0.98,1.0,1.02,1.04,1.06,1.08,1.1]
+# ff = [3]
 cell = A.get_cell()
 
 with TrajectoryWriter('md.traj',mode='w') as his:
@@ -36,4 +43,5 @@ with TrajectoryWriter('md.traj',mode='w') as his:
         ir.calculate(A)
         A.calc = SinglePointCalculator(A,energy=ir.E)
         his.write(atoms=A)
+ 
  
