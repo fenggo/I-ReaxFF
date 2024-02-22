@@ -4,6 +4,7 @@ import sys
 import argparse
 import numpy as np
 import copy
+import json as js
 from ase.io import read
 from ase.io.trajectory import TrajectoryWriter #,Trajectory
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -16,6 +17,10 @@ parser = argparse.ArgumentParser(description='eos by scale crystal box')
 parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
 args = parser.parse_args(sys.argv[1:])
 
+lf = open('ffield.json','r')
+j = js.load(lf)
+lf.close()
+
 A = read(args.g)
 A = press_mol(A)
 x = A.get_positions()
@@ -23,7 +28,9 @@ m = np.min(x,axis=0)
 x_ = x - m
 A.set_positions(x_)
 
-m_  = Molecules(A)
+print(j['rcutBond'])
+
+m_  = Molecules(A,rcut=j['rcutBond'])
 nmol = len(m_)
 
 ir = IRFF_NP(atoms=A,
@@ -32,7 +39,7 @@ ir = IRFF_NP(atoms=A,
 
 print('\nnumber of molecules:',nmol)
 
-ff = [0.94,0.96,0.98,1.0,1.02,1.04,1.06,1.08,1.1]
+ff = [0.98,1.0,1.02,1.06,1.1]
 # ff = [3]
 cell = A.get_cell()
 
@@ -43,5 +50,4 @@ with TrajectoryWriter('md.traj',mode='w') as his:
         ir.calculate(A)
         A.calc = SinglePointCalculator(A,energy=ir.E)
         his.write(atoms=A)
- 
  
