@@ -309,9 +309,10 @@ class AtomDance(object):
       self.zmat_index = []
       self.zmat_id    = []
       specs           = atoms.get_chemical_symbols()
-      self.mols       = molecules(self.natom,specs,atoms.positions,
+      self.mols       = molecules(self.natom,specs,X=atoms.positions,
                                   cell=atoms.cell,
-                                  table=self.neighbors)
+                                  table=self.neighbors,
+                                  sizeiscell=False)
       for m in self.mols:
           if len(m.mol_index)==1:
              self.zmat_index.append([-1,-1,-1])
