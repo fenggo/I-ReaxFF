@@ -28,7 +28,7 @@ m = np.min(x,axis=0)
 x_ = x - m
 A.set_positions(x_)
 
-print(j['rcutBond'])
+# print(j['rcutBond'])
 
 m_  = Molecules(A,rcut=j['rcutBond'])
 nmol = len(m_)
@@ -39,7 +39,7 @@ ir = IRFF_NP(atoms=A,
 
 print('\nnumber of molecules:',nmol)
 
-ff = [0.98,1.0,1.02,1.06,1.1]
+ff = [0.94,0.96,0.98,1.0,1.02,1.04,1.06,1.08,1.1]
 # ff = [3]
 cell = A.get_cell()
 
