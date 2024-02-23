@@ -66,7 +66,7 @@ class LearningMachine(object):
                convergence=0.01,nconvergence=3,
                accCriteria=0.9,lossCriteria=10.0,lossTole=1.0,accTole=0.05,
                accMax=0.9,accInc=1.0001,mdInc=1.2,resetAcc=2,
-               learn_method=3,FreePairs=None,beta=None,
+               learn_method=3,lattice_opt=False,FreePairs=None,beta=None,
                free_atoms=None,first_atom=None,
                rodic=None,
                rmin=0.88,rmax=1.33,angmax=25.0,
@@ -111,6 +111,7 @@ class LearningMachine(object):
       self.cons           = cons
       self.nconvergence   = nconvergence
       self.learn_method   = learn_method     # the way of learing
+      self.lattice_opt    = lattice_opt
       self.ncpu           = ncpu
       self.step           = step
       self.batch          = batch
@@ -557,7 +558,7 @@ class LearningMachine(object):
          system('cp %s ../../md.traj' %(self.label+'.traj'))
       elif learn_method==2:
          if self.dft=='siesta':
-            images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=True,us='F',
+            images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=self.lattice_opt,us='F',
                                 tstep=tstep,FreeAtoms=self.freeatoms,
                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
             system('cp {:s}.traj md.traj'.format(self.label))
