@@ -205,7 +205,7 @@ def write_siesta_in(Atoms,coord='zmatrix',
 
     cell = Atoms.get_cell()
     natm,atoms,X,table = get_neighbors(Atoms=Atoms,cell=cell,exception=['O-O','H-H'])
-    m = molecules(natm,atoms,X,table=table,cell=cell)
+    m = molecules(natm,atoms,X=X,table=table,cell=cell)
 
     m,A  = enlarge(m,cell=cell,fac = fac,supercell=[1,1,1])
     cell = A.get_cell()
