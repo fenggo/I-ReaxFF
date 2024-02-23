@@ -149,7 +149,7 @@ def single_point(atoms,id=0,xcf='VDW',xca='DRSLL',basistype='DZP',
 def siesta_opt(atoms=None,label='siesta',ncpu=4,supercell=[1,1,1],
                VariableCell='true',xcf='VDW',xca='DRSLL',basistype='DZP',
                tstep=200,us='F',P=0.0,
-               gen='poscar.gen',**kwargs):
+               gen='poscar.gen',FreeAtoms=None,**kwargs):
     if exists('siesta.MDE') or exists('siesta.MD_CAR'):
        system('rm siesta.MDE siesta.MD_CAR')
     if atoms is None:
@@ -158,7 +158,7 @@ def siesta_opt(atoms=None,label='siesta',ncpu=4,supercell=[1,1,1],
                     VariableCell=VariableCell,
                     md=False,opt='CG',P=P,tstep=tstep,
                     xcf=xcf,xca=xca,basistype=basistype,
-                    us=us,**kwargs) # for MD
+                    us=us,FreeAtoms=FreeAtoms,**kwargs) # for MD
     run_siesta(ncpu=ncpu)
     images = siesta_traj(label=label)
     return images
