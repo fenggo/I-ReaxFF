@@ -183,7 +183,8 @@ def siesta_md(atoms=None,label='siesta',gen='poscar.gen',ncpu=4,supercell=[1,1,1
 def run_siesta(ncpu=12):
     system('mpirun -n %d siesta<in.fdf>siesta.out' %ncpu)
 
-def write_siesta_in(Atoms,coord='zmatrix',
+def write_siesta_in(Atoms,infdf='in.fdf',
+                    coord='zmatrix',
                     VariableCell='false',
                     fac=1.0,
                     opt='CG',  # 'FIRE' 'SinglePoint'
@@ -234,7 +235,7 @@ def write_siesta_in(Atoms,coord='zmatrix',
     nspecie = len(species)
     natm    = len(atoms_label)
 
-    fdf = open('in.fdf','w')
+    fdf = open(infdf,'w')
     print('\n################## Species and atoms ##################',file=fdf)
     print('SystemName       siesta',file=fdf)
     print('SystemLabel      siesta',file=fdf)
