@@ -343,19 +343,17 @@ class molecule(object):
       self.inbox        = inbox
       if rcut is None:
          rcut =  {'Fe-C':2.0,'Fe-H':1.8,'Fe-N':2.0,'Fe-O':2.0,'Fe-Fe':2.2,
-                       'C-C':1.8,'C-N':1.8,'C-O':1.8,'C-H':1.5,
-                       'N-N':1.9,'N-H':1.8,'N-O':1.8,
-                       'O-H':1.8,'O-O':1.7,
-                       'H-H':1.3,
-                       'Cl-C':2.0,'Cl-N':2.0,'Cl-O':2.0,'Cl-H':1.7,'Cl-Fe':2.2,
-                       'F-C':1.85,'F-N':1.85,'F-O':1.85,'F-H':1.7,'F-Fe':1.8,'F-Cl':1.85,
-                       'others':1.8}
-         self.rcut = rcut.copy()
-      else:
-         self.rcut      = rcut.copy()
-      self.mol_x        = np.array(mol_x)
-      self.cell         = np.array(cell)
-      self.sizeiscell   = sizeiscell
+                  'C-C':1.8,'C-N':1.8,'C-O':1.8,'C-H':1.5,
+                  'N-N':1.9,'N-H':1.8,'N-O':1.8,
+                  'O-H':1.8,'O-O':1.7,
+                  'H-H':1.3,
+                  'Cl-C':2.0,'Cl-N':2.0,'Cl-O':2.0,'Cl-H':1.7,'Cl-Fe':2.2,
+                  'F-C':1.85,'F-N':1.85,'F-O':1.85,'F-H':1.7,'F-Fe':1.8,'F-Cl':1.85,
+                  'others':1.8}
+      self.rcut        = rcut.copy()
+      self.mol_x       = np.array(mol_x)
+      self.cell        = np.array(cell)
+      self.sizeiscell  = sizeiscell
 
       if mol_index is None:
          self.mol_index = np.arange(len(atom_name))
@@ -491,15 +489,10 @@ class molecule(object):
              self.move_atom(j,kk)
 
 
-
 if __name__ == '__main__':
    get_structure(struc='rdx',output='dftb',recover=True,center=True,supercell=[1,1,1])
    A = read('card.gen')
    natm,atoms,table = get_neighbors(Atoms=A,r_cut=None,exception=['O-O','H-H'])
    m = molecules(natm,atoms,table)
    cell = A.get_cell()
-
-
-
-
 
