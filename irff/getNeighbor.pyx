@@ -52,7 +52,7 @@ def get_neighbors(filename=None,Atoms=None,r_cut=None,cell=None,exception=[]):
             elif pairr in r_cut:
                rc = r_cut[pairr] 
             else:
-               print('-  warning: rcut not define for pair: %s, using default 1.8.' %pair)
+               # print('-  warning: rcut not define for pair: %s, using default 1.8.' %pair)
                rc = r_cut['others']
 
             if r<rc and (not pair in exception):
