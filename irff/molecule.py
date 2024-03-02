@@ -342,7 +342,7 @@ class molecule(object):
                rcut=None):
       self.inbox        = inbox
       if rcut is None:
-         self.rcut = {'Fe-C':2.0,'Fe-H':1.8,'Fe-N':2.0,'Fe-O':2.0,'Fe-Fe':2.2,
+         rcut =  {'Fe-C':2.0,'Fe-H':1.8,'Fe-N':2.0,'Fe-O':2.0,'Fe-Fe':2.2,
                        'C-C':1.8,'C-N':1.8,'C-O':1.8,'C-H':1.5,
                        'N-N':1.9,'N-H':1.8,'N-O':1.8,
                        'O-H':1.8,'O-O':1.7,
@@ -350,8 +350,9 @@ class molecule(object):
                        'Cl-C':2.0,'Cl-N':2.0,'Cl-O':2.0,'Cl-H':1.7,'Cl-Fe':2.2,
                        'F-C':1.85,'F-N':1.85,'F-O':1.85,'F-H':1.7,'F-Fe':1.8,'F-Cl':1.85,
                        'other':1.8}
+         self.rcut = rcut.copy
       else:
-         self.rcut      = rcut
+         self.rcut      = rcut.copy
       self.mol_x        = np.array(mol_x)
       self.cell         = np.array(cell)
       self.sizeiscell   = sizeiscell
