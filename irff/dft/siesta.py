@@ -833,7 +833,7 @@ def parse_out(outfile='siesta.out',spec={}):
                      # print(spec,int(l_[3])-1)
                      atom_number = int(l_[3])
                      if atom_number not in spec:
-                        spec[atom_number] = input('Please input symbol of number {:d}: '.format(atom_number))
+                        spec[atom_number] = l_[4]
                      atom_name.append(spec[atom_number])
            elif l[0]=='LatticeConstant':
               if line.find('Ang')>0 or line.find('ang')>0:
