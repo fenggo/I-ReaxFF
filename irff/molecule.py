@@ -367,7 +367,7 @@ class molecule(object):
       self.table        = []
       self.center       = np.sum(self.mol_x,axis=0)/self.natom
 
-      for bd in self.rcut:    # check rcut
+      for bd in rcut:    # check rcut
           if bd == 'other':
              continue
           b = bd.split('-')
