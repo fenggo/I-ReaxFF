@@ -457,9 +457,9 @@ class molecule(object):
               vr   = self.mol_x[jatom] - self.mol_x[iatom]
               r_   = np.sqrt(np.sum(vr*vr,axis=0))
               if r_>self.rcut[bd]: 
-                 print(iatom,jatom,r_)
                  self.mol_x[jatom] = self.mol_x[iatom] + self.vr[iatom][jatom]
-
+                 r   = np.sqrt(np.sum(self.vr[iatom][jatom]*self.vr[iatom][jatom],axis=0))
+                 print(iatom,jatom,r_,r)
 
   def move_atom(self,i,j):
       vr  = self.mol_x[j] - self.mol_x[i]
