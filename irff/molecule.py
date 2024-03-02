@@ -349,7 +349,7 @@ class molecule(object):
                        'H-H':1.3,
                        'Cl-C':2.0,'Cl-N':2.0,'Cl-O':2.0,'Cl-H':1.7,'Cl-Fe':2.2,
                        'F-C':1.85,'F-N':1.85,'F-O':1.85,'F-H':1.7,'F-Fe':1.8,'F-Cl':1.85,
-                       'other':1.8}
+                       'others':1.8}
          self.rcut = rcut.copy()
       else:
          self.rcut      = rcut.copy()
@@ -368,7 +368,7 @@ class molecule(object):
       self.center       = np.sum(self.mol_x,axis=0)/self.natom
 
       for bd in rcut:    # check rcut
-          if bd == 'other':
+          if bd == 'others':
              continue
           b = bd.split('-')
           bdr = b[1]+'-'+b[0]
