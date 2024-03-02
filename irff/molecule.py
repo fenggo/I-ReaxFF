@@ -466,8 +466,7 @@ class molecule(object):
               r    = np.sqrt(np.sum(self.vr[iatom][jatom]*self.vr[iatom][jatom],axis=0))
               if iatom in [13,14]:
                  print(iatom,jatom,r_,r)
-                 rcut_ = self.rcut[bd] if bd in self.rcut else self.rcut['others']
-              
+               rcut_ = self.rcut[bd] if bd in self.rcut else self.rcut['others']
               if r_>rcut_: 
                  self.mol_x[jatom] = self.mol_x[iatom] + self.vr[iatom][jatom]
                  # print(iatom,jatom,r_,r)
