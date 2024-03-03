@@ -13,6 +13,9 @@ from irff.molecule import Molecules,enlarge # SuperCell,moltoatoms
 from irff.irff_np import IRFF_NP
 from irff.molecule import press_mol
 
+''' scale the crystal box, while keep the molecule structure unchanged
+'''
+
 parser = argparse.ArgumentParser(description='eos by scale crystal box')
 parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
 args = parser.parse_args(sys.argv[1:])
