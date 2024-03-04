@@ -78,13 +78,15 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.3,'H':0.2,'N':0.32,'O':0.35}
-colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
+radius = {'C':0.5,'H':0.2,'N':0.45,'O':0.4}
+# colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
+colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
+# colors = {'C':'black','H':'white','N':'blue','O':'red'}
 #bond_radius = {'C':0.15,'H':0.05,'N':0.15,'O':0.15}
 #------------------------ 画出原子　------------------------
 for atom in atoms:
     sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
-    p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, metallic=2/4, roughness=2/5)
+    p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, metallic=1/8, roughness=1/5)
 
 #----------------------- 画出原子键　-----------------------
 bonds = pv.PolyData()
@@ -107,7 +109,7 @@ if args.b:
                         cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
                         cell[0]+cell[1],cell[0]])
    box = pv.lines_from_points(vertices,close=True)
-   p.add_mesh(box,line_width=2,color='blue')
+   p.add_mesh(box,line_width=8,color='dodgerblue',metallic=1/8)
 
 #p.view_vector((0,-1 , 0), (0, 1,0))
 #p.view_vector((0,0 , -1), (0, 0,1))
@@ -117,7 +119,5 @@ p.camera.zoom(2.0)
 # img_again = p.screenshot()
 p.save_graphic('{:s}'.format(args.geo.split('.')[0]+'.svg'))
 p.show(auto_close=False)
-p.screenshot(transparent_background=True,filename='{:s}'.format(args.geo.split('.')[0]+'.png'))
+# p.screenshot(transparent_background=True,filename='{:s}'.format(args.geo.split('.')[0]+'.png'))
 p.close()
-
-
