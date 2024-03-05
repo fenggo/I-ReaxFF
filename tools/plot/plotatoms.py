@@ -95,7 +95,7 @@ bonds.points = points
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, smooth_shading=True)
+p.add_mesh(tube,pbr=True,metallic=1/8, roughness=1/5, smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
