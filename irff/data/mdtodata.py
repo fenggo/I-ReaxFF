@@ -173,7 +173,8 @@ class MDtoData(object):
             forces,presses,qs = self.get_siesta_forces()
          elif self.dft=='ase':
             self.get_ase_data(images,trajonly)
-
+         print(xs)
+         print(len(forces))
          if self.dft!='ase':
             xs             = np.array(xs)
             self.x         = xs[self.indexs]
@@ -276,7 +277,7 @@ class MDtoData(object):
              c = None
           else:
              c = self.qs[i]
-          print(self.x)
+           
           A   = Atoms(self.atom_name,self.x[ii],
                       charges=c,
                       cell=self.cells[ii],pbc=[True,True,True])
