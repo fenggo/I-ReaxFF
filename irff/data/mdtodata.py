@@ -77,6 +77,7 @@ class MDtoData(object):
                sort=False,
                checkMol=False,
                traj=False,
+               fdf='in.fdf',
                nindex=[]):
       self.sort      = sort
       self.checkMol  = checkMol
@@ -86,6 +87,7 @@ class MDtoData(object):
       self.qs        = None
 
       self.dft       = dft
+      self.fdf       = fdf
       if direc.endswith('.traj'):
          self.dft    = 'ase'
 
@@ -165,7 +167,7 @@ class MDtoData(object):
          # if self.dft=='cpmd':
          #    xs = self.get_cpmd_data()
          if self.dft=='siesta':
-            xs,cells = self.get_siesta_cart()
+            xs,cells = self.get_siesta_cart(fdf=self.fdf)
             forces,presses,qs = self.get_siesta_forces()
          elif self.dft=='ase':
             self.get_ase_data(images,trajonly)
@@ -208,7 +210,7 @@ class MDtoData(object):
             # if self.dft=='cpmd':
             #    xs,forces = self.get_cpmd_data(indexs)
             if self.dft=='siesta':
-               xs,cells    = self.get_siesta_cart()
+               xs,cells    = self.get_siesta_cart(fdf=self.fdf)
                forces,presses,qs = self.get_siesta_forces()
             self.x = np.array(xs)
             self.cells = np.array(cells)
