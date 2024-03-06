@@ -66,6 +66,13 @@ def get_lattice(inp='inp-nve'):
     finp.close()
     return cell
 
+def get_label(inp):
+    with open(inp,'r') as fin:
+         for line in fin.readlines():
+             if line.find('SystemLabel')>=0 or line.find('Systemlabel')>=0:
+                label = line[1]
+                return label
+    return None
 
 class MDtoData(object):
   """ Collecting datas for mathine learning for bond order potential"""
@@ -139,7 +146,9 @@ class MDtoData(object):
       # elif self.dft=='cpmd':
       #    self.get_cpmd_frame()
       if self.dft=='siesta':
-         self.get_siesta_energy()
+         label=get_label(self.inp)
+         if label is None: label = 'siesta'  
+         self.get_siesta_energy(label=label)
       elif self.dft=='qe':
          self.get_qe_energy()
       elif self.dft=='ase':
@@ -214,8 +223,7 @@ class MDtoData(object):
             if self.dft=='siesta':
                xs,cells    = self.get_siesta_cart(fdf=self.inp)
                forces,presses,qs = self.get_siesta_forces()
-            print(xs)
-            print(len(forces))
+
             self.x = np.array(xs)
             self.cells = np.array(cells)
             forces = np.array(forces)
