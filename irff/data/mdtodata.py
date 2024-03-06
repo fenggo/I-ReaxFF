@@ -411,7 +411,7 @@ class MDtoData(object):
       for isp in range(ns):
           l = lines[spl+isp].split() 
           sp.append(l[2])
-
+      print(sp)
       atoml = self.natom+2 if zmat else self.natom
       for na in range(atoml):
           l = lines[atml+na].split() 
@@ -510,7 +510,7 @@ class MDtoData(object):
       obs        = {}
       for s in self.spec:
           spec_atoms[s] = []
-      print(self.atom_name)
+      # print(self.atom_name)
       for i,s in enumerate(self.atom_name):
           if s in spec_atoms:
              spec_atoms[s].append(i) 
@@ -519,7 +519,7 @@ class MDtoData(object):
       nsp = {}
       for s in spec_atoms:
           nsp[s] = len(spec_atoms[s])
-      print(nsp)
+      # print(nsp)
       iframe = 0
       spec_  = []
 
