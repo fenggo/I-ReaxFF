@@ -510,7 +510,7 @@ class MDtoData(object):
       obs        = {}
       for s in self.spec:
           spec_atoms[s] = []
-
+      print(self.atom_name)
       for i,s in enumerate(self.atom_name):
           if s in spec_atoms:
              spec_atoms[s].append(i) 
