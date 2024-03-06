@@ -276,6 +276,7 @@ class MDtoData(object):
              c = None
           else:
              c = self.qs[i]
+          print(self.x)
           A   = Atoms(self.atom_name,self.x[ii],
                       charges=c,
                       cell=self.cells[ii],pbc=[True,True,True])
