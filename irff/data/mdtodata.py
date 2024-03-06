@@ -354,8 +354,8 @@ class MDtoData(object):
       self.x         = np.array(x)
 
   def get_siesta_energy(self,label='siesta'):
+      print(label)
       if isfile(label+'.MDE'):
-         print(label)
          fe = open(label+'.MDE','r')
          lines = fe.readlines()
          fe.close()
