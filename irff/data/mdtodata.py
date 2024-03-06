@@ -77,7 +77,8 @@ class MDtoData(object):
                sort=False,
                checkMol=False,
                traj=False,
-               fdf='in.fdf',
+               inp='in.fdf',
+               out='siesta.out',
                nindex=[]):
       self.sort      = sort
       self.checkMol  = checkMol
@@ -87,7 +88,8 @@ class MDtoData(object):
       self.qs        = None
 
       self.dft       = dft
-      self.fdf       = fdf
+      self.inp       = inp
+      self.out       = out
       if direc.endswith('.traj'):
          self.dft    = 'ase'
 
@@ -167,7 +169,7 @@ class MDtoData(object):
          # if self.dft=='cpmd':
          #    xs = self.get_cpmd_data()
          if self.dft=='siesta':
-            xs,cells = self.get_siesta_cart(fdf=self.fdf)
+            xs,cells = self.get_siesta_cart(fdf=self.inp)
             forces,presses,qs = self.get_siesta_forces()
          elif self.dft=='ase':
             self.get_ase_data(images,trajonly)
@@ -210,7 +212,7 @@ class MDtoData(object):
             # if self.dft=='cpmd':
             #    xs,forces = self.get_cpmd_data(indexs)
             if self.dft=='siesta':
-               xs,cells    = self.get_siesta_cart(fdf=self.fdf)
+               xs,cells    = self.get_siesta_cart(fdf=self.inp)
                forces,presses,qs = self.get_siesta_forces()
             self.x = np.array(xs)
             self.cells = np.array(cells)
@@ -421,8 +423,10 @@ class MDtoData(object):
 
       if isfile(label+'.MD_CAR'):
          xs,cells = self.parse_mdcar(label+'.MD_CAR')
-      else:
+      elif isfile(label+'.out'):
          xs,cells = self.parse_out(label+'.out')
+      else:
+         xs,cells = self.parse_out(self.out)
       return xs,cells
 
   def parse_out(self,fout):

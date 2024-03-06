@@ -94,9 +94,9 @@ def Basis():
                   }
     return basis
 
-def siesta_traj(label='siesta',fdf='in.fdf',batch=10000000):
+def siesta_traj(label='siesta',fdf='in.fdf',out='siesta.out',batch=10000000):
     cwd = getcwd()
-    d = MDtoData(structure=label,fdf=fdf,dft='siesta',direc=cwd,batch=batch)
+    d = MDtoData(structure=label,inp=fdf,out=out,dft='siesta',direc=cwd,batch=batch)
     images = d.get_traj()
     d.close()
     return images
