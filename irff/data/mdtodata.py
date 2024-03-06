@@ -78,7 +78,7 @@ class MDtoData(object):
                checkMol=False,
                traj=False,
                inp='in.fdf',
-               out='siesta.out',
+               out=None,
                nindex=[]):
       self.sort      = sort
       self.checkMol  = checkMol
@@ -496,7 +496,10 @@ class MDtoData(object):
       return xs,cells
 
   def get_siesta_forces(self,label='siesta'):
-      fo = open(label+'.out','r') 
+      if self.out is None:
+         fo = open(label+'.out','r') 
+      else:
+         fo = open(self.out,'r') 
       lines= fo.readlines()
       fo.close()           # getting informations from input file
       forces  = []
