@@ -361,7 +361,7 @@ class MDtoData(object):
          fe.close()
          l1= lines[1].split()
          l = lines[-1].split()
-         print(l1)
+       
          if len(l)==0:
             l = lines[-2].split()
          self.nframe = int(l[0]) - int(l1[0]) + 1
