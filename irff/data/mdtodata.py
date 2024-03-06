@@ -1,4 +1,3 @@
-from __future__ import print_function
 from os import getcwd, chdir,listdir
 from os.path import isfile
 from ase import Atoms
@@ -374,6 +373,7 @@ class MDtoData(object):
       else:
          self.energy_nw = [0.0]
          self.nframe = 1
+      print(self.nframe)
 
   def get_qe_energy(self,label='pw'):
       if isfile(label+'.MDE'):
