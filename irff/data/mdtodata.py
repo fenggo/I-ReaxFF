@@ -173,8 +173,7 @@ class MDtoData(object):
             forces,presses,qs = self.get_siesta_forces()
          elif self.dft=='ase':
             self.get_ase_data(images,trajonly)
-         print(xs)
-         print(len(forces))
+
          if self.dft!='ase':
             xs             = np.array(xs)
             self.x         = xs[self.indexs]
@@ -215,6 +214,8 @@ class MDtoData(object):
             if self.dft=='siesta':
                xs,cells    = self.get_siesta_cart(fdf=self.inp)
                forces,presses,qs = self.get_siesta_forces()
+            print(xs)
+            print(len(forces))
             self.x = np.array(xs)
             self.cells = np.array(cells)
             forces = np.array(forces)
