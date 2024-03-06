@@ -519,7 +519,7 @@ class MDtoData(object):
       nsp = {}
       for s in spec_atoms:
           nsp[s] = len(spec_atoms[s])
-
+      print(nsp)
       iframe = 0
       spec_  = []
 
