@@ -355,6 +355,7 @@ class MDtoData(object):
 
   def get_siesta_energy(self,label='siesta'):
       if isfile(label+'.MDE'):
+         print(label)
          fe = open(label+'.MDE','r')
          lines = fe.readlines()
          fe.close()
@@ -373,7 +374,7 @@ class MDtoData(object):
       else:
          self.energy_nw = [0.0]
          self.nframe = 1
-      print(self.nframe)
+      # print(self.nframe)
 
   def get_qe_energy(self,label='pw'):
       if isfile(label+'.MDE'):
