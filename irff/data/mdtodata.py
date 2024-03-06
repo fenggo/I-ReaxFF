@@ -69,7 +69,7 @@ def get_label(inp):
     with open(inp,'r') as fin:
          for line in fin.readlines():
              if line.find('SystemLabel')>=0 or line.find('Systemlabel')>=0:
-                label = line[1]
+                label = line.split()[1]
                 return label
     return None
 
