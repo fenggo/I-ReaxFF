@@ -410,8 +410,10 @@ class MDtoData(object):
       sp = []
       for isp in range(ns):
           l = lines[spl+isp].split() 
-          sp.append(l[2])
-      print('sp: ',sp)
+          s_ = l[2]
+          sp.append(s_)
+          if s_ not in self.spec:
+             self.spec.append(s_)
       atoml = self.natom+2 if zmat else self.natom
       for na in range(atoml):
           l = lines[atml+na].split() 
