@@ -512,8 +512,10 @@ class MDtoData(object):
           spec_atoms[s] = []
 
       for i,s in enumerate(self.atom_name):
-          spec_atoms[s].append(i) 
-
+          if s in spec_atoms:
+             spec_atoms[s].append(i) 
+          else:
+             spec_atoms[s] = [i]
       nsp = {}
       for s in spec_atoms:
           nsp[s] = len(spec_atoms[s])
