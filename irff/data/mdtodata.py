@@ -184,7 +184,7 @@ class MDtoData(object):
             forces         = np.array(forces)
             self.forces    = forces[self.indexs]
             self.presses   = presses[self.indexs]
-            self.qs        = qs[self.indexs]
+            # self.qs      =  qs[self.indexs]
 
             energy_nw      = np.array(self.energy_nw)
             self.energy_nw = energy_nw[self.indexs]
@@ -222,10 +222,10 @@ class MDtoData(object):
                self.forces    = forces[self.indexs]
             else:
                self.forces = None
-            if len(forces)>= len(self.indexs):
-               self.qs        = qs[self.indexs]
-            else:
-               self.qs = None
+            # if len(forces)>= len(self.indexs):
+            #    self.qs        = qs[self.indexs]
+            # else:
+            #    self.qs = None
             if len(presses)>0:
                self.presses   = presses[self.indexs]
 
@@ -545,89 +545,89 @@ class MDtoData(object):
                   pl = lines[l+i+1].split()
                   press.append([float(pl[0]),float(pl[1]),float(pl[2])])
               presses.append(press)
-          elif line.find('mulliken: Atomic and Orbital Populations:')>=0:
-             # print('-  current frame %d, MD step %d...' %(iframe,frame))
-             if iframe==0:
-                cl    = 0
-                end_  = True
-                while end_:
-                      cl   += 1
-                      line_ = lines[i+cl]
-                      if line_.find('mulliken: Qtot')>=0:
-                         end_ = False
+         #  elif line.find('mulliken: Atomic and Orbital Populations:')>=0:
+         #     # print('-  current frame %d, MD step %d...' %(iframe,frame))
+         #     if iframe==0:
+         #        cl    = 0
+         #        end_  = True
+         #        while end_:
+         #              cl   += 1
+         #              line_ = lines[i+cl]
+         #              if line_.find('mulliken: Qtot')>=0:
+         #                 end_ = False
 
-                      if line_.find('Species:')>=0:
-                         sl = 0
-                         spec_.append(line_.split()[1])
+         #              if line_.find('Species:')>=0:
+         #                 sl = 0
+         #                 spec_.append(line_.split()[1])
                          
-                         qline_ = lines[i+cl+1]
-                         if qline_.find('Atom  Qatom  Qorb')<0:
-                            print('-  an error case ... ... ')
+         #                 qline_ = lines[i+cl+1]
+         #                 if qline_.find('Atom  Qatom  Qorb')<0:
+         #                    print('-  an error case ... ... ')
 
-                         qline_ = lines[i+cl+2]
-                         ql_    = qline_.split()
-                         nob    = len(ql_)
+         #                 qline_ = lines[i+cl+2]
+         #                 ql_    = qline_.split()
+         #                 nob    = len(ql_)
 
-                         o      = 0
-                         spec_end = True
-                         while spec_end:
-                               o += 1
-                               qline_ = lines[i+cl+2+o]
-                               ql_    = qline_.split()
-                               if len(ql_)== nob+2:
-                                  obs[spec_[-1]] = o
-                                  spec_end = False
+         #                 o      = 0
+         #                 spec_end = True
+         #                 while spec_end:
+         #                       o += 1
+         #                       qline_ = lines[i+cl+2+o]
+         #                       ql_    = qline_.split()
+         #                       if len(ql_)== nob+2:
+         #                          obs[spec_[-1]] = o
+         #                          spec_end = False
 
-                # print('\n Qorb: \n',obs)
-                q_    = np.zeros([self.natom])
-                cl    = 0
-                end_  = True
-                while end_:
-                      cl   += 1
-                      line_ = lines[i+cl]
-                      if line_.find('mulliken: Qtot')>=0:
-                         end_ = False
+         #        # print('\n Qorb: \n',obs)
+         #        q_    = np.zeros([self.natom])
+         #        cl    = 0
+         #        end_  = True
+         #        while end_:
+         #              cl   += 1
+         #              line_ = lines[i+cl]
+         #              if line_.find('mulliken: Qtot')>=0:
+         #                 end_ = False
 
-                      if line_.find('Species:')>=0:
-                         sl = 0
-                         s_ = line_.split()[1]
-                         # print('\n-  charges of species: %s \n' %s_)
+         #              if line_.find('Species:')>=0:
+         #                 sl = 0
+         #                 s_ = line_.split()[1]
+         #                 # print('\n-  charges of species: %s \n' %s_)
                          
-                         for i_ in range(nsp[s_]):
-                             qline_ = lines[i+cl+2+(i_+1)*obs[s_]]
-                             ql_    = qline_.split()
+         #                 for i_ in range(nsp[s_]):
+         #                     qline_ = lines[i+cl+2+(i_+1)*obs[s_]]
+         #                     ql_    = qline_.split()
 
-                             ai     = int(ql_[0])-1
-                             q_[ai] = self.p['vale_'+s_] - float(ql_[1])  # original is oppose!
+         #                     ai     = int(ql_[0])-1
+         #                     q_[ai] = self.p['vale_'+s_] - float(ql_[1])  # original is oppose!
 
-                         cl += 2+i_*obs[s_]
-                qs.append(q_)
-             else:
-                q_    = np.zeros([self.natom])
-                cl    = 0
-                end_  = True
-                while end_:
-                      cl   += 1
-                      line_ = lines[i+cl]
-                      if line_.find('mulliken: Qtot')>=0:
-                         end_ = False
+         #                 cl += 2+i_*obs[s_]
+         #        qs.append(q_)
+         #     else:
+         #        q_    = np.zeros([self.natom])
+         #        cl    = 0
+         #        end_  = True
+         #        while end_:
+         #              cl   += 1
+         #              line_ = lines[i+cl]
+         #              if line_.find('mulliken: Qtot')>=0:
+         #                 end_ = False
 
-                      if line_.find('Species:')>=0:
-                         sl = 0
-                         s_ = line_.split()[1]
+         #              if line_.find('Species:')>=0:
+         #                 sl = 0
+         #                 s_ = line_.split()[1]
 
-                         for i_ in range(nsp[s_]):
-                             qline_ = lines[i+cl+2+(i_+1)*obs[s_]]
-                             ql_    = qline_.split()
+         #                 for i_ in range(nsp[s_]):
+         #                     qline_ = lines[i+cl+2+(i_+1)*obs[s_]]
+         #                     ql_    = qline_.split()
                              
-                             ai     = int(ql_[0])-1
-                             q_[ai] = float(ql_[1])-self.p['vale_'+s_]
+         #                     ai     = int(ql_[0])-1
+         #                     q_[ai] = float(ql_[1])-self.p['vale_'+s_]
 
-                         cl += 2+i_*obs[s_]
-                # print('-  frame: %d' %iframe,q_)
-                qs.append(q_)
+         #                 cl += 2+i_*obs[s_]
+         #        # print('-  frame: %d' %iframe,q_)
+         #        qs.append(q_)
 
-             iframe += 1
+         #    iframe += 1
       return np.array(forces),np.array(presses),np.array(qs)
          
   def close(self):
