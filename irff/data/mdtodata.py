@@ -222,7 +222,7 @@ class MDtoData(object):
             if self.dft=='siesta':
                xs,cells    = self.get_siesta_cart(fdf=self.inp)
                forces,presses,qs = self.get_siesta_forces()
-            print(len(xs),xs)
+            # print(len(xs),xs)
             self.x = np.array(xs)
             self.cells = np.array(cells)
             forces = np.array(forces)
@@ -438,6 +438,7 @@ class MDtoData(object):
 
       if isfile(label+'.MD_CAR'):
          xs,cells = self.parse_mdcar(label+'.MD_CAR')
+         print(xs)
       elif isfile(label+'.out'):
          xs,cells = self.parse_out(label+'.out')
       else:
