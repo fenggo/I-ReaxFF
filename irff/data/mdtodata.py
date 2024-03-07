@@ -435,10 +435,9 @@ class MDtoData(object):
                 self.atom_name.append(sp[int(l[0])-1])
           else:
              self.atom_name.append(sp[int(l[3])-1])
-
+      print(label+'.MD_CAR')
       if isfile(label+'.MD_CAR'):
          xs,cells = self.parse_mdcar(label+'.MD_CAR')
-         print(xs)
       elif isfile(label+'.out'):
          xs,cells = self.parse_out(label+'.out')
       else:
