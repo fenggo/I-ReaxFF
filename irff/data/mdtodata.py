@@ -96,6 +96,12 @@ class MDtoData(object):
       self.dft       = dft
       self.inp       = inp
       self.out       = out
+      if dft == 'siesta':
+         self.label = 'siesta'
+      elif dft == 'qe': 
+         self.label = 'siesta'
+      else:
+         self.label = 'siesta'
       if direc.endswith('.traj'):
          self.dft    = 'ase'
 
@@ -145,9 +151,9 @@ class MDtoData(object):
       # elif self.dft=='cpmd':
       #    self.get_cpmd_frame()
       if self.dft=='siesta':
-         label=get_label(self.inp)
-         if label is None: label = 'siesta'  
-         self.get_siesta_energy(label=label)
+         self.label=get_label(self.inp)
+         if self.label is None: self.label = 'siesta'  
+         self.get_siesta_energy()
       elif self.dft=='qe':
          self.get_qe_energy()
       elif self.dft=='ase':
@@ -353,10 +359,10 @@ class MDtoData(object):
       self.energy_nw = np.array(energy_nw)
       self.x         = np.array(x)
 
-  def get_siesta_energy(self,label='siesta'):
+  def get_siesta_energy(self):
       # print(label,isfile(label+'.MDE'))
-      if isfile(label+'.MDE'):
-         fe = open(label+'.MDE','r')
+      if isfile(self.label+'.MDE'):
+         fe = open(self.label+'.MDE','r')
          lines = fe.readlines()
          fe.close()
          l1= lines[1].split()
@@ -398,7 +404,7 @@ class MDtoData(object):
          self.energy_nw = [0.0]
          self.nframe = 1
 
-  def get_siesta_cart(self,fdf='in.fdf',label='siesta'):
+  def get_siesta_cart(self,fdf='in.fdf'):
       fin = open(fdf,'r') 
       lines= fin.readlines()
       fin.close()           # getting informations from input file
@@ -435,11 +441,11 @@ class MDtoData(object):
                 self.atom_name.append(sp[int(l[0])-1])
           else:
              self.atom_name.append(sp[int(l[3])-1])
-      print(label+'.MD_CAR')
-      if isfile(label+'.MD_CAR'):
-         xs,cells = self.parse_mdcar(label+'.MD_CAR')
-      elif isfile(label+'.out'):
-         xs,cells = self.parse_out(label+'.out')
+      # print(label+'.MD_CAR')
+      if isfile(self.label+'.MD_CAR'):
+         xs,cells = self.parse_mdcar(self.label+'.MD_CAR')
+      elif isfile(self.label+'.out'):
+         xs,cells = self.parse_out(self.label+'.out')
       else:
          xs,cells = self.parse_out(self.out)
       return xs,cells
