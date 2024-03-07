@@ -17,7 +17,5 @@ def md_out_to_traj(traj):
     traj.close()
      
 
-
-
 if __name__=='__main__':
    md_out_to_traj('md.traj')
