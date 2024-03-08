@@ -54,6 +54,7 @@ def get_neighbors(filename=None,Atoms=None,r_cut=None,cell=None,exception=[]):
             else:
                # print('-  warning: rcut not define for pair: %s, using default 1.8.' %pair)
                rc = r_cut['others']
+            print(pair,rc)
 
             if r<rc and (not pair in exception):
                table[i].append(j)
