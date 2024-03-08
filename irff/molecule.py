@@ -290,9 +290,8 @@ def Molecules(atoms,rcut=None,check=False):
     natm,atoms,X,table = get_neighbors(Atoms=atoms,
                                        r_cut=rcut,
                                        cell=cell) #,exception=['O-O','H-H']
-    for i,tab in enumerate(table):
-        print(i,tab)
-
+    # for i,tab in enumerate(table):
+    #     print(i,tab)
     m = molecules(natm,atoms,
                   cell=cell,
                   table=table,

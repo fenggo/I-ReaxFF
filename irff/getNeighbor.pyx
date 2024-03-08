@@ -14,7 +14,7 @@ def find_mole(ID,mol_index,table):
 def get_neighbors(filename=None,Atoms=None,r_cut=None,cell=None,exception=[]):
     cdef int i,j
     cdef float hfcell = 0.5
-    print(r_cut)
+    # print(r_cut)
     if r_cut is None:
        rcut,r_cut,rcute = setRcut(None,None,None,None)
 
