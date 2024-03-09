@@ -20,7 +20,7 @@ batchs  = {'others':50}
 
 
 clip = {'boc1':(0.0,50.0),
-        'V2':(0.0,10.0),'V3':(0.0,10.0),'V1':(0.0,10.0)}
+        'V2':(0.0,10.0),'V3':(0.0,10.0),'V1':(0.0,10.0)} # 对取值范围不确定可以不设置
 
 
 reax = ReaxFF(libfile='ffield.json',
@@ -52,16 +52,22 @@ parameters = ['boc1','boc2','boc3','boc4','boc5',
               'V1','V2','V3',
               'rvdw','gammaw','Devdw','alfa','vdw1',
               'rohb','hb1','hb2',
-              'Dehb' ] # all parameters, you can chose a part of them to optimze
-
+              'Dehb' ]      # all parameters, you can chose a part of them to optimze
+scale      = {'rosi':0.01}  # 用于随机产生参数的高斯分布的宽度，默认为0.001, 可以适当的调大一些，搜索范围更大
 
 train(step=0,print_step=10,
-      fcsv='ffield_bo.csv',
-      to_evaluate=1000,
+      fcsv='param.csv',
+      to_evaluate=-1000.0,
       evaluate_step=0,
       lossConvergence=10.0,
-      max_ml_iter=10,
-      max_generation=100,
+      max_ml_iter=1000,
+      max_data_size=2000,  # 保持的数据参数组数量
+      max_generation=100,  # 用于推荐的参数组遗传算法的迭代次数
+      init_pop=100,        # 最初生成的参数组数量
+      n_clusters=20,       # 用于聚类算法的核心数量
+      size_pop=240,        # 用于推荐的参数组数量
+      prob_mut=0.3,  
       potential=reax,
+      scale=scale,     
       parameters=parameters)
 
