@@ -11,28 +11,6 @@ dataset = {#'gpu-0':'data/gpu-0.traj',
            'gpd-2':'data/gpd-2.traj',
            }
 
-strucs = [#'c2',
-          # 'c2c6',
-          # 'c3',
-          #'c32',
-          'c4',
-          # 'c5',
-          'c6',
-          # 'c62',
-          #'c8',
-          #'c10',
-          # 'c12',
-          # 'c14',
-          # 'c16',
-          # 'c18',
-          'dia',
-          'gpu',
-          'gp',
-          'gp-1',
-          # 'gpd',
-          # 'gpe',
-          ]
-
 
 batch   = 50
 batchs  = {'others':50}
@@ -55,10 +33,6 @@ clip = {'boc1':(10.0,26.0),'boc2':(3.0,10.0),'boc3':(0.1,19.9),'boc4':(0.5,9.9),
         'coa1':(-1.0,0.0),'cot1':(-1.0,0.0),'cot2':(0.0,5.0),
         'V2':(0.0,10.0),'V3':(0.0,10.0),'V1':(0.0,10.0)}
 
-for mol in strucs:
-    b = batchs[mol] if mol in batchs else batchs['others']
-    trajs = getdata(label=mol,batch=b)
-    dataset.update(trajs)
 
 reax = ReaxFF(libfile='ffield.json',
               dataset=dataset, 
@@ -66,8 +40,7 @@ reax = ReaxFF(libfile='ffield.json',
               clip=clip,
               batch_size=batch,
               losFunc='n2',
-              spv_vdw=False,#vup=vup,#vlo=vlo,
-              lambda_bd=10000.0,
+              lambda_bd=100.0,
               lambda_me=0.001,
               atol=0.002,hbtol=0.002,
               weight={'h2o2-1':50.0,'others':2.0},
