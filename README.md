@@ -24,3 +24,7 @@ Alternatively, this package can be install without download the package through 
 2. Feng Guo et.al., ReaxFF-MPNN machine learning potential: a combination of reactive force field and message passing neural networks,Physical Chemistry Chemical Physics, 23, 19457-19464, 2021.
 
 3. Feng Guo et.al., ReaxFF-nn: A Reactive Machine Learning Potential in GULP and the Applications in the Thermal Conductivity Calculation of Carbon Nanostructures (Submitted)
+
+### Use ReaxFF-nn with LAMMPS:
+https://gitee.com/fenggo/ReaxFF-nn_for_lammps
+
