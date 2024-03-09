@@ -122,8 +122,6 @@ if __name__ == '__main__':
              weight=weight,
              optword='nocoul',
              cons=cons,clip=clip,
-             lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.001,lambda_pi=0.003,
-             bdopt=None,    # ['H-N'], 
              batch_size=args.batch,
              fixrcbo=False,
              losFunc='n2',  # n2, mse, huber,abs
