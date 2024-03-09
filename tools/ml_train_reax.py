@@ -38,7 +38,7 @@ reax = ReaxFF(libfile='ffield.json',
               lossConvergence=0.0)  # Loss Functon can be n2,abs,mse,huber
 reax.initialize()
 reax.session(learning_rate=0.0001, method='AdamOptimizer')
-
+'''
 parameters = ['boc1','boc2','boc3','boc4','boc5',
               'rosi','ropi','ropp','Desi','Depi','Depp',
               'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6',
@@ -53,7 +53,10 @@ parameters = ['boc1','boc2','boc3','boc4','boc5',
               'rvdw','gammaw','Devdw','alfa','vdw1',
               'rohb','hb1','hb2',
               'Dehb' ]      # all parameters, you can chose a part of them to optimze
-
+'''
+parameters = ['boc1','boc2','boc3','boc4','boc5',
+              'rosi','ropi','ropp','Desi','Depi','Depp',
+              'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6']
 # scale: 用于随机产生参数的高斯分布的宽度，默认为0.001, 可以适当的调大一些，搜索范围更大
 #        以当前参数为中心，方差为scale,产生一组高斯分布的参数
 scale      = {'rosi':0.01,'ropi':0.01,'ropp':0.01} 
