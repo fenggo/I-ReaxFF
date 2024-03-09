@@ -16,11 +16,9 @@ def ffieldtojson():
     # j = {'p':p,'m':[],'bo_layer':[],'zpe':[]}
     j = {'p':p,'m':None,
          'EnergyFunction':0,
-         'BOFunction':0,
          'VdwFunction':0,
          'MessageFunction':0, 
          'messages':1,
-         'bo_layer':None,
          'mf_layer':None,
          'be_layer':None,
          'vdw_layer':None,
