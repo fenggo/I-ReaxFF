@@ -88,13 +88,14 @@ parameters = ['boc1','boc2','boc3','boc4','boc5',
               'tor2','tor3','tor4','cot1','cot2',
               'V1','V2','V3',
               'rvdw','gammaw','Devdw','alfa','vdw1',
-              'rohb','Dehb','hb1','hb2']
+              'rohb','Dehb','hb1','hb2',
+              'atomic'] # all parameters, you can chose a part of them to optimze
 
 
-train(step=10000,print_step=100,
+train(step=0,print_step=10,
       fcsv='ffield_bo.csv',
       to_evaluate=1000,
-      evaluate_step=100,
+      evaluate_step=0,
       lossConvergence=10.0,
       max_ml_iter=10,
       max_generation=100,
