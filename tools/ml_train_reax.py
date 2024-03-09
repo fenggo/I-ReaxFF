@@ -39,7 +39,7 @@ reax = ReaxFF(libfile='ffield.json',
 reax.initialize()
 reax.session(learning_rate=0.0001, method='AdamOptimizer')
 '''
-** All parameters, you can chose a part of them to optimze
+** All parameters, you can chose a part of them to optimze.
 parameters = ['boc1','boc2','boc3','boc4','boc5',
               'rosi','ropi','ropp','Desi','Depi','Depp',
               'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6',
