@@ -37,6 +37,7 @@ clip = {'boc1':(10.0,26.0),'boc2':(3.0,10.0),'boc3':(0.1,19.9),'boc4':(0.5,9.9),
 reax = ReaxFF(libfile='ffield.json',
               dataset=dataset, 
               optword='nocoul',
+              opt=['atomic']
               clip=clip,
               batch_size=batch,
               losFunc='n2',
