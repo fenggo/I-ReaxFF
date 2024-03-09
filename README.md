@@ -27,5 +27,6 @@ Alternatively, this package can be install without download the package through 
 
 ### Use ReaxFF-nn with LAMMPS:
 https://gitee.com/fenggo/ReaxFF-nn_for_lammps
+
 https://github.com/fenggo/ReaxFF-nn_for_lammps
 
