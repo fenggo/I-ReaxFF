@@ -3,6 +3,9 @@ from irff.ml.train import train
 from irff.data.ColData import ColData
 from irff.reax import ReaxFF
 
+'''
+A machine learning based optimze method to optimze the parameters of ReaxFF
+'''
 
 dataset = {#'gpu-0':'data/gpu-0.traj',
            #'gpu-1':'data/gpu-1.traj'
