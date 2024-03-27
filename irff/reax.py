@@ -1634,14 +1634,14 @@ class ReaxFF(object):
              print('-  Convergence Occurred, job compeleted.')
              break
           i += 1
-
-      self.get_pentalty()
+      
       self.loss_ = loss_ if not (np.isnan(loss) or np.isinf(loss)) else 9999999.9
       if self.loss_ < 9999999.0:
          self.write_lib(libfile=libfile,loss=loss_)
          # self.write_lib(libfile='reax.lib',loss=loss_)
 
       if close_session:
+         self.get_pentalty()
          tf.compat.v1.reset_default_graph()
          self.sess.close()
          return loss_,accu,accMax,i,zpe
