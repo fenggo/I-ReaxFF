@@ -83,7 +83,7 @@ class Evolution:
                   size   = size_  if i != (n_clus-1) else pop_- size_*i
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)
-                  # print(i,len(X),self.size_pop)
+                  # print(i,len(XS),self.size_pop)
            else:
               X_  = np.random.normal(loc=X_template, scale=self.scale, size=(pop_, self.n_dim))
               XS.append(X_)
