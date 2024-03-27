@@ -10,7 +10,8 @@ class Evolution:
                  X_input=None,scale=None,n_clusters=1,
                  constraint_eq=tuple(), constraint_ueq=tuple()):
         self.func = func # func_transformer(func)
-        assert size_pop % 2 == 0, 'size_pop must be even integer'
+        if size_pop % 2 != 0: # 'size_pop must be even integer'
+           size_pop += 1
         self.size_pop       = size_pop               # size of population
         self.max_iter       = max_iter
         self.prob_mut       = prob_mut               # probability of mutation
