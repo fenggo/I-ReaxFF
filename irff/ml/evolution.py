@@ -40,7 +40,6 @@ class Evolution:
         # self.create_ratio = create_ratio
         self.X_input = X_input
         self.F = F
-        self.size_pop=size_pop
         self.V, self.U = None, None
         # self.lb, self.ub = np.array(lb) * np.ones(self.n_dim), np.array(ub) * np.ones(self.n_dim)
         self.scale = scale
@@ -81,10 +80,10 @@ class Evolution:
               for i,x in enumerate(clusters):
                   print(i,len(XS),self.size_pop)
                   i_ = clusters[x]
-                  size   = size_  if i != (n_clus-1) else pop_-len(XS)
+                  size   = size_  if i != (n_clus-1) else pop_- size_*i
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)
-                  print(i,len(XS),self.size_pop)
+                  print(i,len(X),self.size_pop)
            else:
               X_  = np.random.normal(loc=X_template, scale=self.scale, size=(pop_, self.n_dim))
               XS.append(X_)
