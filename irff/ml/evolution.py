@@ -78,7 +78,7 @@ class Evolution:
               
               for i,x in enumerate(clusters):
                   i_ = clusters[x]
-                  size   = size_  if i != (n_clusters-1) else pop_-size_*i
+                  size   = size_  if i != (n_clusters-1) else pop_-len(XS)
                   X_     = np.random.normal(loc=self.X[i_], scale=self.scale, size=(size, self.n_dim))
                   XS.append(X_)
            else:
