@@ -1682,6 +1682,7 @@ class ReaxFF(object):
           key = k.split('_')[0]
           p_  = self.p_[k]*self.unit if key in self.punit else self.p_[k]
           feed_dict[self.var[k]] = np.float32(p_)
+          print(feed_dict[self.var[k]],type(feed_dict[self.var[k]]))
       return feed_dict
 
   def calculate_energy(self):
