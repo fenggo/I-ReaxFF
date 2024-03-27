@@ -1,6 +1,6 @@
 1. example_ch4h2o: A example for building a machine learning potential from SIESTA calculations for a simple system, contains H2O and CH4 molecules.
 2. example_c: A example for building a machine learning potential from Quantum Espresso DFT calculations for Carbon.
-2. example_graph: A example for using a machine learning algorithoms training the ReaxFF parameters.
+3. example_reax: A example for using a machine learning algorithoms training the ReaxFF parameters.
 
 ## Introductions for building a mathine learning potential
 
