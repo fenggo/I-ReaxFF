@@ -129,7 +129,7 @@ def train(step=5000,print_step=100,writelib=500,
            # gentic_start_time = time.time()
            # lb=0.9*np.min(X_,axis=0)
            # ub=1.1*np.max(X_,axis=0)
-           de = Evolution(func,n_dim=X_.shape[1], F=0.5,size_pop=size_pop,
+           de = Evolution(func,n_dim=X_.shape[1], F=0.5,size_pop=size_pop+size_,
                           scale=_scale,max_iter=max_generation, n_clusters=n_clusters,
                           prob_mut=prob_mut,X_input=X_)    
 
