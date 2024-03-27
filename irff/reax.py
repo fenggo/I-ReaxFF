@@ -1511,7 +1511,7 @@ class ReaxFF(object):
           # if k in self.opt or key in self.opt:
           if p is not None:
              if key in p:
-                p_ = np.float32(p[key]*self.unit) if k in self.punit else np.float32(p[key])
+                p_ = float(p[key]*self.unit) if k in self.punit else float(p[key])
                 if (k in self.opt or key in self.opt) and (key not in self.cons and k not in self.cons):
                    if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
                 elif key in self.ea_var:
