@@ -67,7 +67,6 @@ class Evolution:
            # X_    = np.random.uniform(low=self.lb, high=self.ub, size=(pop_, self.n_dim))  
            # Using a Gaussian Distribution instead of uniform distrution 使用高斯分布代替均匀分布
            XS = [self.X_input]
-           size_ = int(pop_/n_clusters)
 
            if n_clusters>1:
               random.seed()
@@ -78,6 +77,7 @@ class Evolution:
                      clusters[l] = i
               
               n_clus = len(clusters)
+              size_  = int(pop_/n_clus)
               for i,x in enumerate(clusters):
                   # print(i,len(XS),self.size_pop)
                   i_ = clusters[x]
