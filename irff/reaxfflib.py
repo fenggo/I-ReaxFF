@@ -450,16 +450,17 @@ def write_ffield(p,spec,bonds,offd,angs,tors,hbs,zpe=None,libfile='ffield',
                print('{:20.16f}'.format(m['febo_'+bd][j]),end=' ',file=flib)
            print(' ',file=flib)
 
-       with open('control','w') as fc:
-           print('tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation',file=fc)
-           if rcut is None:
-              mrcut = 3.5
-           else:
-              mrcut = max(rcut.values())
-           print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=fc)
-           print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=fc)
-           print('hbond_cutoff	        7.5 ! cutoff distance for hydrogen bond interactions',file=fc)
-           print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=fc)
+    with open('control','w') as fc:
+        print('tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation',file=fc)
+        if rcut is None:
+            mrcut = 3.5
+        else:
+            mrcut = max(rcut.values())
+        print('nbrhood_cutoff	    {:f}  ! near neighbors cutoff for bond calculations'.format(mrcut),file=fc)
+        print('bond_graph_cutoff	    0.3 ! bond strength cutoff for bond graphs',file=fc)
+        print('hbond_cutoff	        7.5 ! cutoff distance for hydrogen bond interactions',file=fc)
+        print('thb_cutoff		    {:f} ! cutoff value for three body interactions'.format(p['acut']),file=fc)
+        if m is not None:
            print('mflayer_m		        {:d} ! neural network width'.format(mf_layer[0]),file=fc)
            print('mflayer_n		        {:d} ! number of hidden layer'.format(mf_layer[1]),file=fc)
            print('belayer_m		        {:d} ! neural network width'.format(be_layer[0]),file=fc)
