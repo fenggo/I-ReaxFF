@@ -1516,7 +1516,7 @@ class ReaxFF(object):
                    if not hasH: upop.append(tf.compat.v1.assign(self.var[key],p_))
                 elif key in self.ea_var:
                    self.feed_dict[self.var[key]] = p_
-                   self.ea_var[key]              = np.float32(p[key])
+                   self.ea_var[key]              = p[key]
                    # self.logger.info('{:s} {:f}'.format(key,p[key]))
 
       for mol in self.mols:
