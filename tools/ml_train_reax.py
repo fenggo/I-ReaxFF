@@ -20,22 +20,6 @@ for mol in strucs:
 clip = {'boc1':(0.0,50.0),
         'V2':(0.0,10.0),'V3':(0.0,10.0),'V1':(0.0,10.0)} # 对取值范围不确定可以不设置
 
-
-reax = ReaxFF(libfile='ffield.json',
-              dataset=dataset, 
-              optword='nocoul',
-              opt=['atomic']
-              clip=clip,
-              batch_size=batch,
-              losFunc='n2',
-              lambda_bd=100.0,
-              lambda_me=0.001,
-              atol=0.002,hbtol=0.002,
-              weight={'h2o2-1':50.0,'others':2.0},
-              convergence=1.0,
-              lossConvergence=0.0)  # Loss Functon can be n2,abs,mse,huber
-reax.initialize()
-reax.session(learning_rate=0.0001, method='AdamOptimizer')
 '''
 ** All parameters, you can chose a part of them to optimze.
 parameters = ['boc1','boc2','boc3','boc4','boc5',
@@ -55,6 +39,24 @@ parameters = ['boc1','boc2','boc3','boc4','boc5',
 parameters = ['boc1','boc2','boc3','boc4','boc5',
               'rosi','ropi','ropp','Desi','Depi','Depp',
               'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6']
+
+reax = ReaxFF(libfile='ffield.json',
+              dataset=dataset, 
+              optword='nocoul',
+              opt=['atomic'],
+              cons=parameters,
+              eaopt=parameters,
+              clip=clip,
+              batch_size=batch,
+              losFunc='n2',
+              lambda_bd=100.0,
+              lambda_me=0.001,
+              weight={'tkx':3.0,'others':2.0},
+              convergence=1.0,
+              lossConvergence=0.0)  # Loss Functon can be n2,abs,mse,huber
+reax.initialize()
+reax.session(learning_rate=0.0001, method='AdamOptimizer')
+
 # scale: 用于随机产生参数的高斯分布的宽度，默认为0.001, 可以适当的调大一些，搜索范围更大
 #        以当前参数为中心，方差为scale,产生一组高斯分布的参数
 scale      = {'rosi':0.01,'ropi':0.01,'ropp':0.01} 
