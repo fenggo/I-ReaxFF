@@ -73,7 +73,7 @@ train(step=0,print_step=10,
       max_generation=100,   # The number of iterations of genetic algorithm
       init_pop=100,         # Number of initially generated parameter set
       n_clusters=20,        # The number of cores used for clustering algorithms
-      size_pop=3000,        # Number of parameter groups used for recommendation > max_data_size
+      size_pop=2000,        # Number of parameter groups used for recommendation 
       prob_mut=0.3,  
       potential=reax,
       scale=scale,     

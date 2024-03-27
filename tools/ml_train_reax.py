@@ -71,7 +71,7 @@ train(step=0,print_step=10,
       max_generation=100,   # 用于推荐的参数组遗传算法的迭代次数
       init_pop=100,         # 最初生成的参数组数量
       n_clusters=20,        # 用于聚类算法的核心数量,参数多，核心取多些，参数少，反之，1个参数，最多只能1个核心
-      size_pop=3000,        # 用于推荐的参数组数量，>max_data_size
+      size_pop=3000,        # 用于推荐的参数组数量
       prob_mut=0.3,  
       potential=reax,
       scale=scale,     
