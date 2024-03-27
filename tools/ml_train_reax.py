@@ -7,16 +7,14 @@ from irff.reax import ReaxFF
 A machine learning based optimze method to optimze the parameters of ReaxFF
 '''
 
-dataset = {#'gpu-0':'data/gpu-0.traj',
-           #'gpu-1':'data/gpu-1.traj'
-           'gpd-0':'data/gpd-0.traj',
-           'gpd-1':'data/gpd-1.traj',
-           'gpd-2':'data/gpd-2.traj',
-           }
-
-
+dataset = {}
+strucs  = ['tkx','tkx2']
 batch   = 50
-batchs  = {'others':50}
+
+getdata = ColData()
+for mol in strucs:
+    trajs = getdata(label=mol,batch=batch)
+    dataset.update(trajs)
 
 
 clip = {'boc1':(0.0,50.0),
