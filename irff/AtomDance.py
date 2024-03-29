@@ -1,4 +1,3 @@
-from unittest import result
 from .irff_np import IRFF_NP
 from ase.io import read,write
 from .molecule import molecules
