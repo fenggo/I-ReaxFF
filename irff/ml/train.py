@@ -28,7 +28,6 @@ def train(step=5000,print_step=100,writelib=500,
                      scale={},
             variable_scale=0,
              max_data_size=1000,
-                regenerate=False,
           end_search_ratio=0.999999,
             end_search_nan=False,
                GAThreshold=0.5):

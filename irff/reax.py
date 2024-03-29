@@ -161,6 +161,8 @@ class ReaxFF(object):
       self.cons          = cons
       self.optword       = optword
       self.eaopt         = eaopt
+      if eaopt:
+         self.cons.extend(eaopt)
       self.optmol        = optmol
       self.lambda_me     = lambda_me
       self.vdwcut        = vdwcut
