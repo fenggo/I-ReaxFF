@@ -499,22 +499,19 @@ class MPNN(ReaxFF):
          bosi = self.Hsi[t-1][bd]*Fsi
          bopi = self.Hpi[t-1][bd]*Fpi
          bopp = self.Hpp[t-1][bd]*Fpp
-      elif self.MessageFunction==4:
-         self.Dbi[bd]  = Di - self.p['val_'+atomi]        # bo correction
-         self.Dbj[bd] = Di - self.p['val_'+atomi]
-         Fi   = fnn(flabel,b[0],self.nbd[bd],[self.Dbi[bd],h,self.Dbj[bd]],self.m,batch=self.batch,layer=self.mf_layer[1])
-         Fj   = fnn(flabel,b[1],self.nbd[bd],[self.Dbj[bd],h,self.Dbi[bd]],self.m,batch=self.batch,layer=self.mf_layer[1])
+      elif self.MessageFunction==0:
+         self.Dbi[bd] = Di #- self.p['val_'+atomi]        # bo correction
+         self.Dbj[bd] = Dj #- self.p['val_'+atomj]
 
-         #one  = lambda:1.0
-         #F1   = lambda:f_1*f_1
-         #f_11 = tf.cond(pred=tf.greater_equal(self.p['ovcorr_'+bd],0.0001),true_fn=F1,false_fn=one)
-         F    = Fi*Fj#*f_11
-         
+         self.f1(bd,atomi,atomj,Di,Dj)
+         self.f45(bd,atomi,atomj,Di,Dj)
+         F =  self.f_1[bd]*self.f_1[bd]*self.f_4[bd]*self.f_5[bd]
+
          # By default p_corr13 is always True
          bosi = self.Hsi[t-1][bd]*F
          bopi = self.Hpi[t-1][bd]*F
          bopp = self.Hpp[t-1][bd]*F 
-      elif self.MessageFunction==5:
+      elif self.MessageFunction==4:
          self.Dbi[bd]  = Di - self.p['val_'+atomi] # Di-h
          self.Dbj[bd]  = Dj - self.p['val_'+atomj] # Dj-h
          Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],h,self.Dbj[bd]],
