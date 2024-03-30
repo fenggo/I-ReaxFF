@@ -16,8 +16,8 @@ def bond_order(bop,Di,Dj,vali,valj,valboci,valbocj,
     ''' compute bond-order '''
     f1_     = f1(boc1,boc2,vali,valj,Di,Dj)
     f4_,f5_ = f45(boc3i,boc3j,boc4i,boc4j,boc5i,boc5j,valboci,valbocj,Di,Dj,bop)
-    bo_     = bop*f1_*f1_*f4_*f5_
-    return bo_
+    f_     = f1_*f1_*f4_*f5_
+    return f_
 
 def f1(boc1,boc2,vali,valj,Di,Dj):
     Div = Di - vali # replace val in f1 with valp, 
