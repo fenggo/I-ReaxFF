@@ -1294,7 +1294,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
                   vlist=bonds,nnopt=mpopt[0],bias=-1.0)
 
     ############ set weight and bias for message neural network ###################
-    if (mf_layer==mf_layer_ and  EnergyFunction==EnergyFunction_
+    if MessageFunction_==0 or (mf_layer==mf_layer_ and  EnergyFunction==EnergyFunction_
         and MessageFunction_==MessageFunction):
         reuse_m = True  
     else:
