@@ -438,8 +438,8 @@ class MPNN(ReaxFF):
          self.Deltap = tf.reduce_sum(input_tensor=self.Dp,axis=1,name='Deltap')
 
   def f1(self,bd,atomi,atomj,Di,Dj):
-      Div = Di - self.p['val_'+atomi]*1.267 # replace val in f1 with valp, 
-      Djv = Dj - self.p['val_'+atomj]*1.267 # different from published ReaxFF model
+      Div = Di - self.p['val_'+atomi] # *1.267 # replace val in f1 with valp, 
+      Djv = Dj - self.p['val_'+atomj] # *1.267 # different from published ReaxFF model
       self.f2(bd,Div,Djv)
       self.f3(bd,Div,Djv)
       self.f_1[bd] = 0.5*(tf.math.divide(self.p['val_'+atomi]+self.f_2[bd],
