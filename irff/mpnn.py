@@ -437,6 +437,16 @@ class MPNN(ReaxFF):
          self.Dp     = tf.gather_nd(self.BOP,self.dlist)  
          self.Deltap = tf.reduce_sum(input_tensor=self.Dp,axis=1,name='Deltap')
 
+  def f1(self,bd,atomi,atomj,Di,Dj):
+      Div = Di - self.p['val_'+atomi]*1.267 # replace val in f1 with valp, 
+      Djv = Dj - self.p['val_'+atomj]*1.267 # different from published ReaxFF model
+      self.f2(bd,Div,Djv)
+      self.f3(bd,Div,Djv)
+      self.f_1[bd] = 0.5*(tf.math.divide(self.p['val_'+atomi]+self.f_2[bd],
+                              self.p['val_'+atomi]+self.f_2[bd]+self.f_3[bd]) + 
+                          tf.math.divide(self.p['val_'+atomj]+self.f_2[bd],
+                              self.p['val_'+atomj]+self.f_2[bd]+self.f_3[bd]))
+
   def get_bondorder(self,t,bd,atomi,atomj):
       ''' compute bond-order according the message function '''
       Di      = tf.gather_nd(self.D[t-1],self.dilink[bd])
