@@ -3,6 +3,7 @@ from os import system,getcwd,chdir
 from os.path import exists
 import argh
 import argparse
+import numpy as np
 from ase.io import read
 from ase.io.trajectory import Trajectory
 from ase.data import chemical_symbols
