@@ -183,7 +183,7 @@ class IRFF(Calculator,IRFF_NP):
                  active_learning=False,
                  *args,**kwargs):
         Calculator.__init__(self,label=label, **kwargs)
-        IRFF_NP.__init__(self,atoms=atoms,nn=True)
+        IRFF_NP.__init__(self,atoms=atoms,nn=True,libfile=libfile)
 
         self.prism  = None
         self.calls  = 0
