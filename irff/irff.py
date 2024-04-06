@@ -1186,9 +1186,9 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('atom_style     charge', file=fin)
     print('  ', file=fin)
     if 'masses' in kwargs:
-       print('masses  ', file=fin)
+       # print('masses  ', file=fin)
        for i,s in enumerate(species):
-           print(i+1,kwargs['masses'][s], file=fin)
+           print('mass',i+1,kwargs['masses'][s], file=fin)
        print('  ', file=fin)
     if data != None and data != 'None':
        print('read_data    {:s}'.format(data), file=fin)
