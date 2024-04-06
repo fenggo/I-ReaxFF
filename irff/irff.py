@@ -455,7 +455,7 @@ class IRFF(Calculator):
               masses=self.masses,
               pair_style= self.parameters['pair_style'],  # without lg set lgvdw no
               pair_coeff=self.parameters['pair_coeff'],
-              fix = 'fix_nve all nve',
+              fix = 'fix    fix_nve all nve',
               natoms=len(self.atoms),
               fix_modify = ' ',
               dump_interval=1,more_commond = ' ',
