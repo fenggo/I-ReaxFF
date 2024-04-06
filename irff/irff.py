@@ -1,16 +1,27 @@
 import json as js
 import ctypes
-import numpy as np
+
+import os
+import shlex
+import shutil
+import warnings
+from re import IGNORECASE
+from re import compile as re_compile
+import subprocess
+from tempfile import NamedTemporaryFile, mkdtemp
+from tempfile import mktemp as uns_mktemp
+from threading import Thread
+from typing import Any, Dict
+
 from numpy.linalg import norm
-from ase.calculators.calculator import Calculator
-from ase.data import (atomic_numbers as ase_atomic_numbers,
-                      chemical_symbols as ase_chemical_symbols,
-                      atomic_masses as ase_atomic_masses)
-from ase.calculators.lammps import convert
-from ase.geometry import wrap_positions
-from ase import Atoms
-from ase.io import read,write
+
 from ase.calculators.calculator import Calculator, all_changes
+from ase.calculators.lammps import (CALCULATION_END_MARK, Prism, convert,
+                                    write_lammps_in)
+from ase.data import atomic_masses, chemical_symbols
+from ase.io.lammpsdata import write_lammps_data
+from ase.io.lammpsrun import read_lammps_dump
+
 # from .qeq import qeq
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib,write_ffield
@@ -111,27 +122,53 @@ class IRFF(Calculator):
        Modified from ASE LAMMPSlib.py
     '''
     name = "IRFF"
-    implemented_properties = ['energy', 'forces', 'stress']
+    implemented_properties = ["energy", "free_energy", "forces", "stress",
+                              "energies"]
 
-    started = False
-    initialized = False
+    # parameters to choose options in LAMMPSRUN
+    ase_parameters: Dict[str, Any] = dict(
+        specorder=None,
+        atorder=True,
+        always_triclinic=False,
+        reduce_cell=False,
+        keep_alive=True,
+        keep_tmp_files=False,
+        no_data_file=False,
+        tmp_dir=None,
+        files=[],  # usually contains potential parameters
+        verbose=False,
+        write_velocities=False,
+        binary_dump=True,  # bool - use binary dump files (full
+                           # precision but long long ids are casted to
+                           # double)
+        lammps_options="-echo log -screen none -log /dev/stdout",
+        trajectory_out=None,  # file object, if is not None the
+                              # trajectory will be saved in it
+    )
 
-    default_parameters = dict(
-            atom_types=None,
-            atom_type_masses=None,
-            log_file=None,
-            lammps_name='',
-            keep_alive=True,
-            lammps_header=['units real',
-                           'atom_style charge',
-                           'atom_modify map array sort 0 0'],
-            amendments=None,
-            post_changebox_cmds=None,
-            boundary=True,
-            create_box=True,
-            create_atoms=True,
-            read_molecular_info=False,
-            comm=None)
+    # parameters forwarded to LAMMPS
+    lammps_parameters = dict(
+        boundary=None,  # bounadry conditions styles
+        units="metal",  # str - Which units used; some potentials
+                        # require certain units
+        atom_style="atomic",
+        special_bonds=None,
+        # potential informations
+        pair_style="lj/cut 2.5",
+        pair_coeff=["* * 1 1"],
+        masses=None,
+        pair_modify=None,
+        # variables controlling the output
+        thermo_args=[
+            "step", "temp", "press", "cpu", "pxx", "pyy", "pzz",
+            "pxy", "pxz", "pyz", "ke", "pe", "etotal", "vol", "lx",
+            "ly", "lz", "atoms", ],
+        dump_properties=["id", "type", "x", "y", "z", "vx", "vy",
+                         "vz", "fx", "fy", "fz", ],
+        dump_period=1,  # period of system snapshot saving (in MD steps)
+    )
+
+    default_parameters = dict(ase_parameters, **lammps_parameters)
 
     def __init__(self,
                  mol=None,atoms=None,
@@ -141,9 +178,37 @@ class IRFF(Calculator):
                  label="IRFF", 
                  active_learning=False,
                  *args,**kwargs):
-        Calculator.__init__(self,label=label, **kwargs)
-        self.spec         = []
-        self.GPa          = 1.60217662*1.0e2
+        super().__init__(label=label, **kwargs)
+
+        self.prism = None
+        self.calls = 0
+        self.forces = None
+        # thermo_content contains data "written by" thermo_style.
+        # It is a list of dictionaries, each dict (one for each line
+        # printed by thermo_style) contains a mapping between each
+        # custom_thermo_args-argument and the corresponding
+        # value as printed by lammps. thermo_content will be
+        # re-populated by the read_log method.
+        self.thermo_content = []
+
+        if self.parameters['tmp_dir'] is not None:                   ## del
+            # If tmp_dir is pointing somewhere, don't remove stuff!
+            self.parameters['keep_tmp_files'] = True
+        self._lmp_handle = None  # To handle the lmp process
+
+        if self.parameters['tmp_dir'] is None:
+            self.parameters['tmp_dir'] = mkdtemp(prefix="LAMMPS-")
+        else:
+            self.parameters['tmp_dir'] = os.path.realpath(
+                self.parameters['tmp_dir'])
+            if not os.path.isdir(self.parameters['tmp_dir']):
+                os.mkdir(self.parameters['tmp_dir'], 0o755)
+
+        for f in self.parameters['files']:
+            shutil.copy(
+                f, os.path.join(self.parameters['tmp_dir'],
+                                os.path.basename(f)))              ## del
+
         self.active_learning = active_learning
 
         if libfile.endswith('.json'):
@@ -217,443 +282,336 @@ class IRFF(Calculator):
         self.set_p(m,self.bo_layer)
         # self.Qe= qeq(p=self.p,atoms=self.atoms)
         self.lmp = None
+    def get_lammps_command(self):
+        cmd = self.parameters.get('command')
 
-    def set_cell(self, atoms, change=False):
-        lammps_cell, self.coord_transform = convert_cell(atoms.get_cell())
+        if cmd is None:
+            from ase.config import cfg
+            envvar = f'ASE_{self.name.upper()}_COMMAND'
+            cmd = cfg.get(envvar)
 
-        xhi, xy, xz, _, yhi, yz, _, _, zhi = convert(
-            lammps_cell.flatten(order='C'), "distance", "ASE", self.units)
-        box_hi = [xhi, yhi, zhi]
+        if cmd is None:
+            # TODO deprecate and remove guesswork
+            cmd = 'lammps'
 
-        if change:
-            cell_cmd = ('change_box all     '
-                        'x final 0 {} y final 0 {} z final 0 {}      '
-                        'xy final {} xz final {} yz final {} units box'
-                        ''.format(xhi, yhi, zhi, xy, xz, yz))
-            if self.parameters.post_changebox_cmds is not None:
-                for cmd in self.parameters.post_changebox_cmds:
-                    self.lmp.command(cmd)
+        opts = self.parameters.get('lammps_options')
+
+        if opts is not None:
+            cmd = f'{cmd} {opts}'
+
+        return cmd
+
+    def clean(self, force=False):
+
+        self._lmp_end()
+
+        if not self.parameters['keep_tmp_files'] or force:
+            shutil.rmtree(self.parameters['tmp_dir'])
+
+    def check_state(self, atoms, tol=1.0e-10):
+        # Transforming the unit cell to conform to LAMMPS' convention for
+        # orientation (c.f. https://lammps.sandia.gov/doc/Howto_triclinic.html)
+        # results in some precision loss, so we use bit larger tolerance than
+        # machine precision here.  Note that there can also be precision loss
+        # related to how many significant digits are specified for things in
+        # the LAMMPS input file.
+        return Calculator.check_state(self, atoms, tol)
+
+    def calculate(self, atoms=None, properties=None, system_changes=None):
+        if properties is None:
+            properties = self.implemented_properties
+        if system_changes is None:
+            system_changes = all_changes
+        Calculator.calculate(self, atoms, properties, system_changes)
+        self.run()
+
+    def _lmp_alive(self):
+        # Return True if this calculator is currently handling a running
+        # lammps process
+        return self._lmp_handle and not isinstance(
+            self._lmp_handle.poll(), int
+        )
+
+    def _lmp_end(self):
+        # Close lammps input and wait for lammps to end. Return process
+        # return value
+        if self._lmp_alive():
+            # !TODO: handle lammps error codes
+            try:
+                self._lmp_handle.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._lmp_handle.kill()
+                self._lmp_handle.communicate()
+            err = self._lmp_handle.poll()
+            assert err is not None
+            return err
+
+    def set_missing_parameters(self):
+        """Verify that all necessary variables are set.
+        """
+        symbols = self.atoms.get_chemical_symbols()
+        # If unspecified default to atom types in alphabetic order
+        if not self.parameters.get('specorder'):
+            self.parameters['specorder'] = sorted(set(symbols))
+
+        # !TODO: handle cases were setting masses actual lead to errors
+        if not self.parameters.get('masses'):
+            self.parameters['masses'] = []
+            for type_id, specie in enumerate(self.parameters['specorder']):
+                mass = atomic_masses[chemical_symbols.index(specie)]
+                self.parameters['masses'] += [
+                    f"{type_id + 1:d} {mass:f}"
+                ]
+
+        # set boundary condtions
+        if not self.parameters.get('boundary'):
+            b_str = " ".join(["fp"[int(x)] for x in self.atoms.pbc])
+            self.parameters['boundary'] = b_str
+
+    def run(self, set_atoms=False):
+        # !TODO: split this function
+        """Method which explicitly runs LAMMPS."""
+        pbc = self.atoms.get_pbc()
+        if all(pbc):
+            cell = self.atoms.get_cell()
+        elif not any(pbc):
+            # large enough cell for non-periodic calculation -
+            # LAMMPS shrink-wraps automatically via input command
+            #       "periodic s s s"
+            # below
+            cell = 2 * np.max(np.abs(self.atoms.get_positions())) * np.eye(3)
         else:
-            # just in case we'll want to run with a funny shape box,
-            # and here command will only happen once, and before
-            # any calculation
-            if self.parameters.create_box:
-                self.lmp.command('box tilt large')
+            warnings.warn(
+                "semi-periodic ASE cell detected - translation "
+                + "to proper LAMMPS input cell might fail"
+            )
+            cell = self.atoms.get_cell()
+        self.prism = Prism(cell)
 
-            # Check if there are any indefinite boundaries. If so,
-            # shrink-wrapping will end up being used, but we want to
-            # define the LAMMPS region and box fairly tight around the
-            # atoms to avoid losing any
-            lammps_boundary_conditions = self.lammpsbc(atoms).split()
-            if 's' in lammps_boundary_conditions:
-                pos = atoms.get_positions()
-                if self.coord_transform is not None:
-                    pos = np.dot(self.coord_transform, pos.transpose())
-                    pos = pos.transpose()
-                posmin = np.amin(pos, axis=0)
-                posmax = np.amax(pos, axis=0)
+        self.set_missing_parameters()
+        self.calls += 1
 
-                for i in range(0, 3):
-                    if lammps_boundary_conditions[i] == 's':
-                        box_hi[i] = 1.05 * abs(posmax[i] - posmin[i])
+        # change into subdirectory for LAMMPS calculations
+        tempdir = self.parameters['tmp_dir']
 
-            cell_cmd = ('region cell prism    '
-                        '0 {} 0 {} 0 {}     '
-                        '{} {} {}     units box'
-                        ''.format(*box_hi, xy, xz, yz))
+        # setup file names for LAMMPS calculation
+        label = f"{self.label}{self.calls:>06}"
+        lammps_in = uns_mktemp(
+            prefix="in_" + label, dir=tempdir
+        )
+        lammps_log = uns_mktemp(
+            prefix="log_" + label, dir=tempdir
+        )
+        lammps_trj_fd = NamedTemporaryFile(
+            prefix="trj_" + label,
+            suffix=(".bin" if self.parameters['binary_dump'] else ""),
+            dir=tempdir,
+            delete=(not self.parameters['keep_tmp_files']),
+        )
+        lammps_trj = lammps_trj_fd.name
+        if self.parameters['no_data_file']:
+            lammps_data = None
+        else:
+            lammps_data_fd = NamedTemporaryFile(
+                prefix="data_" + label,
+                dir=tempdir,
+                delete=(not self.parameters['keep_tmp_files']),
+                mode='w',
+                encoding='ascii'
+            )
+            write_lammps_data(
+                lammps_data_fd,
+                self.atoms,
+                specorder=self.parameters['specorder'],
+                force_skew=self.parameters['always_triclinic'],
+                reduce_cell=self.parameters['reduce_cell'],
+                velocities=self.parameters['write_velocities'],
+                prismobj=self.prism,
+                units=self.parameters['units'],
+                atom_style=self.parameters['atom_style'],
+            )
+            lammps_data = lammps_data_fd.name
+            lammps_data_fd.flush()
 
-        self.lmp.command(cell_cmd)
+        # see to it that LAMMPS is started
+        if not self._lmp_alive():
+            command = self.get_lammps_command()
+            # Attempt to (re)start lammps
+            self._lmp_handle = subprocess.Popen(
+                shlex.split(command, posix=(os.name == "posix")),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                encoding='ascii',
+            )
+        lmp_handle = self._lmp_handle
 
-    def set_lammps_pos(self, atoms):
-        # Create local copy of positions that are wrapped along any periodic
-        # directions
-        cell = convert(atoms.cell, "distance", "ASE", self.units)
-        pos = convert(atoms.positions, "distance", "ASE", self.units)
+        # Create thread reading lammps stdout (for reference, if requested,
+        # also create lammps_log, although it is never used)
+        if self.parameters['keep_tmp_files']:
+            lammps_log_fd = open(lammps_log, "w")
+            fd = SpecialTee(lmp_handle.stdout, lammps_log_fd)
+        else:
+            fd = lmp_handle.stdout
+        thr_read_log = Thread(target=self.read_lammps_log, args=(fd,))
+        thr_read_log.start()
 
-        # If necessary, transform the positions to new coordinate system
-        if self.coord_transform is not None:
-            pos = np.dot(pos, self.coord_transform.T)
-            cell = np.dot(cell, self.coord_transform.T)
+        # write LAMMPS input (for reference, also create the file lammps_in,
+        # although it is never used)
+        if self.parameters['keep_tmp_files']:
+            lammps_in_fd = open(lammps_in, "w")
+            fd = SpecialTee(lmp_handle.stdin, lammps_in_fd)
+        else:
+            fd = lmp_handle.stdin
+        write_lammps_in(
+            lammps_in=fd,
+            parameters=self.parameters,
+            atoms=self.atoms,
+            prismobj=self.prism,
+            lammps_trj=lammps_trj,
+            lammps_data=lammps_data,
+        )
 
-        # wrap only after scaling and rotating to reduce chances of
-        # lammps neighbor list bugs.
-        pos = wrap_positions(pos, cell, atoms.get_pbc())
+        if self.parameters['keep_tmp_files']:
+            lammps_in_fd.close()
 
-        # Convert ase position matrix to lammps-style position array
-        # contiguous in memory
-        lmp_positions = list(pos.ravel())
+        # Wait for log output to be read (i.e., for LAMMPS to finish)
+        # and close the log file if there is one
+        thr_read_log.join()
+        if self.parameters['keep_tmp_files']:
+            lammps_log_fd.close()
 
-        # Convert that lammps-style array into a C object
-        c_double_array = (ctypes.c_double * len(lmp_positions))
-        lmp_c_positions = c_double_array(*lmp_positions)
-        #        self.lmp.put_coosrds(lmp_c_positions)
-        self.lmp.scatter_atoms('x', 1, 3, lmp_c_positions)
+        if not self.parameters['keep_alive']:
+            self._lmp_end()
 
-    def calculate(self, atoms, properties=['energy', 'forces','charges','stress'],
+        exitcode = lmp_handle.poll()
+        if exitcode and exitcode != 0:
+            raise RuntimeError(
+                "LAMMPS exited in {} with exit code: {}."
+                "".format(tempdir, exitcode)
+            )
+
+        # A few sanity checks
+        if len(self.thermo_content) == 0:
+            raise RuntimeError("Failed to retrieve any thermo_style-output")
+        if int(self.thermo_content[-1]["atoms"]) != len(self.atoms):
+            # This obviously shouldn't happen, but if prism.fold_...() fails,
+            # it could
+            raise RuntimeError("Atoms have gone missing")
+
+        trj_atoms = read_lammps_dump(
+            infileobj=lammps_trj,
+            order=self.parameters['atorder'],
+            index=-1,
+            prismobj=self.prism,
+            specorder=self.parameters['specorder'],
+        )
+
+        if set_atoms:
+            self.atoms = trj_atoms.copy()
+
+        self.forces = trj_atoms.get_forces()
+        # !TODO: trj_atoms is only the last snapshot of the system; Is it
+        #        desirable to save also the inbetween steps?
+        if self.parameters['trajectory_out'] is not None:
+            # !TODO: is it advisable to create here temporary atoms-objects
+            self.trajectory_out.write(trj_atoms)
+
+        tc = self.thermo_content[-1]
+        self.results["energy"] = convert(
+            tc["pe"], "energy", self.parameters["units"], "ASE"
+        )
+        self.results["free_energy"] = self.results["energy"]
+        self.results['forces'] = convert(self.forces.copy(),
+                                         'force',
+                                         self.parameters['units'],
+                                         'ASE')
+        stress = np.array(
+            [-tc[i] for i in ("pxx", "pyy", "pzz", "pyz", "pxz", "pxy")]
+        )
+
+        # We need to apply the Lammps rotation stuff to the stress:
+        xx, yy, zz, yz, xz, xy = stress
+        stress_tensor = np.array([[xx, xy, xz],
+                                  [xy, yy, yz],
+                                  [xz, yz, zz]])
+        stress_atoms = self.prism.tensor2_to_ase(stress_tensor)
+        stress_atoms = stress_atoms[[0, 1, 2, 1, 0, 0],
+                                    [0, 1, 2, 2, 2, 1]]
+        stress = stress_atoms
+
+        self.results["stress"] = convert(
+            stress, "pressure", self.parameters["units"], "ASE"
+        )
+
+        lammps_trj_fd.close()
+        if not self.parameters['no_data_file']:
+            lammps_data_fd.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self._lmp_end()
+
+    def read_lammps_log(self, fileobj):
+        # !TODO: somehow communicate 'thermo_content' explicitly
+        """Method which reads a LAMMPS output log file."""
+
+        # read_log depends on that the first (three) thermo_style custom args
+        # can be capitalized and matched against the log output. I.e.
+        # don't use e.g. 'ke' or 'cpu' which are labeled KinEng and CPU.
+        mark_re = r"^\s*" + r"\s+".join(
+            [x.capitalize() for x in self.parameters['thermo_args'][0:3]]
+        )
+        _custom_thermo_mark = re_compile(mark_re)
+
+        # !TODO: regex-magic necessary?
+        # Match something which can be converted to a float
+        f_re = r"([+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|nan|inf))"
+        n_args = len(self.parameters["thermo_args"])
+        # Create a re matching exactly N white space separated floatish things
+        _custom_thermo_re = re_compile(
+            r"^\s*" + r"\s+".join([f_re] * n_args) + r"\s*$", flags=IGNORECASE
+        )
+
+        thermo_content = []
+        line = fileobj.readline()
+        while line and line.strip() != CALCULATION_END_MARK:
+            # check error
+            if 'ERROR:' in line:
+                raise RuntimeError(f'LAMMPS exits with error message: {line}')
+
+            # get thermo output
+            if _custom_thermo_mark.match(line):
+                while True:
+                    line = fileobj.readline()
+                    if 'WARNING:' in line:
+                        continue
+
+                    bool_match = _custom_thermo_re.match(line)
+                    if not bool_match:
+                        break
+
+                    # create a dictionary between each of the
+                    # thermo_style args and it's corresponding value
+                    thermo_content.append(
+                        dict(
+                            zip(
+                                self.parameters['thermo_args'],
+                                map(float, bool_match.groups()),
+                            )
+                        )
+                    )
+            else:
+                line = fileobj.readline()
+
+        self.thermo_content = thermo_content
+
+    def get_bond_energy(self, atoms, properties=['energy', 'forces','charges','stress'],
                   system_changes=['positions',  'cell','numbers', 'charges']):
         if self.active_learning:
            self.calculate_bond_order(atoms)
         self.propagate(atoms, properties, system_changes, 0)
-
-    def propagate(self, atoms, properties, system_changes, n_steps, dt=None,
-                  dt_not_real_time=False, velocity_field=None):
-        """"atoms: Atoms object
-            Contains positions, unit-cell, ...
-        properties: list of str
-            List of what needs to be calculated.  Can be any combination
-            of 'energy', 'forces', 'stress', 'dipole', 'charges', 'magmom'
-            and 'magmoms'.
-        system_changes: list of str
-            List of what has changed since last calculation.  Can be
-            any combination of these five: 'positions', 'numbers', 'cell',
-            'pbc', 'charges' and 'magmoms'.
-        """
-        if len(system_changes) == 0:
-            return
-
-        self.coord_transform = None
-
-        if not self.started:
-            self.start_lammps()
-        if not self.initialized:
-            self.initialise_lammps(atoms)
-        else:  # still need to reset cell
-            # NOTE: The whole point of ``post_changebox_cmds`` is that they're
-            # executed after any call to LAMMPS' change_box command.  Here, we
-            # rely on the fact that self.set_cell(), where we have currently
-            # placed the execution of ``post_changebox_cmds``, gets called
-            # after this initial change_box call.
-
-            # Apply only requested boundary condition changes.  Note this needs
-            # to happen before the call to set_cell since 'change_box' will
-            # apply any shrink-wrapping *after* it's updated the cell
-            # dimensions
-            if 'pbc' in system_changes:
-                change_box_str = 'change_box all boundary {}'
-                change_box_cmd = change_box_str.format(self.lammpsbc(atoms))
-                self.lmp.command(change_box_cmd)
-
-            # Reset positions so that if they are crazy from last
-            # propagation, change_box (in set_cell()) won't hang.
-            # Could do this only after testing for crazy positions?
-            # Could also use scatter_atoms() to set values (requires
-            # MPI comm), or extra_atoms() to get pointers to local
-            # data structures to zero, but then we would have to be
-            # careful with parallelism.
-            self.lmp.command("set atom * x 0.0 y 0.0 z 0.0")
-            self.set_cell(atoms, change=True)
-
-        if self.parameters.atom_types is None:
-            raise NameError("atom_types are mandatory.")
-
-        do_rebuild = (not np.array_equal(atoms.numbers,
-                                         self.previous_atoms_numbers)
-                      or ("numbers" in system_changes))
-        if not do_rebuild:
-            do_redo_atom_types = not np.array_equal(
-                atoms.numbers, self.previous_atoms_numbers)
-        else:
-            do_redo_atom_types = False
-
-        self.lmp.command('echo none')  # don't echo the atom positions
-        if do_rebuild:
-            self.rebuild(atoms)
-        elif do_redo_atom_types:
-            self.redo_atom_types(atoms)
-        self.lmp.command('echo log')  # switch back log
-
-        self.set_lammps_pos(atoms)
-
-        if self.parameters.amendments is not None:
-            for cmd in self.parameters.amendments:
-                self.lmp.command(cmd)
-
-        if n_steps > 0:
-            if velocity_field is None:
-                vel = convert(
-                    atoms.get_velocities(),
-                    "velocity",
-                    "ASE",
-                    self.units)
-            else:
-                # FIXME: Do we need to worry about converting to lammps units
-                # here?
-                vel = atoms.arrays[velocity_field]
-
-            # If necessary, transform the velocities to new coordinate system
-            if self.coord_transform is not None:
-                vel = np.dot(self.coord_transform, vel.T).T
-
-            # Convert ase velocities matrix to lammps-style velocities array
-            lmp_velocities = list(vel.ravel())
-
-            # Convert that lammps-style array into a C object
-            c_double_array = (ctypes.c_double * len(lmp_velocities))
-            lmp_c_velocities = c_double_array(*lmp_velocities)
-            self.lmp.scatter_atoms('v', 1, 3, lmp_c_velocities)
-
-        # Run for 0 time to calculate
-        if dt is not None:
-            if dt_not_real_time:
-                self.lmp.command('timestep {:.30f}'.format(dt))
-            else:
-                self.lmp.command('timestep {:.30f}'.format(convert(dt, "time", "ASE", self.units)))
-        self.lmp.command('run {:d}'.format(n_steps))
-
-        if n_steps > 0:
-            # TODO this must be slower than native copy, but why is it broken?
-            pos = np.array(
-                [x for x in self.lmp.gather_atoms("x", 1, 3)]).reshape(-1, 3)
-            if self.coord_transform is not None:
-                pos = np.dot(pos, self.coord_transform)
-
-            # Convert from LAMMPS units to ASE units
-            pos = convert(pos, "distance", self.units, "ASE")
-
-            atoms.set_positions(pos)
-
-            vel = np.array(
-                [v for v in self.lmp.gather_atoms("v", 1, 3)]).reshape(-1, 3)
-            if self.coord_transform is not None:
-                vel = np.dot(vel, self.coord_transform)
-            if velocity_field is None:
-                atoms.set_velocities(convert(vel, 'velocity', self.units,
-                                             'ASE'))
-
-        # Extract the forces and energy
-        self.results['energy'] = convert(
-            self.lmp.extract_variable('pe', None, 0),
-            "energy", self.units, "ASE"
-        )
-        self.results['free_energy'] = self.results['energy']
-
-        stress = np.empty(6)
-        stress_vars = ['pxx', 'pyy', 'pzz', 'pyz', 'pxz', 'pxy']
-
-        for i, var in enumerate(stress_vars):
-            stress[i] = self.lmp.extract_variable(var, None, 0)
-
-        stress_mat = np.zeros((3, 3))
-        stress_mat[0, 0] = stress[0]
-        stress_mat[1, 1] = stress[1]
-        stress_mat[2, 2] = stress[2]
-        stress_mat[1, 2] = stress[3]
-        stress_mat[2, 1] = stress[3]
-        stress_mat[0, 2] = stress[4]
-        stress_mat[2, 0] = stress[4]
-        stress_mat[0, 1] = stress[5]
-        stress_mat[1, 0] = stress[5]
-        if self.coord_transform is not None:
-            stress_mat = np.dot(self.coord_transform.T,
-                                np.dot(stress_mat, self.coord_transform))
-        stress[0] = stress_mat[0, 0]
-        stress[1] = stress_mat[1, 1]
-        stress[2] = stress_mat[2, 2]
-        stress[3] = stress_mat[1, 2]
-        stress[4] = stress_mat[0, 2]
-        stress[5] = stress_mat[0, 1]
-
-        self.results['stress'] = convert(-stress, "pressure", self.units, "ASE")
-
-        # definitely yields atom-id ordered force array
-        f = convert(np.array(self.lmp.gather_atoms("f", 1, 3)).reshape(-1, 3),
-                    "force", self.units, "ASE")
-
-        if self.coord_transform is not None:
-            self.results['forces'] = np.dot(f, self.coord_transform)
-        else:
-            self.results['forces'] = f.copy()
-
-        # otherwise check_state will always trigger a new calculation
-        self.atoms = atoms.copy()
-
-        if not self.parameters.keep_alive:
-            self.lmp.close()
-
-    def lammpsbc(self, atoms):
-        """Determine LAMMPS boundary types based on ASE pbc settings. For
-        non-periodic dimensions, if the cell length is finite then
-        fixed BCs ('f') are used; if the cell length is approximately
-        zero, shrink-wrapped BCs ('s') are used."""
-
-        retval = ''
-        pbc = atoms.get_pbc()
-        if np.all(pbc):
-            retval = 'p p p'
-        else:
-            cell = atoms.get_cell()
-            for i in range(0, 3):
-                if pbc[i]:
-                    retval += 'p '
-                else:
-                    # See if we're using indefinite ASE boundaries along this
-                    # direction
-                    if np.linalg.norm(cell[i]) < np.finfo(cell[i][0]).tiny:
-                        retval += 's '
-                    else:
-                        retval += 'f '
-
-        return retval.strip()
-
-    def rebuild(self, atoms):
-        try:
-            n_diff = len(atoms.numbers) - len(self.previous_atoms_numbers)
-        except Exception:  # XXX Which kind of exception?
-            n_diff = len(atoms.numbers)
-
-        if n_diff > 0:
-            if any([("reaxff" in cmd) for cmd in self.parameters.lmpcmds]):
-                self.lmp.command("pair_style lj/cut 2.5")
-                self.lmp.command("pair_coeff * * 1 1")
-
-                for cmd in self.parameters.lmpcmds:
-                    if (("pair_style" in cmd) or ("pair_coeff" in cmd) or
-                            ("qeq/reaxff" in cmd)):
-                        self.lmp.command(cmd)
-
-            cmd = "create_atoms 1 random {} 1 NULL".format(n_diff)
-            self.lmp.command(cmd)
-        elif n_diff < 0:
-            cmd = "group delatoms id {}:{}".format(
-                len(atoms.numbers) + 1, len(self.previous_atoms_numbers))
-            self.lmp.command(cmd)
-            cmd = "delete_atoms group delatoms"
-            self.lmp.command(cmd)
-
-        self.redo_atom_types(atoms)
-
-    def redo_atom_types(self, atoms):
-        current_types = set(
-            (i + 1, self.parameters.atom_types[sym]) for i, sym
-            in enumerate(atoms.get_chemical_symbols()))
-
-        try:
-            previous_types = set(
-                (i + 1, self.parameters.atom_types[ase_chemical_symbols[Z]])
-                for i, Z in enumerate(self.previous_atoms_numbers))
-        except Exception:  # XXX which kind of exception?
-            previous_types = set()
-
-        for (i, i_type) in current_types - previous_types:
-            cmd = "set atom {} type {}".format(i, i_type)
-            self.lmp.command(cmd)
-
-        self.previous_atoms_numbers = atoms.numbers.copy()
-
-    def restart_lammps(self, atoms):
-        if self.started:
-            self.lmp.command("clear")
-        # hope there's no other state to be reset
-        self.started = False
-        self.initialized = False
-        self.previous_atoms_numbers = []
-        self.start_lammps()
-        self.initialise_lammps(atoms)
-
-    def start_lammps(self):
-        # Only import lammps when running a calculation
-        # so it is not required to use other parts of the
-        # module
-        from lammps import lammps
-        # start lammps process
-        if self.parameters.log_file is None:
-            cmd_args = ['-echo', 'log', '-log', 'none', '-screen', 'none',
-                        '-nocite']
-        else:
-            cmd_args = ['-echo', 'log', '-log', self.parameters.log_file,
-                        '-screen', 'none', '-nocite']
-
-        self.cmd_args = cmd_args
-
-        if self.lmp is None:
-            self.lmp = lammps(self.parameters.lammps_name, self.cmd_args,
-                              comm=self.parameters.comm)
-
-        # Run header commands to set up lammps (units, etc.)
-        for cmd in self.parameters.lammps_header:
-            self.lmp.command(cmd)
-
-        for cmd in self.parameters.lammps_header:
-            if "units" in cmd:
-                self.units = cmd.split()[1]
-
-        if 'lammps_header_extra' in self.parameters:
-            if self.parameters.lammps_header_extra is not None:
-                for cmd in self.parameters.lammps_header_extra:
-                    self.lmp.command(cmd)
-
-        self.started = True
-
-    def initialise_lammps(self, atoms):
-        # Initialising commands
-        if self.parameters.boundary:
-            # if the boundary command is in the supplied commands use that
-            # otherwise use atoms pbc
-            for cmd in self.parameters.lmpcmds:
-                if 'boundary' in cmd:
-                    break
-            else:
-                self.lmp.command('boundary ' + self.lammpsbc(atoms))
-
-        # Initialize cell
-        self.set_cell(atoms, change=not self.parameters.create_box)
-
-        if self.parameters.atom_types is None:
-            # if None is given, create from atoms object in order of appearance
-            s = atoms.get_chemical_symbols()
-            _, idx = np.unique(s, return_index=True)
-            s_red = np.array(s)[np.sort(idx)].tolist()
-            self.parameters.atom_types = {j: i + 1 for i, j in enumerate(s_red)}
-
-        # Initialize box
-        if self.parameters.create_box:
-            # count number of known types
-            n_types = len(self.parameters.atom_types)
-            create_box_command = 'create_box {} cell'.format(n_types)
-            self.lmp.command(create_box_command)
-
-        # Initialize the atoms with their types
-        # positions do not matter here
-        if self.parameters.create_atoms:
-            self.lmp.command('echo none')  # don't echo the atom positions
-            self.rebuild(atoms)
-            self.lmp.command('echo log')  # turn back on
-        else:
-            self.previous_atoms_numbers = atoms.numbers.copy()
-
-        # execute the user commands
-        for cmd in self.parameters.lmpcmds:
-            self.lmp.command(cmd)
-
-        # Set masses after user commands, e.g. to override
-        # EAM-provided masses
-        for sym in self.parameters.atom_types:
-            if self.parameters.atom_type_masses is None:
-                mass = ase_atomic_masses[ase_atomic_numbers[sym]]
-            else:
-                mass = self.parameters.atom_type_masses[sym]
-            self.lmp.command('mass %d %.30f' % (
-                self.parameters.atom_types[sym],
-                convert(mass, "mass", "ASE", self.units)))
-
-        # Define force & energy variables for extraction
-        self.lmp.command('variable pxx equal pxx')
-        self.lmp.command('variable pyy equal pyy')
-        self.lmp.command('variable pzz equal pzz')
-        self.lmp.command('variable pxy equal pxy')
-        self.lmp.command('variable pxz equal pxz')
-        self.lmp.command('variable pyz equal pyz')
-
-        # I am not sure why we need this next line but LAMMPS will
-        # raise an error if it is not there. Perhaps it is needed to
-        # ensure the cell stresses are calculated
-        self.lmp.command('thermo_style custom pe pxx emol ecoul')
-        self.lmp.command('variable fx atom fx')
-        self.lmp.command('variable fy atom fy')
-        self.lmp.command('variable fz atom fz')
-        self.lmp.command('variable pe equal pe')
-        self.lmp.command("neigh_modify delay 0 every 1 check yes")
-        self.initialized  = True
 
     def check_hb(self):
         if 'H' in self.spec:
@@ -1182,8 +1140,42 @@ class IRFF(Calculator):
                         m_ = np.expand_dims(np.expand_dims(m[key][l],axis=0),axis=0)
                     self.m[key].append(np.array(m_,dtype=np.float32))
 
-    def __del__(self):
-        if self.started:
-            self.lmp.close()
-            self.started = False
-            self.lmp = None
+ 
+
+class SpecialTee:
+    """A special purpose, with limited applicability, tee-like thing.
+
+    A subset of stuff read from, or written to, orig_fd,
+    is also written to out_fd.
+    It is used by the lammps calculator for creating file-logs of stuff
+    read from, or written to, stdin and stdout, respectively.
+    """
+
+    def __init__(self, orig_fd, out_fd):
+        self._orig_fd = orig_fd
+        self._out_fd = out_fd
+        self.name = orig_fd.name
+
+    def write(self, data):
+        self._orig_fd.write(data)
+        self._out_fd.write(data)
+        self.flush()
+
+    def read(self, *args, **kwargs):
+        data = self._orig_fd.read(*args, **kwargs)
+        self._out_fd.write(data)
+        return data
+
+    def readline(self, *args, **kwargs):
+        data = self._orig_fd.readline(*args, **kwargs)
+        self._out_fd.write(data)
+        return data
+
+    def readlines(self, *args, **kwargs):
+        data = self._orig_fd.readlines(*args, **kwargs)
+        self._out_fd.write("".join(data))
+        return data
+
+    def flush(self):
+        self._orig_fd.flush()
+        self._out_fd.flush()
