@@ -100,12 +100,13 @@ class IRMD(object):
          else:
             MaxwellBoltzmannDistribution(self.atoms, self.initT*units.kB)
 
-  def printenergy(self,a=self.atoms):
+  def printenergy(self):
       n             = 0
       self.Deformed = 0.0
+      a             = self.atoms
       epot_         = a.get_potential_energy()
       v             = self.atoms.get_velocities()
-
+                
       if not self.beta is None:
          if not self.learnpair is None:
             # v  = np.sqrt(np.sum(np.square(v),axis=1))
