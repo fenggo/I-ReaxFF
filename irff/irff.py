@@ -73,7 +73,6 @@ def rtaper(r,rmin=0.001,rmax=0.002):
     r22   = rterm*rd*rd*trm1
     return r22+r3
 
-
 def taper(r,rmin=0.001,rmax=0.002):
     ''' taper function for bond-order '''
     r3    = np.where(r>rmax,1.0,0.0) # r > rmax then 1 else 0
@@ -88,7 +87,6 @@ def taper(r,rmin=0.001,rmax=0.002):
     trm1  = rm + 2.0*r2 - 3.0*rmax*r20
     r22   = rterm*rd*rd*trm1
     return r22+r3
-    
 
 def fvr(x):
     xi  = np.expand_dims(x,axis=0)
@@ -96,16 +94,13 @@ def fvr(x):
     vr  = xj - xi
     return vr
 
-
 def fr(vr):
     R   = np.sqrt(np.sum(vr*vr,axis=2))
     return R
 
-
 def sigmoid(x):
     s = 1.0/(1.0+np.exp(-x))
     return s
-
 
 def relu(x):
     return np.maximum(0, x)
