@@ -191,7 +191,8 @@ class IRFF(Calculator):
         # value as printed by lammps. thermo_content will be
         # re-populated by the read_log method.
         self.thermo_content = []
-
+        print(self.parameters)
+        
         if self.parameters['tmp_dir'] is not None:                   ## del
             # If tmp_dir is pointing somewhere, don't remove stuff!
             self.parameters['keep_tmp_files'] = True
