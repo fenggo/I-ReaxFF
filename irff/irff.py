@@ -28,6 +28,7 @@ from ase.io.lammpsrun import read_lammps_dump
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib,write_ffield
 from .intCheck import init_bonds
+from .irff_np import IRFF_NP
 # from .md.lammps import writeLammpsIn
 # from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
