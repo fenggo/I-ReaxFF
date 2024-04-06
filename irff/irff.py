@@ -1170,20 +1170,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     random.seed()
     species_name = {'H':'hydrogen','O':'oxygen','N': 'nitrogen','C':'carbon'}
     fin = open('in.lammps','w')
-    # for i,sp in enumerate(species):
-    #     species_ = sp if sp not in species_name else species_name[sp]
-    #     print('#/atom {:d} {:s}'.format(i+1,species_), file=fin)
-    # for i in range(len(species)):
-    #     for j in range(i,len(species)):
-    #         bd = species[i]+'-'+species[j]
-    #         bdr= species[j]+'-'+species[i]
-    #         if bd in bond_cutoff:
-    #            bc = bond_cutoff[bd]
-    #         elif bdr in bond_cutoff:
-    #            bc = bond_cutoff[bdr]
-    #         else:
-    #            bc = bond_cutoff['other']
-    #         print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
+ 
     if 'clear' in kwargs:
        print('clear   \n', file=fin)
 
@@ -1197,7 +1184,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('atom_style     {:s}'.format(kwargs['atom_style']), file=fin)
     else:
        print('atom_style     charge', file=fin)
-
+    if 'masses' in kwargs:
+       print('masses  ', file=fin)
+       for i,s in enumerate(species):
+           print(i,kwargs['masses'][s], file=fin)
     if data != None and data != 'None':
        print('read_data    {:s}'.format(data), file=fin)
        if 'T' in kwargs:
