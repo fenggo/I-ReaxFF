@@ -12,6 +12,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from tempfile import mktemp as uns_mktemp
 from threading import Thread
 from typing import Any, Dict
+import numpy as np
 
 from numpy.linalg import norm
 
