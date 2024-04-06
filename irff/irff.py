@@ -292,8 +292,8 @@ class IRFF(Calculator):
             cmd = cfg.get(envvar)
 
         if cmd is None:
-            # TODO deprecate and remove guesswork
-            cmd = 'lammps'
+           # TODO deprecate and remove guesswork
+           cmd = 'lammps'
 
         opts = self.parameters.get('lammps_options')
 
@@ -425,7 +425,7 @@ class IRFF(Calculator):
                 self.atoms,
                 specorder=self.parameters['specorder'],
                 force_skew=self.parameters['always_triclinic'],
-                reduce_cell=self.parameters['reduce_cell'],
+                # reduce_cell=self.parameters['reduce_cell'],
                 velocities=self.parameters['write_velocities'],
                 prismobj=self.prism,
                 units=self.parameters['units'],
