@@ -1270,7 +1270,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('timestep      {:f}'.format(timestep), file=fin)
     print(' ', file=fin)
     if 'dump' in kwargs:
-       print('dump dump_all {:s}'.format(kwargs['dump'])) 
+       print('dump dump_all {:s}'.format(kwargs['dump']), file=fin) 
     else:
        if pair_style.find('reaxff')>=0:
           print('dump   1 all custom {:d} lammps.trj id type x y z q fx fy fz'.format(dump_interval), file=fin)
