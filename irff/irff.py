@@ -1185,7 +1185,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     #            bc = bond_cutoff['other']
     #         print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
     if 'clear' in kwargs:
-       print('clear   \n'), file=fin)
+       print('clear   \n', file=fin)
 
     if 'units' in kwargs:
        units = kwargs['units']
