@@ -453,7 +453,7 @@ class IRFF(Calculator):
         writeLammpsIn(log='lmp.log',timestep=0.1,total=0,
               species=self.species,
               masses=self.masses,
-              pair_style= self.parameters['pair_sytle'],  # without lg set lgvdw no
+              pair_style= self.parameters['pair_style'],  # without lg set lgvdw no
               pair_coeff=self.parameters['pair_coeff'],
               fix = 'fix_nve all nve',
               natoms=len(self.atoms),
