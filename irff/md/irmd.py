@@ -344,53 +344,6 @@ class IRMD(object):
          fmd.write('\n------------------------------------------------------------------------\n')
 
          fmd.write('-  Ebond=%f  ' %self.atoms.calc.Ebond)
-         fmd.write('-  Elone=%f  ' %self.atoms.calc.Elone)
-         fmd.write('-  Eover=%f  ' %self.atoms.calc.Eover)
-         fmd.write('-  Eunder=%f  \n' %self.atoms.calc.Eunder)
-         fmd.write('-  Eang=%f  ' %self.atoms.calc.Eang)
-         fmd.write('-  Epen=%f  ' %self.atoms.calc.Epen)
-         fmd.write('-  Etcon=%f  \n' %self.atoms.calc.Etcon)
-         fmd.write('-  Etor=%f  ' %self.atoms.calc.Etor)
-         fmd.write('-  Efcon=%f  ' %self.atoms.calc.Efcon)
-         fmd.write('-  Evdw=%f  ' %self.atoms.calc.Evdw)
-         fmd.write('-  Ecoul=%f  \n' %self.atoms.calc.Ecoul)
-         fmd.write('-  Ehb=%f  ' %self.atoms.calc.Ehb)
-         fmd.write('-  Eself=%f  ' %self.atoms.calc.Eself)
-         fmd.write('-  Ezpe=%f \n' %self.atoms.calc.zpe)
-         
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n-              Atomic Information  (Delta and Bond order)              -\n')
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n  AtomID Sym  Delta      NLP      DLPC      Bond-Order  \n')
-
-         for i in range(self.natom):
-             fmd.write('%6d  %2s %9.6f %9.6f %9.6f' %(i,
-                                      self.atoms.calc.atom_name[i],
-                                      self.atoms.calc.Delta[i],
-                                      self.atoms.calc.nlp[i],
-                                      self.atoms.calc.Delta_lpcorr[i]))
-             for j in range(self.natom):
-                   if self.atoms.calc.bo0[i][j]>self.atoms.calc.botol:
-                      fmd.write(' %3d %2s %9.6f' %(j,self.atoms.calc.atom_name[j],
-                                                 self.atoms.calc.bo0[i][j]))
-             fmd.write(' \n')
-
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n-                    Atomic Energies & Forces                          -\n')
-         fmd.write('\n------------------------------------------------------------------------\n')
-
-         fmd.write('\n  AtomID Sym Delta_lp     Elone      Eover      Eunder      Fx        Fy        Fz\n')
-         for i in range(self.natom):
-             fmd.write('%6d  %2s  %9.6f  %9.6f  %9.6f  %9.6f ' %(i,
-                       self.atoms.calc.atom_name[i],
-                       self.atoms.calc.Delta_lp[i],
-                       self.atoms.calc.elone[i],
-                       self.atoms.calc.eover[i],
-                       self.atoms.calc.eunder[i]))
-
-             for f in self.atoms.calc.results['forces'][i]:
-                   fmd.write(' %9.6f ' %f)
-             fmd.write(' \n')
 
          fmd.write('\n------------------------------------------------------------------------\n')
          fmd.write('\n- Machine Learning MD Completed!\n')
