@@ -37,11 +37,13 @@ class IRMD(object):
   def __init__(self,label=None,atoms=None,gen='poscar.gen',ffield='ffield.json',
                index=-1,totstep=100,vdwnn=False,nn=True,nomb=False,
                active=False,period=30,uncertainty=0.96,
+               gp_bo={},gp_be={},
                initT=300,Tmax=10000,time_step=0.1,Iter=0,
                ro=None,rmin=0.6,rmax=1.3,angmax=20.0,
                CheckZmat=False,zmat_id=None,zmat_index=None,InitZmat=None,
                learnpair=None,groupi=[],groupj=[],beta=None,freeatoms=None,
-               dEstop=1000,dEtole=1.0,print_interval=1):
+               dEstop=1000,dEtole=1.0,print_interval=1,
+               ):
       self.Epot      = []
       self.epot      = 0.0
       self.ekin      = 0.0
@@ -189,28 +191,12 @@ class IRMD(object):
              self.zmats.append(zmat)
           elif self.active:
              self.images.append(a.copy())
-             bo0   =  a.calc.bo0
+             bo0   = a.calc.bo0
              r     = a.calc.r
-             mask  = np.where(bo0>=0.0001,1,0)     # 掩码，用于过虑掉非成键键长
-            
-             r_ = self.r*mask
-             r_ = r_[r_!=0]
-             self.rs.append(np.var(r_))
-             
-             if self.step%self.period==0:
-                self.rs.append(np.mean(r_))
-                try:
-                   assert self.uncertainty <= self.rs[-1], 'The varience is bigger than limit.'
-                except:
-                   print('The varience is bigger than limit, stop at %d.' %self.step)
-                   self.dyn.max_steps = self.dyn.nsteps-1
-               # n           = np.sum(mask)
-               # if np.mean(self.rs) > 0.01:
-               #    print(self.images)
-               #    break
-                r_          = []
-                self.images = []
-                self.rs     = []
+             for i in range(self.natom-1):
+                 for j in range(i+1,self.natom):
+                     if bo0[i][j]>0.0001:
+                        print(i,j,bo0[i][j]) 
           else:
              r    = a.calc.r
              i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
