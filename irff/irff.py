@@ -241,6 +241,7 @@ class IRFF(Calculator,IRFF_NP):
         if system_changes is None:
             system_changes = all_changes
         Calculator.calculate(self, atoms, properties, system_changes)
+        self.get_bond_energy(atoms=atoms)
         self.run()
 
     def _lmp_alive(self):
@@ -509,13 +510,7 @@ class IRFF(Calculator,IRFF_NP):
 
         self.thermo_content = thermo_content
 
-    def get_bond_energy(self, atoms, properties=['energy', 'forces','charges','stress'],
-                  system_changes=['positions',  'cell','numbers', 'charges']):
-        if self.active_learning:
-           self.calculate_bond(atoms)
-        self.propagate(atoms, properties, system_changes, 0)
-
-    def calculate_bond(self,atoms=None):
+    def get_bond_energy(self,atoms=None):
         cell      = atoms.get_cell()                    # cell is object now
         cell      = cell[:].astype(dtype=np.float32)
         rcell     = np.linalg.inv(cell).astype(dtype=np.float32)

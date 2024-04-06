@@ -80,7 +80,7 @@ class IRMD(object):
       
       self.atoms.calc= IRFF(atoms=self.atoms, mol=label,libfile=ffield,
                             nomb=nomb,rcut=None,nn=nn,vdwnn=vdwnn)
-      self.atoms.calc.calculate_bond(atoms=self.atoms)
+      self.atoms.calc.get_bond_energy(atoms=self.atoms)
       self.natom     = len(self.atoms)
       self.re        = self.atoms.calc.re
       self.dyn       = None
@@ -189,8 +189,8 @@ class IRMD(object):
              self.zmats.append(zmat)
           elif self.active:
              self.images.append(a.copy())
-             bo0   =  a.calc.bo0.detach().numpy()
-             r     = a.calc.r.detach().numpy()
+             bo0   =  a.calc.bo0
+             r     = a.calc.r
              mask  = np.where(bo0>=0.0001,1,0)     # 掩码，用于过虑掉非成键键长
             
              
@@ -213,7 +213,7 @@ class IRMD(object):
                 self.images = []
                 self.rs     = []
           else:
-             r    = a.calc.r.detach().numpy()
+             r    = a.calc.r
              i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
              n    = len(i_[0])
 
@@ -295,7 +295,7 @@ class IRMD(object):
                             newbond    = self.checkBond(bonds)
              self.zmats.append(zmat)
           else:
-             r          = a.calc.r.detach().numpy()
+             r          = a.calc.r
              i_         = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
              n          = len(i_[0])
           

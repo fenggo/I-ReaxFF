@@ -1027,7 +1027,6 @@ class IRFF_NP(object):
       # self.results['forces'] = -self.grad.numpy()
       # self.results['stress'] = v
 
-
   def get_free_energy(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
       cell      = cell[:].astype(dtype=np.float64)
@@ -1043,7 +1042,6 @@ class IRFF_NP(object):
 
       E         = self.get_total_energy(cell,rcell,self.positions)
       return E
-
 
   def calculate_numerical_stress(self, atoms, d=1e-6, voigt=True,scale_atoms=False):
       """Calculate numerical stress using finite difference."""
@@ -1083,7 +1081,6 @@ class IRFF_NP(object):
           return stress.flat[[0, 4, 8, 5, 2, 1]]
       else:
           return stress
-
 
   def get_pot_energy(self,atoms):
       cell      = atoms.get_cell()                    # cell is object now
