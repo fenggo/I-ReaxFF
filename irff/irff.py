@@ -1,5 +1,6 @@
 import json as js
 import ctypes
+import random
 
 import os
 import shlex
@@ -452,7 +453,7 @@ class IRFF(Calculator):
         writeLammpsIn(log='lmp.log',timestep=0.1,total=0,
               species=self.species,
               masses=self.masses,
-              pair_style= self.parameters['pair_syle'],  # without lg set lgvdw no
+              pair_style= self.parameters['pair_sytle'],  # without lg set lgvdw no
               pair_coeff=self.parameters['pair_coeff'],
               fix = 'fix_nve all nve',
               natoms=len(self.atoms),
@@ -462,7 +463,8 @@ class IRFF(Calculator):
               dump='all custom 1 lammps.trj id type x y z vx vy vz fx fy fz',
               units=self.parameters['units'],
               atom_style=self.parameters['atom_style'],
-              data=lammps_data)
+              data=lammps_data,
+              clear='clear')
         # Wait for log output to be read (i.e., for LAMMPS to finish)
         # and close the log file if there is one
         thr_read_log.join()
@@ -1168,20 +1170,22 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     random.seed()
     species_name = {'H':'hydrogen','O':'oxygen','N': 'nitrogen','C':'carbon'}
     fin = open('in.lammps','w')
-    for i,sp in enumerate(species):
-        species_ = sp if sp not in species_name else species_name[sp]
-        print('#/atom {:d} {:s}'.format(i+1,species_), file=fin)
-    for i in range(len(species)):
-        for j in range(i,len(species)):
-            bd = species[i]+'-'+species[j]
-            bdr= species[j]+'-'+species[i]
-            if bd in bond_cutoff:
-               bc = bond_cutoff[bd]
-            elif bdr in bond_cutoff:
-               bc = bond_cutoff[bdr]
-            else:
-               bc = bond_cutoff['other']
-            print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
+    # for i,sp in enumerate(species):
+    #     species_ = sp if sp not in species_name else species_name[sp]
+    #     print('#/atom {:d} {:s}'.format(i+1,species_), file=fin)
+    # for i in range(len(species)):
+    #     for j in range(i,len(species)):
+    #         bd = species[i]+'-'+species[j]
+    #         bdr= species[j]+'-'+species[i]
+    #         if bd in bond_cutoff:
+    #            bc = bond_cutoff[bd]
+    #         elif bdr in bond_cutoff:
+    #            bc = bond_cutoff[bdr]
+    #         else:
+    #            bc = bond_cutoff['other']
+    #         print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
+    if 'clear' in kwargs:
+       print('clear   \n'), file=fin)
 
     if 'units' in kwargs:
        units = kwargs['units']
