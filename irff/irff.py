@@ -1185,11 +1185,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     else:
        print('atom_style     charge', file=fin)
     print('  ', file=fin)
-    if 'masses' in kwargs:
-       # print('masses  ', file=fin)
-       for i,s in enumerate(species):
-           print('mass',i+1,kwargs['masses'][s], file=fin)
-       print('  ', file=fin)
+    
     if data != None and data != 'None':
        print('read_data    {:s}'.format(data), file=fin)
        if 'T' in kwargs:
@@ -1199,6 +1195,11 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     if restart != None and restart != 'None':
        print('read_restart {:s}'.format(restart), file=fin)
     print(' ', file=fin)
+    if 'masses' in kwargs:
+       # print('masses  ', file=fin)
+       for i,s in enumerate(species):
+           print('mass',i+1,kwargs['masses'][s], file=fin)
+       print('  ', file=fin)
     print('pair_style     {:s}'.format(pair_style), file=fin) 
     if isinstance(pair_coeff, list):
        for pc in pair_coeff:
