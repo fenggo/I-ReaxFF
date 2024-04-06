@@ -433,11 +433,7 @@ class IRFF(Calculator):
         # Create thread reading lammps stdout (for reference, if requested,
         # also create lammps_log, although it is never used)
 
-        if self.parameters['keep_tmp_files']:
-            lammps_log_fd = open(lammps_log, "w")
-            fd = SpecialTee(lmp_handle.stdout, lammps_log_fd)
-        else:
-            fd = lmp_handle.stdout
+        fd = lmp_handle.stdout
         thr_read_log = Thread(target=self.read_lammps_log, args=(fd,))
         thr_read_log.start()
 
