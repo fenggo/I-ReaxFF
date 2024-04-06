@@ -27,7 +27,7 @@ from ase.io.lammpsrun import read_lammps_dump
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib,write_ffield
 from .intCheck import init_bonds
-from .md.lammps import writeLammpsIn
+# from .md.lammps import writeLammpsIn
 # from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
 def is_upper_triangular(arr, atol=1e-8):
@@ -1139,4 +1139,150 @@ class IRFF(Calculator):
                         m_ = np.expand_dims(np.expand_dims(m[key][l],axis=0),axis=0)
                     self.m[key].append(np.array(m_,dtype=np.float32))
 
- 
+
+ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
+              species=['C','H','O','N'],
+              bond_cutoff={'H-H':1.2,'H-C':1.6,'H-O':1.6,'H-N':1.6,
+                           'C-C':2.0,'other':2.0},
+              pair_coeff ='* * ffield C H O N',
+              pair_style = 'reaxff control nn yes checkqeq yes',  # without lg set lgvdw no
+              fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
+              fix_modify = ' ',
+              more_commond = ' ',
+              dump_interval=10,
+              freeatoms=None,natoms=None,
+              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
+              restartfile=None,
+              **kwargs):
+    '''
+        pair_style     reaxff control.reax checkqeq yes
+        pair_coeff     * * ffield.reax.rdx C H O N
+        --- control ---
+        tabulate_long_range	0 ! denotes the granularity of long range tabulation, 0 means no tabulation
+        nbrhood_cutoff		3.5  ! near neighbors cutoff for bond calculations
+        hbond_cutoff		7.5  ! cutoff distance for hydrogen bond interactions
+        bond_graph_cutoff	0.3  ! bond strength cutoff for bond graphs
+        thb_cutoff		    0.001 ! cutoff value for three body interactions
+        nnflag              1    ! 0: do not use neural network potential
+        mflayer_m           9
+        mflayer_n           1
+        belayer_m           9
+        belayer_n           1
+    '''
+    random.seed()
+    species_name = {'H':'hydrogen','O':'oxygen','N': 'nitrogen','C':'carbon'}
+    fin = open('in.lammps','w')
+    for i,sp in enumerate(species):
+        species_ = sp if sp not in species_name else species_name[sp]
+        print('#/atom {:d} {:s}'.format(i+1,species_), file=fin)
+    for i in range(len(species)):
+        for j in range(i,len(species)):
+            bd = species[i]+'-'+species[j]
+            bdr= species[j]+'-'+species[i]
+            if bd in bond_cutoff:
+               bc = bond_cutoff[bd]
+            elif bdr in bond_cutoff:
+               bc = bond_cutoff[bdr]
+            else:
+               bc = bond_cutoff['other']
+            print('#/bond {:d} {:d} {:f}'.format(i+1,j+1,bc), file=fin)
+
+    if 'units' in kwargs:
+       units = kwargs['units']
+       print('units     {:s}'.format(kwargs['units']), file=fin)
+    else:
+       units = 'real'
+       print('units     real', file=fin)
+    if 'atom_style' in kwargs:
+       print('atom_style     {:s}'.format(kwargs['atom_style']), file=fin)
+    else:
+       print('atom_style     charge', file=fin)
+
+    if data != None and data != 'None':
+       print('read_data    {:s}'.format(data), file=fin)
+       if 'T' in kwargs:
+          print('velocity     all create {:d} {:d}'.format(kwargs['T'],random.randint(0,10000)), file=fin)
+       else:
+          print('velocity     all create 300 {:d}'.format(random.randint(0,10000)), file=fin)
+    if restart != None and restart != 'None':
+       print('read_restart {:s}'.format(restart), file=fin)
+    print(' ', file=fin)
+    print('pair_style     {:s}'.format(pair_style), file=fin) 
+    if isinstance(pair_coeff, list):
+       for pc in pair_coeff:
+           print('pair_coeff     {:s}'.format(pc), file=fin)
+    else:
+       print('pair_coeff     {:s}'.format(pair_coeff), file=fin)
+    if pair_style.find('reaxff')>=0:
+       print('compute       reax all pair reaxff', file=fin)
+       print('variable eb   equal c_reax[1]', file=fin)
+       print('variable ea   equal c_reax[2]', file=fin)
+       print('variable elp  equal c_reax[3]', file=fin)
+       print('variable emol equal c_reax[4]', file=fin)
+       print('variable ev   equal c_reax[5]', file=fin)
+       print('variable epen equal c_reax[6]', file=fin)
+       print('variable ecoa equal c_reax[7]', file=fin)
+       print('variable ehb  equal c_reax[8]', file=fin)
+       print('variable et   equal c_reax[9]', file=fin)
+       print('variable eco  equal c_reax[10]', file=fin)
+       print('variable ew   equal c_reax[11]', file=fin)
+       print('variable ep   equal c_reax[12]', file=fin)
+       print('variable efi  equal c_reax[13]', file=fin)
+       print('variable eqeq equal c_reax[14]', file=fin)
+    print(' ', file=fin)
+    print('neighbor 2.5  bin', file=fin)
+    print('neigh_modify  every 1 delay 1 check no page 200000', file=fin)
+    print(' ', file=fin)
+    if freeatoms:
+       # fixatom = [i for i in range(natoms) if i not in free]
+       # print(freeatoms)
+       print('group  free id ',end=' ', file=fin)
+       for j in freeatoms:
+           print(j,end=' ', file=fin) 
+       print(' ', file=fin)
+       print('group  fixed subtract all free', file=fin)
+       print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
+       print(' ', file=fin)
+       fix = fix.replace('all','free')
+    print(fix, file=fin)
+    print(fix_modify, file=fin)
+    if pair_style.find('reaxff')>=0:
+       if freeatoms:
+          print('fix    rex free qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
+       else:
+          print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
+       print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
+    print(' ', file=fin)
+    print(more_commond, file=fin)
+    
+    if 'minimize' in kwargs:
+        print('min_style   cg', file=fin)
+        print('min_modify  line quadratic', file=fin)
+        print('minimize    {:s}'.format(kwargs['minimize']), file=fin)
+
+    print(' ', file=fin)
+    print('thermo        {:d}'.format(dump_interval), file=fin)
+    print(thermo_style, file=fin)
+    print(' ', file=fin)
+    # timestep = convert(timestep, "time", "ASE", units)
+    if units == 'metal':
+       timestep = timestep*0.001
+    print('timestep      {:f}'.format(timestep), file=fin)
+    print(' ', file=fin)
+    if 'dump' in kwargs:
+       print('dump dump_all {:s}'.format(dump)) 
+    else:
+       if pair_style.find('reaxff')>=0:
+          print('dump          1 all custom {:d} lammps.trj id type x y z q fx fy fz'.format(dump_interval), file=fin)
+       else:
+          print('dump          1 all custom {:d} lammps.trj id type x y z fx fy fz'.format(dump_interval), file=fin) 
+    print(' ', file=fin)
+    print('log           %s'  %log, file=fin)
+    print(' ', file=fin)
+    print('restart       10000 restart', file=fin)
+    print('run           %d'  %total, file=fin)
+    print(' ', file=fin)
+    if restartfile is not None:
+       print('write_restart {:s}'.format(restartfile), file=fin)
+    print(' ', file=fin)
+    fin.close()

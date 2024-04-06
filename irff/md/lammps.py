@@ -323,7 +323,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               dump_interval=10,
               freeatoms=None,natoms=None,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              restartfile='restart',
+              restartfile=None,
               **kwargs):
     '''
         pair_style     reaxff control.reax checkqeq yes
@@ -453,7 +453,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('restart       10000 restart', file=fin)
     print('run           %d'  %total, file=fin)
     print(' ', file=fin)
-    print('write_restart {:s}'.format(restartfile), file=fin)
+    if restartfile is not None:
+       print('write_restart {:s}'.format(restartfile), file=fin)
     print(' ', file=fin)
     fin.close()
 
