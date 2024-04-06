@@ -8,7 +8,6 @@ import warnings
 from re import IGNORECASE
 from re import compile as re_compile
 import subprocess
-from tempfile import NamedTemporaryFile, mkdtemp
 from tempfile import mktemp as uns_mktemp
 from threading import Thread
 from typing import Any, Dict
@@ -16,10 +15,11 @@ import numpy as np
 
 from numpy.linalg import norm
 
+from ase.parallel import paropen
 from ase.calculators.calculator import Calculator, all_changes
 from ase.calculators.lammps import (CALCULATION_END_MARK, Prism, convert,
                                     write_lammps_in)
-from ase.data import atomic_masses, chemical_symbols
+from ase.data import atomic_masses, chemical_symbols, atomic_numbers
 from ase.io.lammpsdata import write_lammps_data
 from ase.io.lammpsrun import read_lammps_dump
 
@@ -27,6 +27,7 @@ from ase.io.lammpsrun import read_lammps_dump
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib,write_ffield
 from .intCheck import init_bonds
+from .md.lammps import writeLammpsIn
 # from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
 def is_upper_triangular(arr, atol=1e-8):
@@ -122,7 +123,7 @@ class IRFF(Calculator):
     '''Intelligent Machine-Learning ASE calculator based on LAMMPS Python module
        Modified from ASE LAMMPSlib.py
     '''
-    name = "lammpsrun"
+    name = "IRFF"
     implemented_properties = ["energy", "free_energy", "forces", "stress",
                               "energies"]
 
@@ -133,9 +134,9 @@ class IRFF(Calculator):
         always_triclinic=False,
         reduce_cell=False,
         keep_alive=True,
-        keep_tmp_files=False,
+        keep_tmp_files=True,
         no_data_file=False,
-        tmp_dir=None,
+        tmp_dir='./',
         files=[],  # usually contains potential parameters
         verbose=False,
         write_velocities=False,
@@ -155,7 +156,7 @@ class IRFF(Calculator):
         atom_style="charge",
         special_bonds=None,
         # potential informations
-        pair_style="lj/cut 2.5",
+        pair_style="reaxff control nn yes checkqeq yes",
         pair_coeff=["* * 1 1"],
         masses=None,
         pair_modify=None,
@@ -181,8 +182,8 @@ class IRFF(Calculator):
                  *args,**kwargs):
         super().__init__(label=label, **kwargs)
 
-        self.prism = None
-        self.calls = 0
+        self.prism  = None
+        self.calls  = 0
         self.forces = None
         # thermo_content contains data "written by" thermo_style.
         # It is a list of dictionaries, each dict (one for each line
@@ -191,25 +192,18 @@ class IRFF(Calculator):
         # value as printed by lammps. thermo_content will be
         # re-populated by the read_log method.
         self.thermo_content = []
-        print(self.parameters)
-        
+
+        symbols = atoms.get_chemical_symbols()
+        self.species = sorted(set(symbols))
+        sp      = ' '.join(self.species)
+        self.parameters['pair_coeff'] = ['* * ffield {:s}'.format(sp)]
+        self.masses = {s:atomic_masses[atomic_numbers[s]] for s in self.species } 
+
         if self.parameters['tmp_dir'] is not None:                   ## del
             # If tmp_dir is pointing somewhere, don't remove stuff!
             self.parameters['keep_tmp_files'] = True
         self._lmp_handle = None  # To handle the lmp process
 
-        if self.parameters['tmp_dir'] is None:
-            self.parameters['tmp_dir'] = mkdtemp(prefix="LAMMPS-")
-        else:
-            self.parameters['tmp_dir'] = os.path.realpath(
-                self.parameters['tmp_dir'])
-            if not os.path.isdir(self.parameters['tmp_dir']):
-                os.mkdir(self.parameters['tmp_dir'], 0o755)
-
-        for f in self.parameters['files']:
-            shutil.copy(
-                f, os.path.join(self.parameters['tmp_dir'],
-                                os.path.basename(f)))              ## del
 
         self.active_learning = active_learning
 
@@ -288,25 +282,16 @@ class IRFF(Calculator):
         cmd = self.parameters.get('command')
 
         if cmd is None:
-            from ase.config import cfg
-            envvar = f'ASE_{self.name.upper()}_COMMAND'
-            cmd = cfg.get(envvar)
-
-        if cmd is None:
-           # TODO deprecate and remove guesswork
            cmd = 'lammps'
 
         opts = self.parameters.get('lammps_options')
 
         if opts is not None:
             cmd = f'{cmd} {opts}'
-
         return cmd
 
     def clean(self, force=False):
-
         self._lmp_end()
-
         if not self.parameters['keep_tmp_files'] or force:
             shutil.rmtree(self.parameters['tmp_dir'])
 
@@ -398,31 +383,28 @@ class IRFF(Calculator):
 
         # setup file names for LAMMPS calculation
         label = f"{self.label}{self.calls:>06}"
-        lammps_in = uns_mktemp(
-            prefix="in_" + label, dir=tempdir
-        )
-        lammps_log = uns_mktemp(
-            prefix="log_" + label, dir=tempdir
-        )
-        lammps_trj_fd = NamedTemporaryFile(
-            prefix="trj_" + label,
-            suffix=(".bin" if self.parameters['binary_dump'] else ""),
-            dir=tempdir,
-            delete=(not self.parameters['keep_tmp_files']),
-        )
-        lammps_trj = lammps_trj_fd.name
+        lammps_in = 'in.lammps'
+        lammps_log = 'log.lammps'
+        # lammps_trj_fd = NamedTemporaryFile(
+        #     prefix="trj_" + label,
+        #     suffix=(".bin" if self.parameters['binary_dump'] else ""),
+        #     dir=tempdir,
+        #     delete=(not self.parameters['keep_tmp_files']),
+        # )
+        lammps_trj = 'lammps.trj'
         if self.parameters['no_data_file']:
             lammps_data = None
         else:
-            lammps_data_fd = NamedTemporaryFile(
-                prefix="data_" + label,
-                dir=tempdir,
-                delete=(not self.parameters['keep_tmp_files']),
-                mode='w',
-                encoding='ascii'
-            )
+            # lammps_data_fd = NamedTemporaryFile(
+            #     prefix="data.lammps",
+            #     dir=tempdir,
+            #     delete=(not self.parameters['keep_tmp_files']),
+            #     mode='w',
+            #     encoding='ascii'
+            # )
+            lammps_data = 'data.lammps'
             write_lammps_data(
-                lammps_data_fd,
+                lammps_data,
                 self.atoms,
                 specorder=self.parameters['specorder'],
                 force_skew=self.parameters['always_triclinic'],
@@ -432,8 +414,9 @@ class IRFF(Calculator):
                 units=self.parameters['units'],
                 atom_style=self.parameters['atom_style'],
             )
-            lammps_data = lammps_data_fd.name
-            lammps_data_fd.flush()
+
+            #lammps_data = lammps_data_fd.name
+            #lammps_data_fd.flush()
 
         # see to it that LAMMPS is started
         if not self._lmp_alive():
@@ -449,6 +432,7 @@ class IRFF(Calculator):
 
         # Create thread reading lammps stdout (for reference, if requested,
         # also create lammps_log, although it is never used)
+
         if self.parameters['keep_tmp_files']:
             lammps_log_fd = open(lammps_log, "w")
             fd = SpecialTee(lmp_handle.stdout, lammps_log_fd)
@@ -459,26 +443,34 @@ class IRFF(Calculator):
 
         # write LAMMPS input (for reference, also create the file lammps_in,
         # although it is never used)
-        if self.parameters['keep_tmp_files']:
-            lammps_in_fd = open(lammps_in, "w")
-            fd = SpecialTee(lmp_handle.stdin, lammps_in_fd)
-        else:
-            fd = lmp_handle.stdin
-        write_lammps_in(
-            lammps_in=fd,
-            parameters=self.parameters,
-            atoms=self.atoms,
-            prismobj=self.prism,
-            lammps_trj=lammps_trj,
-            lammps_data=lammps_data,
-        )
+        fd = 'in.lammps'
 
-        if self.parameters['keep_tmp_files']:
-            lammps_in_fd.close()
-
+        # write_lammps_in(
+        #     lammps_in=fd,
+        #     parameters=self.parameters,
+        #     atoms=self.atoms,
+        #     prismobj=self.prism,
+        #     lammps_trj=lammps_trj,
+        #     lammps_data=lammps_data,
+        # )
+        writeLammpsIn(log='lmp.log',timestep=0.1,total=0,
+              species=self.species,
+              masses=self.masses,
+              pair_style= self.parameters['pair_syle'],  # without lg set lgvdw no
+              pair_coeff=self.parameters['pair_coeff'],
+              fix = 'fix_nve all nve',
+              natoms=len(self.atoms),
+              fix_modify = ' ',
+              dump_interval=1,more_commond = ' ',
+              thermo_style ='custom step temp press cpu pxx pyy pzz pxy pxz pyz ke pe etotal vol lx ly lz atoms',
+              dump='all custom 1 lammps.trj id type x y z vx vy vz fx fy fz',
+              units=self.parameters['units'],
+              atom_style=self.parameters['atom_style'],
+              data=lammps_data)
         # Wait for log output to be read (i.e., for LAMMPS to finish)
         # and close the log file if there is one
         thr_read_log.join()
+
         if self.parameters['keep_tmp_files']:
             lammps_log_fd.close()
 
@@ -499,6 +491,11 @@ class IRFF(Calculator):
             # This obviously shouldn't happen, but if prism.fold_...() fails,
             # it could
             raise RuntimeError("Atoms have gone missing")
+        print('read lammps dump ...')
+        print(fd)
+        print(self.prism)
+        print(lammps_trj)
+        print(lammps_data)
 
         trj_atoms = read_lammps_dump(
             infileobj=lammps_trj,
@@ -1143,41 +1140,3 @@ class IRFF(Calculator):
                     self.m[key].append(np.array(m_,dtype=np.float32))
 
  
-
-class SpecialTee:
-    """A special purpose, with limited applicability, tee-like thing.
-
-    A subset of stuff read from, or written to, orig_fd,
-    is also written to out_fd.
-    It is used by the lammps calculator for creating file-logs of stuff
-    read from, or written to, stdin and stdout, respectively.
-    """
-
-    def __init__(self, orig_fd, out_fd):
-        self._orig_fd = orig_fd
-        self._out_fd = out_fd
-        self.name = orig_fd.name
-
-    def write(self, data):
-        self._orig_fd.write(data)
-        self._out_fd.write(data)
-        self.flush()
-
-    def read(self, *args, **kwargs):
-        data = self._orig_fd.read(*args, **kwargs)
-        self._out_fd.write(data)
-        return data
-
-    def readline(self, *args, **kwargs):
-        data = self._orig_fd.readline(*args, **kwargs)
-        self._out_fd.write(data)
-        return data
-
-    def readlines(self, *args, **kwargs):
-        data = self._orig_fd.readlines(*args, **kwargs)
-        self._out_fd.write("".join(data))
-        return data
-
-    def flush(self):
-        self._orig_fd.flush()
-        self._out_fd.flush()
