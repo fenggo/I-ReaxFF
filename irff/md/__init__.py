@@ -1,14 +1,14 @@
+import numpy as np
 from ase.optimize import BFGS,QuasiNewton,FIRE
 from ase.optimize.basin import BasinHopping
 from ase.vibrations import Vibrations
 from ase.units import kB
 from ase.io import read,write
+from ase.io.trajectory import Trajectory
 from ..irff import IRFF
-# using GULP instead of IRFF https://wiki.fysik.dtu.dk/ase/ase/calculators/gulp.html
 from .irmd import IRMD
 from ..plot import view
-from ase.io.trajectory import Trajectory
-import numpy as np
+# using LAMMPS MD driver instead of IRFF
 
 
 def opt(atoms=None,gen='poscar.gen',fmax=0.3,step=100,
