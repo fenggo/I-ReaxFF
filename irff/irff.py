@@ -122,7 +122,7 @@ class IRFF(Calculator):
     '''Intelligent Machine-Learning ASE calculator based on LAMMPS Python module
        Modified from ASE LAMMPSlib.py
     '''
-    name = "IRFF"
+    name = "lammpsrun"
     implemented_properties = ["energy", "free_energy", "forces", "stress",
                               "energies"]
 
@@ -150,9 +150,9 @@ class IRFF(Calculator):
     # parameters forwarded to LAMMPS
     lammps_parameters = dict(
         boundary=None,  # bounadry conditions styles
-        units="metal",  # str - Which units used; some potentials
+        units="real",  # str - Which units used; some potentials
                         # require certain units
-        atom_style="atomic",
+        atom_style="charge",
         special_bonds=None,
         # potential informations
         pair_style="lj/cut 2.5",
@@ -282,7 +282,7 @@ class IRFF(Calculator):
         self.get_rcbo()
         self.set_p(m,self.bo_layer)
         # self.Qe= qeq(p=self.p,atoms=self.atoms)
-        self.lmp = None
+
     def get_lammps_command(self):
         cmd = self.parameters.get('command')
 
