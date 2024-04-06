@@ -459,7 +459,7 @@ class IRFF(Calculator):
               natoms=len(self.atoms),
               fix_modify = ' ',
               dump_interval=1,more_commond = ' ',
-              thermo_style ='custom step temp press cpu pxx pyy pzz pxy pxz pyz ke pe etotal vol lx ly lz atoms',
+              thermo_style ='thermo_style custom step temp press cpu pxx pyy pzz pxy pxz pyz ke pe etotal vol lx ly lz atoms',
               dump='all custom 1 lammps.trj id type x y z vx vy vz fx fy fz',
               units=self.parameters['units'],
               atom_style=self.parameters['atom_style'],
@@ -1245,7 +1245,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
           print('fix    rex free qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
        else:
           print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
-       print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
+       # print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
     print(' ', file=fin)
     print(more_commond, file=fin)
     
