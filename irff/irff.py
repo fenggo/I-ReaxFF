@@ -1140,7 +1140,7 @@ class IRFF(Calculator):
                     self.m[key].append(np.array(m_,dtype=np.float32))
 
 
- def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
+def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               species=['C','H','O','N'],
               bond_cutoff={'H-H':1.2,'H-C':1.6,'H-O':1.6,'H-N':1.6,
                            'C-C':2.0,'other':2.0},
