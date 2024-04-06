@@ -13,42 +13,15 @@ from ase.io.trajectory import Trajectory,TrajectoryWriter
 from ase import units
 
 
-def get_pressure(atoms):           
-    ir = IRFF(atoms=atoms_md[-1],
-            libfile='ffield.json',
-            rcut=None,
-            nn=True,
-            CalStress=True)
-    p = []
-
-    for i,atoms in enumerate(atoms_md):
-        nonzero = 0
-
-        ir.calculate(atoms=atoms)
-        stress  = ir.results['stress']
-
-        for _ in range(3):
-          if abs(stress[0])>0.0000001:
-             nonzero += 1
-
-        pressure = (-stress[0] - stress[1] - stress[2])/nonzero
-        p.append(pressure*GPa)
-    V = atoms.get_volume()
-    # print('step %d' %i,pressure*GPa)
-    return p,V
-
-
 def fvr(x):
     xi  = np.expand_dims(x,axis=0)
     xj  = np.expand_dims(x,axis=1) 
     vr  = xj - xi
     return vr
 
-
 def fr(vr):
     R   = np.sqrt(np.sum(vr*vr,axis=2))
     return R
-
 
 def getBonds(natom,r,rcut):
     bonds = [] 
