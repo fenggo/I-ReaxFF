@@ -450,7 +450,7 @@ class IRFF(Calculator):
         #     lammps_trj=lammps_trj,
         #     lammps_data=lammps_data,
         # )
-        writeLammpsIn(log='lmp.log',timestep=0.1,total=0,
+        writeLammpsIn(log='/dev/stdout',timestep=0.1,total=0,
               species=self.species,
               masses=self.masses,
               pair_style= self.parameters['pair_style'],  # without lg set lgvdw no
@@ -1269,7 +1269,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        else:
           print('dump   1 all custom {:d} lammps.trj id type x y z fx fy fz'.format(dump_interval), file=fin) 
     print(' ', file=fin)
-    print('log           %s'  %log, file=fin)
+    
     print(' ', file=fin)
     if restart:
        print('restart       10000 restart', file=fin)
@@ -1277,5 +1277,6 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     if restartfile is not None:
        print('write_restart {:s}'.format(restartfile), file=fin)
-    print(' ', file=fin)
+    print('log           %s'  %log, file=fin)
+    print('print \"__end_of_ase_invoked_calculation__\" ', file=fin)
     fin.close()
