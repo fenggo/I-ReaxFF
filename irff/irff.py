@@ -1271,7 +1271,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print(' ', file=fin)
     print('log           %s'  %log, file=fin)
     print(' ', file=fin)
-    print('restart       10000 restart', file=fin)
+    if restart:
+       print('restart       10000 restart', file=fin)
     print('run           %d'  %total, file=fin)
     print(' ', file=fin)
     if restartfile is not None:
