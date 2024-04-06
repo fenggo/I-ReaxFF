@@ -184,7 +184,7 @@ class IRMD(object):
             for j in range(i+1,self.natom):
                if bo0[i][j]>0.0001:
                   print(i,j,bo0[i][j]) 
-                  D = np.array([[a.calc.]])
+                  D = np.array([[a.calc.Deltap[i],a.calc.bop[i][j],a.calc.Deltap[j]]])
       else:
          r    = a.calc.r
          i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
@@ -253,7 +253,8 @@ class IRMD(object):
           epot_      = a.get_potential_energy()
           n,self.Deformed = 0,0
           if self.CheckZmat:
-             Deformed,zmat,self.zv,self.zvlo,self.zvhi = check_zmat(atoms=a,rmin=self.rmin,rmax=self.rmax,angmax=self.angmax,
+             Deformed,zmat,self.zv,self.zvlo,self.zvhi = check_zmat(atoms=a,rmin=self.rmin,
+                                        rmax=self.rmax,angmax=self.angmax,
                                         zmat_id=self.zmat_id,zmat_index=self.zmat_index,
                                         InitZmat=self.InitZmat)
              bonds      = getBonds(self.natom,self.atoms.calc.r,1.18*self.re)
