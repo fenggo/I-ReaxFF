@@ -100,6 +100,133 @@ class IRMD(object):
          else:
             MaxwellBoltzmannDistribution(self.atoms, self.initT*units.kB)
 
+   def printenergy(self,a=self.atoms):
+       n             = 0
+       self.Deformed = 0.0
+       epot_         = a.get_potential_energy()
+       v             = self.atoms.get_velocities()
+
+       if not self.beta is None:
+          if not self.learnpair is None:
+             # v  = np.sqrt(np.sum(np.square(v),axis=1))
+             di   = np.dot(v[self.learnpair[0]],vij)
+             dj   = np.dot(v[self.learnpair[1]],vij)
+             for iv,v_ in enumerate(v):
+                 d  = np.dot(v_,vij)
+                 d_ = d
+                 if iv in self.groupi:
+                     if abs(d)>abs(di):
+                        if abs(d*self.beta)>abs(di):
+                           d_=d*self.beta
+                        else:
+                           d_=di
+                 elif iv in self.groupj:
+                     if abs(d)>abs(dj):
+                        if abs(d*self.beta)>abs(dj):
+                           d_=d*self.beta
+                        else:
+                           d_=dj
+                  vd  = d*vij
+                  vd_ = d_*vij
+                  v[iv] = vd_ + self.beta*(v[iv]-vd)
+          elif not self.freeatoms is None:
+             for iv,v_ in enumerate(v):
+                 if iv not in self.freeatoms:
+                    v[iv] = v_*self.beta
+            # else:
+            #    v = v*self.beta
+            self.atoms.set_velocities(v)
+
+       if self.CheckZmat:
+          self.Deformed,zmat,self.zv,self.zvlo,self.zvhi = check_zmat(atoms=a,rmin=self.rmin,rmax=self.rmax,
+                                          angmax=self.angmax,zmat_id=self.zmat_id,
+                                          zmat_index=self.zmat_index,InitZmat=self.InitZmat)
+          if not self.zv is None:
+              if self.zv[1] == 0:
+                  df_i = self.zmat_id[self.zv[0]]
+                  df_j = self.zmat_index[self.zv[0]][0]
+                  v[df_i][0] = 0.0 
+                  v[df_i][1] = 0.0 
+                  v[df_i][2] = 0.0 
+                  v[df_j][0] = 0.0 
+                  v[df_j][1] = 0.0 
+                  v[df_j][2] = 0.0 
+                  self.atoms.set_velocities(v)
+          bonds      = getBonds(self.natom,self.atoms.calc.r,1.22*self.re)
+          newbond    = self.checkBond(bonds)
+          if newbond: 
+               self.zv = None
+               self.Deformed += 0.2
+               bonds      = getBonds(self.natom,self.atoms.calc.r,1.25*self.re)
+               newbond    = self.checkBond(bonds)
+               if newbond: 
+                  self.Deformed += 0.2
+                  bonds      = getBonds(self.natom,self.atoms.calc.r,1.23*self.re)
+                  newbond    = self.checkBond(bonds)
+                  if newbond: 
+                     self.Deformed += 0.2
+                     bonds      = getBonds(self.natom,self.atoms.calc.r,1.21*self.re)
+                     newbond    = self.checkBond(bonds)
+                     if newbond: 
+                        self.Deformed += 0.2
+                        bonds      = getBonds(self.natom,self.atoms.calc.r,1.19*self.re)
+                        newbond    = self.checkBond(bonds)
+                        if newbond: 
+                           self.Deformed += 0.2
+                           bonds      = getBonds(self.natom,self.atoms.calc.r,1.17*self.re)
+                           newbond    = self.checkBond(bonds)
+            self.zmats.append(zmat)
+       elif self.active:
+            self.images.append(a.copy())
+            bo0   = a.calc.bo0
+            r     = a.calc.r
+            for i in range(self.natom-1):
+               for j in range(i+1,self.natom):
+                  if bo0[i][j]>0.0001:
+                     print(i,j,bo0[i][j]) 
+                     D = np.array([[a.calc.]])
+       else:
+            r    = a.calc.r
+            i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
+            n    = len(i_[0])
+
+       if len(self.Epot)==0:
+            dE_ = 0.0
+       else:
+            dE_ = abs(epot_ - self.Epot[-1])
+       if dE_>self.dEtole:
+            self.dEstop_ += dE_
+
+       self.Epot.append(epot_)
+
+       self.epot  = epot_/self.natom
+       self.ekin  = a.get_kinetic_energy()/self.natom
+       self.T     = self.ekin/(1.5*units.kB)
+       self.step  = self.dyn.nsteps
+
+       print('Step %d Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  '
+               'Etot = %.3feV' % (self.step,self.epot,self.ekin,self.T,
+                                 self.epot + self.ekin))
+       try:
+          if self.CheckZmat:
+               assert self.Deformed<1 and self.dEstop_<self.dEstop,'Atoms structure is deformed!' 
+          else:
+               assert n==0 and self.T<self.Tmax and self.dEstop_<self.dEstop,'Atoms too closed or Temperature goes too high!' 
+       except:
+          # for _ in i_:
+          #     print('atoms pair',_)
+          if n>0: 
+             print('Atoms too closed, stop at %d.' %self.step)
+          elif self.Deformed>=1.0: 
+             print('Structure Deformed = %f exceed the limit, stop at %d.' %(self.Deformed,self.step))
+          elif self.dEstop_>self.dEstop:
+             print('The sum of dE = %f exceed the limit, stop at %d.' %(self.dEstop_,self.step))
+          elif self.T>self.Tmax:
+             print('Temperature = %f too high!, stop at %d.' %(self.T,self.step))
+          else:
+             print('unknown reason, stop at %d.' %self.step)
+          self.dyn.max_steps = self.dyn.nsteps-1
+
   def run(self):
       self.zv,self.zvlo,self.zvhi = None,0.0,0.0
       if self.active:
@@ -112,135 +239,9 @@ class IRMD(object):
          vij = vij/rij
 
       self.dEstop_ = 0.0
-
-      def printenergy(a=self.atoms):
-          n             = 0
-          self.Deformed = 0.0
-          epot_         = a.get_potential_energy()
-          v             = self.atoms.get_velocities()
-
-          if not self.beta is None:
-             if not self.learnpair is None:
-                # v  = np.sqrt(np.sum(np.square(v),axis=1))
-                di   = np.dot(v[self.learnpair[0]],vij)
-                dj   = np.dot(v[self.learnpair[1]],vij)
-                for iv,v_ in enumerate(v):
-                    d  = np.dot(v_,vij)
-                    d_ = d
-                    if iv in self.groupi:
-                       if abs(d)>abs(di):
-                          if abs(d*self.beta)>abs(di):
-                             d_=d*self.beta
-                          else:
-                             d_=di
-                    elif iv in self.groupj:
-                       if abs(d)>abs(dj):
-                          if abs(d*self.beta)>abs(dj):
-                             d_=d*self.beta
-                          else:
-                             d_=dj
-                    vd  = d*vij
-                    vd_ = d_*vij
-                    v[iv] = vd_ + self.beta*(v[iv]-vd)
-             elif not self.freeatoms is None:
-                for iv,v_ in enumerate(v):
-                    if iv not in self.freeatoms:
-                       v[iv] = v_*self.beta
-             # else:
-             #    v = v*self.beta
-             self.atoms.set_velocities(v)
-
-          if self.CheckZmat:
-             self.Deformed,zmat,self.zv,self.zvlo,self.zvhi = check_zmat(atoms=a,rmin=self.rmin,rmax=self.rmax,
-                                             angmax=self.angmax,zmat_id=self.zmat_id,
-                                             zmat_index=self.zmat_index,InitZmat=self.InitZmat)
-             if not self.zv is None:
-                if self.zv[1] == 0:
-                   df_i = self.zmat_id[self.zv[0]]
-                   df_j = self.zmat_index[self.zv[0]][0]
-                   v[df_i][0] = 0.0 
-                   v[df_i][1] = 0.0 
-                   v[df_i][2] = 0.0 
-                   v[df_j][0] = 0.0 
-                   v[df_j][1] = 0.0 
-                   v[df_j][2] = 0.0 
-                   self.atoms.set_velocities(v)
-             bonds      = getBonds(self.natom,self.atoms.calc.r,1.22*self.re)
-             newbond    = self.checkBond(bonds)
-             if newbond: 
-                self.zv = None
-                self.Deformed += 0.2
-                bonds      = getBonds(self.natom,self.atoms.calc.r,1.25*self.re)
-                newbond    = self.checkBond(bonds)
-                if newbond: 
-                   self.Deformed += 0.2
-                   bonds      = getBonds(self.natom,self.atoms.calc.r,1.23*self.re)
-                   newbond    = self.checkBond(bonds)
-                   if newbond: 
-                      self.Deformed += 0.2
-                      bonds      = getBonds(self.natom,self.atoms.calc.r,1.21*self.re)
-                      newbond    = self.checkBond(bonds)
-                      if newbond: 
-                         self.Deformed += 0.2
-                         bonds      = getBonds(self.natom,self.atoms.calc.r,1.19*self.re)
-                         newbond    = self.checkBond(bonds)
-                         if newbond: 
-                            self.Deformed += 0.2
-                            bonds      = getBonds(self.natom,self.atoms.calc.r,1.17*self.re)
-                            newbond    = self.checkBond(bonds)
-             self.zmats.append(zmat)
-          elif self.active:
-             self.images.append(a.copy())
-             bo0   = a.calc.bo0
-             r     = a.calc.r
-             for i in range(self.natom-1):
-                 for j in range(i+1,self.natom):
-                     if bo0[i][j]>0.0001:
-                        print(i,j,bo0[i][j]) 
-          else:
-             r    = a.calc.r
-             i_   = np.where(np.logical_and(r<self.rmin*self.ro,r>0.0001))
-             n    = len(i_[0])
-
-          if len(self.Epot)==0:
-             dE_ = 0.0
-          else:
-             dE_ = abs(epot_ - self.Epot[-1])
-          if dE_>self.dEtole:
-             self.dEstop_ += dE_
-
-          self.Epot.append(epot_)
-
-          self.epot  = epot_/self.natom
-          self.ekin  = a.get_kinetic_energy()/self.natom
-          self.T     = self.ekin/(1.5*units.kB)
-          self.step  = self.dyn.nsteps
-
-          print('Step %d Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  '
-                'Etot = %.3feV' % (self.step,self.epot,self.ekin,self.T,
-                                   self.epot + self.ekin))
-          try:
-             if self.CheckZmat:
-                assert self.Deformed<1 and self.dEstop_<self.dEstop,'Atoms structure is deformed!' 
-             else:
-                assert n==0 and self.T<self.Tmax and self.dEstop_<self.dEstop,'Atoms too closed or Temperature goes too high!' 
-          except:
-             # for _ in i_:
-             #     print('atoms pair',_)
-             if n>0: 
-                 print('Atoms too closed, stop at %d.' %self.step)
-             elif self.Deformed>=1.0: 
-                 print('Structure Deformed = %f exceed the limit, stop at %d.' %(self.Deformed,self.step))
-             elif self.dEstop_>self.dEstop:
-                  print('The sum of dE = %f exceed the limit, stop at %d.' %(self.dEstop_,self.step))
-             elif self.T>self.Tmax:
-                  print('Temperature = %f too high!, stop at %d.' %(self.T,self.step))
-             else:
-                 print('unknown reason, stop at %d.' %self.step)
-             self.dyn.max_steps = self.dyn.nsteps-1
   
       # traj = Trajectory('md.traj', 'w', self.atoms)
-      self.dyn.attach(printenergy,interval=self.print_interval)
+      self.dyn.attach(self.printenergy,interval=self.print_interval)
       # self.dyn.attach(traj.write,interval=1)
       self.dyn.run(self.totstep)
       return self.Deformed,self.zmats,self.zv,self.zvlo,self.zvhi
