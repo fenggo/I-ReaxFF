@@ -80,10 +80,10 @@ class IRMD(object):
       
       self.atoms.calc= IRFF(atoms=self.atoms, mol=label,libfile=ffield,
                             nomb=nomb,rcut=None,nn=nn,vdwnn=vdwnn)
+      self.atoms.calc.calculate_bond(atoms=self.atoms)
       self.natom     = len(self.atoms)
       self.re        = self.atoms.calc.re
       self.dyn       = None
-      self.atoms.calc.calculate(atoms=self.atoms)
       self.InitBonds = getBonds(self.natom,self.atoms.calc.r,self.rmax*self.re)
 
       if (self.atoms is None) and gen.endswith('.gen'):

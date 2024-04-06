@@ -1101,7 +1101,6 @@ class IRFF_NP(object):
       self.E = self.get_total_energy(cell,rcell,positions)
       return self.E
 
-
   def check_hb(self):
       if 'H' in self.spec:
          for sp1 in self.spec:
