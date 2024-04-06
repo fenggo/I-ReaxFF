@@ -125,7 +125,7 @@ class IRFF(Calculator):
        Modified from ASE LAMMPSlib.py
     '''
     name = "IRFF"
-    implemented_properties = ["energy", "free_energy", "forces", "stress",
+    implemented_properties = ["energy", "free_energy", "forces", # "stress",
                               "energies"]
 
     # parameters to choose options in LAMMPSRUN
@@ -283,7 +283,7 @@ class IRFF(Calculator):
         cmd = self.parameters.get('command')
 
         if cmd is None:
-           cmd = 'lammps'
+           cmd = 'lammps -i in.lammps'
 
         opts = self.parameters.get('lammps_options')
 
@@ -440,6 +440,7 @@ class IRFF(Calculator):
 
         # write LAMMPS input (for reference, also create the file lammps_in,
         # although it is never used)
+        # print(lmp_handle.stdin)
         fd = 'in.lammps'
 
         # write_lammps_in(
@@ -469,9 +470,6 @@ class IRFF(Calculator):
         # and close the log file if there is one
         thr_read_log.join()
 
-        if self.parameters['keep_tmp_files']:
-            lammps_log_fd.close()
-
         if not self.parameters['keep_alive']:
             self._lmp_end()
 
@@ -489,11 +487,6 @@ class IRFF(Calculator):
             # This obviously shouldn't happen, but if prism.fold_...() fails,
             # it could
             raise RuntimeError("Atoms have gone missing")
-        print('read lammps dump ...')
-        print(fd)
-        print(self.prism)
-        print(lammps_trj)
-        print(lammps_data)
 
         trj_atoms = read_lammps_dump(
             infileobj=lammps_trj,
@@ -507,6 +500,7 @@ class IRFF(Calculator):
             self.atoms = trj_atoms.copy()
 
         self.forces = trj_atoms.get_forces()
+        
         # !TODO: trj_atoms is only the last snapshot of the system; Is it
         #        desirable to save also the inbetween steps?
         if self.parameters['trajectory_out'] is not None:
@@ -522,27 +516,7 @@ class IRFF(Calculator):
                                          'force',
                                          self.parameters['units'],
                                          'ASE')
-        stress = np.array(
-            [-tc[i] for i in ("pxx", "pyy", "pzz", "pyz", "pxz", "pxy")]
-        )
-
-        # We need to apply the Lammps rotation stuff to the stress:
-        xx, yy, zz, yz, xz, xy = stress
-        stress_tensor = np.array([[xx, xy, xz],
-                                  [xy, yy, yz],
-                                  [xz, yz, zz]])
-        stress_atoms = self.prism.tensor2_to_ase(stress_tensor)
-        stress_atoms = stress_atoms[[0, 1, 2, 1, 0, 0],
-                                    [0, 1, 2, 2, 2, 1]]
-        stress = stress_atoms
-
-        self.results["stress"] = convert(
-            stress, "pressure", self.parameters["units"], "ASE"
-        )
-
-        lammps_trj_fd.close()
-        if not self.parameters['no_data_file']:
-            lammps_data_fd.close()
+ 
 
     def __enter__(self):
         return self
@@ -560,6 +534,7 @@ class IRFF(Calculator):
         mark_re = r"^\s*" + r"\s+".join(
             [x.capitalize() for x in self.parameters['thermo_args'][0:3]]
         )
+        
         _custom_thermo_mark = re_compile(mark_re)
 
         # !TODO: regex-magic necessary?
@@ -573,6 +548,7 @@ class IRFF(Calculator):
 
         thermo_content = []
         line = fileobj.readline()
+        # print('read lammps log ...\n',line)
         while line and line.strip() != CALCULATION_END_MARK:
             # check error
             if 'ERROR:' in line:
