@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# coding: utf-8
-import sys
-import numpy as np
+import argh
 import argparse
+import numpy as np
 from ase.optimize import BFGS,QuasiNewton
 from ase.constraints import StrainFilter,FixAtoms
 from ase.vibrations import Vibrations
@@ -15,40 +14,24 @@ from ase import units
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 
-help_ = './md.py --s=100 --g=POSCAR'
 
-parser = argparse.ArgumentParser(description=help_)
-parser.add_argument('--gen',default='md.traj', help='atomic configuration')
-parser.add_argument('--index',default=-1,type=int, help='the index in atomic configurations')
-parser.add_argument('--step',default=100,type=int, help='the step of MD simulations')
-parser.add_argument('--T',default=300,type=int ,help='the Temperature of MD simulations')
-parser.add_argument('--r',default=0,type=int ,help='if run relax mode, i.e. relax the structure')
-parser.add_argument('--b',default=0.96,type=float,help='the relax parameter')
-parser.add_argument('--f',default=[],type=list,help='free atoms')
-parser.add_argument('--m',default=1,type=int,help='manybody interaction flag')
-args = parser.parse_args(sys.argv[1:])
-
-
-def moleculardynamics():
+def md(gen='POSCAR',T=300,step=100,i=-1):
     # opt(gen=gen)
-    atoms = read(args.gen,index=args.index)#*[2,2,1]
+    atoms = read(gen,index=i)#*[2,2,1]
     # ao    = AtomDance(atoms,bondTole=1.35)
     # atoms = ao.bond_momenta_bigest(atoms)
     
-    f_= args.f if args.f else None
-    nomb = False if args.m else True 
     
-    irmd  = IRMD(atoms=atoms,time_step=0.1,totstep=args.step,gen=args.gen,Tmax=10000,
-                 freeatoms=f_,beta=args.b,
-                 ro=0.8,rmin=0.5,initT=args.T,
+    irmd  = IRMD(atoms=atoms,time_step=0.1,totstep=step,gen=gen,Tmax=10000,
+                 ro=0.8,rmin=0.5,initT=T,
                  ffield='ffield.json',
-                 nomb=nomb,nn=True)
+                 nn=True)
     irmd.run()
     mdsteps= irmd.step
     Emd  = irmd.Epot
     irmd.close()
 
-def train_gp():
+def train_gp(step=10000):
     dataset = {}
     strucs = ['tkx','tkx2']
     # strucs = ['tkxmd']
@@ -94,8 +77,9 @@ def train_gp():
  
     train(Bp,D,B,E,bonds=bonds,step=step,fitobj='BO',learning_rate=0.0001)
     
-def md_gp(timestep=0.1,print_interval=1,totstep=10000):
-    atoms = read(args.gen,index=args.index)#*[2,2,1]
+def otf(gen='POSCAR',timestep=0.1,print_interval=1,totstep=10000,i=-1):
+    ''' on the fly MD driver '''
+    atoms = read(gen,index=i)#*[2,2,1]
     atoms.calc= IRFF(atoms=atoms,libfile='ffield.json',nn=True)
     atoms.calc.get_bond_energy(atoms=atoms)
 
@@ -115,4 +99,6 @@ if __name__ == '__main__':
         s 模拟步长
         g 初始结构'''
    # moleculardynamics()
-   md_gp()
+   parser = argparse.ArgumentParser()
+   argh.add_commands(parser, [md,otf])
+   argh.dispatch(parser)
