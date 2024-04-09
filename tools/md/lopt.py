@@ -27,21 +27,28 @@ args = parser.parse_args(sys.argv[1:])
 # parameters = {'pair_style': 'quip',
 #               'pair_coeff': [' * * Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\" 6']}
 
-files = ['Carbon_GAP_20_potential/Carbon_GAP_20.xml',
-         'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4361',
-         'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4362',
-         'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4363']
-
+# files = ['Carbon_GAP_20_potential/Carbon_GAP_20.xml',
+#          'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4361',
+#          'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4362',
+#          'Carbon_GAP_20_potential/Carbon_GAP_20.xml.sparseX.GAP_2020_4_27_60_2_50_5_4363']
+files = ['ffield','control']
 ### super cell defination
 G = read(args.g)*(args.x,args.y,args.z)
 
 #lammps= LAMMPSlib(lmpcmds=cmds, log_file='graphene.log')
 lammps = LAMMPS(files=files)
-lammps.set(pair_style='quip')
-lammps.set(pair_coeff=['* * Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\" 6'])
-lammps.set(tmp_dir='./')
-lammps.set(keep_alive=False)
+# lammps.set(pair_style='quip')
+# lammps.set(pair_coeff=['* * Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\" 6'])
+# lammps.set(tmp_dir='./')
+# lammps.set(keep_alive=False)
 # lammps.set(keep_tmp_files=True)
+lammps.set(units='real')
+lammps.set(atom_style='charge')
+lammps.set(pair_style='reaxff control nn yes checkqeq yes')
+lammps.set(pair_coeff=[' * * ffield C H O N'])
+lammps.set(fix=[' rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff'])
+lammps.set(tmp_dir='./')
+lammps.set(keep_tmp_files=False)
 G.calc = lammps
 print("Energy ", G.get_potential_energy())
 
