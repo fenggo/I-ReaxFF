@@ -10,7 +10,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 
        
-def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft qmd', 
+def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='opt', 
                      T=300,step=2000,timestep=1.0,
                      com_step=10,
                      thermo='berendsen',thermo_num=100,
