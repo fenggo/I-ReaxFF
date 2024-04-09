@@ -10,7 +10,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 
        
-def write_nwchem_inp(A,struc='MOL',task='dft qmd', 
+def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft qmd', 
                      T=300,step=2000,timestep=1.0,
                      com_step=10,
                      thermo='berendsen',thermo_num=100,
@@ -28,6 +28,9 @@ def write_nwchem_inp(A,struc='MOL',task='dft qmd',
         [b2plyp    ],[xcamlsd   ],[bhlyp     ],[s12g      ],[mvs       ],
         [b3p86     ],[pbe96     ],[dldf      ],[hse03     ],[becke86b  ],
         [hle16     ] '''
+    if A is None:
+       A = read(gen)
+       
     atoms = A.get_chemical_symbols()
     if mult==None:
        mult  = 0
