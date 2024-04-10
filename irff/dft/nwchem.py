@@ -24,7 +24,7 @@ def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft optimize',
         [hcth407p  ],[xtpss03   ],[becke97-3 ],[pbeop     ],[rpbe      ],
         [revpbe    ],[bc95      ],[mpw1b95   ],[pwb6k     ],[m05       ],
         [m05-2x    ],[cpw6b95   ],[cvs98     ],[m06-L     ],[xm06-hf   ],
-        [m06       ],[cm08-hx   ],[sogga11   ],[xcampbe96 ],[mp2       ],
+        [m06-2x    ],[cm08-hx   ],[sogga11   ],[xcampbe96 ],[mp2       ],
         [b2plyp    ],[xcamlsd   ],[bhlyp     ],[s12g      ],[mvs       ],
         [b3p86     ],[pbe96     ],[dldf      ],[hse03     ],[becke86b  ],
         [hle16     ] '''
