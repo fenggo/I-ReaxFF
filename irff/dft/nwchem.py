@@ -57,7 +57,7 @@ def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft optimize',
     print('  mult %s' %mult,file=fin)
     print('  xc %s' %xc,file=fin)
     print('  convergence energy 1e-07',file=fin)
-    print('  maxiter 90',file=fin)
+    print('  maxiter 200',file=fin)
     print('end\n',file=fin)
 
     if task.find('optimize')>=0:
