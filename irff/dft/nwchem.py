@@ -62,6 +62,7 @@ def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft optimize',
 
     if task.find('optimize')>=0:
        print('driver' ,file=fin)
+       print('  xyz     trajectory',file=fin)
        print('  maxiter 200',file=fin)
        print('end\n',file=fin)
 
