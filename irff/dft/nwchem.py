@@ -8,7 +8,6 @@ from ase.io.trajectory import TrajectoryWriter
 from ase.calculators.singlepoint import SinglePointCalculator
 # from irff.molecule import get_mol
 
-
        
 def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft optimize', 
                      T=300,step=2000,timestep=1.0,
