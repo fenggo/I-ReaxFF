@@ -60,6 +60,11 @@ def write_nwchem_inp(A=None,gen='POSCAR',struc='MOL',task='dft optimize',
     print('  maxiter 90',file=fin)
     print('end\n',file=fin)
 
+    if task.find('optimize')>=0:
+       print('driver' ,file=fin)
+       print('  maxiter 200',file=fin)
+       print('end\n',file=fin)
+
     if task.find('qmd')>=0:
        print('qmd' ,file=fin)
        print('  nstep_nucl  %d' %step,file=fin)     # Simulation steps
