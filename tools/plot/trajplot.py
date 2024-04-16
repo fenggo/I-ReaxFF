@@ -17,6 +17,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     r              = []
     d              = []
     v              = []
+    id_            = []
     atoms = images[0]
     ir = IRFF_NP(atoms=atoms,
               libfile=ffield,
@@ -31,19 +32,22 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         ir.calculate(atoms)
         ei.append(ir.E)
         r.append(ir.r[i][j])
+        id_.append(i_)
         
         volume = atoms.get_volume()
         density = masses/volume/0.602214129
         d.append(density)
-
-    e_max = min(e)
+    
+    e_max = np.mean(e)
     e = np.array(e) - e_max
-    e_max = min(ei)
+    e_max = np.mean(ei)
     ei   = np.array(ei) - e_max
 
     plt.figure()   
-    plt.ylabel(r'$Energy$ ($eV$)')
-    plt.xlabel(r'$Density$ ($g/cm^3$)')
+    plt.ylabel(r'$Energy$ ($eV$)',fontdict={"fontsize":16})
+    # plt.xlabel(r'$Crystal$ $ID$')
+    # plt.xlabel(r'$Distance$ ($\AA$)',fontdict={"fontsize":16})
+    plt.xlabel(r'$Density$ ($g/cm^3$)',fontdict={"fontsize":16})
     # plt.xlim(0,i)
     # plt.ylim(0,np.max(hist)+0.01)
 
@@ -70,9 +74,8 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # pdiff = np.abs(pdft - preax)
     # plt.fill_between(v_, pdft - pdiff, pdft + pdiff, color='palegreen',
     #                  alpha=0.2)
-
-    plt.text( 0.0, 0.5, '%.3f' %e_max, fontdict={'size':10.5, 'color': 'k'})
-    plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
+    # plt.text( 0.0, 0.5, '%.3f' %e_max, fontdict={'size':13.0, 'color': 'k'})
+    plt.legend(loc='best',edgecolor='yellowgreen',fontsize=16) # loc = lower left upper right best
     plt.savefig('{:s}'.format(traj.replace('traj','svg')),transparent=True) 
     plt.close() 
 
