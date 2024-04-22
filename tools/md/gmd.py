@@ -62,7 +62,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        natoms    = int(len(atoms)/ncell)
        species   = atoms.get_chemical_symbols()
        positions = atoms.get_positions()
-       forces    = atoms.get_forces()
+       # forces  = atoms.get_forces()
        cell      = atoms.get_cell()
        cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
        u         = np.linalg.inv(cell)
