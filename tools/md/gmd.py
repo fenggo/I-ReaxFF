@@ -5,7 +5,7 @@ from os import system,popen
 import time
 import numpy as np
 from ase.io import read # ,write
-# from ase import Atoms
+from ase import Atoms
 from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
 
 
