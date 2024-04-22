@@ -1,6 +1,7 @@
 1. example_ch4h2o: A example for building a machine learning potential from SIESTA calculations for a simple system, contains H2O and CH4 molecules.
 2. example_c: A example for building a machine learning potential from Quantum Espresso DFT calculations for Carbon.
 3. example_reax: A example for using a machine learning algorithoms training the ReaxFF parameters.
+4. example_phonon: Using Phononpy and GULP compute the 2rd order force constant
 
 ## Introductions for building a mathine learning potential
 
