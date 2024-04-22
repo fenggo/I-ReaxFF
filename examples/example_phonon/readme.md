@@ -50,6 +50,7 @@ phonopy --writefc --full-fc
 需要将其力除以0.529转换成$\AA$。可使用如下Python脚本进行转换：
 
 ```python
+f0 = open('FORCE_CONSTANTS','r')
 f1 = open('FORCE_CONSTANTS_2ND','w')
 
 lines = f0.readlines()
