@@ -3,6 +3,7 @@ import argh
 import argparse
 from os import system,popen
 import time
+import numpy as np
 from ase.io import read # ,write
 # from ase import Atoms
 from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
@@ -25,35 +26,6 @@ def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
     # arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
-
-def nvt_wt(T=350,time_step=0.1,tot_step=100,gen='poscar.gen',mode='w',wt=10):
-    A = read(gen,index=-1)
-    # A = press_mol(A)
-    write_gulp_in(A,runword='md conv qiterative ',
-                  T=T,
-                  time_step=time_step,
-                  tot_step=tot_step,
-                  lib='reax')
-    print('\n-  running gulp nvt ...')
-    system('nohup gulp<inp-gulp>gulp.out 2>&1 &')
-    nan_ = get_status(wt)
-    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
-
-
-def get_status(wt):
-    while True:
-          time.sleep(wt)
-          line = popen('cat gulp.out | tail -3').read()
-          if line.find('NaN')>=0:
-             lines = popen('ps -aux | grep "gulp"').readlines()
-             for line in lines:
-                 l = line.split()
-                 if l[7]=='R+' or l[7]=='R':
-                    system('kill %s' %l[1])
-             return True
-          elif line.find('Job Finished')>=0:
-             return False
-
 
 # def npt(T=350,time_step=0.1,tot_step=10.0):
 #     A = read('packed.gen')
@@ -85,7 +57,24 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
     else:
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
-    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    if x>1 or y>1 or z>1:
+       ncell     = x*y*z
+       natoms    = int(len(atoms)/ncell)
+       species   = atoms.get_chemical_symbols()
+       positions = atoms.get_positions()
+       forces    = atoms.get_forces()
+       cell      = atoms.get_cell()
+       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
+       u         = np.linalg.inv(cell)
+       pos_      = np.dot(positions[0:natoms], u)
+       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
+       pos       = np.dot(posf, cell)
+       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+                         cell=cell,pbc=[True,True,True])
+   
+    atoms.write('POSCAR.unitcell')
+    # return atoms
 
 def traj(inp='inp-gulp',c=0):
     #xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)

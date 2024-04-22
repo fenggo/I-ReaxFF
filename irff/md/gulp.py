@@ -345,6 +345,7 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     atom_name       = []
     e               = 0.0
     cell            = [10.0,10.0,10.0]
+    A               = None
     for line in lines:   #  get number of atoms
         l = line.split()
         if line.find('PBC')>=0 and len(l)>=7:
@@ -359,7 +360,7 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
                  A = press_mol(A)
               A.calc = SinglePointCalculator(A, energy=e)
               his.write(atoms=A)
-              del A
+              # del A
            pos       = []
            atom_name = []
         elif line.find('GULP calculation')>=0 :
@@ -370,6 +371,7 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
            atom_name.append(l[0])
 
     his.close()
+    return A
 
 def opt(atoms=None,T=350,gen='siesta.traj',step=200,i=-1,l=0,
         pressure=0.0,
