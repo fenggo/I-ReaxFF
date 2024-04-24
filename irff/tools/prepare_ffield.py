@@ -64,7 +64,7 @@ def add_elements(element,ffield='ffield'):
     p_,zpe,spec_,bonds_,offd_,angs_,tors_,hbs_= read_ffield(libfile=ffield)
     # mass = {'C':12.0,'H':1.0,'O':16.0,'N':14.0}
     pspec =['rosi','val','mass','rvdw','Devdw','gamma','ropi','vale',
-           'alfa','gammaw','valang','ovun5','chi','mu','atomic',
+           'alfa','gammaw','valang','ovun5','chi','mu','atomic','hbond',
            'ropp','lp2','boc4','boc3','boc5',
            'ovun2','val3','valboc','val5']
     pbond = ['Desi','Depi','Depp','be1','bo5','corr13','bo6','ovun1',
