@@ -196,6 +196,9 @@ def add_elements(element,ffield='ffield'):
                j['p'][k] = p_[k] 
             else:
                j['p'][k] = hbdic[key] 
+               
+    for v in j['p']:
+        j['p'][v] =  float(j['p'][v])
 
     with open('ffield.json','w') as fj:
          js.dump(j,fj,sort_keys=True,indent=2)
