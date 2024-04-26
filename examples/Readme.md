@@ -53,4 +53,9 @@ to LAMMPS format
 ./json_to_ffield.py
 ```
 These two script can be found in "I-ReaxFF/tools/" directory.
+
+The big picture of the training process:
+
+![The big picture of the iterative training](train.png "training process")
+
 ### III. Introduction of "train.py" script and "lm.py" script
