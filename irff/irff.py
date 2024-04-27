@@ -159,7 +159,7 @@ class IRFF(Calculator,IRFF_NP):
         special_bonds=None,
         # potential informations
         pair_style="reaxff control nn yes checkqeq yes",
-        pair_coeff=["* * 1 1"],
+        pair_coeff=None,
         masses=None,
         pair_modify=None,
         # variables controlling the output
