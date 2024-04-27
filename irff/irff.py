@@ -317,23 +317,10 @@ class IRFF(Calculator,IRFF_NP):
         label = f"{self.label}{self.calls:>06}"
         lammps_in = 'in.lammps'
         lammps_log = 'log.lammps'
-        # lammps_trj_fd = NamedTemporaryFile(
-        #     prefix="trj_" + label,
-        #     suffix=(".bin" if self.parameters['binary_dump'] else ""),
-        #     dir=tempdir,
-        #     delete=(not self.parameters['keep_tmp_files']),
-        # )
         lammps_trj = 'lammps.trj'
         if self.parameters['no_data_file']:
             lammps_data = None
         else:
-            # lammps_data_fd = NamedTemporaryFile(
-            #     prefix="data.lammps",
-            #     dir=tempdir,
-            #     delete=(not self.parameters['keep_tmp_files']),
-            #     mode='w',
-            #     encoding='ascii'
-            # )
             lammps_data = 'data.lammps'
             write_lammps_data(
                 lammps_data,
@@ -374,14 +361,6 @@ class IRFF(Calculator,IRFF_NP):
         # print(lmp_handle.stdin)
         fd = 'in.lammps'
 
-        # write_lammps_in(
-        #     lammps_in=fd,
-        #     parameters=self.parameters,
-        #     atoms=self.atoms,
-        #     prismobj=self.prism,
-        #     lammps_trj=lammps_trj,
-        #     lammps_data=lammps_data,
-        # )
         writeLammpsIn(log='/dev/stdout',timestep=0.1,total=0,
               species=self.species,
               masses=self.masses,
@@ -509,6 +488,11 @@ class IRFF(Calculator,IRFF_NP):
                 line = fileobj.readline()
 
         self.thermo_content = thermo_content
+        lines=fileobj.readlines()
+        if not thermo_content:
+            print('read lammps log ...\n')
+            for l in lines:
+                print(l,end=' ')
 
     def get_bond_energy(self,atoms=None):
         cell      = atoms.get_cell()                    # cell is object now
