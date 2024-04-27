@@ -203,8 +203,8 @@ class IRFF(Calculator,IRFF_NP):
         self.masses = {s:atomic_masses[atomic_numbers[s]] for s in self.species } 
 
         if self.parameters['tmp_dir'] is not None:                   ## del
-            # If tmp_dir is pointing somewhere, don't remove stuff!
-            self.parameters['keep_tmp_files'] = True
+           # If tmp_dir is pointing somewhere, don't remove stuff!
+           self.parameters['keep_tmp_files'] = True
         self._lmp_handle = None  # To handle the lmp process
 
         self.active_learning = active_learning
