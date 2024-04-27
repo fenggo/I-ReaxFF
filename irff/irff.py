@@ -490,7 +490,7 @@ class IRFF(Calculator,IRFF_NP):
         self.thermo_content = thermo_content
         lines=fileobj.readlines()
         if not thermo_content:
-            print('read lammps log ...\n')
+            print('error encoutered when read lammps log: \n')
             for l in lines:
                 print(l,end=' ')
 
