@@ -5,7 +5,7 @@ from ase.io import read,write
 from ase.calculators.calculator import Calculator, all_changes
 from .qeq import qeq
 from .RadiusCutOff import setRcut
-from .reaxfflib import read_ffield,write_lib
+from .reaxfflib import read_ffield,write_ffield
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
 
@@ -73,7 +73,9 @@ class IRFF_NP(object):
                messages=1,
                hbshort=6.75,hblong=7.5,
                nomb=False,  # this option is used when dealing with metal system
-               mol=None,label="IRFF", **kwargs):
+               mol=None,
+               wf=False,
+               label="IRFF", **kwargs):
       # Calculator.__init__(self,label=label, **kwargs)
       self.atoms        = atoms
       self.cell         = atoms.get_cell()
@@ -131,6 +133,8 @@ class IRFF_NP(object):
                        read_ffield(libfile=libfile,zpe=False)
          m                = None
          self.bo_layer    = None
+         self.mf_layer    = None
+         self.be_layer    = None
          self.emol        = 0.0
          rcut             = None
          rcuta            = None
@@ -149,6 +153,7 @@ class IRFF_NP(object):
 
       self.torp      = self.checkTors(self.torp)
       self.check_tors(self.p_tor)
+
       self.botol     = 0.01*self.p['cutoff']
       self.atol      = self.p['acut']   # atol
       self.hbtol     = self.p['hbtol']  # hbtol
@@ -162,6 +167,10 @@ class IRFF_NP(object):
       self.eye       = 1.0 - np.eye(self.natom,dtype=np.float32)
       self.check_offd()
       self.check_hb()
+      if wf:
+         write_ffield(self.p,self.spec,self.bonds,self.offd,self.Angs,self.torp,self.Hbs,
+                      m=m,mf_layer=self.mf_layer,be_layer=self.be_layer,
+                      libfile='ffield')
       self.get_rcbo()
       self.set_p(m,self.bo_layer)
       self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -1226,7 +1235,6 @@ class IRFF_NP(object):
       if self.nn:
          self.set_m(m)
 
-
   def set_m(self,m):
       self.m = {}
       if self.BOFunction==0:
@@ -1338,7 +1346,10 @@ class IRFF_NP(object):
           elif k[0]=='rosi':
              kk = k[1].split('-')
              if len(kk)==2:
-                self.offd.append(k[1])
+                if kk[0]!=kk[1]:
+                  self.offd.append(k[1])
+             elif len(kk)==1:
+                self.spec.append(k[1])
           elif k[0]=='theta0':
              self.Angs.append(k[1])
           elif k[0]=='tor1':
