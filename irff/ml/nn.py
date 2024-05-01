@@ -6,15 +6,15 @@ def sigmoid(x):
     return 1.0/(1.0+np.exp(-x))
 
 class fnn(object):
-    def __init__(self,Bp,D,B,E):
-        with open('ffield.json','r') as lf:
+    def __init__(self,ffield='ffieldData.json'):
+        with open(ffield,'r') as lf:
             self.j = js.load(lf)
         self.spec,self.bonds,offd,angs,torp,hbs = init_bonds(self.j['p'])
         self.m = {}
         hidelayer  = self.j['be_layer'][1] 
         self.be_layer = self.j['be_layer'] 
 
-        self.E,self.B = {},{}
+        # self.E,self.B = {},{}
         for bd in self.bonds:
             self.m['fewi_'+bd] = self.j['m']['fewi_'+bd]
             self.m['febi_'+bd] = self.j['m']['febi_'+bd]
