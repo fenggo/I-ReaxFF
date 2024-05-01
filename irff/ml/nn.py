@@ -54,7 +54,7 @@ class fnn(object):
 
             self.E_pred[bd] = ao
             # loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
-        return self.E_pred[bd]
+        return self.E_pred
     
     def compute_bond_order(self):
         self.B_pred = {}
