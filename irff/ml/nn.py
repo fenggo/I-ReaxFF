@@ -37,7 +37,8 @@ class fnn(object):
                 self.m['fmw_'+sp].append(self.j['m']['fmw_'+sp][i])
                 self.m['fmb_'+sp].append(self.j['m']['fmb_'+sp][i])
 
-    def compute_bond_energy(self):
+    def compute_bond_energy(self,B):
+        self.B      = B
         self.E_pred = {}
         for bd in self.bonds:
             ai   = sigmoid(np.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
@@ -56,7 +57,8 @@ class fnn(object):
             # loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
         return self.E_pred
     
-    def compute_bond_order(self):
+    def compute_bond_order(self,D):
+        self.D      = D
         self.B_pred = {}
         for bd in self.bonds:
             atomi,atomj = bd.split('-')
