@@ -59,7 +59,6 @@ class fnn(object):
     
     def compute_bond_order(self,D):
         self.D      = D
-        self.D_t    = np.transpose(D,[2,1,0])
         self.B_pred = {}
         for bd in self.D:
             atomi,atomj = bd.split('-')
@@ -73,7 +72,8 @@ class fnn(object):
                 
             ao   = sigmoid(np.matmul(ah,self.m['fmwo_'+atomi]) + self.m['fmbo_'+atomi])
 
-            ai_t = sigmoid(np.matmul(self.D_t[bd],self.m['fmwi_'+atomj]) + self.m['fmbi_'+atomj])
+            D_t  = np.transpose(self.D[bd],[2,1,0])
+            ai_t = sigmoid(np.matmul(D_t,self.m['fmwi_'+atomj]) + self.m['fmbi_'+atomj])
             for i in range(self.j['mf_layer'][1]):
                 if i==0:
                    a_ = ai_t
