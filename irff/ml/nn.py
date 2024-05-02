@@ -59,6 +59,7 @@ class fnn(object):
     
     def compute_bond_order(self,D):
         self.D      = D
+        self.D_t    = np.transpose(D,[2,1,0])
         self.B_pred = {}
         for bd in self.D:
             atomi,atomj = bd.split('-')
