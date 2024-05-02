@@ -40,7 +40,7 @@ class fnn(object):
     def compute_bond_energy(self,B):
         self.B      = B
         self.E_pred = {}
-        for bd in self.bonds:
+        for bd in self.B:
             ai   = sigmoid(np.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
             if self.be_layer[1]>0:
                for i in range(self.be_layer[1]):
@@ -60,7 +60,7 @@ class fnn(object):
     def compute_bond_order(self,D):
         self.D      = D
         self.B_pred = {}
-        for bd in self.bonds:
+        for bd in self.D:
             atomi,atomj = bd.split('-')
             ai   = sigmoid(np.matmul(self.D[bd],self.m['fmwi_'+atomi])  + self.m['fmbi_'+atomi])
             for i in range(self.j['mf_layer'][1]):
