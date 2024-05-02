@@ -14,7 +14,9 @@ class fnn(object):
         hidelayer  = self.j['be_layer'][1] 
         self.be_layer = self.j['be_layer'] 
 
-        # self.E,self.B = {},{}
+        self.E_pred = {}
+        self.B_pred = {}
+        
         for bd in self.bonds:
             self.m['fewi_'+bd] = self.j['m']['fewi_'+bd]
             self.m['febi_'+bd] = self.j['m']['febi_'+bd]
@@ -39,7 +41,7 @@ class fnn(object):
 
     def compute_bond_energy(self,B):
         self.B      = B
-        self.E_pred = {}
+        
         for bd in self.B:
             ai   = sigmoid(np.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
             if self.be_layer[1]>0:
@@ -57,9 +59,9 @@ class fnn(object):
             # loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
         return self.E_pred
     
-    def compute_bond_order(self,D):
+    def compute_bond_order(self,Bp,D):
         self.D      = D
-        self.B_pred = {}
+        
         for bd in self.D:
             atomi,atomj = bd.split('-')
             ai   = sigmoid(np.matmul(self.D[bd],self.m['fmwi_'+atomi])  + self.m['fmbi_'+atomi])
@@ -72,7 +74,8 @@ class fnn(object):
                 
             ao   = sigmoid(np.matmul(ah,self.m['fmwo_'+atomi]) + self.m['fmbo_'+atomi])
 
-            D_t  = np.transpose(self.D[bd],[2,1,0])
+            D_t  = np.array(self.D[bd])[:,[2,1,0]]
+
             ai_t = sigmoid(np.matmul(D_t,self.m['fmwi_'+atomj]) + self.m['fmbi_'+atomj])
             for i in range(self.j['mf_layer'][1]):
                 if i==0:
@@ -82,7 +85,7 @@ class fnn(object):
                 ah_t  = sigmoid(np.matmul(a_,self.m['fmw_'+atomj][i]) + self.m['fmb_'+atomj][i])
             ao_t = sigmoid(np.matmul(ah_t,self.m['fmwo_'+atomj]) + self.m['fmbo_'+atomj])
 
-            b_pred = self.Bp[bd]*ao*ao_t
+            b_pred = Bp[bd]*ao*ao_t
             self.B_pred[bd] = b_pred
         return self.B_pred
 
