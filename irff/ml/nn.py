@@ -23,8 +23,8 @@ class fnn(object):
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
-                self.m['few_'+bd].append(self.j['m']['few_'+bd][i],name='fewh_'+bd)
-                self.m['feb_'+bd].append(self.j['m']['feb_'+bd][i],name='febh_'+bd)
+                self.m['few_'+bd].append(self.j['m']['few_'+bd][i])
+                self.m['feb_'+bd].append(self.j['m']['feb_'+bd][i])
 
         for sp in self.spec:
             self.m['fmwi_'+sp] = self.j['m']['fmwi_'+sp]
