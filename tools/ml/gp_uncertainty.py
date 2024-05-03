@@ -10,9 +10,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process.kernels import RBF
 
 
-def fit(step=20000):
+def fit(step=100):
     dataset = {}
-    strucs = ['tkx','tkx2']
+    strucs = ['c2h4']
     # strucs = ['tkxmd']
 
     trajdata = ColData()
@@ -20,7 +20,7 @@ def fit(step=20000):
         trajs = trajdata(label=mol,batch=50)
         dataset.update(trajs)
 
-    bonds = ['C-C','C-H','C-N','H-O','C-O','H-H','H-N','N-N','O-N','O-O'] 
+    bonds = ['C-H'] 
     D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
 
     kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
@@ -35,7 +35,7 @@ def fit(step=20000):
 
         print('Gaussian Process for {:s} bond ...'.format(bd))
         gp[bd] = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9,
-                                        optimizer=None) # fmin_l_bfgs_b
+                                          optimizer=None) # fmin_l_bfgs_b
         gp[bd].fit(D_, B_)
         # print(gp[bd].kernel_)
         print('the score of exsiting data: ',gp[bd].score(D_, B_))
