@@ -135,7 +135,7 @@ class MPNN(ReaxFF):
                vlo={'others':[(0.0,0.0)]},
                vup={'others':[(10.0,0.0)]},
                # pim={'others':10.0},
-               spv_be=False,                             
+               be_clip=False,                             
                bo_clip=None,                      # e.g. bo_clip={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
                pi_clip=False,                     # e.g. pi_clip={'C-C-C':[(7.5,8.5,0.8,1.8)]}
                #spv_ang=False,                    
@@ -190,7 +190,7 @@ class MPNN(ReaxFF):
       #self.pim              = pim
       self.bo_clip          = bo_clip
       self.pi_clip          = pi_clip
-      self.spv_be           = spv_be
+      self.be_clip          = be_clip
       self.beup             = beup
       self.belo             = belo
       #self.spv_ang         = spv_ang
@@ -879,7 +879,7 @@ class MPNN(ReaxFF):
              self.penalty_bop[bd]  = tf.reduce_sum(self.bop[bd]*fbo)          #####  
              penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)
 
-             if self.spv_be:
+             if self.be_clip:
                 if self.MessageFunction>1:
                    self.penalty_be[bd] = tf.constant(0.0)
                    if (bd in self.beup) or (bdr in self.beup):
@@ -897,7 +897,7 @@ class MPNN(ReaxFF):
                                                  tf.logical_and(tf.less_equal(self.Dbj[bd],Dj_u),
                                                                 tf.greater_equal(self.Dbj[bd],Dj_l))
                                                          ) ), 1.0,0.0) ##### 
-                          pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((self.EBD[bd] - be_u)*fu))
+                          pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd] - be_u)*fu))
                           self.penalty_be[bd] = self.penalty_be[bd] + pen_e
                         
                    if (bd in self.belo) or (bdr in self.belo):
@@ -916,7 +916,7 @@ class MPNN(ReaxFF):
                                                                 tf.greater_equal(self.Dbj[bd],Dj_l))
                                                          ) ), 1.0,0.0) ##### 
                              # fl = tf.where(tf.greater_equal(self.rbd[bd],r_),1.0,0.0) ##### 
-                             pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((be_l - self.EBD[bd])*fl))
+                             pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((be_l - self.esi[bd])*fl))
                              self.penalty_be[bd] = self.penalty_be[bd] + pen_e
 
                 penalty = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty) 
