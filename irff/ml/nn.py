@@ -87,3 +87,15 @@ class fnn(object):
             self.B_pred[bd] = b_pred
         return self.B_pred
 
+
+# from irff.ml.nn import fnn
+# nn = fnn()
+# bo = nn.compute_bond_order({bd:[b]},{bd:[d]})
+
+# be = nn.compute_bond_energy(bo)
+# be_ = np.squeeze(be[bd])
+# if be_>=0.0:
+#    print('\nnn input(D)    : \n',d)
+#    print(  'nn predict (bo): ',bo[bd][0])
+#    print(  'nn predict (E) : ',be_)
+
