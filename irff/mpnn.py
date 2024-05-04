@@ -130,8 +130,6 @@ class MPNN(ReaxFF):
                batch_size=200,sample='uniform',
                hbshort=6.75,hblong=7.5,
                vdwcut=10.0,
-               beup={},                          # e.g. {'C-C':[(1.5,0.5)]} or {'C-C':[(1.5,'si')]}
-               belo={},
                vlo={'others':[(0.0,0.0)]},
                vup={'others':[(10.0,0.0)]},
                # pim={'others':10.0},
@@ -191,8 +189,6 @@ class MPNN(ReaxFF):
       self.bo_clip          = bo_clip
       self.pi_clip          = pi_clip
       self.be_clip          = be_clip
-      self.beup             = beup
-      self.belo             = belo
       #self.spv_ang         = spv_ang
       self.spv_vdw          = spv_vdw
       self.vup              = vup
@@ -880,46 +876,28 @@ class MPNN(ReaxFF):
              penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)
 
              if self.be_clip:
-                if self.MessageFunction>1:
-                   self.penalty_be[bd] = tf.constant(0.0)
-                   if (bd in self.beup) or (bdr in self.beup):
-                      bd_ = bd if bd in self.beup else bdr
-                      for i,beup_ in enumerate(self.beup[bd_]):
-                          r_,Di_l,Di_u,Dj_l,Dj_u,be_u = beup_ 
-                          if i==0:
-                             rleft = r_
-                             continue
-                          fu = tf.where(tf.logical_and(tf.logical_and(tf.less_equal(self.rbd[bd],r_),
-                                                                      tf.greater(self.rbd[bd],rleft)),
-                                             tf.logical_and(
-                                                 tf.logical_and(tf.less_equal(self.Dbi[bd],Di_u),
-                                                                tf.greater_equal(self.Dbi[bd],Di_l)),
-                                                 tf.logical_and(tf.less_equal(self.Dbj[bd],Dj_u),
-                                                                tf.greater_equal(self.Dbj[bd],Dj_l))
-                                                         ) ), 1.0,0.0) ##### 
-                          pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd] - be_u)*fu))
-                          self.penalty_be[bd] = self.penalty_be[bd] + pen_e
-                        
-                   if (bd in self.belo) or (bdr in self.belo):
-                      bd_ = bd if bd in self.belo else bdr
-                      np_ = len(self.belo[bd_])-1
-                      for i,belo_ in enumerate(self.belo[bd_]):
-                          if i < np_:
-                             right = self.belo[bd_][i+1][0]
-                             r_,Di_l,Di_u,Dj_l,Dj_u,be_l = belo_
-                             fl = tf.where( tf.logical_and(tf.logical_and(tf.greater_equal(self.rbd[bd],r_),
-                                                        tf.less(self.rbd[bd],right)),
-                                             tf.logical_and(
-                                                 tf.logical_and(tf.less_equal(self.Dbi[bd],Di_u),
-                                                                tf.greater_equal(self.Dbi[bd],Di_l)),
-                                                 tf.logical_and(tf.less_equal(self.Dbj[bd],Dj_u),
-                                                                tf.greater_equal(self.Dbj[bd],Dj_l))
-                                                         ) ), 1.0,0.0) ##### 
-                             # fl = tf.where(tf.greater_equal(self.rbd[bd],r_),1.0,0.0) ##### 
-                             pen_e   = tf.reduce_sum(input_tensor=tf.nn.relu((be_l - self.esi[bd])*fl))
-                             self.penalty_be[bd] = self.penalty_be[bd] + pen_e
+                self.penalty_be[bd] = tf.constant(0.0)
+                if (bd in self.be_clip) or (bdr in self.be_clip):
+                   bd_  = bd if bd in self.be_clip else bdr
+                   for sbe in self.be_clip[bd_]:
+                       r,dil,diu,djl,dju,be_l,be_u = sbe
+                       fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
+                                                      tf.logical_and(tf.logical_and(tf.greater_equal(self.Dbi[bd],dil),
+                                                                                    tf.greater_equal(self.Dbj[bd],djl)), 
+                                                                     tf.logical_and(tf.less_equal(self.Dbi[bd],diu),
+                                                                                    tf.less_equal(self.Dbj[bd],dju))  ) ),
+                                       1.0,0.0)   ##### r< r_e that bo > bore_
+                       self.penalty_be[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((be_l-self.esi[bd])*fe)) 
+                                                                                    #     self.bo0[bd]
+                       fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
+                                                      tf.logical_and(tf.logical_and(tf.greater_equal(self.Dbi[bd],dil),
+                                                                                    tf.greater_equal(self.Dbj[bd],djl)), 
+                                                                     tf.logical_and(tf.less_equal(self.Dbi[bd],diu),
+                                                                                    tf.less_equal(self.Dbj[bd],dju))  ) ),
+                                       1.0,0.0)  ##### r> r_e that bo < bore_
+                       self.penalty_be[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-be_u)*fe))
 
-                penalty = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty) 
+                penalty  = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty) 
 
              # if self.MessageFunction==3:
              #    fe_ = tf.where(tf.greater(self.S[bd],0.00001),1.0,0.0) 
