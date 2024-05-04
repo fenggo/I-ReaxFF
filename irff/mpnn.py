@@ -941,7 +941,7 @@ class MPNN(ReaxFF):
                                                                      tf.logical_and(tf.less_equal(self.Dbi[bd],diu),
                                                                                     tf.less_equal(self.Dbj[bd],dju))  ) ),
                                        1.0,0.0)   ##### r< r_e that bo > bore_
-                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.esi[bd])*fe)) 
+                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.bo0[bd])*fe)) 
                                                                                     #     self.bo0[bd]
                        fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
                                                       tf.logical_and(tf.logical_and(tf.greater_equal(self.Dbi[bd],dil),
@@ -949,7 +949,7 @@ class MPNN(ReaxFF):
                                                                      tf.logical_and(tf.less_equal(self.Dbi[bd],diu),
                                                                                     tf.less_equal(self.Dbj[bd],dju))  ) ),
                                        1.0,0.0)  ##### r> r_e that bo < bore_
-                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-bo_u)*fe))
+                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
 
                 penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
 
