@@ -412,7 +412,7 @@ class IRFF_NP(object):
 
              # Fi  = self.f_nn('f'+str(t),[Dsi_j,Dpi_j,Dpp_j,Dsi_i,Dpi_i,Dpp_i,self.Hsi[t-1],self.Hpi[t-1],self.Hpp[t-1]],
              #                  layer=self.mf_layer[1])
-             Fi  = self.f_nn('fm',[Dsi_i,Dpii,self.H[t-1],Dsi_j,Dpij],layer=self.mf_layer[1])
+             Fi  = self.f_nn('fm',[Dsi_i,Dpi_i,Dpp_i,self.H[t-1],Dpp_j,Dpi_j,Dsi_j],layer=self.mf_layer[1])
              Fj  = np.transpose(Fi,[1,0,2])
              F   = Fi*Fj
              Fsi = F[:,:,0]
