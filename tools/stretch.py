@@ -23,7 +23,9 @@ args    = parser.parse_args(sys.argv[1:])
 
 
 atoms   = read(args.g,index=args.f)
-ad      = AtomDance(atoms=atoms)
+ad      = AtomDance(atoms=atoms,rmax=1.2,
+                    rcut={"C-H":1.22,"H-O":1.22,"H-H":1.2,"O-O":1.4,
+                          "others": 1.8})
 
 if args.auto:
    to_move = None
@@ -31,8 +33,7 @@ else:
    to_move = [args.j]
 
 images  = ad.stretch([args.i,args.j],nbin=args.n,rst=args.s,red=args.e,
-                     ToBeMoved=to_move,
-                     scale=1.26,traj='md.traj')
+                     ToBeMoved=to_move,traj='md.traj')
 ad.close()
 
 
