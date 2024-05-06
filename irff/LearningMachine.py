@@ -156,8 +156,6 @@ class LearningMachine(object):
       self.be_universal_nn = be_universal_nn
       self.mf_universal_nn = mf_universal_nn
       self.vdw_universal_nn= vdw_universal_nn
-      self.beup           = beup
-      self.belo           = belo
       self.vup            = vup
       self.vlo            = vlo
       self.bo_clip        = bo_clip
