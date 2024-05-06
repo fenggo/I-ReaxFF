@@ -372,7 +372,7 @@ class LearningMachine(object):
                                                      EnergyFunction=self.EnergyFunction,
                                                      MessageFunction=self.MessageFunction,
                                                      # bore=self.bore, # bom=self.bom,
-                                                     be_clip=self.be_clip,belo=self.belo,beup=self.beup,
+                                                     be_clip=self.be_clip,
                                                      bo_clip=self.bo_clip,pi_clip=self.pi_clip,
                                                      spv_vdw=self.spv_vdw,vlo=self.vlo,vup=self.vup,
                                                      lambda_me=self.lambda_me,weight=self.weight,
