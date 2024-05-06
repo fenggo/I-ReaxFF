@@ -462,12 +462,12 @@ class MPNN(ReaxFF):
          Dpi_j = tf.gather_nd(self.D_pi[t-1],self.djlink[bd]) - self.Hpi[t-1][bd]
          Dpp_j = tf.gather_nd(self.D_pp[t-1],self.djlink[bd]) - self.Hpp[t-1][bd]
 
-         Dpii  = Dpi_i + Dpp_i
-         Dpij  = Dpi_j + Dpp_j
+         # Dpii  = Dpi_i + Dpp_i
+         # Dpij  = Dpi_j + Dpp_j
           
-         Fi    = fmessage(flabel,b[0],self.nbd[bd],[Dsi_i,Dpii,self.H[t-1][bd],Dpij,Dsi_j],
+         Fi    = fmessage(flabel,b[0],self.nbd[bd],[Dsi_i,Dpi_i,Dpp_i,self.H[t-1][bd],Dpp_j,Dpi_j,Dsi_j],
                                self.m,batch=self.batch,layer=self.mf_layer[1])
-         Fj    = fmessage(flabel,b[1],self.nbd[bd],[Dsi_j,Dpij,self.H[t-1][bd],Dpii,Dsi_i],
+         Fj    = fmessage(flabel,b[1],self.nbd[bd],[Dsi_j,Dpi_j,Dpp_j,self.H[t-1][bd],Dpp_i,Dpi_i,Dsi_i],
                                self.m,batch=self.batch,layer=self.mf_layer[1])
          F     = Fi*Fj
 
@@ -1280,7 +1280,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
 
     nout_ = 3 if MessageFunction!=4 else 1
     if MessageFunction==1:
-        nin_  = 5
+        nin_  = 7
     elif MessageFunction==5 :
         nin_  = 3 
     # elif MessageFunction==2:
