@@ -227,7 +227,7 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
 class AtomDance(object):
   def __init__(self,atoms=None,poscar=None,nn=True,nomb=False,ffield='ffield.json',
                rotAng=40.0,angmax=30.0,freeatoms=None,FirstAtom=None,
-               rmin=0.4,rmax=1.25,botol=0.0):
+               rmin=0.4,rmax=1.25,rcut=None,botol=0.0):
       self.rmin          = rmin
       self.rmax          = rmax
       self.botol         = botol
@@ -275,7 +275,24 @@ class AtomDance(object):
       self.freebonds = self.InitBonds
       self.neighbors = getNeighbor(self.natom,self.ir.r,self.rmax*self.ir.re,self.ir.bo0,
                                    botol=self.botol)
-      
+      if rcut is None:
+         self.rcut       = self.ir.re*rmax
+      else:
+         self.rcut       = self.ir.re
+         for i in range(self.natom-1):
+             for j in range(i+1,self.natom):
+                 bd = self.ir.atom_name[i] + '-' + self.ir.atom_name[j]
+                 bdr= self.ir.atom_name[j] + '-' + self.ir.atom_name[i]
+                 if bd in rcut:
+                    rc = rcut[bd]
+                 elif bdr in rcut:
+                    rc = rcut[bdr]
+                 elif 'others' in rcut:
+                    rc = rcut['others']
+                 else:
+                    rc = 1.8
+                 self.rcut[i][j] = rc 
+
       self.InitZmat = np.array(self.get_zmatrix(atoms))
       self.zmatrix  = None
       # self.write_zmat(self.InitZmat)
@@ -1276,8 +1293,10 @@ class AtomDance(object):
          atoms = self.ir.atoms
 
       if neighbors is None:
+         if self.rcut is None:
+            self.rcut = scale*self.ir.re
          self.ir.calculate_Delta(atoms)
-         neighbors = getNeighbor(self.natom,self.ir.r,scale*self.ir.re,self.ir.bo0)
+         neighbors = getNeighbor(self.natom,self.ir.r,self.rcut,self.ir.bo0)
       images = []
  
       if not traj is None: his = TrajectoryWriter(traj,mode='w')
