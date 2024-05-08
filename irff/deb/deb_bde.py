@@ -218,8 +218,8 @@ def deb_bo(images,i=0,j=1,figsize=(8,6),print_=False,show=False,more=False,
         esi.append(ir.esi[i][j])
         Dip.append(ir.Deltap[i])
         Djp.append(ir.Deltap[j])
-        Dip.append(ir.Delta[i])
-        Djp.append(ir.Delta[j])
+        Di.append(ir.Delta[i])
+        Dj.append(ir.Delta[j])
         # N.append(ir.N[i][j])
       #   csv_write.writerow([ir.r[i][j],ir.eterm1[i][j],ir.eterm2[i][j],ir.eterm3[i][j],
       #                       ir.bop_si[i][j],ir.bop_pi[i][j],ir.bop_pp[i][j],
