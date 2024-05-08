@@ -51,7 +51,7 @@ def get_zpe(p,atom_name):
 
 class LearningMachine(object):
   ''' recursive learning machine constructed by I-ReaxFF and siesta '''
-  def __init__(self,config='poscar.gen',
+  def __init__(self,config='ch4.POSCAR',
                dataset=None,ncpu=40,
                maxiter=100,
                dt_mlmd=0.1, dt_aimd=0.3,dft_step=5,
