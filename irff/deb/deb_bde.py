@@ -184,7 +184,7 @@ def deb_bo(images,i=0,j=1,figsize=(8,6),print_=False,show=False,more=False,
            fluctuation=False,delta=False,u=1.5,l=1.35,libfile='ffield.json',
            nn=True,debug=False,bo_p=0,x_distance=False):
     r,bopsi,boppi,boppp,bo0,bo1,eb,esi = [],[],[],[],[],[],[],[]
-    Di,Dj = [],[]
+    Dip,Djp,Di,Dj = [],[],[],[]
    #  fcsv_ = open('bo.csv','w')
    #  csv_write = csv.writer(fcsv_)
    #  csv_write.writerow(['r','bosi0','bopi0','bopp0','bosi1','bopi1','bopp1',
@@ -216,8 +216,10 @@ def deb_bo(images,i=0,j=1,figsize=(8,6),print_=False,show=False,more=False,
         bo1.append(ir.bo0[i][j])  
         eb.append(ir.ebond[i][j])   
         esi.append(ir.esi[i][j])
-        Di.append(ir.Deltap[i]-ir.bop[i][j])
-        Dj.append(ir.Deltap[j]-ir.bop[i][j])
+        Dip.append(ir.Deltap[i])
+        Djp.append(ir.Deltap[j])
+        Dip.append(ir.Delta[i])
+        Djp.append(ir.Delta[j])
         # N.append(ir.N[i][j])
       #   csv_write.writerow([ir.r[i][j],ir.eterm1[i][j],ir.eterm2[i][j],ir.eterm3[i][j],
       #                       ir.bop_si[i][j],ir.bop_pi[i][j],ir.bop_pp[i][j],
@@ -269,10 +271,11 @@ def deb_bo(images,i=0,j=1,figsize=(8,6),print_=False,show=False,more=False,
                 ir.esi[i][j],bopsi[-1]*l,bopsi[-1]*u,
                 ir.esi[i][j]*bopsi[0]/esi[0],ir.ebond[i][j])) 
            elif delta:
-              print('{:3d}  r: {:6.4f} Di: {:6.4f} Dj: {:6.4f} '
+              print('{:3d}  r: {:6.4f} Dip: {:6.4f} Djp: {:6.4f} Di: {:6.4f} Dj: {:6.4f} '
                     'bo0: {:6.4f} bo1: {:6.4f} '
                     'e: {:6.6f}'.format(i_,
-                    r[-1],Di[-1],Dj[-1],bo0[-1],bo1[-1],ir.ebond[i][j])) 
+                    r[-1],Dip[-1],Djp[-1],Di[-1],Dj[-1],
+                    bo0[-1],bo1[-1],ir.ebond[i][j])) 
            else:  
               print('{:3d}  r: {:6.4f} bosi: {:6.4f} bopi: {:6.4f} bopp: {:6.4f} '
                    'bo0: {:6.4f} bo1: {:6.4f} '
