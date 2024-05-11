@@ -331,7 +331,11 @@ def molecules(natom,specs,cell=None,table=None,
 
 
 class molecule(object):
-  '''  molecule oprations  '''
+  '''  molecule oprations  
+       attribute:
+         mol_index: atom index in orignal system 
+         atom_name: chemical symbols
+  '''
   def __init__(self,mol_index,atom_name,mol_x,
                cell=[[10.0,0.0,0.0],[0.0,10.0,0.0],[0.0,0.0,10.0]],
                sizeiscell=False,
