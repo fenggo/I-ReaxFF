@@ -131,7 +131,7 @@ class ReaxFF(object):
                VdwFunction=0,
                bo_layer=[8,4],
                spec=[],
-               pseudo_data=None,
+               data_invariant=[],
                #pkl=False,
                popSize=500,
                fromPop=False,
@@ -206,7 +206,7 @@ class ReaxFF(object):
       #self.hbtol        = hbtol    # hydrogen-bond bond-order tolerence
       self.fixrcbo       = fixrcbo
       self.m_,self.m     = None,None
-      self.pseudo_data   = pseudo_data
+      self.data_invariant   = data_invariant
 
       self.rcut,self.rcuta,self.re = self.read_lib()
       self.set_rcut(self.rcut,self.rcuta,self.re)

@@ -108,7 +108,8 @@ def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
 
 
 class MPNN(ReaxFF):
-  def __init__(self,libfile='ffield',dataset={},
+  def __init__(self,libfile='ffield',
+               dataset={},data_invariant=[],
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale',    # 'valboc',
                      'ovun1','ovun2','ovun3','ovun4',
@@ -221,7 +222,7 @@ class MPNN(ReaxFF):
          self.mpopt = mpopt
       self.bdopt    = bdopt
       self.mfopt    = mfopt               # specify the element of message function to be optimized
-      ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
+      ReaxFF.__init__(self,libfile=libfile,dataset=dataset,data_invariant=data_invariant,
                       dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,eaopt=eaopt,
                       VariablesToOpt=VariablesToOpt,optmol=optmol,lambda_me=lambda_me,
                       batch_size=batch_size,sample=sample,
@@ -286,9 +287,9 @@ class MPNN(ReaxFF):
           mols = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mols])
 
-      if self.pseudo_data:
-         self.loss_pseudo   = self.pseudo()
-         self.Loss         += self.loss_pseudo
+      if self.data_invariant:
+         self.loss_invariant   = self.invariant()
+         self.Loss         += self.loss_invariant
 
       self.loss_penalty  = self.supervise()
       self.Loss         += self.loss_penalty
@@ -782,24 +783,24 @@ class MPNN(ReaxFF):
                         self.bo_universal_nn,self.be_universal_nn,
                         self.mf_universal_nn,self.vdw_universal_nn)
   
-  def pseudo(self):
-      ''' training the neural network with pseudo data '''
+  def invariant(self):
+      ''' translation-invariant machine learning '''
       loss = tf.constant(0.0)
       for bd in self.bonds: 
-          Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],h,self.Dbj[bd]],
+          Fi   = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
                           self.m,batch=self.batch,layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],h,self.Dbi[bd]],
+          Fj   = fmessage(flabel,b[1],self.nbd_inv[bd],self.D_inv[bd],
                               self.m,batch=self.batch,layer=self.mf_layer[1])
           F    = Fi*Fj
           Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
-          bosi = self.bopsi_pse[bd]*Fsi
-          bopi = self.boppi_pse[bd]*Fpi
-          bopp = self.boppp_pse[bd]*Fpp
+          bosi = self.bopsi_inv[bd]*Fsi
+          bopi = self.boppi_inv[bd]*Fpi
+          bopp = self.boppp_inv[bd]*Fpp
 
-          loss += tf.nn.l2_loss(bosi-self.bosi_pse[bd])
-          loss += tf.nn.l2_loss(bopi-self.bopi_pse[bd])
-          loss += tf.nn.l2_loss(bopp-self.bopp_pse[bd])
+          loss += tf.nn.l2_loss(bosi-self.bosi_inv[bd])
+          loss += tf.nn.l2_loss(bopi-self.bopi_inv[bd])
+          loss += tf.nn.l2_loss(bopp-self.bopp_inv[bd])
       return loss
 
   def supervise(self):
