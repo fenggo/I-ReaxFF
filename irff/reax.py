@@ -103,7 +103,8 @@ def DIV_IF(y,x):
 
 
 class ReaxFF(object):
-  def __init__(self,libfile='ffield',dataset={},
+  def __init__(self,libfile='ffield',
+               dataset={},data_invariant=[],
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
                opt=None,optword='nocoul',eaopt=[],
@@ -131,7 +132,6 @@ class ReaxFF(object):
                VdwFunction=0,
                bo_layer=[8,4],
                spec=[],
-               data_invariant=[],
                #pkl=False,
                popSize=500,
                fromPop=False,
@@ -418,8 +418,11 @@ class ReaxFF(object):
       self.dft_energy,self.E,self.zpe,self.eatom = {},{},{},{}
       self.loss,self.accur,self.MolEnergy = {},{},{}
 
-      self.bopsi_pse,self.boppi_pse,self.boppp_pse = {},{},{}
-      self.bosi_pse,self.bopi_pse,self.bopp_pse    = {},{},{}
+      self.D_inv_mol,self.Dt_inv_mol        = {},{}
+      self.D_inv,self.Dt_inv                = {},{}
+      self.B_inv,self.B_inv_mol,self.Bp_inv = {},{}
+      # self.bopsi_inv,self.boppi_inv,self.boppp_inv = {},{},{}
+      # self.bosi_inv,self.bopi_inv,self.bopp_inv    = {},{},{}
 
       for mol in self.mols:
           mol_ = mol.split('-')[0]
@@ -464,7 +467,7 @@ class ReaxFF(object):
                                             name='frhb_%s' %hb)
              self.hbthe[hb]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[hb],self.batch],
                                             name='hbthe_%s' %hb)
-      if self.pseudo_data:
+      if self.data_invariant:
          for bd in self.pseudo_data:
              self.bosi_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
                                                            name='pseudo_bosi_%s' %bd)
