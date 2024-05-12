@@ -6,6 +6,7 @@ import argparse
 from ase.io import read
 from ase.io.trajectory import Trajectory
 from irff.irff_np import IRFF_NP
+from irff.molecule import Molecules,moltoatoms
 
 # from sklearn.datasets import make_friedman2
 # from sklearn.gaussian_process import GaussianProcessRegressor
