@@ -123,7 +123,6 @@ class ReaxFF(object):
                clip_op=True,
                clip={'others':(0.4,1.0)},   # parameter range
                InitCheck=True,
-               resetDeadNeuron=False,
                optmol=True,
                lambda_me=0.1,
                nn=False,
@@ -173,7 +172,6 @@ class ReaxFF(object):
       self.clip_op       = clip_op
       self.clip          = {} if clip is None else clip
       self.InitCheck     = InitCheck
-      self.resetDeadNeuron = resetDeadNeuron
       self.hbshort       = hbshort
       self.hblong        = hblong
       self.nn            = nn
@@ -206,7 +204,7 @@ class ReaxFF(object):
       #self.hbtol        = hbtol    # hydrogen-bond bond-order tolerence
       self.fixrcbo       = fixrcbo
       self.m_,self.m     = None,None
-      self.data_invariant   = data_invariant
+      self.data_invariant= data_invariant
 
       self.rcut,self.rcuta,self.re = self.read_lib()
       self.set_rcut(self.rcut,self.rcuta,self.re)
@@ -215,7 +213,7 @@ class ReaxFF(object):
 
       self.ic = Intelligent_Check(re=self.re,clip=clip,nanv=nanv,spec=self.spec,bonds=self.bonds,
                                   offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
-      self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
+      self.p_,self.m_ = self.ic.check(self.p_,self.m_)
       
       if not self.libfile.endswith('.json'):
          self.p_['acut']    = atol        
@@ -468,20 +466,19 @@ class ReaxFF(object):
              self.hbthe[hb]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[hb],self.batch],
                                             name='hbthe_%s' %hb)
       if self.data_invariant:
-         for bd in self.pseudo_data:
-             self.bosi_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_bosi_%s' %bd)
-             self.bopi_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_bopi_%s' %bd)
-             self.bopp_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_bopp_%s' %bd)
-
-             self.bopsi_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_bopsi_%s' %bd)
-             self.boppi_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_boppi_%s' %bd)
-             self.boppp_pse[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_pse[bd]],
-                                                           name='pseudo_boppp_%s' %bd)
+         for bd in self.D_inv:
+             self.D_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='D_inv_%s' %bd)
+             self.Dt_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='Dt_inv_%s' %bd)
+             self.D_inv_mol[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='D_inv_mol_%s' %bd)
+             self.Dt_inv_mol[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='Dt_inv_mol_%s' %bd)
+             self.B_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='B_inv_%s' %bd)  
+             self.Bp_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='Bp_inv_%s' %bd)                                         
 
   def build_graph(self):
       print('-  building graph ...')
@@ -561,6 +558,10 @@ class ReaxFF(object):
       if self.optmol:
          self.Loss  += self.ME*self.lambda_me
       self.accuracy  = self.accuracy/self.nmol
+  
+  def get_invariant_loss(self):
+      ''' translation-invariant machine learning '''
+      return 0.0
 
   def get_delta(self):
       ''' compute the uncorrected Delta: the sum of BO '''

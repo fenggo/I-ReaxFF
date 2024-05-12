@@ -159,6 +159,7 @@ class MPNN(ReaxFF):
                lambda_bd=100000.0,
                lambda_pi=1.0,
                lambda_reg=0.01,
+               lambda_inv=0.01,
                #lambda_ang=1.0,
                fluctuation=0.0,
                regularize_bo=True,
@@ -206,7 +207,7 @@ class MPNN(ReaxFF):
          self.regularize    = False
       self.lambda_reg       = lambda_reg
       self.lambda_pi        = lambda_pi
-      #self.lambda_ang      = lambda_ang
+      self.lambda_inv       = lambda_inv
       self.fluctuation      = fluctuation
       self.mf_layer         = mf_layer
       self.be_layer         = be_layer
@@ -288,7 +289,7 @@ class MPNN(ReaxFF):
           self.ME += tf.square(self.MolEnergy[mols])
 
       if self.data_invariant:
-         self.loss_invariant   = self.invariant()
+         self.loss_invariant   = self.get_invariant_loss()
          self.Loss         += self.loss_invariant
 
       self.loss_penalty  = self.supervise()
@@ -783,25 +784,29 @@ class MPNN(ReaxFF):
                         self.bo_universal_nn,self.be_universal_nn,
                         self.mf_universal_nn,self.vdw_universal_nn)
   
-  def invariant(self):
+  def get_invariant_loss(self):
       ''' translation-invariant machine learning '''
       loss = tf.constant(0.0)
       for bd in self.bonds: 
-          Fi   = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
+          fi    = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
                           self.m,batch=self.batch,layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],self.nbd_inv[bd],self.D_inv[bd],
+          fj    = fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv[bd],
                               self.m,batch=self.batch,layer=self.mf_layer[1])
-          F    = Fi*Fj
-          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
+          f     = fi*fj
+          # Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
-          bosi = self.bopsi_inv[bd]*Fsi
-          bopi = self.boppi_inv[bd]*Fpi
-          bopp = self.boppp_inv[bd]*Fpp
-
-          loss += tf.nn.l2_loss(bosi-self.bosi_inv[bd])
-          loss += tf.nn.l2_loss(bopi-self.bopi_inv[bd])
-          loss += tf.nn.l2_loss(bopp-self.bopp_inv[bd])
-      return loss
+          # bosi = self.bopsi_inv[bd]*Fsi
+          # bopi = self.boppi_inv[bd]*Fpi
+          # bopp = self.boppp_inv[bd]*Fpp
+          fi_mol= fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv_mol[bd],
+                           self.m,batch=self.batch,layer=self.mf_layer[1])
+          fj_mol= fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv_mol[bd],
+                           self.m,batch=self.batch,layer=self.mf_layer[1])
+          f_mol     = fi_mol*fj_mol
+          # b     = self.Bp_inv[bd]*f
+          # b_mol = self.Bp_inv[bd]*F
+          loss += tf.nn.l2_loss(f_mol - f)
+      return loss*self.lambda_inv
 
   def supervise(self):
       ''' adding some penalty term to accelerate the training '''
