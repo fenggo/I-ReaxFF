@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from os import system,makedirs # , getcwd, chdir,listdir,environ
 from os.path import isfile,exists,isdir
 from .md.gulp import write_gulp_in,get_reax_energy
+from .ml.data import get_md_data_inv
 from .reax_data import get_data 
 from .link import links
 from .reaxfflib import read_ffield,write_ffield,write_lib
@@ -303,6 +304,12 @@ class ReaxFF(object):
           else:
              print('-  data status of %s:' %mol,data_.status)
       self.nmol = len(molecules)
+
+      if self.data_invariant:
+
+         self.D_inv_,self.Dt_inv_,self.D_inv_mol_,self.Dt_inv_mol_ = get_md_data_inv(
+                           trajs=self.data_invariant, 
+                           ffield='ffield.json'))
       
       print('-  generating links ...')
       self.get_links(molecules)
