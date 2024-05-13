@@ -55,7 +55,7 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],ffield='ffield.json'):
                             R[bd].append(ir.r[ii][jj])
                             Y[bd].append(ir.esi[ii][jj])
                         elif bdr in bonds:
-                            D[bdr].append([ir.Deltap[jj]-ir.bop[ii][jj], ir.bop[ii][jj], ir.Deltap[ii]-ir.bop[ii][jj]])
+                            D[bdr].append([ir.Deltap[jj]-ir.bop[ii][jj], ir.bop[ii][jj],ir.Deltap[ii]-ir.bop[ii][jj]])
                             Bp[bdr].append([ir.bop_si[ii][jj], ir.bop_pi[ii][jj], ir.bop_pp[ii][jj]])
                             B[bdr].append([ir.bosi[ii][jj], ir.bopi[ii][jj], ir.bopp[ii][jj]])
                             R[bdr].append(ir.r[ii][jj])
@@ -201,9 +201,9 @@ def get_md_data_invariance(images=None, traj='md.traj', bonds=['C-C'],
                             R[bd].append(ir[n].r[ii][jj])
                             Y[bd].append(ir[n].esi[ii][jj])
                         elif bdr in bonds:
-                            D[bdr].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
+                            D[bdr].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
                                           ir[n].bop[ii][jj],
-                                          ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
+                                          ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj]])
                             Bp[bdr].append([ir.bop_si[ii][jj], ir.bop_pi[ii][jj], ir.bop_pp[ii][jj]])
                             B[bdr].append([ir.bosi[ii][jj], ir.bopi[ii][jj], ir.bopp[ii][jj]])
                             R[bdr].append(ir.r[ii][jj])
@@ -228,9 +228,7 @@ def get_md_data_inv(trajs=[], bonds=[],
 
     for traj in trajs
         images = Trajectory(traj)
-  
         A = images[0]
-
         mols  = Molecules(A,rcut=rcut,check=True)
         nmol  = len(mols)
         with open('penalty.log','a') as f:
@@ -239,18 +237,15 @@ def get_md_data_inv(trajs=[], bonds=[],
         ir_total = IRFF_NP(atoms=A, libfile='ffield.json',nn=True)
         ir_total.calculate(A)
         # print('\nTotal energy: \n',ir_total.E)
-
         ir    = [None for i in range(nmol)] 
         atoms = [None for i in range(nmol)] 
 
         for i,m in enumerate(mols):
             atoms[i] = moltoatoms([m])
             ir[i] = IRFF_NP(atoms=atoms[i],libfile='ffield.json',nn=True)
-        ir[i].calculate(atoms[i])
-        # print('\nEnergy of molecule {:4d}: \n'.format(i),ir[i].E)
-        # print(m.mol_index)
-        # view(atoms)
-
+            ir[i].calculate(atoms[i])
+            # print(m.mol_index)
+            
         for i, A in enumerate(images):
             ir_total.calculate_Delta(A)
             positions = A.positions
@@ -260,29 +255,33 @@ def get_md_data_inv(trajs=[], bonds=[],
                 for ii in range(ir[n].natom-1):
                     for jj in range(ii+1, ir[n].natom):
                         if ir[n].bop[ii][jj] > 0.0001:
-                           bd = ir[n].atom_name[ii] + '-' + ir[n].atom_name[jj]
-                           bdr = ir[n].atom_name[jj] + '-' + ir[n].atom_name[ii]
-                           if bd in bonds:
-                              # D[bd].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
-                              #               ir[n].bop[ii][jj], ir[n].Deltap[jj]-ir[n].bop[ii][jj]])
-                              D[bd].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
-                                          ir[n].bop[ii][jj],
-                                          ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
-                              Bp[bd].append([ir[n].bop_si[ii][jj],ir[n].bop_pi[ii][jj],ir[n].bop_pp[ii][jj]])
-                              B[bd].append([ir[n].bosi[ii][jj],ir[n].bopi[ii][jj],ir[n].bopp[ii][jj]])
-                              R[bd].append(ir[n].r[ii][jj])
-                              Y[bd].append(ir[n].esi[ii][jj])
-                           elif bdr in bonds:
-                              D[bdr].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
-                                          ir[n].bop[ii][jj],
-                                          ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
-                              Bp[bdr].append([ir.bop_si[ii][jj], ir.bop_pi[ii][jj], ir.bop_pp[ii][jj]])
-                              B[bdr].append([ir.bosi[ii][jj], ir.bopi[ii][jj], ir.bopp[ii][jj]])
-                              R[bdr].append(ir.r[ii][jj])
-                              Y[bdr].append(ir.esi[ii][jj])
+                            bd = ir[n].atom_name[ii] + '-' + ir[n].atom_name[jj]
+                            bdr = ir[n].atom_name[jj] + '-' + ir[n].atom_name[ii]
+                            if bd in bonds:
+                                D_mol[bd].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
+                                            ir[n].bop[ii][jj], ir[n].Deltap[jj]-ir[n].bop[ii][jj]])
+                                D[bd].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
+                                        ir[n].bop[ii][jj],
+                                        ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
+                                Dt_mol[bd].append([ir[n].Deltap[jj]-ir[n].bop[ii][jj], 
+                                        ir[n].bop[ii][jj], ir[n].Deltap[ii]-ir[n].bop[ii][jj]])
+                                Dt[bd].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
+                                        ir[n].bop[ii][jj],
+                                        ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj]])
+                            elif bdr in bonds:
+                                D_mol[bdr].append([ir[n].Deltap[jj]-ir[n].bop[ii][jj], 
+                                            ir[n].bop[ii][jj], ir[n].Deltap[ii]-ir[n].bop[ii][jj]])
+                                D[bdr].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
+                                        ir[n].bop[ii][jj],
+                                        ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj]])
+                                Dt_mol[bdr].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
+                                            ir[n].bop[ii][jj], ir[n].Deltap[jj]-ir[n].bop[ii][jj]])
+                                Dt[bdr].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
+                                        ir[n].bop[ii][jj],
+                                        ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
         del ir
         del ir_total
-    return D, Bp, B, R, Y
+    return D, Dt, D_mol, Dt_mol, nbd
 
 def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,ffield='ffield.json'):
     if images is None:
