@@ -418,7 +418,7 @@ class ReaxFF(object):
 
       self.D_inv_mol,self.Dt_inv_mol        = {},{}
       self.D_inv,self.Dt_inv                = {},{}
-      self.B_inv,self.B_inv_mol,self.Bp_inv = {},{}
+      # self.B_inv,self.B_inv_mol,self.Bp_inv = {},{}
       # self.bopsi_inv,self.boppi_inv,self.boppp_inv = {},{},{}
       # self.bosi_inv,self.bopi_inv,self.bopp_inv    = {},{},{}
 
@@ -466,7 +466,7 @@ class ReaxFF(object):
              self.hbthe[hb]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[hb],self.batch],
                                             name='hbthe_%s' %hb)
       if self.data_invariant:
-         for bd in self.D_inv:
+         if self.nbd_inv[bd]>0:
              self.D_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
                                                        name='D_inv_%s' %bd)
              self.Dt_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
@@ -475,10 +475,10 @@ class ReaxFF(object):
                                                        name='D_inv_mol_%s' %bd)
              self.Dt_inv_mol[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
                                                        name='Dt_inv_mol_%s' %bd)
-             self.B_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='B_inv_%s' %bd)  
-             self.Bp_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='Bp_inv_%s' %bd)                                         
+             # self.B_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+             #                                           name='B_inv_%s' %bd)  
+             # self.Bp_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+             #                                           name='Bp_inv_%s' %bd)                           
 
   def build_graph(self):
       print('-  building graph ...')
@@ -1667,6 +1667,11 @@ class ReaxFF(object):
                 feed_dict[self.qij[bd]] = self.lk.qij[bd]
                 # print(self.lk.vr[bd])
                 # feed_dict[self.pc[bd]]  = self.lk.pc[bd]
+          if self.nbd_inv[bd]>0:
+             feed_dict[self.D_inv[bd]]      = self.D_inv_[bd]
+             feed_dict[self.Dt_inv[bd]]     = self.Dt_inv_[bd]
+             feed_dict[self.D_inv_mol[bd]]  = self.D_inv_mol_[bd]
+             feed_dict[self.Dt_inv_mol[bd]] = self.Dt_inv_mol_[bd]
 
       for ang in self.angs:
           if self.nang[ang]>0:

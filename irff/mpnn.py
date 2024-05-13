@@ -289,8 +289,8 @@ class MPNN(ReaxFF):
           self.ME += tf.square(self.MolEnergy[mols])
 
       if self.data_invariant:
-         self.loss_invariant   = self.get_invariant_loss()
-         self.Loss         += self.loss_invariant
+         self.loss_invariant = self.get_invariant_loss()
+         self.Loss      += self.loss_invariant
 
       self.loss_penalty  = self.supervise()
       self.Loss         += self.loss_penalty
@@ -788,6 +788,8 @@ class MPNN(ReaxFF):
       ''' translation-invariant machine learning '''
       loss = tf.constant(0.0)
       for bd in self.bonds: 
+          if self.nbd_inv[bd]<=0:
+             continue
           fi    = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
                           self.m,batch=self.batch,layer=self.mf_layer[1])
           fj    = fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv[bd],
