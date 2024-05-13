@@ -105,7 +105,7 @@ def DIV_IF(y,x):
 
 class ReaxFF(object):
   def __init__(self,libfile='ffield',
-               dataset={},data_invariant=[],
+               dataset={},data_invariant=[],rcut_inv={'others':1.6},
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
                opt=None,optword='nocoul',eaopt=[],
@@ -206,6 +206,7 @@ class ReaxFF(object):
       self.fixrcbo       = fixrcbo
       self.m_,self.m     = None,None
       self.data_invariant= data_invariant
+      self.rcut_inv      = rcut_inv
 
       self.rcut,self.rcuta,self.re = self.read_lib()
       self.set_rcut(self.rcut,self.rcuta,self.re)
@@ -307,7 +308,9 @@ class ReaxFF(object):
 
       if self.data_invariant:
 
-         self.D_inv_,self.Dt_inv_,self.D_inv_mol_,self.Dt_inv_mol_ = get_md_data_inv(
+         self.D_inv_,self.Dt_inv_,self.D_inv_mol_,self.Dt_inv_mol_,self.nbd_inv = get_md_data_inv(
+                           bonds=self.bonds,
+                           rcut=self.rcut_inv,
                            trajs=self.data_invariant, 
                            ffield='ffield.json'))
       

@@ -109,7 +109,7 @@ def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
 
 class MPNN(ReaxFF):
   def __init__(self,libfile='ffield',
-               dataset={},data_invariant=[],
+               dataset={},data_invariant=[],rcut_inv={'others':1.6}
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale',    # 'valboc',
                      'ovun1','ovun2','ovun3','ovun4',
@@ -223,7 +223,8 @@ class MPNN(ReaxFF):
          self.mpopt = mpopt
       self.bdopt    = bdopt
       self.mfopt    = mfopt               # specify the element of message function to be optimized
-      ReaxFF.__init__(self,libfile=libfile,dataset=dataset,data_invariant=data_invariant,
+      ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
+                      data_invariant=data_invariant,rcut_inv=rcut_inv,
                       dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,eaopt=eaopt,
                       VariablesToOpt=VariablesToOpt,optmol=optmol,lambda_me=lambda_me,
                       batch_size=batch_size,sample=sample,
