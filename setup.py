@@ -8,11 +8,15 @@ from Cython.Build import cythonize
 install with commond 
   "python setup.py build_ext --inplace"
   "python setup install --user"
+or with command
+
+*  version 1.6 
+  Add a penalty term for translation-invariant.
 '''
 
 
-__version__ = '1.5.12'
-install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko']
+__version__ = '1.6.0'
+install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko','argh','scikit-learn']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
 
