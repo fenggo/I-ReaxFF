@@ -787,7 +787,8 @@ class MPNN(ReaxFF):
   
   def get_invariant_loss(self):
       ''' translation-invariant machine learning '''
-      loss = tf.constant(0.0)
+      loss   = tf.constant(0.0)
+      flabel = 'fm'
       for bd in self.bonds: 
           if self.nbd_inv[bd]<=0:
              continue
