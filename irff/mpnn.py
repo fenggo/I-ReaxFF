@@ -805,7 +805,7 @@ class MPNN(ReaxFF):
           if self.nbd_inv[bd]<=0:
              continue
           b     = bd.split('-')
-          fi    = fmessage_inv(b[0],self.D_inv[bd],elf.m,layer=self.mf_layer[1])
+          fi    = fmessage_inv(b[0],self.D_inv[bd],self.m,layer=self.mf_layer[1])
           fj    = fmessage_inv(b[1],self.Dt_inv[bd],self.m,layer=self.mf_layer[1])
           f     = fi*fj
 
