@@ -792,6 +792,7 @@ class MPNN(ReaxFF):
       for bd in self.bonds: 
           if self.nbd_inv[bd]<=0:
              continue
+          b     = bd.split('-')
           fi    = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
                           self.m,batch=self.batch,layer=self.mf_layer[1])
           fj    = fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv[bd],
