@@ -226,7 +226,7 @@ def get_md_data_inv(trajs=[], bonds=[],
         D_mol[bd]  = []
         Dt_mol[bd] = []
 
-    for traj in trajs
+    for traj in trajs:
         images = Trajectory(traj)
         A = images[0]
         mols  = Molecules(A,rcut=rcut,check=True)
