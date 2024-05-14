@@ -145,7 +145,6 @@ class MPNN(ReaxFF):
                clip_op=True,
                clip={},
                InitCheck=True,
-               resetDeadNeuron=False,
                messages=1,
                be_universal_nn=None,be_layer=[9,0],
                bo_universal_nn=None,bo_layer=None,   # [6,0]
@@ -231,7 +230,7 @@ class MPNN(ReaxFF):
                       hbshort=hbshort,hblong=hblong,vdwcut=vdwcut,
                       ro_scale=ro_scale,
                       clip_op=clip_op,clip=clip,
-                      InitCheck=InitCheck,resetDeadNeuron=resetDeadNeuron,
+                      InitCheck=InitCheck,
                       nn=nn,vdwnn=vdwnn,VdwFunction=VdwFunction,
                       bo_layer=bo_layer,spec=spec,weight=weight,
                       lambda_bd=lambda_bd,
