@@ -307,12 +307,13 @@ class ReaxFF(object):
       self.nmol = len(molecules)
 
       if self.data_invariant:
-
          self.D_inv_,self.Dt_inv_,self.D_inv_mol_,self.Dt_inv_mol_,self.nbd_inv = get_md_data_inv(
                            bonds=self.bonds,
                            rcut=self.rcut_inv,
                            trajs=self.data_invariant, 
                            ffield='ffield.json')
+      else:
+         self.nbd_inv = {bd:0 for bd in self.bonds}
       
       print('-  generating links ...')
       self.get_links(molecules)
@@ -448,6 +449,16 @@ class ReaxFF(object):
              if self.optword.find('nocoul')<0:
                 self.qij[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[bd],self.batch],
                                               name='qij_%s' %bd)
+         if self.nbd_inv[bd]>0:
+             self.D_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='D_inv_%s' %bd)
+             self.Dt_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='Dt_inv_%s' %bd)
+             self.D_inv_mol[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='D_inv_mol_%s' %bd)
+             self.Dt_inv_mol[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
+                                                       name='Dt_inv_mol_%s' %bd)         
+
       self.theta = {}
       for ang in self.angs:
           if self.nang[ang]>0:
@@ -475,16 +486,7 @@ class ReaxFF(object):
                                             name='frhb_%s' %hb)
              self.hbthe[hb]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[hb],self.batch],
                                             name='hbthe_%s' %hb)
-      if self.data_invariant:
-         if self.nbd_inv[bd]>0:
-             self.D_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='D_inv_%s' %bd)
-             self.Dt_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='Dt_inv_%s' %bd)
-             self.D_inv_mol[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='D_inv_mol_%s' %bd)
-             self.Dt_inv_mol[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
-                                                       name='Dt_inv_mol_%s' %bd)
+
              # self.B_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
              #                                           name='B_inv_%s' %bd)  
              # self.Bp_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
