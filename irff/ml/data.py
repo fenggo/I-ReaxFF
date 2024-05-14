@@ -218,6 +218,7 @@ def get_md_data_inv(trajs=[], bonds=[],
     ''' Prepare data for penalty term for translation invariant of
         molecules.
     '''
+    nbd           = {}
     D, Dt         = {}, {}
     D_mol, Dt_mol = {}, {}
     for bd in bonds:
@@ -281,6 +282,8 @@ def get_md_data_inv(trajs=[], bonds=[],
                                         ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
         del ir
         del ir_total
+    for bd in bonds:
+        nbd[bd] = len(D[bd])
     return D, Dt, D_mol, Dt_mol, nbd
 
 def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,ffield='ffield.json'):
