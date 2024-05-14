@@ -288,11 +288,12 @@ class MPNN(ReaxFF):
           mols = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mols])
 
+      self.loss_penalty  = self.supervise()
+
       if self.data_invariant:
          self.loss_invariant = self.get_invariant_loss()
-         self.Loss      += self.loss_invariant
+         self.loss_penalty  += self.loss_invariant
 
-      self.loss_penalty  = self.supervise()
       self.Loss         += self.loss_penalty
 
       if self.optmol:
