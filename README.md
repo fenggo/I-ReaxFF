@@ -14,6 +14,10 @@
 3. matplotlib, pip install matplotlib --user
 
 Install this package after download this package and run commond in shell ``` python setup install --user ```. 
+or using new command 
+```shell
+pip install .
+```
 Alternatively, this package can be install without download the package through pip
 ``` pip install --user irff ```.
 
