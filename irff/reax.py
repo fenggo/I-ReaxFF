@@ -449,7 +449,7 @@ class ReaxFF(object):
              if self.optword.find('nocoul')<0:
                 self.qij[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[bd],self.batch],
                                               name='qij_%s' %bd)
-         if self.nbd_inv[bd]>0:
+          if self.nbd_inv[bd]>0:
              self.D_inv[bd]      = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
                                                        name='D_inv_%s' %bd)
              self.Dt_inv[bd]     = tf.compat.v1.placeholder(tf.float32,shape=[self.nbd_inv[bd],3],
