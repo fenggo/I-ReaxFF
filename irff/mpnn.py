@@ -109,7 +109,7 @@ def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
 
 class MPNN(ReaxFF):
   def __init__(self,libfile='ffield',
-               dataset={},data_invariant=[],rcut_inv={'others':1.6}
+               dataset={},data_invariant=[],rcut_inv={'others':1.6},
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale',    # 'valboc',
                      'ovun1','ovun2','ovun3','ovun4',

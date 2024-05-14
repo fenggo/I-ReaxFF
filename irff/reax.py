@@ -312,7 +312,7 @@ class ReaxFF(object):
                            bonds=self.bonds,
                            rcut=self.rcut_inv,
                            trajs=self.data_invariant, 
-                           ffield='ffield.json'))
+                           ffield='ffield.json')
       
       print('-  generating links ...')
       self.get_links(molecules)
