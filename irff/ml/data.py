@@ -204,10 +204,10 @@ def get_md_data_invariance(images=None, traj='md.traj', bonds=['C-C'],
                             D[bdr].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
                                           ir[n].bop[ii][jj],
                                           ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj]])
-                            Bp[bdr].append([ir.bop_si[ii][jj], ir.bop_pi[ii][jj], ir.bop_pp[ii][jj]])
-                            B[bdr].append([ir.bosi[ii][jj], ir.bopi[ii][jj], ir.bopp[ii][jj]])
-                            R[bdr].append(ir.r[ii][jj])
-                            Y[bdr].append(ir.esi[ii][jj])
+                            Bp[bdr].append([ir[n].bop_si[ii][jj], ir[n].bop_pi[ii][jj], ir[n].bop_pp[ii][jj]])
+                            B[bdr].append([ir[n].bosi[ii][jj], ir[n].bopi[ii][jj], ir[n].bopp[ii][jj]])
+                            R[bdr].append(ir[n].r[ii][jj])
+                            Y[bdr].append(ir[n].esi[ii][jj])
     del ir
     del ir_total
     return D, Bp, B, R, Y
