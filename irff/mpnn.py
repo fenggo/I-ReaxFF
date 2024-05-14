@@ -44,7 +44,6 @@ def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
                 Wh:  (8,8)
                 Wo:  (8,3)  output = 3
     '''
-    nd = len(x)
     x_ = []
     for d in x:
         x_.append(tf.reshape(d,[nbd*batch]))
@@ -60,6 +59,22 @@ def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
     out= tf.reshape(o_,[nbd,batch,3])
     return out
 
+def fmessage_inv(bd,nbd,X,m,layer=5):
+    ''' Dimention: (nbatch,3) input = 3
+                Wi:  (3,8) 
+                Wh:  (8,8)
+                Wo:  (8,3)  output = 3
+    '''
+    o   =  []                         
+    o.append(tf.sigmoid(tf.matmul(X,m['fmwi_'+bd],name='mg_input')+m['fmbi_'+bd]))   # input layer
+
+    for l in range(layer):                                                            # hidden layer      
+        o.append(tf.sigmoid(tf.matmul(o[-1],m['fmw_'+bd][l],name='mg_hide')+m['fmb_'+bd][l]))
+
+    o_ = tf.sigmoid(tf.matmul(o[-1],m['fmwo_'+bd],name='mg_output') + m['fmbo_'+bd]) # output layer
+    out= tf.reshape(o_,[nbd,batch,3])
+    return out
+
 def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
     ''' 
          input  X: (nbd*batch,3) 
@@ -68,7 +83,6 @@ def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
                Wo:  (9,3)  bo: (3,)
            output: (nbd*batch,3)
     '''
-    nd = len(x)
     x_ = []
     for d in x:
         x_.append(tf.reshape(d,[nbd*batch]))
@@ -788,25 +802,24 @@ class MPNN(ReaxFF):
   def get_invariant_loss(self):
       ''' translation-invariant machine learning '''
       loss   = tf.constant(0.0)
-      flabel = 'fm'
       for bd in self.bonds: 
           if self.nbd_inv[bd]<=0:
              continue
           b     = bd.split('-')
-          fi    = fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv[bd],
-                          self.m,batch=self.batch,layer=self.mf_layer[1])
-          fj    = fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv[bd],
-                              self.m,batch=self.batch,layer=self.mf_layer[1])
+          fi    = fmessage_inv(b[0],self.nbd_inv[bd],self.D_inv[bd],
+                          self.m,layer=self.mf_layer[1])
+          fj    = fmessage_inv(b[1],self.nbd_inv[bd],self.Dt_inv[bd],
+                              self.m,layer=self.mf_layer[1])
           f     = fi*fj
           # Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
           # bosi = self.bopsi_inv[bd]*Fsi
           # bopi = self.boppi_inv[bd]*Fpi
           # bopp = self.boppp_inv[bd]*Fpp
-          fi_mol= fmessage(flabel,b[0],self.nbd_inv[bd],self.D_inv_mol[bd],
-                           self.m,batch=self.batch,layer=self.mf_layer[1])
-          fj_mol= fmessage(flabel,b[1],self.nbd_inv[bd],self.Dt_inv_mol[bd],
-                           self.m,batch=self.batch,layer=self.mf_layer[1])
+          fi_mol= fmessage_inv(b[0],self.nbd_inv[bd],self.D_inv_mol[bd],
+                           self.m,layer=self.mf_layer[1])
+          fj_mol= fmessage_inv(b[1],self.nbd_inv[bd],self.Dt_inv_mol[bd],
+                           self.m,layer=self.mf_layer[1])
           f_mol     = fi_mol*fj_mol
           # b     = self.Bp_inv[bd]*f
           # b_mol = self.Bp_inv[bd]*F
