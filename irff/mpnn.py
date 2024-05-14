@@ -59,7 +59,7 @@ def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
     out= tf.reshape(o_,[nbd,batch,3])
     return out
 
-def fmessage_inv(bd,nbd,X,m,layer=5):
+def fmessage_inv(bd,X,m,layer=5):
     ''' Dimention: (nbatch,3) input = 3
                 Wi:  (3,8) 
                 Wh:  (8,8)
@@ -72,8 +72,7 @@ def fmessage_inv(bd,nbd,X,m,layer=5):
         o.append(tf.sigmoid(tf.matmul(o[-1],m['fmw_'+bd][l],name='mg_hide')+m['fmb_'+bd][l]))
 
     o_ = tf.sigmoid(tf.matmul(o[-1],m['fmwo_'+bd],name='mg_output') + m['fmbo_'+bd]) # output layer
-    out= tf.reshape(o_,[nbd,batch,3])
-    return out
+    return o_
 
 def dfmessage(pre,bd,nbd,x,m,batch=50,layer=5):
     ''' 
@@ -806,23 +805,14 @@ class MPNN(ReaxFF):
           if self.nbd_inv[bd]<=0:
              continue
           b     = bd.split('-')
-          fi    = fmessage_inv(b[0],self.nbd_inv[bd],self.D_inv[bd],
-                          self.m,layer=self.mf_layer[1])
-          fj    = fmessage_inv(b[1],self.nbd_inv[bd],self.Dt_inv[bd],
-                              self.m,layer=self.mf_layer[1])
+          fi    = fmessage_inv(b[0],self.D_inv[bd],elf.m,layer=self.mf_layer[1])
+          fj    = fmessage_inv(b[1],self.Dt_inv[bd],self.m,layer=self.mf_layer[1])
           f     = fi*fj
-          # Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
-          # bosi = self.bopsi_inv[bd]*Fsi
-          # bopi = self.boppi_inv[bd]*Fpi
-          # bopp = self.boppp_inv[bd]*Fpp
-          fi_mol= fmessage_inv(b[0],self.nbd_inv[bd],self.D_inv_mol[bd],
-                           self.m,layer=self.mf_layer[1])
-          fj_mol= fmessage_inv(b[1],self.nbd_inv[bd],self.Dt_inv_mol[bd],
-                           self.m,layer=self.mf_layer[1])
+          fi_mol= fmessage_inv(b[0],self.D_inv_mol[bd],self.m,layer=self.mf_layer[1])
+          fj_mol= fmessage_inv(b[1],self.Dt_inv_mol[bd],self.m,layer=self.mf_layer[1])
           f_mol     = fi_mol*fj_mol
-          # b     = self.Bp_inv[bd]*f
-          # b_mol = self.Bp_inv[bd]*F
+
           loss += tf.nn.l2_loss(f_mol - f)
       return loss*self.lambda_inv
 
