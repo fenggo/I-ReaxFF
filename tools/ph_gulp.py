@@ -9,6 +9,7 @@ from os import system, listdir #,popen
 system('./smd.py wi --g=POSCAR.unitcell')
  
 # 3 、生成位移文件
+system('rm supercell-00*.fdf')
 system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.02')
 
 n     = 0
@@ -17,7 +18,6 @@ for f in files:
     if f.startswith('supercell-') and f.endswith('.fdf'):
        n += 1
 
- 
 for i in range(n):
     system('./phonon_force.py --n={:d}'.format(i+1))
 # system('cp force.0 lammps_forces_gp.0')
@@ -32,4 +32,3 @@ system('phonopy-bandplot --gnuplot band.yaml > band.dat')
 
 system('mv band.dat band-nn-gulp.dat')
 system('./plotband.py')
-
