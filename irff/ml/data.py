@@ -465,7 +465,7 @@ def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,
                         ir.bop[ii][jj], 
                         ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
                         ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
-                        ir.D_si[0][ii]-ir.bop_si[ii][jj] )
+                        ir.D_si[0][ii]-ir.bop_si[ii][jj] ])
            else:
               D.append([ir.Deltap[jj]-ir.bop[ii][jj],ir.bop[ii][jj],ir.Deltap[ii]-ir.bop[ii][jj]])
         Bp.append([ir.bop_si[ii][jj],ir.bop_pi[ii][jj],ir.bop_pp[ii][jj]])
