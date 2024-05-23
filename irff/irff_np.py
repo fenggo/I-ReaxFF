@@ -298,10 +298,10 @@ class IRFF_NP(object):
       self.bop    = self.bop_si+self.bop_pi+self.bop_pp
 
       self.Deltap= np.sum(self.bop,axis=1)  
-      if self.MessageFunction==1:
-         self.D_si = [np.sum(self.bop_si,axis=1)] 
-         self.D_pi = [np.sum(self.bop_pi,axis=1)] 
-         self.D_pp = [np.sum(self.bop_pp,axis=1)] 
+      # if self.MessageFunction==1:
+      self.D_si = [np.sum(self.bop_si,axis=1)] 
+      self.D_pi = [np.sum(self.bop_pi,axis=1)] 
+      self.D_pp = [np.sum(self.bop_pp,axis=1)] 
 
   def f1(self):
       Dv  = np.expand_dims(self.Deltap - self.P['val'],axis=0)
@@ -456,11 +456,9 @@ class IRFF_NP(object):
              Dbj   = Dj - np.expand_dims(self.P['val'],axis=1)
              Fi    = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1])   # +str(t)
              Fj    = self.f_nn('fm',[Dbi,self.H[t-1],Dbj],layer=self.mf_layer[1])   # +str(t)
-             
-            #  self.f1()
-            #  f11 = self.f_1*self.f_1
-            #  F11 = np.where(self.P['ovcorr']>=0.0001,f11,1.0)
-
+             #  self.f1()
+             #  f11 = self.f_1*self.f_1
+             #  F11 = np.where(self.P['ovcorr']>=0.0001,f11,1.0)
              F     = Fi*Fj #*F11     # By default p_corr13 is always True
              self.F.append(F)
              self.Hsi.append(self.Hsi[t-1]*F)
@@ -484,10 +482,10 @@ class IRFF_NP(object):
              raise NotImplementedError('-  Message function not supported yet!')
           self.H.append(self.Hsi[t]+self.Hpi[t]+self.Hpp[t])
           self.D.append(np.sum(self.H[t],axis=1))  
-          if self.MessageFunction==1:
-             self.D_si.append(np.sum(self.Hsi[t],axis=1))
-             self.D_pi.append(np.sum(self.Hpi[t],axis=1))
-             self.D_pp.append(np.sum(self.Hpp[t],axis=1))
+          # if self.MessageFunction==1:
+          self.D_si.append(np.sum(self.Hsi[t],axis=1))
+          self.D_pi.append(np.sum(self.Hpi[t],axis=1))
+          self.D_pp.append(np.sum(self.Hpp[t],axis=1))
 
   def get_bondorder_nn(self):
       self.message_passing()
