@@ -130,14 +130,14 @@ class Linear_be(object):
              js.dump(self.j,fj,sort_keys=True,indent=2)
 
 class Linear_bo(object):
-    def __init__(self,Bp,D,B,E,bonds=None,message_function=2):
+    def __init__(self,Bp,D,B,E,bonds=None):
         with open('ffield.json','r') as lf:
             self.j = js.load(lf)
         self.spec,bonds_,offd,angs,torp,hbs = init_bonds(self.j['p'])
         self.bonds = bonds_ if bonds is None else bonds 
         self.D,self.D_t,self.B,self.Bp = {},{},{},{}
         self.m = {}
-        self.message_function = message_function
+        self.message_function = self.j['MessageFunction']
         for sp in self.spec:
             self.m['fmwi_'+sp] = tf.Variable(self.j['m']['fmwi_'+sp],name='fmwi_'+sp)
             self.m['fmbi_'+sp] = tf.Variable(self.j['m']['fmbi_'+sp],name='fmbi_'+sp)
@@ -150,7 +150,7 @@ class Linear_bo(object):
                 self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
                 
         for bd in self.bonds:
-            if message_function==1:
+            if self.message_function==1:
                self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,7],name='D_%s' %bd)
                self.D_t[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,7],name='Dt_%s' %bd)
             else:
