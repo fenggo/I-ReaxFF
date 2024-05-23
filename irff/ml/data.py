@@ -21,7 +21,7 @@ from irff.molecule import Molecules,moltoatoms
 
 
 def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
-             message_function==2,ffield='ffield.json'):
+             message_function=2,ffield='ffield.json'):
     D, Y = {}, {}
     R, Bp,B = {}, {}, {}
 
