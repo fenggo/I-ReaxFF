@@ -130,13 +130,14 @@ class Linear_be(object):
              js.dump(self.j,fj,sort_keys=True,indent=2)
 
 class Linear_bo(object):
-    def __init__(self,Bp,D,B,E,bonds=None):
+    def __init__(self,Bp,D,B,E,bonds=None,message_function=2):
         with open('ffield.json','r') as lf:
             self.j = js.load(lf)
         self.spec,bonds_,offd,angs,torp,hbs = init_bonds(self.j['p'])
         self.bonds = bonds_ if bonds is None else bonds 
         self.D,self.D_t,self.B,self.Bp = {},{},{},{}
         self.m = {}
+        self.message_function = message_function
         for sp in self.spec:
             self.m['fmwi_'+sp] = tf.Variable(self.j['m']['fmwi_'+sp],name='fmwi_'+sp)
             self.m['fmbi_'+sp] = tf.Variable(self.j['m']['fmbi_'+sp],name='fmbi_'+sp)
@@ -149,8 +150,12 @@ class Linear_bo(object):
                 self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
                 
         for bd in self.bonds:
-            self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='D_%s' %bd)
-            self.D_t[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='Dt_%s' %bd)
+            if message_function==1:
+               self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,7],name='D_%s' %bd)
+               self.D_t[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,7],name='Dt_%s' %bd)
+            else:
+               self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='D_%s' %bd)
+               self.D_t[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='Dt_%s' %bd)
             self.B[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='B_%s' %bd)
             self.Bp[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='Bp_%s' %bd)
             #print('define the placeholder for the model ...')
@@ -214,7 +219,10 @@ class Linear_bo(object):
         for bd in Bp:
             d = np.array(D[bd]).astype(np.float32)
             feed_dict[self.D[bd]]   = d
-            feed_dict[self.D_t[bd]] = d[:,[2,1,0]]
+            if self.message_function==1:
+               feed_dict[self.D_t[bd]] = d[:,[6,5,4,3,2,1,0]]
+            else:
+               feed_dict[self.D_t[bd]] = d[:,[2,1,0]]
             feed_dict[self.B[bd]]   = np.array(B[bd]).astype(np.float32)
             feed_dict[self.Bp[bd]]  = np.array(Bp[bd]).astype(np.float32)
         return feed_dict
