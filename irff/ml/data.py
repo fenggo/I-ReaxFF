@@ -57,7 +57,7 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
                                             ir.bop[ii][jj], 
                                             ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
                                             ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
-                                            ir.D_si[0][jj]-ir.bop_si[ii][jj] )
+                                            ir.D_si[0][jj]-ir.bop_si[ii][jj] ])
                            else:
                               D[bd].append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], 
                                             ir.Deltap[jj]-ir.bop[ii][jj]])
@@ -73,7 +73,7 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
                                             ir.bop[ii][jj], 
                                             ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
                                             ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
-                                            ir.D_si[0][ii]-ir.bop_si[ii][jj] )
+                                            ir.D_si[0][ii]-ir.bop_si[ii][jj] ])
                            else:
                               D[bdr].append([ir.Deltap[jj]-ir.bop[ii][jj], ir.bop[ii][jj],
                                              ir.Deltap[ii]-ir.bop[ii][jj]])
@@ -116,7 +116,7 @@ def get_atoms_data(atoms=None, gen='poscar.gen', bonds=['C-C'],
                                 ir.bop[ii][jj], 
                                 ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
                                 ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
-                                ir.D_si[0][jj]-ir.bop_si[ii][jj] )
+                                ir.D_si[0][jj]-ir.bop_si[ii][jj] ])
                   else:
                      D[bd].append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], 
                                    ir.Deltap[jj]-ir.bop[ii][jj]])
@@ -132,7 +132,7 @@ def get_atoms_data(atoms=None, gen='poscar.gen', bonds=['C-C'],
                                 ir.bop[ii][jj], 
                                 ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
                                 ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
-                                ir.D_si[0][ii]-ir.bop_si[ii][jj] )
+                                ir.D_si[0][ii]-ir.bop_si[ii][jj] ])
                   else:
                      D[bdr].append([ir.Deltap[jj]-ir.bop[ii][jj], ir.bop[ii][jj], 
                                     ir.Deltap[ii]-ir.bop[ii][jj]])
@@ -178,7 +178,7 @@ def get_md_data(images=None, traj='md.traj', bonds=['C-C'],
                                     ir.bop[ii][jj], 
                                     ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
                                     ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
-                                    ir.D_si[0][jj]-ir.bop_si[ii][jj] )
+                                    ir.D_si[0][jj]-ir.bop_si[ii][jj] ])
                        else:
                           D[bd].append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], 
                                         ir.Deltap[jj]-ir.bop[ii][jj]])
@@ -194,7 +194,7 @@ def get_md_data(images=None, traj='md.traj', bonds=['C-C'],
                                         ir.bop[ii][jj], 
                                         ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
                                         ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
-                                        ir.D_si[0][ii]-ir.bop_si[ii][jj] )
+                                        ir.D_si[0][ii]-ir.bop_si[ii][jj] ])
                         else:
                            D[bdr].append([ir.Deltap[jj]-ir.bop[ii][jj], ir.bop[ii][jj], 
                                           ir.Deltap[ii]-ir.bop[ii][jj]])
@@ -261,7 +261,7 @@ def get_md_data_invariance(images=None, traj='md.traj', bonds=['C-C'],
                                             ir[n].bop[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[jj]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[jj]]-ir[n].bop_pi[ii][jj], 
-                                            ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj] )
+                                            ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj] ])
                             else:
                                D[bd].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
                                             ir[n].bop[ii][jj],
@@ -278,7 +278,7 @@ def get_md_data_invariance(images=None, traj='md.traj', bonds=['C-C'],
                                             ir[n].bop[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[ii]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[ii]]-ir[n].bop_pi[ii][jj], 
-                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] )
+                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] ])
                             else:
                                D[bdr].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
                                               ir[n].bop[ii][jj],
@@ -366,7 +366,7 @@ def get_md_data_inv(trajs=[], bonds=[],
                                             ir[n].bop[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[ii]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[ii]]-ir[n].bop_pi[ii][jj], 
-                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] )
+                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] ])
                                else:
                                    D_mol[bd].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
                                                 ir[n].bop[ii][jj], ir[n].Deltap[jj]-ir[n].bop[ii][jj]])
@@ -393,7 +393,7 @@ def get_md_data_inv(trajs=[], bonds=[],
                                             ir[n].bop[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[jj]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[jj]]-ir[n].bop_pi[ii][jj], 
-                                            ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj] )
+                                            ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj] ])
                                   D_mol[bd].append([ir[n].D_si[0][jj]-ir[n].bop_si[ii][jj], 
                                             ir[n].D_pi[0][jj]-ir[n].bop_pi[ii][jj], 
                                             ir[n].D_pp[0][jj]-ir[n].bop_pp[ii][jj], 
@@ -407,7 +407,7 @@ def get_md_data_inv(trajs=[], bonds=[],
                                             ir[n].bop[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[ii]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[ii]]-ir[n].bop_pi[ii][jj], 
-                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] )
+                                            ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] ])
                                else:
                                   D_mol[bdr].append([ir[n].Deltap[jj]-ir[n].bop[ii][jj], 
                                             ir[n].bop[ii][jj], ir[n].Deltap[ii]-ir[n].bop[ii][jj]])
@@ -454,7 +454,7 @@ def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,
                         ir.bop[ii][jj], 
                         ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
                         ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
-                        ir.D_si[0][jj]-ir.bop_si[ii][jj] )
+                        ir.D_si[0][jj]-ir.bop_si[ii][jj] ])
            else:
               D.append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], ir.Deltap[jj]-ir.bop[ii][jj]])
         elif bdr in bonds:
