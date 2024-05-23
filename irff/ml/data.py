@@ -353,14 +353,14 @@ def get_md_data_inv(trajs=[], bonds=[],
                                             ir_total.D_pp[0][m.mol_index[jj]]-ir[n].bop_pp[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[jj]]-ir[n].bop_pi[ii][jj], 
                                             ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj] ])
-                                   Dt_mol[bd].append([ir[n].D_si[0][jj]-ir[n].bop_si[ii][jj], 
+                                  Dt_mol[bd].append([ir[n].D_si[0][jj]-ir[n].bop_si[ii][jj], 
                                             ir[n].D_pi[0][jj]-ir[n].bop_pi[ii][jj], 
                                             ir[n].D_pp[0][jj]-ir[n].bop_pp[ii][jj], 
                                             ir[n].bop[ii][jj], 
                                             ir[n].D_pp[0][ii]-ir[n].bop_pp[ii][jj], 
                                             ir[n].D_pi[0][ii]-ir[n].bop_pi[ii][jj], 
                                             ir[n].D_si[0][ii]-ir[n].bop_si[ii][jj] ])
-                                   Dt[bd].append([ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj], 
+                                  Dt[bd].append([ir_total.D_si[0][m.mol_index[jj]]-ir[n].bop_si[ii][jj], 
                                             ir_total.D_pi[0][m.mol_index[jj]]-ir[n].bop_pi[ii][jj], 
                                             ir_total.D_pp[0][m.mol_index[jj]]-ir[n].bop_pp[ii][jj], 
                                             ir[n].bop[ii][jj], 
@@ -368,14 +368,14 @@ def get_md_data_inv(trajs=[], bonds=[],
                                             ir_total.D_pi[0][m.mol_index[ii]]-ir[n].bop_pi[ii][jj], 
                                             ir_total.D_si[0][m.mol_index[ii]]-ir[n].bop_si[ii][jj] ])
                                else:
-                                   D_mol[bd].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
+                                  D_mol[bd].append([ir[n].Deltap[ii]-ir[n].bop[ii][jj], 
                                                 ir[n].bop[ii][jj], ir[n].Deltap[jj]-ir[n].bop[ii][jj]])
-                                   D[bd].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
+                                  D[bd].append([ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj], 
                                             ir[n].bop[ii][jj],
                                             ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj]])
-                                   Dt_mol[bd].append([ir[n].Deltap[jj]-ir[n].bop[ii][jj], 
+                                  Dt_mol[bd].append([ir[n].Deltap[jj]-ir[n].bop[ii][jj], 
                                             ir[n].bop[ii][jj], ir[n].Deltap[ii]-ir[n].bop[ii][jj]])
-                                   Dt[bd].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
+                                  Dt[bd].append([ir_total.Deltap[m.mol_index[jj]]-ir[n].bop[ii][jj], 
                                             ir[n].bop[ii][jj],
                                             ir_total.Deltap[m.mol_index[ii]]-ir[n].bop[ii][jj]])
                             elif bdr in bonds:
