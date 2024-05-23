@@ -293,7 +293,7 @@ def get_md_data_invariance(images=None, traj='md.traj', bonds=['C-C'],
 
 def get_md_data_inv(trajs=[], bonds=[],
                     rcut={"H-O":1.22,"H-H":1.2,"O-O":1.4,"others": 1.8},
-                    ffield='ffield.json'):
+                    message_function=2,ffield='ffield.json'):
     ''' Prepare data for penalty term for translation invariant of
         molecules.
     '''
@@ -425,7 +425,8 @@ def get_md_data_inv(trajs=[], bonds=[],
         nbd[bd] = len(D[bd])
     return D, Dt, D_mol, Dt_mol, nbd
 
-def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,ffield='ffield.json'):
+def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,
+                  message_function=2,ffield='ffield.json'):
     if images is None:
         images = Trajectory(traj)
     D = []
@@ -446,9 +447,27 @@ def get_bond_data(ii, jj, images=None, traj='md.traj', bonds=None,ffield='ffield
     for i, atoms in enumerate(images):
         ir.calculate_Delta(atoms)
         if bd in bonds:
-            D.append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], ir.Deltap[jj]-ir.bop[ii][jj]])
+           if message_function==1:
+              D.append([ir.D_si[0][ii]-ir.bop_si[ii][jj], 
+                        ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
+                        ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
+                        ir.bop[ii][jj], 
+                        ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
+                        ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
+                        ir.D_si[0][jj]-ir.bop_si[ii][jj] )
+           else:
+              D.append([ir.Deltap[ii]-ir.bop[ii][jj], ir.bop[ii][jj], ir.Deltap[jj]-ir.bop[ii][jj]])
         elif bdr in bonds:
-            D.append([ir.Deltap[jj]-ir.bop[ii][jj],ir.bop[ii][jj],ir.Deltap[ii]-ir.bop[ii][jj]])
+           if message_function==1:
+              D.append([ir.D_si[0][jj]-ir.bop_si[ii][jj], 
+                        ir.D_pi[0][jj]-ir.bop_pi[ii][jj], 
+                        ir.D_pp[0][jj]-ir.bop_pp[ii][jj], 
+                        ir.bop[ii][jj], 
+                        ir.D_pp[0][ii]-ir.bop_pp[ii][jj], 
+                        ir.D_pi[0][ii]-ir.bop_pi[ii][jj], 
+                        ir.D_si[0][ii]-ir.bop_si[ii][jj] )
+           else:
+              D.append([ir.Deltap[jj]-ir.bop[ii][jj],ir.bop[ii][jj],ir.Deltap[ii]-ir.bop[ii][jj]])
         Bp.append([ir.bop_si[ii][jj],ir.bop_pi[ii][jj],ir.bop_pp[ii][jj]])
         B.append([ir.bosi[ii][jj], ir.bopi[ii][jj], ir.bopp[ii][jj]])                   
         R.append(ir.r[ii][jj])
