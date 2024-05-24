@@ -56,10 +56,10 @@ for A in images:
     D_.append([ir.Deltap[iatom]-ir.bop[iatom][jatom], ir.bop[iatom][jatom], 
                ir.Deltap[jatom]-ir.bop[iatom][jatom]])
 
-print('\nD 7 element vector: \n')
+print('\nD (7 element vector): \n')
 for d in D:
     print('{:9.6f} {:9.6f} {:9.6f} {:9.6f} {:9.6f} {:9.6f} {:9.6f}'.format(d[0],
             d[1],d[2],d[3],d[4],d[5],d[6]))
-print('\nD 3 element vector: \n')
+print('\nD (3 element vector): \n')
 for d in D_:
     print('{:9.6f} {:9.6f} {:9.6f}'.format(d[0],d[1],d[2]))
