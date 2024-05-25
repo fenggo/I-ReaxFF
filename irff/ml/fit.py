@@ -34,7 +34,6 @@ class Linear_be(object):
         hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
         self.be_layer = self.j['be_layer'] if be_layer is None else be_layer
 
-
         self.E,self.B = {},{}
         for bd in self.bonds:
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
@@ -130,7 +129,7 @@ class Linear_be(object):
              js.dump(self.j,fj,sort_keys=True,indent=2)
 
 class Linear_bo(object):
-    def __init__(self,Bp,D,B,E,bonds=None):
+    def __init__(self,Bp,D,B,E,bonds=None,mf_layer=None):
         with open('ffield.json','r') as lf:
             self.j = js.load(lf)
         self.spec,bonds_,offd,angs,torp,hbs = init_bonds(self.j['p'])
@@ -138,6 +137,8 @@ class Linear_bo(object):
         self.D,self.D_t,self.B,self.Bp = {},{},{},{}
         self.m = {}
         self.message_function = self.j['MessageFunction']
+        self.mf_layer = self.j['mf_layer'] if mf_layer is None else mf_layer
+
         for sp in self.spec:
             self.m['fmwi_'+sp] = tf.Variable(self.j['m']['fmwi_'+sp],name='fmwi_'+sp)
             self.m['fmbi_'+sp] = tf.Variable(self.j['m']['fmbi_'+sp],name='fmbi_'+sp)
@@ -145,10 +146,19 @@ class Linear_bo(object):
             self.m['fmbo_'+sp] = tf.Variable(self.j['m']['fmbo_'+sp],name='fmbo_'+sp)
             self.m['fmw_'+sp]  = []
             self.m['fmb_'+sp]  = []
-            for i in range(self.j['mf_layer'][1]):
-                self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][i],name='fmwh_'+sp))
-                self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
-                
+            for i in range(self.mf_layer[1]):
+                if i+1 > self.j['mf_layer'][1]:
+                   self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][-1],name='fmwh_'+bd))
+                   self.m['fmb_'+bd].append(tf.Variable(self.j['m']['fmb_'+sp][-1],name='fmbh_'+sp))
+                   self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][-1])
+                   self.j['m']['feb_'+bd].append(self.j['m']['feb_'+bd][-1])
+                else:
+                   self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][i],name='fmwh_'+sp))
+                   self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
+
+        if self.mf_layer[1] > self.j['mf_layer'][1]:
+           self.j['mf_layer'][1] = self.mf_layer[1]
+
         for bd in self.bonds:
             if self.message_function==1:
                self.D[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,7],name='D_%s' %bd)
