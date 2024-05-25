@@ -190,7 +190,7 @@ class Linear_bo(object):
             if self.message_function==3:
                b_pred = self.Bp[bd]*ao*ao_t
             else:
-               b_pred = self.Bp[bd]*ao*ao_t
+               b_pred = ao*ao_t
             loss+= tf.sqrt(tf.reduce_sum(tf.square(self.B[bd]-b_pred)))
             # loss+= tf.nn.l2_loss(self.B[bd]-b_pred)
             # loss+= tf.compat.v1.losses.absolute_difference(self.B[bd]-b_pred)
