@@ -166,7 +166,7 @@ class MPNN(ReaxFF):
                vdwnn=False,VdwFunction=1,
                BOFunction=0,
                EnergyFunction=1,
-               MessageFunction=2,
+               MessageFunction=3,
                spec=[],
                lambda_bd=100000.0,
                lambda_pi=1.0,
@@ -512,7 +512,7 @@ class MPNN(ReaxFF):
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
          bosi = self.Hsi[t-1][bd]*Fsi
-         bopi = Fpi
+         bopi = self.Hpi[t-1][bd]*Fpi
          bopp = self.Hpp[t-1][bd]*Fpp
       elif self.MessageFunction==0:
          self.Dbi[bd] = Di #- self.p['val_'+atomi]        # bo correction
