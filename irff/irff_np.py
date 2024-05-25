@@ -419,14 +419,12 @@ class IRFF_NP(object):
              Fpi = F[:,:,1]
              Fpp = F[:,:,2]
              self.F.append(F)
-             self.Hsi.append(self.Hsi[t-1]*Fsi)
-             self.Hpi.append(self.Hpi[t-1]*Fpi)
-             self.Hpp.append(self.Hpp[t-1]*Fpp)
+             self.Hsi.append(Fsi)
+             self.Hpi.append(Fpi)
+             self.Hpp.append(Fpp)
           elif self.MessageFunction==2:
              Dbi   = Di  - self.H[t-1]
              Dbj   = Dj  - self.H[t-1]
-             #Fi    = self.f_nn('fm',[Dbj,Dbi,self.Hsi[t-1],self.Hpi[t-1],self.Hpp[t-1]], # +str(t)
-             #                  layer=self.mf_layer[1])
              Fi    = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1])
              Fj    = np.transpose(Fi,[1,0,2])
              F     = Fi*Fj

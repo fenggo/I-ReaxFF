@@ -477,20 +477,17 @@ class MPNN(ReaxFF):
          Dsi_j = tf.gather_nd(self.D_si[t-1],self.djlink[bd]) - self.Hsi[t-1][bd]
          Dpi_j = tf.gather_nd(self.D_pi[t-1],self.djlink[bd]) - self.Hpi[t-1][bd]
          Dpp_j = tf.gather_nd(self.D_pp[t-1],self.djlink[bd]) - self.Hpp[t-1][bd]
-
          # Dpii  = Dpi_i + Dpp_i
          # Dpij  = Dpi_j + Dpp_j
-          
          Fi    = fmessage(flabel,b[0],self.nbd[bd],[Dsi_i,Dpi_i,Dpp_i,self.H[t-1][bd],Dpp_j,Dpi_j,Dsi_j],
                                self.m,batch=self.batch,layer=self.mf_layer[1])
          Fj    = fmessage(flabel,b[1],self.nbd[bd],[Dsi_j,Dpi_j,Dpp_j,self.H[t-1][bd],Dpp_i,Dpi_i,Dsi_i],
                                self.m,batch=self.batch,layer=self.mf_layer[1])
          F     = Fi*Fj
-
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
-         bosi = self.Hsi[t-1][bd]*Fsi
-         bopi = self.Hpi[t-1][bd]*Fpi
-         bopp = self.Hpp[t-1][bd]*Fpp
+         bosi = Fsi # self.Hsi[t-1][bd]*
+         bopi = Fpi # self.Hpi[t-1][bd]*
+         bopp = Fpp # self.Hpp[t-1][bd]*
       elif self.MessageFunction==2:
          self.Dbi[bd]  = Di-h
          self.Dbj[bd]  = Dj-h
@@ -515,7 +512,7 @@ class MPNN(ReaxFF):
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
          bosi = self.Hsi[t-1][bd]*Fsi
-         bopi = self.Hpi[t-1][bd]*Fpi
+         bopi = Fpi
          bopp = self.Hpp[t-1][bd]*Fpp
       elif self.MessageFunction==0:
          self.Dbi[bd] = Di #- self.p['val_'+atomi]        # bo correction
@@ -527,7 +524,7 @@ class MPNN(ReaxFF):
 
          # By default p_corr13 is always True
          bosi = self.Hsi[t-1][bd]*F
-         bopi = self.Hpi[t-1][bd]*F
+         bopi = F
          bopp = self.Hpp[t-1][bd]*F 
       elif self.MessageFunction==4:
          self.Dbi[bd]  = Di - self.p['val_'+atomi] # Di-h
