@@ -148,10 +148,10 @@ class Linear_bo(object):
             self.m['fmb_'+sp]  = []
             for i in range(self.mf_layer[1]):
                 if i+1 > self.j['mf_layer'][1]:
-                   self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][-1],name='fmwh_'+bd))
-                   self.m['fmb_'+bd].append(tf.Variable(self.j['m']['fmb_'+sp][-1],name='fmbh_'+sp))
-                   self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][-1])
-                   self.j['m']['feb_'+bd].append(self.j['m']['feb_'+bd][-1])
+                   self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][-1],name='fmwh_'+sp))
+                   self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][-1],name='fmbh_'+sp))
+                   self.j['m']['fmw_'+sp].append(self.j['m']['fmw_'+sp][-1])
+                   self.j['m']['fmb_'+sp].append(self.j['m']['fmb_'+sp][-1])
                 else:
                    self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][i],name='fmwh_'+sp))
                    self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
@@ -256,13 +256,13 @@ class Linear_bo(object):
 
 
 def train(Bp,D,B,E,convergence=0.000001,
-          learning_rate=0.01,
+          learning_rate=0.01,layer=None,
           step=5000,fitobj='BO',bonds=None):
     # neural network layers
     if fitobj == 'BO':
-       model = Linear_bo(Bp,D,B,E,bonds=bonds)
+       model = Linear_bo(Bp,D,B,E,bonds=bonds,mf_layer=layer)
     elif fitobj == 'BE':
-       model = Linear_be(Bp,D,B,E,bonds=bonds)
+       model = Linear_be(Bp,D,B,E,bonds=bonds,be_layer=layer)
 
     model.run(step=step,convergence=convergence,learning_rate=learning_rate)
 
