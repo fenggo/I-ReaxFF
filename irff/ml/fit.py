@@ -197,10 +197,10 @@ class Linear_bo(object):
             #ah_t = tf.sigmoid(tf.matmul(ai_t,self.m['fmw_'+atomj][0]) + self.m['fmb_'+atomj][0])
             ao_t = tf.sigmoid(tf.matmul(ah_t,self.m['fmwo_'+atomj]) + self.m['fmbo_'+atomj])
             
-            if self.message_function==3:
-               b_pred = self.Bp[bd]*ao*ao_t
-            else:
+            if self.message_function==2:
                b_pred = ao*ao_t
+            else:
+               b_pred = self.Bp[bd]*ao*ao_t
             loss+= tf.sqrt(tf.reduce_sum(tf.square(self.B[bd]-b_pred)))
             # loss+= tf.nn.l2_loss(self.B[bd]-b_pred)
             # loss+= tf.compat.v1.losses.absolute_difference(self.B[bd]-b_pred)

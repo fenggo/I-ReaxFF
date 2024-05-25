@@ -485,9 +485,9 @@ class MPNN(ReaxFF):
                                self.m,batch=self.batch,layer=self.mf_layer[1])
          F     = Fi*Fj
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
-         bosi = Fsi # self.Hsi[t-1][bd]*
-         bopi = Fpi # self.Hpi[t-1][bd]*
-         bopp = Fpp # self.Hpp[t-1][bd]*
+         bosi = self.Hsi[t-1][bd]*Fsi # self.Hsi[t-1][bd]*
+         bopi = self.Hpi[t-1][bd]*Fpi # self.Hpi[t-1][bd]*
+         bopp = self.Hpp[t-1][bd]*Fpp # self.Hpp[t-1][bd]*
       elif self.MessageFunction==2:
          self.Dbi[bd]  = Di-h
          self.Dbj[bd]  = Dj-h

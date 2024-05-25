@@ -419,9 +419,9 @@ class IRFF_NP(object):
              Fpi = F[:,:,1]
              Fpp = F[:,:,2]
              self.F.append(F)
-             self.Hsi.append(Fsi)
-             self.Hpi.append(Fpi)
-             self.Hpp.append(Fpp)
+             self.Hsi.append(self.Hsi[t-1]*Fsi)
+             self.Hpi.append(self.Hpi[t-1]*Fpi)
+             self.Hpp.append(self.Hpp[t-1]*Fpp)
           elif self.MessageFunction==2:
              Dbi   = Di  - self.H[t-1]
              Dbj   = Dj  - self.H[t-1]
