@@ -1,4 +1,4 @@
-### Introduction for tools
+### Introduction for tools scripts
 1. add_layer.py
 Add new neural networks to current models, suppose the current parameter file is 'ffield.json', you should make a copy of it named 'ffieldData.json', after running the script by:
 ```bash
