@@ -434,9 +434,9 @@ class IRFF_NP(object):
              Fpi = F[:,:,1]
              Fpp = F[:,:,2]
              self.F.append(F)
-             self.Hsi.append(self.Hsi[t-1]*Fsi)
-             self.Hpi.append(self.Hpi[t-1]*Fpi)
-             self.Hpp.append(self.Hpp[t-1]*Fpp)
+             self.Hsi.append(Fsi)
+             self.Hpi.append(Fpi)
+             self.Hpp.append(Fpp)
           elif self.MessageFunction==3:
              Dbi   = Di - self.H[t-1] # np.expand_dims(self.P['valboc'],axis=0) 
              Dbj   = Dj - self.H[t-1] # np.expand_dims(self.P['valboc'],axis=1)  

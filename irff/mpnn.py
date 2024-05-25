@@ -494,10 +494,6 @@ class MPNN(ReaxFF):
       elif self.MessageFunction==2:
          self.Dbi[bd]  = Di-h
          self.Dbj[bd]  = Dj-h
-         # Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],self.Dbj[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
-         #                      self.m,batch=self.batch,layer=self.mf_layer[1])
-         # Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],self.Dbi[bd],self.Hsi[t-1][bd],self.Hpi[t-1][bd],self.Hpp[t-1][bd]],
-         #                      self.m,batch=self.batch,layer=self.mf_layer[1])
          Fi   = fmessage(flabel,b[0],self.nbd[bd],[self.Dbi[bd],h,self.Dbj[bd]],
                               self.m,batch=self.batch,layer=self.mf_layer[1])
          Fj   = fmessage(flabel,b[1],self.nbd[bd],[self.Dbj[bd],h,self.Dbi[bd]],
@@ -505,9 +501,9 @@ class MPNN(ReaxFF):
          F    = Fi*Fj
          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
-         bosi = self.Hsi[t-1][bd]*Fsi
-         bopi = self.Hpi[t-1][bd]*Fpi
-         bopp = self.Hpp[t-1][bd]*Fpp
+         bosi = Fsi
+         bopi = Fpi
+         bopp = Fpp
       elif self.MessageFunction==3:
          self.Dbi[bd]  = Di - h # self.p['valboc_'+atomi]  
          self.Dbj[bd]  = Dj - h # self.p['valboc_'+atomj]  
@@ -880,9 +876,9 @@ class MPNN(ReaxFF):
              self.penalty_bo_rcut[bd]  = tf.reduce_sum(self.bo0[bd]*fao)
              penalty = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
 
-             # if self.MessageFunction==1:
+             # if self.MessageFunction==2:
              #    pen_b    = tf.reduce_sum(self.bo0[bd]*fbo) 
-             #    penalty  = tf.add(diffb_*self.lambda_bd,penalty)
+             #    penalty  = tf.add(pen_b*self.lambda_bd,penalty)
              # bop_nn = nn(bop) MUST BE zero if r>rc_bo
              # if self.BOFunction!=0:
              fbo = tf.where(tf.less(self.rbd[bd],self.rc_bo[bd]),0.0,1.0)     ##### bop should be zero if r>rcut_bo
