@@ -40,3 +40,6 @@ system('phonopy --writefc --full-fc')
 # 此时计算的二阶力常数的长度单位是Unit of length: au 转换成 AA
 system('./force_unit.py')
 
+# 计算三阶力常数
+# system('./thirdorder_gulp.py sow 8 8 1  1  ') # (最后一个1：指1nm，即截断半径10埃)
+# system('./thirdorder_gulp.py reap 8 8 1  1 ')
