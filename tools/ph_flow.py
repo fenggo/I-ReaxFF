@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from os import system, listdir #,popen
 
+'''phonon compute work flow'''
 
 # 1、 优化结构
-# system('./gmd.py opt --s=300 --g=POSCAR.unitcell  --n=4 --x=4 --y=4 --l=1')
+system('./gmd.py opt --s=300 --g=POSCAR.unitcell  --n=4 --x=8 --y=8 --l=1')
 
 # 2 、先将结构文件转换为siesta输入文件
 system('./smd.py wi --g=POSCAR.unitcell')
@@ -32,3 +33,10 @@ system('phonopy-bandplot --gnuplot band.yaml > band.dat')
 
 system('mv band.dat band-nn-gulp.dat')
 system('./plotband.py')
+
+# 使用Phonopy计算二阶力常数
+system('phonopy --writefc --full-fc')
+
+# 此时计算的二阶力常数的长度单位是Unit of length: au 转换成 AA
+system('./force_unit.py')
+
