@@ -150,7 +150,7 @@ class MPNN(ReaxFF):
                be_clip=False,                             
                bo_clip=None,                      # e.g. bo_clip={'C-C':[(1.3,7.0,8.0,0,11,0.2,1.0)]}
                pi_clip=False,                     # e.g. pi_clip={'C-C-C':[(7.5,8.5,0.8,1.8)]}
-               #spv_ang=False,                    
+               ang_clip=False,                    
                spv_vdw=False,
                fixrcbo=False,
                weight={'others':1.0},
@@ -203,7 +203,7 @@ class MPNN(ReaxFF):
       self.bo_clip          = bo_clip
       self.pi_clip          = pi_clip
       self.be_clip          = be_clip
-      #self.spv_ang         = spv_ang
+      self.ang_clip         = ang_clip
       self.spv_vdw          = spv_vdw
       self.vup              = vup
       self.vlo              = vlo
@@ -810,7 +810,7 @@ class MPNN(ReaxFF):
       return loss*self.lambda_inv
 
   def supervise(self):
-      ''' adding some penalty term to accelerate the training '''
+      ''' adding some penalty term to regularize the training '''
       log_    = -9.21044036697651
       penalty = 0.0
       pen_w   = 0.0
@@ -991,7 +991,14 @@ class MPNN(ReaxFF):
                        self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu((self.SBO[ang]-piu)*fpi))
                        self.penalty_pi[ang]+= tf.reduce_sum(input_tensor=tf.nn.relu((pil-self.SBO[ang])*fpi))
                    penalty  = tf.add(self.penalty_pi[ang]*self.lambda_pi,penalty)
-
+         if self.ang_clip:                        # regularize pi term
+            for ang in self.ang_clip: 
+                if self.nang[ang]>0:
+                   self.penalty_ang[ang] = tf.constant(0.0)
+                   for d in self.ang_clip[ang]:
+                       fang = tf.where(tf.greater_equal(tf.abs(self.thet),d)),1.0,0.0)  
+                       self.penalty_ang[ang]+= tf.reduce_sum(input_tensor=self.eang[ang]*fang)
+                   penalty  = tf.add(self.penalty_ang[ang]*self.lambda_pi,penalty)
       if self.regularize:                              # regularize
          for sp in self.spec:
              for k in wb_message:
