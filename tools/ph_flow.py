@@ -5,6 +5,7 @@ from os import system, listdir #,popen
 
 # 1、 优化结构
 system('./gmd.py opt --s=300 --g=POSCAR.unitcell  --n=4 --x=8 --y=8 --l=1')
+system('./gmd.py opt --s=1 --g=POSCAR.unitcell  --n=4 --output=shengbte')
 
 # 2 、先将结构文件转换为siesta输入文件
 system('./smd.py wi --g=POSCAR.unitcell')
