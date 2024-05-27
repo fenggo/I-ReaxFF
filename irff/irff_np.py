@@ -753,19 +753,19 @@ class IRFF_NP(object):
       c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
       c2ijk = np.square(c_ijk)
       # tijk  = np.arccos(c_ijk)
-      cijk  = 1.000001 - c2ijk
+      cijk  = np.abs(1.00000 - c2ijk)
       self.s_ijk = np.sqrt(cijk)
 
       c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
       c2jkl = np.square(c_jkl)
-      cjkl  = 1.000001 - c2jkl
+      cjkl  = np.abs(1.00000 - c2jkl)
       self.s_jkl = np.sqrt(cjkl)
 
       c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
       c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
 
       c2kjl = np.square(c_kjl)
-      ckjl  = 1.000001 - c2kjl
+      ckjl  = 1.00000 - c2kjl
       s_kjl = np.sqrt(ckjl)
 
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
