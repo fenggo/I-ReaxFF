@@ -19,6 +19,9 @@ from irff.molecule import press_mol
 parser = argparse.ArgumentParser(description='eos by scale crystal box')
 parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
 parser.add_argument('--i', default=0,type=int, help='trajectory index')
+parser.add_argument('--x', default=0,type=int, help='whether scale in this direction')
+parser.add_argument('--y', default=0,type=int, help='whether scale in this direction')
+parser.add_argument('--z', default=0,type=int, help='whether scale in this direction')
 args = parser.parse_args(sys.argv[1:])
 
 lf = open('ffield.json','r')
@@ -37,13 +40,23 @@ ir = IRFF_NP(atoms=A,
              nn=True)
 
 ff = [0.94,0.95,0.96,0.97,0.98,0.99,1.0,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1]
-ff = [0.99,0.98,0.97]
+
 cell = A.get_cell()
+
 
 with TrajectoryWriter('md.traj',mode='w') as his:
     for f in ff:
-        A.set_positions(x_*f)
-        A.set_cell(cell*f)
+        if args.x:
+           x_[:,0] = x_[:,0]*f
+           cell[0] = cell[0]*f
+        if args.y:
+           x_[:,1] = x_[:,1]*f
+           cell[1] = cell[1]*f
+        if args.z:
+           x_[:,2] = x_[:,2]*f
+           cell[2] = cell[2]*f
+        A.set_positions(x_)
+        A.set_cell(cell)
         ir.calculate(A)
         A.calc = SinglePointCalculator(A,energy=ir.E)
         his.write(atoms=A)
