@@ -765,7 +765,7 @@ class IRFF_NP(object):
       c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
 
       c2kjl = np.square(c_kjl)
-      ckjl  = 1.00000 - c2kjl
+      ckjl  = np.abs(1.00000 - c2kjl)
       s_kjl = np.sqrt(ckjl)
 
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
