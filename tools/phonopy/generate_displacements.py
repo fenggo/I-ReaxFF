@@ -40,5 +40,5 @@ ph = phonopy.load(
 ph.generate_displacements()
 ph.save("phonopy_disp.yaml")
 write_supercells_with_displacements(
-    "siesta", ph.supercell, ph.supercells_with_displacements
+    "lammps", ph.supercell, ph.supercells_with_displacements
 )
