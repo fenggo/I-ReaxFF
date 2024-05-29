@@ -994,7 +994,7 @@ class MPNN(ReaxFF):
          if self.ang_clip:                        # regularize pi term
             for ang in self.ang_clip: 
                 if self.nang[ang]>0:
-                   fang = tf.where(tf.greater_equal(tf.abs(self.thet),self.ang_clip[ang]),1.0,0.0)  
+                   fang = tf.where(tf.greater_equal(tf.abs(self.thet[ang]),self.ang_clip[ang]),1.0,0.0)  
                    self.penalty_ang[ang] = tf.reduce_sum(input_tensor=self.eang[ang]*fang)
                    penalty  = tf.add(self.penalty_ang[ang]*self.lambda_pi,penalty)
       if self.regularize:                              # regularize
