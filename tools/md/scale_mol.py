@@ -33,7 +33,11 @@ A.set_positions(x_)
 
 # print(j['rcutBond'])
 
-m_  = Molecules(A,rcut={"H-O":1.22,"O-O":1.4,"others": 1.8},check=True)
+m_  = Molecules(A,rcut={"H-O":1.2,"H-C":1.2,"H-H":0.8,"H-N":1.2,
+                        "O-N":1.45,"O-C":1.45,"O-O":1.4,
+                        "N-C":1.68,"N-N":1.68,
+                        "C-C":1.68,
+                        "others": 1.8},check=True)
 nmol = len(m_)
 
 ir = IRFF_NP(atoms=A,
