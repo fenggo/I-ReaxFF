@@ -9,7 +9,7 @@ from .reaxfflib import read_ffield,write_lib
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from torch.autograd import Variable
 import torch
-
+import torch.nn as nn
 
 try:
    from .neighbor import get_neighbors,get_pangle,get_ptorsion,get_phb
