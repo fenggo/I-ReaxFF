@@ -9,7 +9,7 @@ from .reaxfflib import read_ffield,write_lib
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from torch.autograd import Variable
 import torch
-import torch.nn as nn
+from torch import nn
 
 try:
    from .neighbor import get_neighbors,get_pangle,get_ptorsion,get_phb
@@ -79,9 +79,9 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 
-class IRFF(Calculator):
-  '''Intelligent Machine-Learning ASE calculator'''
-  name = "IRFF"
+class ReaxFF_nn(nn.Module):
+  ''' Force Learning '''
+  name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces", "stress","pressure"]
   def __init__(self,atoms=None,
                mol=None,
