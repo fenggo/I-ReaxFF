@@ -9,7 +9,7 @@ from .reaxfflib import read_ffield,write_lib
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from torch.autograd import Variable
 import torch
-# from torch import nn
+from torch import nn
 
 try:
    from .neighbor import get_neighbors,get_pangle,get_ptorsion,get_phb
@@ -79,7 +79,7 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 
-class IRFF(Calculator):
+class IRFF(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
@@ -89,20 +89,17 @@ class IRFF(Calculator):
                vdwcut=10.0,
                atol=0.001,
                hbtol=0.001,
-               nn=False,# vdwnn=False,
                messages=1,
                hbshort=6.75,hblong=7.5,
                nomb=False,  # this option is used when deal with metal system
-               autograd=True,
-               CalStress=False,
-               label="IRFF", **kwargs):
-      Calculator.__init__(self,label=label, **kwargs)
+               autograd=True):
+      super(IRFF, self).__init__()
       self.atoms        = atoms
       self.cell         = atoms.get_cell()
       self.atom_name    = self.atoms.get_chemical_symbols()
       self.natom        = len(self.atom_name)
       self.spec         = []
-      self.nn           = nn
+      self.nn           = True
       # self.vdwnn      = vdwnn
       self.EnergyFunction = 0
       self.autograd     = autograd
@@ -110,7 +107,6 @@ class IRFF(Calculator):
       self.messages     = messages 
       self.safety_value = 0.000000001
       self.GPa          = 1.60217662*1.0e2
-      self.CalStress    = CalStress
 
       if libfile.endswith('.json'):
          lf                  = open(libfile,'r')
@@ -177,7 +173,13 @@ class IRFF(Calculator):
       self.get_rcbo()
       self.set_p(m,self.bo_layer)
       self.Qe= qeq(p=self.p,atoms=self.atoms)
+      self.results = {}
 
+  def forward(self, inputs):
+      y = inputs[0] * torch.pow(self.params[0]+self.params[1]-inputs[1],2)\
+          + torch.pow(self.params[0]-self.params[1],2)
+      return y
+ 
   def get_charge(self,cell,positions):
       self.Qe.calc(cell,positions)
       self.q   = self.Qe.q[:-1]
@@ -989,10 +991,7 @@ class IRFF(Calculator):
       return E
 
 
-  def calculate(self,atoms=None,properties=["energy", "forces", "stress","pressure"], 
-                system_changes=all_changes):
-      Calculator.calculate(self, atoms, properties, system_changes)
-      
+  def calculate(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
       cell      = cell[:].astype(dtype=np.float64)
       rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
@@ -1025,17 +1024,6 @@ class IRFF(Calculator):
 
       self.results['energy'] = self.E
       self.results['forces'] = -self.grad
-      if self.CalStress:
-         self.results['stress'] = self.calculate_numerical_stress(atoms,d=5e-5,voigt=True)
-         stress  = self.results['stress']
-         nonzero = 0
-         stre_   = 0.0
-         for _ in range(3):
-             if abs(stress[_])>0.0000001:
-                nonzero += 1
-                stre_   += -stress[_]
-         self.results['pressure'] = stre_*self.GPa/nonzero
-
 
   def get_free_energy(self,atoms=None,BuildNeighbor=False):
       cell      = atoms.get_cell()                    # cell is object now
