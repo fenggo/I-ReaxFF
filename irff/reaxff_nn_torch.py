@@ -9,7 +9,7 @@ from .reaxfflib import read_ffield,write_lib
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from torch.autograd import Variable
 import torch
-from torch import nn
+# from torch import nn
 
 try:
    from .neighbor import get_neighbors,get_pangle,get_ptorsion,get_phb
@@ -82,10 +82,10 @@ def relu(x):
 class ReaxFF_nn(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
-  implemented_properties = ["energy", "forces", "stress","pressure"]
+  implemented_properties = ["energy", "forces"]
   def __init__(self,atoms=None,
                mol=None,
-               libfile='ffield',
+               libfile='ffield.json',
                vdwcut=10.0,
                atol=0.001,
                hbtol=0.001,
