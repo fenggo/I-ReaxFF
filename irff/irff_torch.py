@@ -79,7 +79,7 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 
-class IRFF:
+class IRFF(Calculator):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
