@@ -89,67 +89,7 @@ class IRFF_NP(object):
       self.messages     = messages
       self.safety_value = 0.000000001
       self.label        = label
-
-      self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
-      self.p_hb   = ['rohb','Dehb','hb1','hb2']
-      self.p_tor  = ['V1','V2','V3','tor1','cot1']  
-
-      if libfile.endswith('.json'):
-         lf = open(libfile,'r')
-         j                   = js.load(lf)
-         #self.j             = j
-         self.p              = j['p']
-         m                   = j['m']
-         self.MolEnergy_     = j['MolEnergy']
-         self.messages       = j['messages']
-         self.BOFunction     = j['BOFunction']
-         self.EnergyFunction = j['EnergyFunction']
-         self.MessageFunction= j['MessageFunction']
-         self.VdwFunction    = j['VdwFunction']
-         self.bo_layer       = j['bo_layer']
-         self.mf_layer       = j['mf_layer']
-         self.be_layer       = j['be_layer']
-         self.vdw_layer      = j['vdw_layer']
-         if not self.vdw_layer is None:
-            self.vdwnn       = True
-         else:
-            self.vdwnn       = False
-         rcut                = j['rcut']
-         rcuta               = j['rcutBond']
-         re                  = j['rEquilibrium']
-         lf.close()
-         self.init_bonds()
-
-         if mol is None:
-            self.emol = 0.0
-         else:
-            mol_ = mol.split('-')[0]
-            if mol_ in self.MolEnergy_:
-               self.emol = self.MolEnergy_[mol_]
-            else:
-               self.emol = 0.0
-      else:
-         self.p,zpe_,self.spec,self.bonds,self.offd,self.Angs,self.torp,self.Hbs= \
-                       read_ffield(libfile=libfile,zpe=False)
-         m                = None
-         self.bo_layer    = None
-         self.mf_layer    = None
-         self.be_layer    = None
-         self.emol        = 0.0
-         rcut             = None
-         rcuta            = None
-         self.vdwnn       = False
-         self.EnergyFunction  = 0
-         self.MessageFunction = 0
-         self.VdwFunction     = 0
-         self.p['acut']   = 0.0001
-         self.p['hbtol']  = 0.0001
-      if m is None:
-         self.nn=False
-
-      for sp in self.atom_name:
-          if sp not in self.spec:
-             self.spec.append(sp)
+      m, rcut,rcuta,re  = self.read_ffield(libfile)
 
       self.torp      = self.checkTors(self.torp)
       self.check_tors(self.p_tor)
@@ -165,13 +105,12 @@ class IRFF_NP(object):
       self.d1        = np.triu(d,k=0)
       self.d2        = np.triu(d,k=1)
       self.eye       = 1.0 - np.eye(self.natom,dtype=np.float32)
-      self.check_offd()
-      self.check_hb()
+
       if wf:
          write_ffield(self.p,self.spec,self.bonds,self.offd,self.Angs,self.torp,self.Hbs,
                       m=m,mf_layer=self.mf_layer,be_layer=self.be_layer,
                       libfile='ffield')
-      self.get_rcbo()
+
       self.set_p(m,self.bo_layer)
       self.Qe= qeq(p=self.p,atoms=self.atoms)
 
@@ -1157,7 +1096,11 @@ class IRFF_NP(object):
                 'corr13','ovcorr']
       p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
       self.P = {}
-       
+
+      self.check_offd()
+      self.check_hb()
+      self.get_rcbo()
+
       if not self.nn:
          self.p['lp3'] = 75.0
       # else:
@@ -1476,12 +1419,60 @@ class IRFF_NP(object):
          fmd.write('\n------------------------------------------------------------------------\n')
          fmd.write('\n- Machine Learning MD Completed!\n')
 
-
+  def read_ffield(self,libfile):
+      self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
+      self.p_hb   = ['rohb','Dehb','hb1','hb2']
+      self.p_tor  = ['V1','V2','V3','tor1','cot1']  
+      if libfile.endswith('.json'):
+         lf                  = open(libfile,'r')
+         j                   = js.load(lf)
+         self.p              = j['p']
+         m                   = j['m']
+         self.MolEnergy_     = j['MolEnergy']
+         self.messages       = j['messages']
+         self.BOFunction     = j['BOFunction']
+         self.EnergyFunction = j['EnergyFunction']
+         self.MessageFunction= j['MessageFunction']
+         self.VdwFunction    = j['VdwFunction']
+         self.bo_layer       = j['bo_layer']
+         self.mf_layer       = j['mf_layer']
+         self.be_layer       = j['be_layer']
+         self.vdw_layer      = j['vdw_layer']
+         if not self.vdw_layer is None:
+            self.vdwnn       = True
+         else:
+            self.vdwnn       = False
+         rcut                = j['rcut']
+         rcuta               = j['rcutBond']
+         re                  = j['rEquilibrium']
+         lf.close()
+         self.init_bonds()
+         self.emol = 0.0
+      else:
+         self.p,zpe_,self.spec,self.bonds,self.offd,self.angs,self.torp,self.Hbs= \
+                       read_ffield(libfile=libfile,zpe=False)
+         m             = None
+         self.bo_layer = None
+         self.emol     = 0.0
+         rcut          = None
+         rcuta         = None
+         re            = None
+         self.vdwnn    = False
+         self.EnergyFunction  = 0
+         self.MessageFunction = 0
+         self.VdwFunction     = 0
+         self.p['acut']   = 0.0001
+         self.p['hbtol']  = 0.0001
+      if m is None:
+         self.nn=False
+         
+      for sp in self.atom_name:
+          if sp not in self.spec:
+             self.spec.append(sp)
+      return m,rcut,rcuta,re
+  
   def close(self):
       self.P  = None
       self.m  = None
       self.Qe = None
-
-
-
 
