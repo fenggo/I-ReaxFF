@@ -5,7 +5,7 @@ import time
 import tensorflow as tf
 import numpy as np
 import json as js
-from .reax_data import get_data,Dataset
+from .reax_data import reax_data,Dataset
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
 from .RadiusCutOff import setRcut
@@ -215,7 +215,7 @@ class ReaxFF_nn(object):
           for key in molecules:
               if self.dataset[key]==self.dataset[mol]:
                  nindex.extend(molecules[key].indexs)
-          data_ =  get_data(structure=mol,
+          data_ = reax_data(structure=mol,
                                 direc=self.dataset[mol],
                                  # dft=self.dft,
                                 atoms=self.atoms,
