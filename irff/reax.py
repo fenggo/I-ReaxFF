@@ -4,7 +4,7 @@ from os import system,makedirs # , getcwd, chdir,listdir,environ
 from os.path import isfile,exists,isdir
 from .md.gulp import write_gulp_in,get_reax_energy
 from .ml.data import get_md_data_inv
-from .reax_data import get_data 
+from .reax_data import reax_data 
 from .link import links
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
@@ -274,7 +274,7 @@ class ReaxFF(object):
           for key in molecules:
               if self.dataset[key]==self.dataset[mol]:
                  nindex.extend(molecules[key].indexs) 
-          data_ =  get_data(structure=mol,
+          data_ = reax_data(structure=mol,
                                 direc=self.dataset[mol],
                                 atoms=self.atoms,
                                vdwcut=self.vdwcut,

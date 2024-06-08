@@ -87,6 +87,7 @@ class IRFF_NP(object):
       self.EnergyFunction = 0
       self.nomb         = nomb # without angle, torsion and hbond manybody term
       self.messages     = messages
+      self.safety_value = 0.000000001
       self.label        = label
 
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
