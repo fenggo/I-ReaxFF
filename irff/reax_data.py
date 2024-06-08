@@ -63,7 +63,10 @@ def get_data(structure='data',direc=None,
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
-  def __init__(self,dft_energy,forces,rbd,rv,qij,theta,s_ijk,s_jkl,w,rhb,frhb,hbthe):
+  def __init__(self,dft_energy=None,forces=None,rbd=None,
+               rv=None,
+               qij=None,theta=None,s_ijk=None,s_jkl=None,w=None,
+               rhb=None,frhb=None,hbthe=None):
       self.dft_energy = dft_energy
       self.forces     = forces
       self.rbd        = rbd.transpose()
