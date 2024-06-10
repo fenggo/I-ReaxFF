@@ -7,7 +7,7 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                mf_layer,mf_layer_,MessageFunction_,MessageFunction,
                be_layer,be_layer_,EnergyFunction_,EnergyFunction,
                vdw_layer,vdw_layer_,VdwFunction_,VdwFunction,
-               bo_universal_nn,be_universal_nn,mf_universal_nn,vdw_universal_nn):
+               bo_universal_nn,be_universal,mf_universal,vdw_universal_nn):
     ''' set variable for neural networks '''
     m = {}
     bond   = []               # make sure the m matrix is unique 
@@ -24,8 +24,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
     if beopt is None:
        beopt = bonds
 
-    universal_nn = get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,
-                                    vdw_universal_nn,mf_universal_nn)
+    universal_nn = get_universal_nn(spec,bonds,bo_universal_nn,be_universal,
+                                    vdw_universal_nn,mf_universal)
 
     def set_wb(m_,pref='f',reuse_m=True,nin=8,nout=3,layer=[8,9],vlist=None,bias=0.0):
         ''' set matix varibles '''
@@ -194,8 +194,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
 
     for t in range(1,messages+1):
         b = 0.881373587 if t>1 else -0.867
-        if mf_universal_nn is not None:
-           set_universal_wb(m_=m_,pref='fm',bd=mf_universal_nn[0],reuse_m=reuse_m, 
+        if mf_universal is not None:
+           set_universal_wb(m_=m_,pref='fm',bd=mf_universal[0],reuse_m=reuse_m, 
                             nin=nin_,nout=nout_,layer=mf_layer,bias=b)
         set_message_wb(m_=m_,pref='fm',reuse_m=reuse_m,nin=nin_,nout=nout_,   
                             layer=mf_layer,bias=b) 
@@ -207,8 +207,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
         reuse_m = False 
     nin_ = 3 # 4 if EnergyFunction==1 else 3
 
-    if not be_universal_nn is None:
-       set_universal_wb(m_=m_,pref='fe',bd=be_universal_nn[0],reuse_m=reuse_m,
+    if not be_universal is None:
+       set_universal_wb(m_=m_,pref='fe',bd=be_universal[0],reuse_m=reuse_m,
                         nin=nin_,nout=1,layer=be_layer, bias=2.0)
     set_wb(m_=m_,pref='fe',reuse_m=reuse_m,nin=nin_,nout=1,layer=be_layer,
            vlist=bonds,bias=2.0)
@@ -216,7 +216,7 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
     nin_ = 1 if VdwFunction==1 else 3
     return m
 
-def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn,mf_universal_nn):
+def get_universal_nn(spec,bonds,bo_universal_nn,be_universal,vdw_universal_nn,mf_universal):
     universal_nn = []
     if not bo_universal_nn is None:
        if bo_universal_nn=='all':
@@ -233,11 +233,11 @@ def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn
            universal_nn.append('fpi_'+bdr)
            universal_nn.append('fpp_'+bdr)
 
-    if not be_universal_nn is None:
-       if be_universal_nn=='all':
+    if not be_universal is None:
+       if be_universal=='all':
           universal_bonds = bonds
        else:
-          universal_bonds = be_universal_nn
+          universal_bonds = be_universal
        for bd in universal_bonds:
            b = bd.split('-')
            bdr = b[1] + '-' + b[0]
@@ -255,11 +255,11 @@ def get_universal_nn(spec,bonds,bo_universal_nn,be_universal_nn,vdw_universal_nn
            universal_nn.append('fv_'+bd)
            universal_nn.append('fv_'+bdr)
 
-    if not mf_universal_nn is None:
-       if mf_universal_nn=='all':
+    if not mf_universal is None:
+       if mf_universal=='all':
           universal_bonds = spec
        else:
-          universal_bonds = mf_universal_nn
+          universal_bonds = mf_universal
        for sp in universal_bonds:
            # for t in range(1,messages+1):
            universal_nn.append('fm'+'_'+sp) # +str(t)

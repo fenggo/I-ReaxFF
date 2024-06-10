@@ -24,10 +24,14 @@ import random
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
-  def __init__(self,dft_energy,forces,rbd,rv,qij,theta,s_ijk,s_jkl,w,rhb,frhb,hbthe):
+  def __init__(self,dft_energy=None,x=None,forces=None,
+               rbd=None,rv=None,qij=None,
+               theta=None,s_ijk=None,s_jkl=None,w=None,
+               rhb=None,frhb=None,hbthe=None):
       self.dft_energy = dft_energy
       self.forces     = forces
-      self.rbd        = rbd.transpose()
+      self.x          = x
+      # self.rbd      = rbd.transpose()
       # self.rv       = rv
       # self.qij      = qij
       self.theta      = theta
@@ -46,14 +50,13 @@ class irff_data(object):
          bond:  int bond table list such as [[1,2],[1,3],...]
          rbd:   all bonds in the bond listed in "bond" list
   """
-  def __init__(self,structure='cl20mol',direc=None,
+  def __init__(self,structure='cl20mol',traj=None,
                vdwcut=10.0,rcut=None,rcuta=None,
                hbshort=6.75,hblong=7.5,
                atoms=None,
                batch=1000,minib=100,sample='uniform',
                p=None,spec=None,bonds=None,angs=None,
-               tors=None,hbs=None,
-               traj=False,          
+               tors=None,hbs=None,      
                variable_batch=False,
                nindex=[]):
       self.structure = structure
@@ -73,13 +76,12 @@ class irff_data(object):
       self.hbs       = hbs
       self.r_cut     = rcut
       self.rcuta     = rcuta
-      self.traj      = traj
       self.status    = True
 
-      print('-  Getting informations from directory {:s} ...\n'.format(direc))
+      print('-  Getting informations from trajectory {:s} ...\n'.format(traj))
 
       if atoms==None:
-         images  = self.get_ase_energy(direc)
+         images  = self.get_ase_energy(traj)
          trajonly= False
       else:
          images      = [atoms]
@@ -147,7 +149,7 @@ class irff_data(object):
          raise RuntimeError('-  Error: cell length must lager than 2.0*r_cut, using supercell!')
              
       self.R,self.vr = self.compute_bond(self.x)
-      image_rs = self.compute_image(self.vr)                            # vdw interaction images
+      # image_rs = self.compute_image(self.vr)                            # vdw interaction images
 
       self.get_table()
       self.get_bonds(self.R)
@@ -168,23 +170,18 @@ class irff_data(object):
       else:
          self.compute_angle(self.R,self.vr)
          self.compute_torsion(self.R,self.vr)
-         self.compute_hbond(image_rs)
+         # self.compute_hbond(image_rs)
          
-      self.compute_vdw(image_rs)
+      # self.compute_vdw(image_rs)
 
       # self.get_gulp_energy()
       self.get_charge()
-      self.get_ecoul(image_rs)
+      # self.get_ecoul(image_rs)
       self.get_eself()
-      
-      if variable_batch:
-         # print('-  grouping rvdw ...')
-         self.group_rvdw()
-         self.group_rhb()
 
       # for i,e in enumerate(self.energy_dft):  # new version zpe = old zpe + max_e
       #     self.energy_dft[i] = e - self.max_e  
-      print('-  end of gathering datas from directory {:s} ...\n'.format(direc))
+      print('-  end of gathering datas from directory {:s} ...\n'.format(traj))
 
   def compute_bond(self,x):
       hfcell    = 0.5 
@@ -859,8 +856,8 @@ class irff_data(object):
            np.divide(20.0,vdwcut**7.0)*(r**7.0)
       return tp
 
-  def get_ase_energy(self,direc):
-      images = Trajectory(direc)
+  def get_ase_energy(self,traj):
+      images = Trajectory(traj)
       self.nframe = len(images)
       return images
 

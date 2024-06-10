@@ -6,8 +6,10 @@ from ase.calculators.calculator import Calculator, all_changes
 from .qeq import qeq
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib
+from .irff_data import irff_data,Dataset
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
-from torch.autograd import Variable
+from .set_matrix_tensor import set_matrix
+#from torch.autograd import Variable
 import torch
 from torch import nn
 
@@ -83,24 +85,52 @@ class IRFF(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
-  def __init__(self,atoms=None,
-               mol=None,
+  def __init__(self,dataset={},
+               batch=200,
+               sample='uniform',
                libfile='ffield.json',
                vdwcut=10.0,
-               atol=0.001,
-               hbtol=0.001,
                messages=1,
                hbshort=6.75,hblong=7.5,
-               nomb=False,  # this option is used when deal with metal system
+               mf_layer=None,be_layer=None,
+               be_universal=None,mf_universal=None,
+               cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
+               opt=None,# optword='nocoul',
+               bdopt=None,mfopt=None,beopt=None,
+               eaopt=[],
+               nomb=False,              # this option is used when deal with metal system
                autograd=True):
       super(IRFF, self).__init__()
-      self.atoms        = atoms
-      self.cell         = atoms.get_cell()
-      self.atom_name    = self.atoms.get_chemical_symbols()
-      self.natom        = len(self.atom_name)
-      self.spec         = []
-      self.nn           = True
-      # self.vdwnn      = vdwnn
+      self.dataset      = dataset 
+      self.batch_size   = batch
+      self.sample       = sample        # uniform or random
+      self.opt          = opt
+      self.bdopt        = bdopt
+      self.mfopt        = mfopt
+      self.beopt        = beopt
+      self.eaopt        = eaopt
+      self.cons         = cons
+      self.mf_layer     = mf_layer
+      self.be_layer     = be_layer
+      self.mf_universal = mf_universal
+      self.be_universal = be_universal
+      # self.atoms      = atoms
+      # self.cell       = atoms.get_cell()
+      # self.atom_name  = self.atoms.get_chemical_symbols()
+      # self.natom      = len(self.atom_name)
+      # self.spec       = []
+      self.hbshort      = hbshort
+      self.hblong       = hblong
+      self.vdwcut       = vdwcut
+
+      self.m_,self.rcut,self.rcuta,re  = self.read_ffield(libfile)
+      if self.m_ is not None:
+         self.nn        = True          # whether use neural network
+      self.set_p()
+      self.get_data()
+      self.set_p_tensor()
+
+      self.results      = {}
       self.EnergyFunction = 0
       self.autograd     = autograd
       self.nomb         = nomb # without angle, torsion and hbond manybody term
@@ -108,78 +138,26 @@ class IRFF(nn.Module):
       self.safety_value = 0.000000001
       self.GPa          = 1.60217662*1.0e2
 
-      if libfile.endswith('.json'):
-         lf                  = open(libfile,'r')
-         j                   = js.load(lf)
-         self.p              = j['p']
-         m                   = j['m']
-         self.MolEnergy_     = j['MolEnergy']
-         self.messages       = j['messages']
-         self.BOFunction     = j['BOFunction']
-         self.EnergyFunction = j['EnergyFunction']
-         self.MessageFunction= j['MessageFunction']
-         self.VdwFunction    = j['VdwFunction']
-         self.bo_layer       = j['bo_layer']
-         self.mf_layer       = j['mf_layer']
-         self.be_layer       = j['be_layer']
-         self.vdw_layer      = j['vdw_layer']
-         if not self.vdw_layer is None:
-            self.vdwnn       = True
-         else:
-            self.vdwnn       = False
-         rcut                = j['rcut']
-         rcuta               = j['rcutBond']
-         re                  = j['rEquilibrium']
-         lf.close()
-         self.init_bonds()
-         if mol is None:
-            self.emol = 0.0
-         else:
-            mol_ = mol.split('-')[0]
-            if mol_ in self.MolEnergy_:
-               self.emol = self.MolEnergy_[mol_]
-            else:
-               self.emol = 0.0
-      else:
-         self.p,zpe_,self.spec,self.bonds,self.offd,self.angs,self.torp,self.Hbs= \
-                       read_ffield(libfile=libfile,zpe=False)
-         m             = None
-         self.bo_layer = None
-         self.emol     = 0.0
-         rcut          = None
-         rcuta         = None
-         self.vdwnn    = False
-         self.EnergyFunction  = 0
-         self.MessageFunction = 0
-         self.VdwFunction     = 0
-         self.p['acut']   = 0.0001
-         self.p['hbtol']  = 0.0001
-      if m is None:
-         self.nn=False
-         
-      for sp in self.atom_name:
-          if sp not in self.spec:
-             self.spec.append(sp)
+      # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
+      # self.Qe= qeq(p=self.p,atoms=self.atoms)
 
-      self.hbshort   = hbshort
-      self.hblong    = hblong
-      self.set_rcut(rcut,rcuta,re)
-      self.vdwcut    = vdwcut
-      self.botol     = 0.01*self.p['cutoff']
-      self.atol      = self.p['acut']   # atol
-      self.hbtol     = self.p['hbtol']  # hbtol
-      self.check_offd()
-      self.check_hb()
-      self.get_rcbo()
-      self.set_p(m,self.bo_layer)
-      self.Qe= qeq(p=self.p,atoms=self.atoms)
-      self.results = {}
+  def forward(self, positions):
+      self.get_charge(cell,positions)
+      self.get_neighbor(cell,rcell,positions)
 
-  def forward(self, inputs):
-      y = inputs[0] * torch.pow(self.params[0]+self.params[1]-inputs[1],2)\
-          + torch.pow(self.params[0]-self.params[1],2)
-      return y
- 
+      cell = torch.tensor(cell)
+      rcell= torch.tensor(rcell)
+
+      self.positions = torch.tensor(positions,requires_grad=True)
+      E = self.get_total_energy(cell,rcell,self.positions)
+      grad = torch.autograd.grad(outputs=E,
+                                 inputs=self.positions,
+                                 only_inputs=True)
+   
+      self.grad              = grad#[0].numpy()
+      self.E                 = E#.detach().numpy()[0]
+      return self.E,-self.grad
+  
   def get_charge(self,cell,positions):
       self.Qe.calc(cell,positions)
       self.q   = self.Qe.q[:-1]
@@ -202,54 +180,54 @@ class IRFF(nn.Module):
       else:
          angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
 
-      self.angs  = np.array(angs)
-      self.tors  = np.array(tors)
-      self.hbs   = np.array(hbs)
+      self.Angs  = np.array(angs)
+      self.Tors  = np.array(tors)
+      self.Hbs   = np.array(hbs)
 
-      self.nang  = len(self.angs)
-      self.ntor  = len(self.tors)
-      self.nhb   = len(self.hbs)
+      self.nang  = len(self.Angs)
+      self.ntor  = len(self.Tors)
+      self.nhb   = len(self.Hbs)
     
       if self.nang>0:
-         self.angj  = self.angs[:,1]
-         self.angi  = self.angs[:,0]
-         self.angk  = self.angs[:,2]
+         self.angj  = self.Angs[:,1]
+         self.angi  = self.Angs[:,0]
+         self.angk  = self.Angs[:,2]
          P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
          for key in P_:
              self.P[key] = torch.from_numpy(P_[key])
 
       if self.ntor>0:
-         self.tori  = self.tors[:,0]
-         self.torj  = self.tors[:,1]
-         self.tork  = self.tors[:,2]
-         self.torl  = self.tors[:,3]
+         self.tori  = self.Tors[:,0]
+         self.torj  = self.Tors[:,1]
+         self.tork  = self.Tors[:,2]
+         self.torl  = self.Tors[:,3]
          P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
          for key in P_:
              self.P[key] = torch.from_numpy(P_[key])
 
       if self.nhb>0:
-         self.hbi     = self.hbs[:,0]
-         self.hbj     = self.hbs[:,1]
-         self.hbk     = self.hbs[:,2]
+         self.hbi     = self.Hbs[:,0]
+         self.hbj     = self.Hbs[:,1]
+         self.hbk     = self.Hbs[:,2]
          P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
          for key in P_:
              self.P[key] = torch.from_numpy(P_[key])
 
-  def set_rcut(self,rcut,rcuta,re): 
-      rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)
-      self.rcut  = rcut_    ## bond order compute cutoff
-      self.rcuta = rcuta_   ## angle term cutoff
+#   def set_rcut(self,rcut,rcuta,re): 
+#       rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)
+#       self.rcut  = rcut_    ## bond order compute cutoff
+#       self.rcuta = rcuta_   ## angle term cutoff
 
-      # self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float32)
-      # self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float32)
-      self.re = np.zeros([self.natom,self.natom],dtype=np.float32)
-      for i in range(self.natom):
-          for j in range(self.natom):
-              bd = self.atom_name[i] + '-' + self.atom_name[j]
-              if i!=j:
-                 # self.r_cut[i][j]  = self.rcut[bd]  
-                 # self.r_cuta[i][j] = self.rcuta[bd] 
-                 self.re[i][j]     = re_[bd] 
+#       # self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float32)
+#       # self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float32)
+#       self.re = np.zeros([self.natom,self.natom],dtype=np.float32)
+#       for i in range(self.natom):
+#           for j in range(self.natom):
+#               bd = self.atom_name[i] + '-' + self.atom_name[j]
+#               if i!=j:
+#                  # self.r_cut[i][j]  = self.rcut[bd]  
+#                  # self.r_cuta[i][j] = self.rcuta[bd] 
+#                  self.re[i][j]     = re_[bd] 
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
@@ -259,8 +237,8 @@ class IRFF(nn.Module):
           ofd=bd if b[0]!=b[1] else b[0]
 
           log_ = np.log((self.botol/(1.0+self.botol)))
-          rr = log_/self.p['bo1_'+bd] 
-          self.rc_bo[bd]=self.p['rosi_'+ofd]*np.power(log_/self.p['bo1_'+bd],1.0/self.p['bo2_'+bd])
+          rr = log_/self.p_['bo1_'+bd] 
+          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(log_/self.p_['bo1_'+bd],1.0/self.p_['bo2_'+bd])
   
   def get_bondorder_uc(self):
       if self.nn:
@@ -1046,47 +1024,6 @@ class IRFF(nn.Module):
       E              = self.get_total_energy(cell,rcell,self.positions)
       return E
 
-
-  def calculate_numerical_stress(self,atoms,d=1e-6,voigt=True,scale_atoms=False):
-      """Calculate numerical stress using finite difference."""
-      stress = np.zeros((3, 3), dtype=float)
-      cell   = atoms.cell.copy()
-      V      = atoms.get_volume()
-
-      for i in range(3):
-          x = np.eye(3)
-          x[i, i] += d
-          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
-          eplus = self.get_free_energy(atoms=atoms)
-
-          x[i, i] -= 2 * d
-          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
-          eminus = self.get_free_energy(atoms=atoms)
-
-          stress[i, i] = (eplus - eminus) / (2 * d * V)
-          x[i, i] += d
-
-          j = i - 2
-          x[i, j] = d
-          x[j, i] = d
-          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
-          eplus = self.get_free_energy(atoms=atoms)
-
-          x[i, j] = -d
-          x[j, i] = -d
-          atoms.set_cell(np.dot(cell, x), scale_atoms=scale_atoms)
-          eminus = self.get_free_energy(atoms=atoms)
-
-          stress[i, j] = (eplus - eminus) / (4 * d * V)
-          stress[j, i] = stress[i, j]
-      atoms.set_cell(cell, scale_atoms=True)
-
-      if voigt:
-         return stress.flat[[0, 4, 8, 5, 2, 1]]
-      else:
-         return stress
-
-
   def check_hb(self):
       if 'H' in self.spec:
          for sp1 in self.spec:
@@ -1096,58 +1033,156 @@ class IRFF(nn.Module):
                        hb = sp1+'-H-'+sp2
                        if hb not in self.Hbs:
                           self.Hbs.append(hb) # 'rohb','Dehb','hb1','hb2'
-                          self.p['rohb_'+hb] = 1.9
-                          self.p['Dehb_'+hb] = 0.0
-                          self.p['hb1_'+hb]  = 2.0
-                          self.p['hb2_'+hb]  = 19.0
+                          self.p_['rohb_'+hb] = 1.9
+                          self.p_['Dehb_'+hb] = 0.0
+                          self.p_['hb1_'+hb]  = 2.0
+                          self.p_['hb2_'+hb]  = 19.0
 
 
   def check_offd(self):
       p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
       for key in p_offd:
           for sp in self.spec:
-              try:
-                 self.p[key+'_'+sp+'-'+sp]  = self.p[key+'_'+sp]  
-              except KeyError:
-                 print('-  warning: key not in dict') 
+              self.p_[key+'_'+sp+'-'+sp]  = self.p_[key+'_'+sp]  
 
       for bd in self.bonds:             # check offd parameters
           b= bd.split('-')
-          if 'rvdw_'+bd not in self.p:
+          if 'rvdw_'+bd not in self.p_:
              for key in p_offd:        # set offd parameters according combine rules
-                 if self.p[key+'_'+b[0]]>0.0 and self.p[key+'_'+b[1]]>0.0:
-                    self.p[key+'_'+bd] = np.sqrt(self.p[key+'_'+b[0]]*self.p[key+'_'+b[1]])
+                 if self.p_[key+'_'+b[0]]>0.0 and self.p_[key+'_'+b[1]]>0.0:
+                    self.p_[key+'_'+bd] = np.sqrt(self.p_[key+'_'+b[0]]*self.p_[key+'_'+b[1]])
                  else:
-                    self.p[key+'_'+bd] = -1.0
+                    self.p_[key+'_'+bd] = -1.0
 
       for bd in self.bonds:             # check minus ropi ropp parameters
-          if self.p['ropi_'+bd]<0.0:
-             self.p['ropi_'+bd] = 0.3*self.p['rosi_'+bd]
-             self.p['bo3_'+bd]  = -50.0
-             self.p['bo4_'+bd]  = 0.0
-          if self.p['ropp_'+bd]<0.0:
-             self.p['ropp_'+bd] = 0.2*self.p['rosi_'+bd]
-             self.p['bo5_'+bd]  = -50.0
-             self.p['bo6_'+bd]  = 0.0
+          if self.p_['ropi_'+bd]<0.0:
+             self.p_['ropi_'+bd] = 0.3*self.p_['rosi_'+bd]
+             self.p_['bo3_'+bd]  = -50.0
+             self.p_['bo4_'+bd]  = 0.0
+          if self.p_['ropp_'+bd]<0.0:
+             self.p_['ropp_'+bd] = 0.2*self.p_['rosi_'+bd]
+             self.p_['bo5_'+bd]  = -50.0
+             self.p_['bo6_'+bd]  = 0.0
 
-
-  def set_p(self,m,bo_layer):
+  def set_p(self):
       ''' setting up parameters '''
       self.unit   = 4.3364432032e-2
       self.punit  = ['Desi','Depi','Depp','lp2','ovun5','val1',
                      'coa1','V1','V2','V3','cot1','pen1','Devdw','Dehb']
-      p_bond = ['Desi','Depi','Depp','be1','bo5','bo6','ovun1',
+      ##  All Parameters
+      self.p_bond = ['Desi','Depi','Depp','be1','bo5','bo6','ovun1',
                 'be2','bo3','bo4','bo1','bo2',
                 'Devdw','rvdw','alfa','rosi','ropi','ropp',
                 'corr13','ovcorr']
-      p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
-      self.P = {}
+      self.p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
+      self.p_g  = ['boc1','boc2','coa2','ovun6','lp1','lp3',
+              'ovun7','ovun8','val6','val9','val10','tor2',
+              'tor3','tor4','cot2','coa4','ovun4',               
+              'ovun3','val8','coa3','pen2','pen3','pen4','vdw1'] 
+      self.p_spec = ['valang','valboc','val','vale',
+                     'lp2','ovun5',     # 'val3','val5','boc3','boc4','boc5'
+                     'ovun2','atomic',
+                     'mass','chi','mu'] # 'gamma','gammaw','Devdw','rvdw','alfa'
+      self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
+      self.p_hb   = ['rohb','Dehb','hb1','hb2']
+      self.p_tor  = ['V1','V2','V3','tor1','cot1']  
+      if self.opt is None:
+         self.opt = []
+         for key in self.p_g:
+             if key not in self.cons:
+                self.opt.append(key)
+         for key in self.p_spec:
+             if key not in self.cons:
+                self.opt.append(key)
+         for key in self.p_bond:
+             if key not in self.cons:
+                self.opt.append(key)
+         for key in self.p_ang:
+             if key not in self.cons:
+                self.opt.append(key)
+         for key in self.p_tor:
+             if key not in self.cons:
+                self.opt.append(key)
+         for key in self.p_hb:
+             if key not in self.cons:
+                self.opt.append(key)
 
-      if not self.nn:
-         self.p['lp3'] = 75.0
-      # else:
-      #    self.hbtol = self.p['hbtol']
-      #    self.atol = self.p['acut']  
+      
+      self.botol        = 0.01*self.p_['cutoff']
+      self.atol         = self.p_['acut']   # atol
+      self.hbtol        = self.p_['hbtol']  # hbtol
+      
+      self.check_offd()
+      self.check_hb()
+      self.tors = self.check_tors(self.p_tor)
+      self.get_rcbo()
+      
+      self.p            = {}   # training parameter 
+
+      for key in self.p_g:
+          unit_ = self.unit if key in self.punit else 1.0
+          grad = True if key in self.opt else False
+          self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
+                                     requires_grad=grad)
+      for key in self.p_spec:
+          unit_ = self.unit if key in self.punit else 1.0
+          for sp in self.spec:
+              key_ = key+'_'+sp
+              grad = True if key in self.opt or key_ in self.opt else False
+              self.p[key] = nn.Parameter(torch.tensor(self.p_[key_]*unit_), 
+                                         requires_grad=grad)
+      
+      for key in self.p_bond:
+          unit_ = self.unit if key in self.punit else 1.0
+          for bd in self.bonds:
+              key_ = key+'_'+bd
+              grad = True if key in self.opt or key_ in self.opt else False
+              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
+                                                requires_grad=grad)
+      
+      for key in self.p_ang:
+          unit_ = self.unit if key in self.punit else 1.0
+          for a in self.angs:
+              key_ = key + '_' + a
+              grad = True if key in self.opt or key_ in self.opt else False
+              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=grad)
+
+      for key in self.p_tor:
+          unit_ = self.unit if key in self.punit else 1.0
+          for t in self.tors:
+              key_ = key + '_' + t
+              grad = True if key in self.opt or key_ in self.opt else False
+              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=grad)
+
+      for key in self.p_hb:
+          unit_ = self.unit if key in self.punit else 1.0
+          for h in self.hbs:
+              key_ = key + '_' + h
+              grad = True if key in self.opt or key_ in self.opt else False
+              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=grad)
+              
+      self.eself =  nn.Parameter(torch.tensor(0.0),requires_grad=grad)   
+
+      if self.nn:
+         self.set_m(self.m_)
+
+
+  def set_p_tensor(self,strucs):
+      for key in self.p_spec:
+          # unit_ = self.unit if key in self.punit else 1.0
+          self.P[key] = np.zeros([self.natom],dtype=np.float64)
+          self.P[key] = torch.tensor(self.P[key])
+
+      for key in ['boc3','boc4','boc5','gamma','gammaw']:
+          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
+          for i in range(self.natom):
+              for j in range(self.natom):
+                  self.P[key][i][j] = np.sqrt(self.p[key+'_'+self.atom_name[i]]*self.p[key+'_'+self.atom_name[j]],
+                                              dtype=np.float64)
+          self.P[key] = torch.tensor(self.P[key])
 
       self.rcbo = np.zeros([self.natom,self.natom],dtype=np.float64)
       self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float64)
@@ -1164,33 +1199,8 @@ class IRFF(nn.Module):
                  self.r_cut[i][j]  = self.rcut[bd]  
                  self.r_cuta[i][j] = self.rcuta[bd] 
               # if i<j:  self.nbe0[bd] += 1
-      self.rcbo_tensor = torch.from_numpy(self.rcbo)
 
-      p_spec = ['valang','valboc','val','vale',
-                'lp2','ovun5',                 # 'val3','val5','boc3','boc4','boc5'
-                'ovun2','atomic',
-                'mass','chi','mu']             # 'gamma','gammaw','Devdw','rvdw','alfa'
-
-      for key in p_spec:
-          unit_ = self.unit if key in self.punit else 1.0
-          self.P[key] = np.zeros([self.natom],dtype=np.float64)
-          for i in range(self.natom):
-                sp = self.atom_name[i]
-                self.P[key][i] = self.p[key+'_'+sp]*unit_
-          self.P[key] = torch.tensor(self.P[key])
-
-      self.zpe = -torch.sum(self.P['atomic']) + self.emol
-
-
-      for key in ['boc3','boc4','boc5','gamma','gammaw']:
-          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
-          for i in range(self.natom):
-              for j in range(self.natom):
-                  self.P[key][i][j] = np.sqrt(self.p[key+'_'+self.atom_name[i]]*self.p[key+'_'+self.atom_name[j]],
-                                              dtype=np.float64)
-          self.P[key] = torch.tensor(self.P[key])
-      
-      for key in p_bond:
+      for key in self.p_bond:
           unit_ = self.unit if key in self.punit else 1.0
           self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
           for i in range(self.natom):
@@ -1200,112 +1210,26 @@ class IRFF(nn.Module):
                      bd = self.atom_name[j] + '-' + self.atom_name[i]
                   self.P[key][i][j] = self.p[key+'_'+bd]*unit_
           self.P[key] = torch.tensor(self.P[key])
-       
-      p_g  = ['boc1','boc2','coa2','ovun6','lp1','lp3',
-              'ovun7','ovun8','val6','val9','val10','tor2',
-              'tor3','tor4','cot2','coa4','ovun4',               
-              'ovun3','val8','coa3','pen2','pen3','pen4','vdw1'] 
-      for key in p_g:
-          self.P[key] = self.p[key]
 
-      self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
-      self.p_hb   = ['rohb','Dehb','hb1','hb2']
-      self.p_tor  = ['V1','V2','V3','tor1','cot1']  
-      tors        = self.check_tors(self.p_tor)
- 
-      for key in self.p_ang:
-          unit_ = self.unit if key in self.punit else 1.0
-          for a in self.angs:
-              pn = key + '_' + a
-              self.p[pn] = self.p[pn]*unit_
-
-      for key in self.p_tor:
-          unit_ = self.unit if key in self.punit else 1.0
-          for t in tors:
-              pn = key + '_' + t
-              self.p[pn] = self.p[pn]*unit_
-
-      for h in self.Hbs:
-          pn = 'Dehb_' + h
-          self.p[pn] = self.p[pn]*self.unit
-
+      self.rcbo_tensor = torch.from_numpy(self.rcbo)
       self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
       self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
       self.eye = torch.tensor(1.0 - np.eye(self.natom,dtype=np.float64))
 
-      if self.nn:
-         self.set_m(m)
-
 
   def set_m(self,m):
-      self.m = {}
-      if self.BOFunction==0:
-         pres = ['fe','fm']
-      else:
-         pres = ['fe','fsi','fpi','fpp','fm']
-         
-      if self.vdwnn:
-         pres.append('fv')
-      # for t in range(1,self.messages+1):
-      #     pres.append('fm')
-      for k_ in pres:
-          for k in ['wi','bi','wo','bo']:
-              key = k_+k
-              self.m[key] = []
-              for i in range(self.natom):
-                  mi_ = []
-                  for j in range(self.natom):
-                      if k_ in ['fe','fsi','fpi','fpp','fv']:
-                         bd = self.atom_name[i] + '-' + self.atom_name[j]
-                         if bd not in self.bonds:
-                            bd = self.atom_name[j] + '-' + self.atom_name[i]
-                      else:
-                         bd = self.atom_name[i] 
-                      key_ = key+'_'+bd
-                      if key_ in m:
-                         if k in ['bi','bo']:
-                            mi_.append(np.expand_dims(m[key_],axis=0))
-                         else:
-                            mi_.append(m[key_])
-                  self.m[key].append(mi_)
-              self.m[key] = torch.tensor(np.array(self.m[key]),dtype=torch.double)
-
-          for k in ['w','b']:
-              key = k_+k
-              self.m[key] = []
-
-              if k_ in ['fesi','fepi','fepp','fe']:
-                 layer_ = self.be_layer[1]
-              elif k_ in ['fsi','fpi','fpp']:
-                 layer_ = self.bo_layer[1]
-              elif k_ =='fv':
-                 layer_ = self.vdw_layer[1]
-              else:
-                 layer_ = self.mf_layer[1]
-
-              for l in range(layer_):
-                  m_ = []
-                  for i in range(self.natom):
-                      mi_ = []
-                      for j in range(self.natom):
-                          if k_ in ['fe','fsi','fpi','fpp','fv']:
-                             bd = self.atom_name[i] + '-' + self.atom_name[j]
-                             if bd not in self.bonds:
-                                bd = self.atom_name[j] + '-' + self.atom_name[i]
-                          else:
-                             bd = self.atom_name[i] 
-                          key_ = key+'_'+bd
-                          if key_ in m:
-                             if k == 'b':
-                                mi_.append(np.expand_dims(m[key+'_'+bd][l],axis=0))
-                             else:
-                                mi_.append(m[key+'_'+bd][l])
-                      m_.append(mi_)
-                  self.m[key].append(torch.tensor(np.array(m_),dtype=torch.double))
+      self.m = set_matrix(self.m_,self.spec,self.bonds,
+                          self.mfopt,self.beopt,self.bdopt,1,
+                          (6,0),(6,0),0,0,
+                          self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
+                          self.be_layer,self.be_layer_,1,1,
+                          (9,0),(9,0),1,1,
+                          None,self.be_universal,self.mf_universal,None)
 
   def init_bonds(self):
-      self.bonds,self.offd,self.angs,self.torp,self.Hbs = [],[],[],[],[]
-      for key in self.p:
+      self.bonds,self.offd,self.angs,self.torp,self.hbs = [],[],[],[],[]
+      self.spec = []
+      for key in self.p_:
           k = key.split('_')
           if k[0]=='bo1':
              self.bonds.append(k[1])
@@ -1318,7 +1242,9 @@ class IRFF(nn.Module):
           elif k[0]=='tor1':
              self.torp.append(k[1])
           elif k[0]=='rohb':
-             self.Hbs.append(k[1])
+             self.hbs.append(k[1])
+          elif k[0]=='val':
+             self.spec.append(k[1])
       self.torp = self.checkTors(self.torp)
 
   def checkTors(self,torp):
@@ -1372,7 +1298,170 @@ class IRFF(nn.Module):
                  else:
                     self.p[key+'_'+tor] = 0.0
       return tors
-      
+
+  def get_data(self): 
+      self.nframe      = 0
+      strucs           = {}
+      self.max_e       = {}
+      self.cell        = {}
+      self.strcs       = []
+      self.batch       = {}
+      self.esel,self.evdw_,self.ecoul_ = {},{},{}
+
+      for st in self.dataset: 
+          nindex = []
+          for key in strucs:
+              if self.dataset[key]==self.dataset[st]:
+                 nindex.extend(strucs[key].indexs)
+          data_ = irff_data(structure=st,
+                                 traj=self.dataset[st],
+                               vdwcut=self.vdwcut,
+                                 rcut=self.rcut,
+                                rcuta=self.rcuta,
+                              hbshort=self.hbshort,
+                               hblong=self.hblong,
+                                batch=self.batch_size,
+                       variable_batch=True,
+                               sample=self.sample,
+                       p=self.p_,spec=self.spec,bonds=self.bonds,
+                  angs=self.angs,tors=self.tors,
+                                  hbs=self.hbs,
+                               nindex=nindex)
+
+          if data_.status:
+             self.strcs.append(st)
+             strucs[st]      = data_
+             self.batch[st]  = strucs[st].batch
+             self.nframe    += self.batch[st]
+             print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
+             self.max_e[st]  = strucs[st].max_e
+             # self.evdw_[st]= strucs[st].evdw
+             # self.ecoul_[st] = strucs[st].ecoul  
+             self.esel[st]   = strucs[st].eself     
+             self.cell[st]   = strucs[st].cell
+          else:
+             print('-  data status of %s:' %st,data_.status)
+      self.nstrc  = len(strucs)
+      self.generate_data(strucs)
+      # self.memory(molecules=strucs)
+      print('-  generating dataset ...')
+      return strucs
+
+  def generate_data(self,strucs):
+      ''' get data '''
+      self.blist,self.bdid             = {},{}
+      self.dilink,self.djlink          = {},{}
+      self.nbd,self.b,self.a,self.t    = {},{},{},{}
+      self.ang_i,self.ang_j,self.ang_k = {},{},{}
+      self.abij,self.abjk              = {},{}
+      self.tij,self.tjk,self.tkl       = {},{},{}
+      self.tor_j,self.tor_k            = {},{}
+      self.tor_i,self.tor_l            = {},{}
+      self.atom_name                   = {}
+      self.natom                       = {}
+      self.nv                          = {}
+      self.na                          = {}
+      self.nt                          = {}
+      self.nh                          = {}
+      self.v                           = {}
+      self.h                           = {}
+      self.hij                         = {}
+      self.data                        = {}
+      for s in strucs:
+          self.natom[s]    = strucs[s].natom
+          self.blist[s]    = strucs[s].blist
+          self.dilink[s]   = strucs[s].dilink
+          self.djlink[s]   = strucs[s].djlink
+          
+          self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
+          self.ang_i[s]    = np.expand_dims(strucs[s].ang_i,axis=1)
+          self.ang_k[s]    = np.expand_dims(strucs[s].ang_k,axis=1)
+          self.abij[s]     = strucs[s].abij
+          self.abjk[s]     = strucs[s].abjk
+
+          self.tij[s]      = strucs[s].tij
+          self.tjk[s]      = strucs[s].tjk
+          self.tkl[s]      = strucs[s].tkl
+          
+          self.tor_i[s]    = np.expand_dims(strucs[s].tor_i,axis=1)
+          self.tor_j[s]    = np.expand_dims(strucs[s].tor_j,axis=1)
+          self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
+          self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
+
+          self.nbd[s]      = strucs[s].nbd
+          self.na[s]       = strucs[s].na
+          self.nt[s]       = strucs[s].nt
+          self.nv[s]       = strucs[s].nv
+          self.b[s]        = strucs[s].B
+          self.a[s]        = strucs[s].A
+          self.t[s]        = strucs[s].T
+          self.v[s]        = strucs[s].V
+          self.nh[s]       = strucs[s].nh
+          self.h[s]        = strucs[s].H
+          self.hij[s]      = strucs[s].hij
+          self.bdid[s]     = strucs[s].bond  # bond index like pair (i,j).
+          self.atom_name[s]= strucs[s].atom_name
+          self.data[s]     = Dataset(strucs[s].energy_nw,
+                                     strucs[s].forces,
+                                     strucs[s].rbd,
+                                     strucs[s].rv,
+                                     strucs[s].qij,
+                                     strucs[s].theta,
+                                     strucs[s].s_ijk,
+                                     strucs[s].s_jkl,
+                                     strucs[s].w,
+                                     strucs[s].rhb,
+                                     strucs[s].frhb,
+                                     strucs[s].hbthe)
+
+  def read_ffield(self,libfile):
+      if libfile.endswith('.json'):
+         lf                  = open(libfile,'r')
+         j                   = js.load(lf)
+         self.p_             = j['p']
+         self.m_             = j['m']
+         self.MolEnergy_     = j['MolEnergy']
+         self.messages       = j['messages']
+         self.BOFunction     = j['BOFunction']
+         self.EnergyFunction_ = self.EnergyFunction = j['EnergyFunction']
+         self.MessageFunction_=self.MessageFunction= j['MessageFunction']
+         self.VdwFunction    = j['VdwFunction']
+         self.mf_layer_      = j['mf_layer']
+         self.be_layer_      = j['be_layer']
+         rcut                = j['rcut']
+         rcuta               = j['rcutBond']
+         re                  = j['rEquilibrium']
+         lf.close()
+         self.init_bonds()
+         self.emol = 0.0
+      else:
+         (self.p_,zpe_,self.spec,self.bonds,self.offd,self.angs,
+          self.torp,self.hbs) = read_ffield(libfile=libfile,zpe=False)
+         self.m_        = None
+         self.mf_layer_ = None
+         self.be_layer_ = None
+         self.emol      = 0.0
+         rcut           = None
+         rcuta          = None
+         re             = None
+         self.vdwnn     = False
+         self.EnergyFunction_ = 0
+         self.MessageFunction_= 0
+         self.VdwFunction     = 0
+         self.p_['acut']   = 0.0001
+         self.p_['hbtol']  = 0.0001
+      if self.mf_layer is None:
+         self.mf_layer = self.mf_layer_
+      if self.be_layer is None:
+         self.be_layer = self.be_layer_
+      if self.m_ is None:
+         self.nn=False
+         
+      # for sp in self.atom_name:
+      #     if sp not in self.spec:
+      #        self.spec.append(sp)
+      return self.m_,rcut,rcuta,re
+  
   def logout(self):
       with open('irff.log','w') as fmd:
          fmd.write('\n------------------------------------------------------------------------\n')
@@ -1431,9 +1520,4 @@ class IRFF(nn.Module):
       self.P  = None
       self.m  = None
       self.Qe = None
-
-if __name__ == '__main__':
-   A  = read('poscar.gen')
-   rf = IRFF(atoms=A,libfile='ffield')
-
 
