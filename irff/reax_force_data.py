@@ -6,31 +6,21 @@ from .md.gulp import write_gulp_in,get_reaxff_q
 from .qeq import qeq
 from .reax_data import rtaper
 import random
-
-
-#  data = irff_data(structure=structure,direc=direc,
-#                   sample=sample,
-#                   vdwcut=vdwcut,
-#                   rcut=rcut,rcuta=rcuta,
-#                   hbshort=hbshort,hblong=hblong,
-#                   atoms=atoms,
-#                   batch=batch,minib=minib,
-#                   variable_batch=variable_batch,
-#                   p=p,spec=spec,bonds=bonds,angs=angs,
-#                   tors=tors,hbs=hbs,
-#                   #screen=screen,
-#                   nindex=nindex)
     
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
-  def __init__(self,dft_energy=None,x=None,forces=None,
+  def __init__(self,dft_energy=None,
+               x=None,cell=None,rcell=None,
+               forces=None,
                rbd=None,rv=None,qij=None,
                theta=None,s_ijk=None,s_jkl=None,w=None,
                rhb=None,frhb=None,hbthe=None):
       self.dft_energy = dft_energy
       self.forces     = forces
       self.x          = x
+      self.cell       = cell
+      self.rcell      = rcell
       # self.rbd      = rbd.transpose()
       # self.rv       = rv
       # self.qij      = qij
@@ -43,7 +33,7 @@ class Dataset(object):
       self.hbthe      = hbthe
 
 
-class irff_data(object):
+class reax_force_data(object):
   """ Collecting datas for mathine learning for bond order potential ReaxFF or ReaxFF-nn
       Atribute:
       --------
@@ -576,16 +566,6 @@ class irff_data(object):
           else:
              self.cos2w = np.concatenate((self.cos2w,c2wtm),axis=1) 
 
-  def compute_image(self,vr):
-      vr_   = []
-      cell_ = np.expand_dims(np.expand_dims(self.cell,axis=1),axis=1)
-      for i in range(-1,2):
-          for j in range(-1,2):
-              for k in range(-1,2):
-                  cell = cell_[:,:,:,0]*i + cell_[:,:,:,1]*j+cell_[:,:,:,2]*k
-                  vr_.append(vr+cell)
-      return vr_
-
   def compute_vdw(self,image_rs):
       vi,vj,vi_p,vj_p,self.vi,self.vj = [],[],[],[],[],[]
       # self.V = {}
@@ -865,8 +845,9 @@ class irff_data(object):
       ''' getting data in the ase traj '''
       x         = []
       cell      = []
+      rcell     = []
       forces    = []
-      energy_nw = []
+      energy_dft= []
       force_has_none = False
       for i,ind_ in enumerate(self.indexs):
           imag = images[ind_]
@@ -878,8 +859,12 @@ class irff_data(object):
           if trajonly:
              e = 0.0
           else:
-             e = imag.get_potential_energy()
-          cell.append(imag.get_cell())
+             e  = imag.get_potential_energy()
+          cell_ = imag.get_cell()
+          rcell_= np.linalg.inv(cell_)
+          cell.append(cell_)
+          rcell.append(rcell_)
+
           x.append(imag.positions)
           try:
              force_ = imag.get_forces()
@@ -888,10 +873,11 @@ class irff_data(object):
              force_has_none = True
              # print('-  ignoring the forces as are not available.')
           forces.append(force_)
-          energy_nw.append(e)
-      self.energy_dft = np.array(energy_nw)
+          energy_dft.append(e)
+      self.energy_dft = np.array(energy_dft)
       self.x         = np.array(x)
       self.cell      = np.array(cell)
+      self.rcell     = np.array(rcell) # Inverted lattice vector
       if force_has_none:
          self.forces = None
       else:

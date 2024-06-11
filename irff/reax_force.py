@@ -6,7 +6,7 @@ from ase.calculators.calculator import Calculator, all_changes
 from .qeq import qeq
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib
-from .irff_data import irff_data,Dataset
+from .reax_force_data import reax_force_data,Dataset
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from .set_matrix_tensor import set_matrix
 #from torch.autograd import Variable
@@ -81,7 +81,7 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 
-class IRFF(nn.Module):
+class Reax_Force(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
@@ -100,7 +100,7 @@ class IRFF(nn.Module):
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                autograd=True):
-      super(IRFF, self).__init__()
+      super(Reax_Force, self).__init__()
       self.dataset      = dataset 
       self.batch_size   = batch
       self.sample       = sample        # uniform or random
@@ -128,7 +128,7 @@ class IRFF(nn.Module):
          self.nn        = True          # whether use neural network
       self.set_p()
       self.get_data()
-      self.set_p_tensor()
+      self.stack_tensor()
 
       self.results      = {}
       self.EnergyFunction = 0
@@ -141,23 +141,91 @@ class IRFF(nn.Module):
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
 
-  def forward(self, positions):
+  def forward(self):
+      for st in self.strcs:
+          self.get_bond_energy(st)   # get bond energy for every structure
+
+
+      #   self.get_charge(cell,positions)
+      #   self.get_neighbor(cell,rcell,positions)
+
+      #   cell = torch.tensor(cell)
+      #   rcell= torch.tensor(rcell)
+
+      #   self.positions = torch.tensor(positions,requires_grad=True)
+      #   E = self.get_total_energy(cell,rcell,self.positions)
+      #   grad = torch.autograd.grad(outputs=E,
+      #                              inputs=self.positions,
+      #                              only_inputs=True)
+   
+      #   self.grad              = grad#[0].numpy()
+      #   self.E                 = E#.detach().numpy()[0]
+      return self.E,-self.grad
+  
+  def get_bond_energy(self,st):
+      vr         = fvr(self.x[st])
+      vrf        = torch.matmul(vr,self.data[st].rcell)
+
+      vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
+      vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
+
+      vr         = torch.matmul(vrf,self.cell[st])
+      self.r[st] = torch.sqrt(torch.sum(self.vr*self.vr,2)) # +0.0000000001
+
+    #   self.get_bondorder_uc()
+    #   self.get_bondorder_nn()
+ 
+
+    #   self.Dv     = self.Delta - self.P['val']
+    #   self.Dpi   = torch.sum(self.bopi+self.bopp,1) 
+
+    #   self.so    = torch.sum(self.P['ovun1']*self.P['Desi']*self.bo0,1)  
+    #   self.fbo   = taper(self.bo0,rmin=self.atol,rmax=2.0*self.atol) 
+    #   self.fhb   = taper(self.bo0,rmin=self.hbtol,rmax=2.0*self.hbtol) 
+
+    #   if self.EnergyFunction>=1: # or self.EnergyFunction==2 or self.EnergyFunction==3:
+    #      self.ebond = - self.P['Desi']*self.esi
+    #   else:
+    #      self.ebond = -self.esi
+
+    #   self.Ebond = 0.5*torch.sum(self.ebond)
+      return # self.Ebond
+
+
+  def calculate(self,atoms=None):
+      cell      = atoms.get_cell()                    # cell is object now
+      cell      = cell[:].astype(dtype=np.float64)
+      rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
+
+      positions = atoms.get_positions()
+      xf        = np.dot(positions,rcell)
+      xf        = np.mod(xf,1.0)
+      positions = np.dot(xf,cell).astype(dtype=np.float64)
+
       self.get_charge(cell,positions)
       self.get_neighbor(cell,rcell,positions)
 
       cell = torch.tensor(cell)
       rcell= torch.tensor(rcell)
 
-      self.positions = torch.tensor(positions,requires_grad=True)
-      E = self.get_total_energy(cell,rcell,self.positions)
-      grad = torch.autograd.grad(outputs=E,
-                                 inputs=self.positions,
-                                 only_inputs=True)
-   
-      self.grad              = grad#[0].numpy()
-      self.E                 = E#.detach().numpy()[0]
-      return self.E,-self.grad
-  
+      if self.autograd:
+         self.positions = torch.tensor(positions,requires_grad=True)
+         E = self.get_total_energy(cell,rcell,self.positions)
+         grad = torch.autograd.grad(outputs=E,
+                                    inputs=self.positions,
+                                    only_inputs=True)
+      
+         self.grad              = grad[0].numpy()
+         self.E                 = E.detach().numpy()[0]
+      else:
+         self.positions = torch.from_numpy(positions)
+         E              = self.get_total_energy(cell,rcell,self.positions)
+         self.E         = E.numpy()[0]
+         self.grad      = 0.0
+
+      self.results['energy'] = self.E
+      self.results['forces'] = -self.grad
+
   def get_charge(self,cell,positions):
       self.Qe.calc(cell,positions)
       self.q   = self.Qe.q[:-1]
@@ -287,41 +355,6 @@ class IRFF(nn.Module):
          self.D_si = [torch.sum(self.bop_si,1)]  
          self.D_pi = [torch.sum(self.bop_pi,1)]
          self.D_pp = [torch.sum(self.bop_pp,1)]
-
-  def f1(self):
-      Dv  = torch.unsqueeze(self.Deltap - self.P['val'],0)    # expand_dims(self.Deltap - self.P['val'],0)
-      self.f2(Dv)
-      self.f3(Dv)
-      VAL      = torch.unsqueeze(self.P['val'],1)
-      VALt     = torch.unsqueeze(self.P['val'],0)
-      self.f_1 = 0.5*(DIV(VAL+self.f_2,  VAL+self.f_2+self.f_3)  + 
-                      DIV(VALt+self.f_2, VALt+self.f_2+self.f_3))
-
-  def f2(self,Dv):
-      self.dexpf2  = torch.exp(-self.P['boc1']*Dv)
-      self.f_2     = torch.add(self.dexpf2,torch.transpose(self.dexpf2,1,0))
-
-  def f3(self,Dv):
-      self.dexpf3 = torch.exp(-self.P['boc2']*Dv)
-      delta_exp   = self.dexpf3+torch.transpose(self.dexpf3,1,0)
-
-      self.f3log  = torch.log(0.5*delta_exp )
-      self.f_3    = torch.div(-1.0,self.P['boc2'])*self.f3log
-
-  def f45(self):
-      self.D_boc = self.Deltap - self.P['valboc'] # + self.p['val_'+atomi]
-      
-      self.DELTA  = torch.unsqueeze(self.D_boc,1)
-      self.DELTAt = torch.transpose(self.DELTA,1,0)
-      
-      self.df4 = self.P['boc4']*torch.square(self.bop)-self.DELTA
-      self.f4r = torch.exp(-self.P['boc3']*(self.df4)+self.P['boc5'])
-
-      self.df5 = self.P['boc4']*torch.square(self.bop)-self.DELTAt
-      self.f5r = torch.exp(-self.P['boc3']*(self.df5)+self.P['boc5'])
-
-      self.f_4 = torch.div(1.0,1.0+self.f4r)
-      self.f_5 = torch.div(1.0,1.0+self.f5r)
 
   def get_bondorder(self):
       self.f1()
@@ -521,39 +554,7 @@ class IRFF(nn.Module):
          self.esi   = self.sieng + self.pieng - self.ppeng
       else:
          raise NotImplementedError('-  This method is not implimented!')
-
-  def get_ebond(self,cell,rcell,positions):
-      self.vr    = fvr(positions)
-      vrf        = torch.matmul(self.vr,rcell)
-
-      vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
-      vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
-
-      self.vr    = torch.matmul(vrf,cell)
-      self.r     = torch.sqrt(torch.sum(self.vr*self.vr,2)+0.0000000001)
-
-      self.get_bondorder_uc()
-
-      if self.nn:
-         self.get_bondorder_nn()
-      else:
-         self.get_bondorder()
-
-      self.Dv     = self.Delta - self.P['val']
-      self.Dpi   = torch.sum(self.bopi+self.bopp,1) 
-
-      self.so    = torch.sum(self.P['ovun1']*self.P['Desi']*self.bo0,1)  
-      self.fbo   = taper(self.bo0,rmin=self.atol,rmax=2.0*self.atol) 
-      self.fhb   = taper(self.bo0,rmin=self.hbtol,rmax=2.0*self.hbtol) 
-
-      if self.EnergyFunction>=1: # or self.EnergyFunction==2 or self.EnergyFunction==3:
-         self.ebond = - self.P['Desi']*self.esi
-      else:
-         self.ebond = -self.esi
-
-      self.Ebond = 0.5*torch.sum(self.ebond)
-      return self.Ebond
-
+      
 
   def get_elone(self):
       self.NLPOPT  = 0.5*(self.P['vale'] - self.P['val'])
@@ -968,41 +969,6 @@ class IRFF(nn.Module):
                self.Ehb + self.Eself + self.zpe
       return E
 
-
-  def calculate(self,atoms=None):
-      cell      = atoms.get_cell()                    # cell is object now
-      cell      = cell[:].astype(dtype=np.float64)
-      rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
-
-      positions = atoms.get_positions()
-      xf        = np.dot(positions,rcell)
-      xf        = np.mod(xf,1.0)
-      positions = np.dot(xf,cell).astype(dtype=np.float64)
-
-      self.get_charge(cell,positions)
-      self.get_neighbor(cell,rcell,positions)
-
-      cell = torch.tensor(cell)
-      rcell= torch.tensor(rcell)
-
-      if self.autograd:
-         self.positions = torch.tensor(positions,requires_grad=True)
-         E = self.get_total_energy(cell,rcell,self.positions)
-         grad = torch.autograd.grad(outputs=E,
-                                    inputs=self.positions,
-                                    only_inputs=True)
-      
-         self.grad              = grad[0].numpy()
-         self.E                 = E.detach().numpy()[0]
-      else:
-         self.positions = torch.from_numpy(positions)
-         E              = self.get_total_energy(cell,rcell,self.positions)
-         self.E         = E.numpy()[0]
-         self.grad      = 0.0
-
-      self.results['energy'] = self.E
-      self.results['forces'] = -self.grad
-
   def get_free_energy(self,atoms=None,BuildNeighbor=False):
       cell      = atoms.get_cell()                    # cell is object now
       cell      = cell[:].astype(dtype=np.float64)
@@ -1167,64 +1133,7 @@ class IRFF(nn.Module):
       self.eself =  nn.Parameter(torch.tensor(0.0),requires_grad=grad)   
 
       if self.nn:
-         self.set_m(self.m_)
-
-
-  def set_p_tensor(self,strucs):
-      for key in self.p_spec:
-          # unit_ = self.unit if key in self.punit else 1.0
-          self.P[key] = np.zeros([self.natom],dtype=np.float64)
-          self.P[key] = torch.tensor(self.P[key])
-
-      for key in ['boc3','boc4','boc5','gamma','gammaw']:
-          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
-          for i in range(self.natom):
-              for j in range(self.natom):
-                  self.P[key][i][j] = np.sqrt(self.p[key+'_'+self.atom_name[i]]*self.p[key+'_'+self.atom_name[j]],
-                                              dtype=np.float64)
-          self.P[key] = torch.tensor(self.P[key])
-
-      self.rcbo = np.zeros([self.natom,self.natom],dtype=np.float64)
-      self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float64)
-      self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float64)
-
-      for i in range(self.natom):
-          for j in range(self.natom):
-              bd = self.atom_name[i] + '-' + self.atom_name[j]
-              if not bd in self.bonds:
-                 bd = self.atom_name[j] + '-' + self.atom_name[i]
-              self.rcbo[i][j] = min(self.rcut[bd],self.rc_bo[bd])   #  ###### TODO #####
-
-              if i!=j:
-                 self.r_cut[i][j]  = self.rcut[bd]  
-                 self.r_cuta[i][j] = self.rcuta[bd] 
-              # if i<j:  self.nbe0[bd] += 1
-
-      for key in self.p_bond:
-          unit_ = self.unit if key in self.punit else 1.0
-          self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
-          for i in range(self.natom):
-              for j in range(self.natom):
-                  bd = self.atom_name[i] + '-' + self.atom_name[j]
-                  if bd not in self.bonds:
-                     bd = self.atom_name[j] + '-' + self.atom_name[i]
-                  self.P[key][i][j] = self.p[key+'_'+bd]*unit_
-          self.P[key] = torch.tensor(self.P[key])
-
-      self.rcbo_tensor = torch.from_numpy(self.rcbo)
-      self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
-      self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
-      self.eye = torch.tensor(1.0 - np.eye(self.natom,dtype=np.float64))
-
-
-  def set_m(self,m):
-      self.m = set_matrix(self.m_,self.spec,self.bonds,
-                          self.mfopt,self.beopt,self.bdopt,1,
-                          (6,0),(6,0),0,0,
-                          self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
-                          self.be_layer,self.be_layer_,1,1,
-                          (9,0),(9,0),1,1,
-                          None,self.be_universal,self.mf_universal,None)
+         self.set_m()
 
   def init_bonds(self):
       self.bonds,self.offd,self.angs,self.torp,self.hbs = [],[],[],[],[]
@@ -1256,13 +1165,13 @@ class IRFF(nn.Module):
           tor3 = t4+'-'+t2+'-'+t3+'-'+t1
 
           if tor1 in torp and tor1!=tor:
-             # print('-  dict %s is repeated, delteting ...' %tor1)
+             # print('-  dict %s is repeated, deleteting ...' %tor1)
              torp.remove(tor1)
           elif tor2 in self.torp and tor2!=tor:
-             # print('-  dict %s is repeated, delteting ...' %tor2)
+             # print('-  dict %s is repeated, deleteting ...' %tor2)
              torp.remove(tor2)
           elif tor3 in self.torp and tor3!=tor:
-             # print('-  dict %s is repeated, delteting ...' %tor3)
+             # print('-  dict %s is repeated, deleteting ...' %tor3)
              torp.remove(tor3)  
       return torp 
 
@@ -1298,6 +1207,56 @@ class IRFF(nn.Module):
                  else:
                     self.p[key+'_'+tor] = 0.0
       return tors
+      
+  def stack_tensor(self):
+      self.x = {}
+      for st in self.strcs:
+          self.x[st] = torch.tensor(self.data[st].x,requires_grad=True)
+          
+    #   for key in self.p_spec:
+    #       # unit_ = self.unit if key in self.punit else 1.0
+    #       self.P[key] = np.zeros([self.natom],dtype=np.float64)
+    #       self.P[key] = torch.tensor(self.P[key])
+
+    #   for key in ['boc3','boc4','boc5','gamma','gammaw']:
+    #       self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
+    #       for i in range(self.natom):
+    #           for j in range(self.natom):
+    #               self.P[key][i][j] = np.sqrt(self.p[key+'_'+self.atom_name[i]]*self.p[key+'_'+self.atom_name[j]],
+    #                                           dtype=np.float64)
+    #       self.P[key] = torch.tensor(self.P[key])
+
+    #   self.rcbo = np.zeros([self.natom,self.natom],dtype=np.float64)
+    #   self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float64)
+    #   self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float64)
+
+    #   for i in range(self.natom):
+    #       for j in range(self.natom):
+    #           bd = self.atom_name[i] + '-' + self.atom_name[j]
+    #           if not bd in self.bonds:
+    #              bd = self.atom_name[j] + '-' + self.atom_name[i]
+    #           self.rcbo[i][j] = min(self.rcut[bd],self.rc_bo[bd])   #  ###### TODO #####
+
+    #           if i!=j:
+    #              self.r_cut[i][j]  = self.rcut[bd]  
+    #              self.r_cuta[i][j] = self.rcuta[bd] 
+    #           # if i<j:  self.nbe0[bd] += 1
+
+    #   for key in self.p_bond:
+    #       unit_ = self.unit if key in self.punit else 1.0
+    #       self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
+    #       for i in range(self.natom):
+    #           for j in range(self.natom):
+    #               bd = self.atom_name[i] + '-' + self.atom_name[j]
+    #               if bd not in self.bonds:
+    #                  bd = self.atom_name[j] + '-' + self.atom_name[i]
+    #               self.P[key][i][j] = self.p[key+'_'+bd]*unit_
+    #       self.P[key] = torch.tensor(self.P[key])
+
+    #   self.rcbo_tensor = torch.from_numpy(self.rcbo)
+    #   self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
+    #   self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
+    #   self.eye = torch.tensor(1.0 - np.eye(self.natom,dtype=np.float64))
 
   def get_data(self): 
       self.nframe      = 0
@@ -1313,7 +1272,7 @@ class IRFF(nn.Module):
           for key in strucs:
               if self.dataset[key]==self.dataset[st]:
                  nindex.extend(strucs[key].indexs)
-          data_ = irff_data(structure=st,
+          data_ = reax_force_data(structure=st,
                                  traj=self.dataset[st],
                                vdwcut=self.vdwcut,
                                  rcut=self.rcut,
@@ -1391,29 +1350,38 @@ class IRFF(nn.Module):
           self.nbd[s]      = strucs[s].nbd
           self.na[s]       = strucs[s].na
           self.nt[s]       = strucs[s].nt
-          self.nv[s]       = strucs[s].nv
+          # self.nv[s]     = strucs[s].nv
           self.b[s]        = strucs[s].B
           self.a[s]        = strucs[s].A
           self.t[s]        = strucs[s].T
-          self.v[s]        = strucs[s].V
-          self.nh[s]       = strucs[s].nh
-          self.h[s]        = strucs[s].H
-          self.hij[s]      = strucs[s].hij
+          # self.v[s]      = strucs[s].V
+          # self.nh[s]     = strucs[s].nh
+          # self.h[s]      = strucs[s].H
+          # self.hij[s]    = strucs[s].hij
           self.bdid[s]     = strucs[s].bond  # bond index like pair (i,j).
           self.atom_name[s]= strucs[s].atom_name
-          self.data[s]     = Dataset(strucs[s].energy_nw,
-                                     strucs[s].forces,
-                                     strucs[s].rbd,
-                                     strucs[s].rv,
-                                     strucs[s].qij,
-                                     strucs[s].theta,
-                                     strucs[s].s_ijk,
-                                     strucs[s].s_jkl,
-                                     strucs[s].w,
-                                     strucs[s].rhb,
-                                     strucs[s].frhb,
-                                     strucs[s].hbthe)
+          self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
+                                     x=strucs[s].x,
+                                     cell=strucs[s].cell,
+                                     rcell=strucs[s].rcell,
+                                     forces=strucs[s].forces,
+                                     theta=strucs[s].theta,
+                                     s_ijk=strucs[s].s_ijk,
+                                     s_jkl=strucs[s].s_jkl,
+                                     w=strucs[s].w)
+                                    #  strucs[s].rhb,
+                                    #  strucs[s].frhb,
+                                    #  strucs[s].hbthe
 
+  def set_m(self):
+      self.m = set_matrix(self.m_,self.spec,self.bonds,
+                          self.mfopt,self.beopt,self.bdopt,1,
+                          (6,0),(6,0),0,0,
+                          self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
+                          self.be_layer,self.be_layer_,1,1,
+                          (9,0),(9,0),1,1,
+                          None,self.be_universal,self.mf_universal,None)
+      
   def read_ffield(self,libfile):
       if libfile.endswith('.json'):
          lf                  = open(libfile,'r')
