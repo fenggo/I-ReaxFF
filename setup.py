@@ -10,7 +10,7 @@ install with commond
   "python setup install --user"
 or with command
 
-*  version 1.6 
+*  version 1.6.1 
   Add force learning and PyTorch backend.
 
 *  version 1.6 
