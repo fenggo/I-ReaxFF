@@ -81,7 +81,7 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 
-class Reax_Force(nn.Module):
+class ReaxFF_nn_force(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
@@ -100,7 +100,7 @@ class Reax_Force(nn.Module):
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                autograd=True):
-      super(Reax_Force, self).__init__()
+      super(ReaxFF_nn_force, self).__init__()
       self.dataset      = dataset 
       self.batch_size   = batch
       self.sample       = sample        # uniform or random
@@ -137,6 +137,7 @@ class Reax_Force(nn.Module):
       self.messages     = messages 
       self.safety_value = 0.000000001
       self.GPa          = 1.60217662*1.0e2
+      self.set_memory()
 
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -160,19 +161,19 @@ class Reax_Force(nn.Module):
    
       #   self.grad              = grad#[0].numpy()
       #   self.E                 = E#.detach().numpy()[0]
-      return self.E,-self.grad
+      return self.E,self.force
   
   def get_bond_energy(self,st):
       vr         = fvr(self.x[st])
-      vrf        = torch.matmul(vr,self.data[st].rcell)
+      vrf        = torch.matmul(vr,self.rcell[st])
 
       vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
 
       vr         = torch.matmul(vrf,self.cell[st])
-      self.r[st] = torch.sqrt(torch.sum(self.vr*self.vr,2)) # +0.0000000001
+      self.r[st] = torch.sqrt(torch.sum(vr*vr,2)) # +0.0000000001
 
-    #   self.get_bondorder_uc()
+      self.get_bondorder_uc(st)
     #   self.get_bondorder_nn()
  
 
@@ -190,7 +191,52 @@ class Reax_Force(nn.Module):
 
     #   self.Ebond = 0.5*torch.sum(self.ebond)
       return # self.Ebond
+  
+  def get_bondorder_uc(self,st):
+      for bd in self.bonds:
+          r = self.x[st][:,self.bond[:,0],self.bond[:,1]]
+      bodiv1 = torch.div(r,self.P['rosi'])
+      bopow1 = torch.pow(bodiv1,self.P['bo2'])
+      eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.P['bo1'],bopow1)) # *self.frc # consist with GULP
 
+      self.bodiv2 = torch.div(self.r,self.P['ropi'])
+      self.bopow2 = torch.pow(self.bodiv2,self.P['bo4'])
+      self.eterm2 = torch.exp(torch.mul(self.P['bo3'],self.bopow2))*self.frc
+
+      self.bodiv3 = torch.div(self.r,self.P['ropp'])
+      self.bopow3 = torch.pow(self.bodiv3,self.P['bo6'])
+      self.eterm3 = torch.exp(torch.mul(self.P['bo5'],self.bopow3))*self.frc
+
+      if self.nn:
+         if self.BOFunction==0:
+            fsi_  = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol)
+            fpi_  = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
+            fpp_  = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
+         elif self.BOFunction==1:
+            fsi_  = self.f_nn('fsi',[self.eterm1],layer=self.bo_layer[1])
+            fpi_  = self.f_nn('fpi',[self.eterm2],layer=self.bo_layer[1])
+            fpp_  = self.f_nn('fpp',[self.eterm3],layer=self.bo_layer[1])  
+         elif self.BOFunction==2:
+            fsi_  = self.f_nn('fsi',[-self.eterm1],layer=self.bo_layer[1])
+            fpi_  = self.f_nn('fpi',[-self.eterm2],layer=self.bo_layer[1])
+            fpp_  = self.f_nn('fpp',[-self.eterm3],layer=self.bo_layer[1])
+         else:
+            raise NotImplementedError('-  BO function not supported yet!')
+         self.bop_si = fsi_*self.eye #*self.frc #*self.eterm1
+         self.bop_pi = fpi_*self.eye #*self.frc #*self.eterm2
+         self.bop_pp = fpp_*self.eye #*self.frc #*self.eterm3
+      else:
+         self.bop_si = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol) # consist with GULP
+         self.bop_pi = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
+         self.bop_pp = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
+
+      self.bop    = self.bop_si + self.bop_pi+self.bop_pp
+      self.Deltap = torch.sum(self.bop,1)  
+
+      if self.MessageFunction==1:
+         self.D_si = [torch.sum(self.bop_si,1)]  
+         self.D_pi = [torch.sum(self.bop_pi,1)]
+         self.D_pp = [torch.sum(self.bop_pp,1)]
 
   def calculate(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
@@ -307,82 +353,7 @@ class Reax_Force(nn.Module):
           log_ = np.log((self.botol/(1.0+self.botol)))
           rr = log_/self.p_['bo1_'+bd] 
           self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(log_/self.p_['bo1_'+bd],1.0/self.p_['bo2_'+bd])
-  
-  def get_bondorder_uc(self):
-      if self.nn:
-         self.frc = 1.0
-      else:
-         self.frc = torch.where(torch.logical_and(self.r<self.rcbo_tensor,self.r>0.0001),1.0,0.0)
-      self.bodiv1 = torch.div(self.r,self.P['rosi'])
-      self.bopow1 = torch.pow(self.bodiv1,self.P['bo2'])
-      self.eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.P['bo1'],self.bopow1))*self.frc # consist with GULP
 
-      self.bodiv2 = torch.div(self.r,self.P['ropi'])
-      self.bopow2 = torch.pow(self.bodiv2,self.P['bo4'])
-      self.eterm2 = torch.exp(torch.mul(self.P['bo3'],self.bopow2))*self.frc
-
-      self.bodiv3 = torch.div(self.r,self.P['ropp'])
-      self.bopow3 = torch.pow(self.bodiv3,self.P['bo6'])
-      self.eterm3 = torch.exp(torch.mul(self.P['bo5'],self.bopow3))*self.frc
-
-      if self.nn:
-         if self.BOFunction==0:
-            fsi_  = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol)
-            fpi_  = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
-            fpp_  = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
-         elif self.BOFunction==1:
-            fsi_  = self.f_nn('fsi',[self.eterm1],layer=self.bo_layer[1])
-            fpi_  = self.f_nn('fpi',[self.eterm2],layer=self.bo_layer[1])
-            fpp_  = self.f_nn('fpp',[self.eterm3],layer=self.bo_layer[1])  
-         elif self.BOFunction==2:
-            fsi_  = self.f_nn('fsi',[-self.eterm1],layer=self.bo_layer[1])
-            fpi_  = self.f_nn('fpi',[-self.eterm2],layer=self.bo_layer[1])
-            fpp_  = self.f_nn('fpp',[-self.eterm3],layer=self.bo_layer[1])
-         else:
-            raise NotImplementedError('-  BO function not supported yet!')
-         self.bop_si = fsi_*self.eye #*self.frc #*self.eterm1
-         self.bop_pi = fpi_*self.eye #*self.frc #*self.eterm2
-         self.bop_pp = fpp_*self.eye #*self.frc #*self.eterm3
-      else:
-         self.bop_si = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol) # consist with GULP
-         self.bop_pi = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
-         self.bop_pp = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
-
-      self.bop    = self.bop_si + self.bop_pi+self.bop_pp
-      self.Deltap = torch.sum(self.bop,1)  
-
-      if self.MessageFunction==1:
-         self.D_si = [torch.sum(self.bop_si,1)]  
-         self.D_pi = [torch.sum(self.bop_pi,1)]
-         self.D_pp = [torch.sum(self.bop_pp,1)]
-
-  def get_bondorder(self):
-      self.f1()
-      self.f45()
-
-      f11    = torch.where(self.P['ovcorr']>=0.0001,self.f_1,1.0)
-      f12    = torch.where(torch.logical_and(self.P['ovcorr']>=0.0001,self.P['corr13']>=0.0001),
-                         self.f_1,1.0)
-      F11        = f11*f12
-      F45_       = self.f_4 * self.f_5
-      F45        = torch.where(self.P['corr13']>=0.0001,F45_,1.0)
-      self.F     = F11*F45
-      self.bo0   = self.bop*f11*F45  # -0.001  # consistent with GULP ## here is very strange!!
-
-      self.bo    = torch.nn.functional.relu(self.bo0 - self.atol) # bond-order cut-off 0.001 reaxffatol
-      self.bopi  = self.bop_pi * self.F
-      self.bopp  = self.bop_pp * self.F
-      self.bosi  = torch.nn.functional.relu(self.bo0 - self.bopi - self.bopp)
-      self.bso   = self.P['ovun1'] * self.P['Desi'] * self.bo0
-      self.Delta = torch.sum(self.bo0, 1)
-
-      self.powb  = torch.pow(self.bosi+self.safety_value,self.P['be2'])
-      self.expb  = torch.exp(torch.mul(self.P['be1'],1.0-self.powb))
-      self.sieng = self.P['Desi']*self.bosi*self.expb 
-
-      self.pieng = torch.mul(self.P['Depi'],self.bopi)
-      self.ppeng = torch.mul(self.P['Depp'],self.bopp)
-      self.esi   = self.sieng + self.pieng + self.ppeng
 
   def f_nn(self,pre,x,layer=5):
       X   = torch.unsqueeze(torch.stack(x,dim=2),2)
@@ -1209,10 +1180,14 @@ class Reax_Force(nn.Module):
       return tors
       
   def stack_tensor(self):
-      self.x = {}
+      self.x     = {}
+      self.rcell = {}
+      self.cell  = {}
       for st in self.strcs:
-          self.x[st] = torch.tensor(self.data[st].x,requires_grad=True)
-          
+          self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
+          self.cell[st]  = torch.tensor(self.data[st].rcell)
+          self.rcell[st] = torch.tensor(self.data[st].rcell)
+
     #   for key in self.p_spec:
     #       # unit_ = self.unit if key in self.punit else 1.0
     #       self.P[key] = np.zeros([self.natom],dtype=np.float64)
@@ -1430,6 +1405,11 @@ class Reax_Force(nn.Module):
       #        self.spec.append(sp)
       return self.m_,rcut,rcuta,re
   
+  def set_memory(self):
+      self.r     = {}
+      self.E     = {}
+      self.force = {}
+
   def logout(self):
       with open('irff.log','w') as fmd:
          fmd.write('\n------------------------------------------------------------------------\n')
