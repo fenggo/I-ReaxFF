@@ -52,8 +52,8 @@ def taper(r,rmin=0.001,rmax=0.002):
     
 
 def fvr(x):
-    xi  = x.unsqueeze(0)
-    xj  = x.unsqueeze(1) 
+    xi  = x.unsqueeze(1)
+    xj  = x.unsqueeze(2) 
     vr  = xj - xi
     return vr
 
@@ -164,15 +164,15 @@ class ReaxFF_nn_force(nn.Module):
       return self.E,self.force
   
   def get_bond_energy(self,st):
+      # print(self.x[st].shape)
       vr         = fvr(self.x[st])
       vrf        = torch.matmul(vr,self.rcell[st])
 
       vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
-
+      
       vr         = torch.matmul(vrf,self.cell[st])
-      self.r[st] = torch.sqrt(torch.sum(vr*vr,2)) # +0.0000000001
-
+      self.r[st] = torch.sqrt(torch.sum(vr*vr,dim=3)) # +0.0000000001
       self.get_bondorder_uc(st)
     #   self.get_bondorder_nn()
  
@@ -193,50 +193,55 @@ class ReaxFF_nn_force(nn.Module):
       return # self.Ebond
   
   def get_bondorder_uc(self,st):
+      bop_si,bop_pi,bop_pp = [],[],[]
+      r = self.r[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       for bd in self.bonds:
-          r = self.x[st][:,self.bond[:,0],self.bond[:,1]]
-      bodiv1 = torch.div(r,self.P['rosi'])
-      bopow1 = torch.pow(bodiv1,self.P['bo2'])
-      eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.P['bo1'],bopow1)) # *self.frc # consist with GULP
+          nbd_ = self.nbd[st][bd]
+          b_   = self.b[st][bd]
+          if nbd_==0:
+             continue
+          rbd = r[:,b_[0]:b_[1]]
+          # print(b_[0],b_[1],'\n',rbd.shape)
+          bodiv1 = torch.div(rbd,self.p['rosi_'+bd])
+          bopow1 = torch.pow(bodiv1,self.p['bo2_'+bd])
+          eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1)) 
 
-      self.bodiv2 = torch.div(self.r,self.P['ropi'])
-      self.bopow2 = torch.pow(self.bodiv2,self.P['bo4'])
-      self.eterm2 = torch.exp(torch.mul(self.P['bo3'],self.bopow2))*self.frc
+          bodiv2 = torch.div(rbd,self.p['ropi_'+bd])
+          bopow2 = torch.pow(bodiv2,self.p['bo4_'+bd])
+          eterm2 = torch.exp(torch.mul(self.p['bo3_'+bd],bopow2))
 
-      self.bodiv3 = torch.div(self.r,self.P['ropp'])
-      self.bopow3 = torch.pow(self.bodiv3,self.P['bo6'])
-      self.eterm3 = torch.exp(torch.mul(self.P['bo5'],self.bopow3))*self.frc
+          bodiv3 = torch.div(rbd,self.p['ropp_'+bd])
+          bopow3 = torch.pow(bodiv3,self.p['bo6_'+bd])
+          eterm3 = torch.exp(torch.mul(self.p['bo5_'+bd],bopow3))
+          
+          bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
+          bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
+          bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
+      
+      self.bop_si[st] = torch.cat(bop_si,dim=0)
+      self.bop_pi[st] = torch.cat(bop_pi,dim=0)
+      self.bop_pp[st] = torch.cat(bop_pp,dim=0)
+      self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
+      print(self.bop[st].shape)
+      self.get_delta(st)
 
-      if self.nn:
-         if self.BOFunction==0:
-            fsi_  = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol)
-            fpi_  = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
-            fpp_  = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
-         elif self.BOFunction==1:
-            fsi_  = self.f_nn('fsi',[self.eterm1],layer=self.bo_layer[1])
-            fpi_  = self.f_nn('fpi',[self.eterm2],layer=self.bo_layer[1])
-            fpp_  = self.f_nn('fpp',[self.eterm3],layer=self.bo_layer[1])  
-         elif self.BOFunction==2:
-            fsi_  = self.f_nn('fsi',[-self.eterm1],layer=self.bo_layer[1])
-            fpi_  = self.f_nn('fpi',[-self.eterm2],layer=self.bo_layer[1])
-            fpp_  = self.f_nn('fpp',[-self.eterm3],layer=self.bo_layer[1])
-         else:
-            raise NotImplementedError('-  BO function not supported yet!')
-         self.bop_si = fsi_*self.eye #*self.frc #*self.eterm1
-         self.bop_pi = fpi_*self.eye #*self.frc #*self.eterm2
-         self.bop_pp = fpp_*self.eye #*self.frc #*self.eterm3
-      else:
-         self.bop_si = taper(self.eterm1,rmin=self.botol,rmax=2.0*self.botol)*(self.eterm1-self.botol) # consist with GULP
-         self.bop_pi = taper(self.eterm2,rmin=self.botol,rmax=2.0*self.botol)*self.eterm2
-         self.bop_pp = taper(self.eterm3,rmin=self.botol,rmax=2.0*self.botol)*self.eterm3
+  def get_delta(self,st):
+      ''' compute the uncorrected Delta: the sum of BO '''
+      BOP    = torch.zeros(self.batch[st],1) # for ghost atom, the value is zero
+      BOP_si = torch.zeros(self.batch[st],1)   
+      BOP_pi = torch.zeros(self.batch[st],1)   
+      BOP_pp = torch.zeros(self.batch[st],1) 
 
-      self.bop    = self.bop_si + self.bop_pi+self.bop_pp
-      self.Deltap = torch.sum(self.bop,1)  
+      BOP              = torch.cat([BOP,self.bop[st]],dim=1)
+      BOP_si           = torch.cat([BOP_si,self.bop_si[st]],dim=1)
+      BOP_pi           = torch.cat([BOP_pi,self.bop_pi[st]],dim=1)
+      BOP_pp           = torch.cat([BOP_pp,self.bop_pp[st]],dim=1)
 
-      if self.MessageFunction==1:
-         self.D_si = [torch.sum(self.bop_si,1)]  
-         self.D_pi = [torch.sum(self.bop_pi,1)]
-         self.D_pp = [torch.sum(self.bop_pp,1)]
+    #   self.Bp[st]     = tf.gather_nd(BOP,self.blist[st])
+    #   self.Deltap[st] = torch.sum(input_tensor=self.Bp[mol],axis=1,name='Deltap')
+    #   self.D_si[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_si,self.blist[mol]),axis=1,name='Deltap_si')]
+    #   self.D_pi[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pi,self.blist[mol]),axis=1,name='Deltap_pi')]
+    #   self.D_pp[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pp,self.blist[mol]),axis=1,name='Deltap_pp')]
 
   def calculate(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
@@ -1409,6 +1414,7 @@ class ReaxFF_nn_force(nn.Module):
       self.r     = {}
       self.E     = {}
       self.force = {}
+      self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
 
   def logout(self):
       with open('irff.log','w') as fmd:
