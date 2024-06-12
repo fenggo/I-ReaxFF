@@ -170,8 +170,10 @@ class ReaxFF_nn_force(nn.Module):
 
       vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
-      
+      # print('\n-  cell  -\n',self.cell[st])
+      # print('\n-  rcell -\n',self.rcell[st])
       vr         = torch.matmul(vrf,self.cell[st])
+
       self.r[st] = torch.sqrt(torch.sum(vr*vr,dim=3)) # +0.0000000001
       self.get_bondorder_uc(st)
     #   self.get_bondorder_nn()
@@ -194,13 +196,22 @@ class ReaxFF_nn_force(nn.Module):
   
   def get_bondorder_uc(self,st):
       bop_si,bop_pi,bop_pp = [],[],[]
+      # print(self.r[st])
       r = self.r[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      # self.bop_si[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
+      # self.bop_pi[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
+      # self.bop_pp[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
+      self.bop_si[st] = torch.zeros_like(self.r[st])
+      self.bop_pi[st] = torch.zeros_like(self.r[st])
+      self.bop_pp[st] = torch.zeros_like(self.r[st])
+
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
           b_   = self.b[st][bd]
           if nbd_==0:
              continue
           rbd = r[:,b_[0]:b_[1]]
+          # print(rbd)
           # print(b_[0],b_[1],'\n',rbd.shape)
           bodiv1 = torch.div(rbd,self.p['rosi_'+bd])
           bopow1 = torch.pow(bodiv1,self.p['bo2_'+bd])
@@ -218,30 +229,16 @@ class ReaxFF_nn_force(nn.Module):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      self.bop_si[st] = torch.cat(bop_si,dim=0)
-      self.bop_pi[st] = torch.cat(bop_pi,dim=0)
-      self.bop_pp[st] = torch.cat(bop_pp,dim=0)
+      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_si,dim=0)
+      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pi,dim=0)
+      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pp,dim=0)
+      # self.bop_pp[st] = torch.cat(bop_pp,dim=0)
       self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
-      print(self.bop[st].shape)
-      self.get_delta(st)
-
-  def get_delta(self,st):
-      ''' compute the uncorrected Delta: the sum of BO '''
-      BOP    = torch.zeros(self.batch[st],1) # for ghost atom, the value is zero
-      BOP_si = torch.zeros(self.batch[st],1)   
-      BOP_pi = torch.zeros(self.batch[st],1)   
-      BOP_pp = torch.zeros(self.batch[st],1) 
-
-      BOP              = torch.cat([BOP,self.bop[st]],dim=1)
-      BOP_si           = torch.cat([BOP_si,self.bop_si[st]],dim=1)
-      BOP_pi           = torch.cat([BOP_pi,self.bop_pi[st]],dim=1)
-      BOP_pp           = torch.cat([BOP_pp,self.bop_pp[st]],dim=1)
-
-    #   self.Bp[st]     = tf.gather_nd(BOP,self.blist[st])
-    #   self.Deltap[st] = torch.sum(input_tensor=self.Bp[mol],axis=1,name='Deltap')
-    #   self.D_si[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_si,self.blist[mol]),axis=1,name='Deltap_si')]
-    #   self.D_pi[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pi,self.blist[mol]),axis=1,name='Deltap_pi')]
-    #   self.D_pp[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pp,self.blist[mol]),axis=1,name='Deltap_pp')]
+      # print(self.bop[st])
+      self.Deltap[st]  = torch.sum(self.bop[st],1)
+      self.D_si[st]    = torch.sum(self.bop_si[st],1)
+      self.D_pi[st]    = torch.sum(self.bop_pi[st],1)
+      self.D_pp[st]    = torch.sum(self.bop_pp[st],1)
 
   def calculate(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
@@ -1190,8 +1187,8 @@ class ReaxFF_nn_force(nn.Module):
       self.cell  = {}
       for st in self.strcs:
           self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
-          self.cell[st]  = torch.tensor(self.data[st].rcell)
-          self.rcell[st] = torch.tensor(self.data[st].rcell)
+          self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1))
+          self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1))
 
     #   for key in self.p_spec:
     #       # unit_ = self.unit if key in self.punit else 1.0
@@ -1415,6 +1412,10 @@ class ReaxFF_nn_force(nn.Module):
       self.E     = {}
       self.force = {}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
+      self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{}
+
+      self.Deltap,self.Delta = {},{}
+      self.D_si,self.D_pi,self.D_pp = {},{},{}
 
   def logout(self):
       with open('irff.log','w') as fmd:
