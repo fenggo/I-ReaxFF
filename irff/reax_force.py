@@ -164,17 +164,13 @@ class ReaxFF_nn_force(nn.Module):
       return self.E,self.force
   
   def get_bond_energy(self,st):
-      # print(self.x[st].shape)
       vr         = fvr(self.x[st])
       vrf        = torch.matmul(vr,self.rcell[st])
-
       vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
-      # print('\n-  cell  -\n',self.cell[st])
-      # print('\n-  rcell -\n',self.rcell[st])
       vr         = torch.matmul(vrf,self.cell[st])
-
       self.r[st] = torch.sqrt(torch.sum(vr*vr,dim=3)) # +0.0000000001
+      
       self.get_bondorder_uc(st)
     #   self.get_bondorder_nn()
  
