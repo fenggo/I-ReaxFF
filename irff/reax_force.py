@@ -79,22 +79,22 @@ def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
                 Wh:  (8,8)
                 Wo:  (8,3)  output = 3
     '''
-    x_ = []
-    for d in x:
-        x_.append(tf.reshape(d,[nbd*batch]))
-    X   = torch.unsqueeze(torch.stack(x,dim=2),2)
+    print(x[0].shape)
+    print(x[1].shape)
+    print(x[2].shape)
+    X   = torch.cat(x,dim=2)
 
-    X   = tf.stack(x_,axis=1)        # Dimention: (nbatch,4)
-                                     #        Wi:  (4,8) 
-    o   =  []                        #        Wh:  (8,8)
-    o.append(tf.sigmoid(tf.matmul(X,m[pre+'wi_'+bd],name='bop_input')+m[pre+'bi_'+bd]))   # input layer
+    # X   = tf.stack(x_,axis=1)        # Dimention: (nbatch,4)
+    #                                  #        Wi:  (4,8) 
+    # o   =  []                        #        Wh:  (8,8)
+    # o.append(tf.sigmoid(tf.matmul(X,m[pre+'wi_'+bd],name='bop_input')+m[pre+'bi_'+bd]))   # input layer
 
-    for l in range(layer):                                                   # hidden layer      
-        o.append(tf.sigmoid(tf.matmul(o[-1],m[pre+'w_'+bd][l],name='bop_hide')+m[pre+'b_'+bd][l]))
+    # for l in range(layer):                                                   # hidden layer      
+    #     o.append(tf.sigmoid(tf.matmul(o[-1],m[pre+'w_'+bd][l],name='bop_hide')+m[pre+'b_'+bd][l]))
 
-    o_ = tf.sigmoid(tf.matmul(o[-1],m[pre+'wo_'+bd],name='bop_output') + m[pre+'bo_'+bd])  # output layer
-    out= tf.reshape(o_,[nbd,batch,3])
-    return out
+    # o_ = tf.sigmoid(tf.matmul(o[-1],m[pre+'wo_'+bd],name='bop_output') + m[pre+'bo_'+bd])  # output layer
+    # out= tf.reshape(o_,[nbd,batch,3])
+    return # out
 
 class ReaxFF_nn_force(nn.Module):
   ''' Force Learning '''
@@ -251,31 +251,38 @@ class ReaxFF_nn_force(nn.Module):
       self.D_pp[st]   = torch.sum(self.bop_pp[st],1)
 
   def message_passing(self,st):
-      self.H         = []    # hiden states (or embeding states)
-      self.D         = []    # degree matrix
-      self.Hsi       = []
-      self.Hpi       = []
-      self.Hpp       = []
-      self.H.append(self.bop)                   # 
-      self.Hsi.append(self.bop_si)              #
-      self.Hpi.append(self.bop_pi )             #
-      self.Hpp.append(self.bop_pp)              # 
-      self.D.append(self.Deltap)                # get the initial hidden state H[0]
-
+      self.H[st]    = [self.bop[st]]                     # 
+      self.Hsi[st]  = [self.bop_si[st]]                  #
+      self.Hpi[st]  = [self.bop_pi[st]]                  #
+      self.Hpp[st]  = [self.bop_pp[st]]                  # 
+      self.D[st]    = [self.Deltap[st]]    
       
       for t in range(1,self.messages+1):
-          Di   = torch.unsqueeze(self.D[t-1],1)
-          Dj   = torch.unsqueeze(self.D[t-1],2)
-          Dbi  = torch.fill_diagonal(Di  - self.H[t-1],0.0) 
-          Dbj  = torch.fill_diagonal(Dj  - self.H[t-1],0.0)  
+          Di   = torch.unsqueeze(self.D[st][t-1],1)*self.eye[st]
+          Dj   = torch.unsqueeze(self.D[st][t-1],2)*self.eye[st]
 
-          bo,bosi,bopi,bopp = self.get_bondorder(st,t,Dbi,Dbj)
+          Dbi  = Di  - self.H[st][t-1] 
+          Dbj  = Dj  - self.H[st][t-1]
+
+          Dbi_ = Dbi[:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          Dbj_ = Dbj[:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          H    = self.H[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          Hsi  = self.Hsi[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          Hpi  = self.Hpi[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          Hpp  = self.Hpp[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+
+          bo,bosi,bopi,bopp = self.get_bondorder(st,t,Dbi_,H,Dbj_,Hsi,Hpi,Hpp)
+          
           self.H[st].append(bo)                      # get the hidden state H[t]
           self.Hsi[st].append(bosi)
           self.Hpi[st].append(bopi)
           self.Hpp[st].append(bopp)
-          
-  def get_bondoreder(self,st,t,Dbi,Dbj):
+
+          Delta = torch.sum(bo,1)
+          self.D[st].append(Delta)                  # degree matrix
+
+
+  def get_bondorder(self,st,t,Dbi,H,Dbj,Hsi,Hpi,Hpp):
       ''' compute bond-order according the message function'''
       flabel  = 'fm'
       bosi = torch.zeros_like(self.r[st])
@@ -293,10 +300,10 @@ class ReaxFF_nn_force(nn.Module):
           Di   = Dbi[:,b_[0]:b_[1]]
           Dj   = Dbj[:,b_[0]:b_[1]]
 
-          h    = self.H[st][t-1][:,b_[0]:b_[1]]
-          hsi  = self.Hsi[st][t-1][:,b_[0]:b_[1]]
-          hpi  = self.Hpi[st][t-1][:,b_[0]:b_[1]]
-          hpp  = self.Hpp[st][t-1][:,b_[0]:b_[1]]
+          h    = H[:,b_[0]:b_[1]]
+          hsi  = Hsi[:,b_[0]:b_[1]]
+          hpi  = Hpi[:,b_[0]:b_[1]]
+          hpp  = Hpp[:,b_[0]:b_[1]]
           b    = bd.split('-')
  
           Fi   = fmessage(flabel,b[0],nbd_,[Di,h,Dj],self.m,
@@ -1048,11 +1055,12 @@ class ReaxFF_nn_force(nn.Module):
       self.x     = {}
       self.rcell = {}
       self.cell  = {}
+      self.eye   = {}
       for st in self.strcs:
           self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
           self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1))
           self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1))
-         
+          self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0))
     #   for key in self.p_spec:
     #       # unit_ = self.unit if key in self.punit else 1.0
     #       self.P[key] = np.zeros([self.natom],dtype=np.float64)
@@ -1279,6 +1287,7 @@ class ReaxFF_nn_force(nn.Module):
 
       self.Deltap,self.Delta = {},{}
       self.D_si,self.D_pi,self.D_pp = {},{},{}
+      self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
 
   def logout(self):
       with open('irff.log','w') as fmd:
