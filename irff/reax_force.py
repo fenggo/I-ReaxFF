@@ -74,20 +74,19 @@ def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
 def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
-    ''' Dimention: (nbatch,4) input = 4
+    ''' Dimention: (nbatch,3) input = 3
                 Wi:  (4,8) 
                 Wh:  (8,8)
                 Wo:  (8,3)  output = 3
     '''
-    print(x[0].shape)
-    print(x[1].shape)
-    print(x[2].shape)
-    X   = torch.cat(x,dim=2)
+    X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
+    print(X.shape)
+    print(m[pre+'wi_'+bd].shape)
 
-    # X   = tf.stack(x_,axis=1)        # Dimention: (nbatch,4)
-    #                                  #        Wi:  (4,8) 
-    # o   =  []                        #        Wh:  (8,8)
-    # o.append(tf.sigmoid(tf.matmul(X,m[pre+'wi_'+bd],name='bop_input')+m[pre+'bi_'+bd]))   # input layer
+    # X   = tf.stack(x_,axis=1)       # Dimention: (nbatch,4)
+    #                                 #        Wi:  (4,8) 
+    o   =  []                         #        Wh:  (8,8)
+    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])))   # input layer
 
     # for l in range(layer):                                                   # hidden layer      
     #     o.append(tf.sigmoid(tf.matmul(o[-1],m[pre+'w_'+bd][l],name='bop_hide')+m[pre+'b_'+bd][l]))
