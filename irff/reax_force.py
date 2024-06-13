@@ -18,7 +18,6 @@ try:
 except ImportError:
    from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
-
 def rtaper(r,rmin=0.001,rmax=0.002):
     ''' taper function for bond-order '''
     r3    = torch.where(r<rmin,torch.full_like(r,1.0),torch.full_like(r,0.0)) # r > rmax then 1 else 0
@@ -33,7 +32,6 @@ def rtaper(r,rmin=0.001,rmax=0.002):
     trm1  = rm + 2.0*r2 - 3.0*rmin*r20
     r22   = rterm*rd*rd*trm1
     return r22+r3
-
 
 def taper(r,rmin=0.001,rmax=0.002):
     ''' taper function for bond-order '''
@@ -50,18 +48,15 @@ def taper(r,rmin=0.001,rmax=0.002):
     r22   = rterm*rd*rd*trm1
     return r22+r3
     
-
 def fvr(x):
     xi  = x.unsqueeze(1)
     xj  = x.unsqueeze(2) 
     vr  = xj - xi
     return vr
 
-
 def fr(vr):
     R   = torch.sqrt(torch.sum(vr*vr,2))
     return R
-
 
 def DIV(y,x):
     xok = (x!=0.0)
@@ -69,17 +64,37 @@ def DIV(y,x):
     safe_x = torch.where(xok,x,torch.full_like(x,1.0))
     return torch.where(xok, f(safe_x), torch.full_like(x,0.0))
 
-
 def DIV_IF(y,x):
     xok = (x!=0.0)
     f = lambda x: y/x
     safe_x = torch.where(xok,x,torch.full_like(x,0.00000001))
     return torch.where(xok, f(safe_x), f(safe_x))
 
-
 def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
+def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
+    ''' Dimention: (nbatch,4) input = 4
+                Wi:  (4,8) 
+                Wh:  (8,8)
+                Wo:  (8,3)  output = 3
+    '''
+    x_ = []
+    for d in x:
+        x_.append(tf.reshape(d,[nbd*batch]))
+    X   = torch.unsqueeze(torch.stack(x,dim=2),2)
+
+    X   = tf.stack(x_,axis=1)        # Dimention: (nbatch,4)
+                                     #        Wi:  (4,8) 
+    o   =  []                        #        Wh:  (8,8)
+    o.append(tf.sigmoid(tf.matmul(X,m[pre+'wi_'+bd],name='bop_input')+m[pre+'bi_'+bd]))   # input layer
+
+    for l in range(layer):                                                   # hidden layer      
+        o.append(tf.sigmoid(tf.matmul(o[-1],m[pre+'w_'+bd][l],name='bop_hide')+m[pre+'b_'+bd][l]))
+
+    o_ = tf.sigmoid(tf.matmul(o[-1],m[pre+'wo_'+bd],name='bop_output') + m[pre+'bo_'+bd])  # output layer
+    out= tf.reshape(o_,[nbd,batch,3])
+    return out
 
 class ReaxFF_nn_force(nn.Module):
   ''' Force Learning '''
@@ -172,7 +187,7 @@ class ReaxFF_nn_force(nn.Module):
       self.r[st] = torch.sqrt(torch.sum(vr*vr,dim=3)) # +0.0000000001
       
       self.get_bondorder_uc(st)
-    #   self.get_bondorder_nn()
+      self.message_passing(st)
  
 
     #   self.Dv     = self.Delta - self.P['val']
@@ -225,16 +240,81 @@ class ReaxFF_nn_force(nn.Module):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_si,dim=0)
-      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pi,dim=0)
-      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pp,dim=0)
-      # self.bop_pp[st] = torch.cat(bop_pp,dim=0)
+      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_si,dim=1)
+      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pi,dim=1)
+      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pp,dim=1)
       self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
-      # print(self.bop[st])
-      self.Deltap[st]  = torch.sum(self.bop[st],1)
-      self.D_si[st]    = torch.sum(self.bop_si[st],1)
-      self.D_pi[st]    = torch.sum(self.bop_pi[st],1)
-      self.D_pp[st]    = torch.sum(self.bop_pp[st],1)
+      # print(self.bop[st].size)
+      self.Deltap[st] = torch.sum(self.bop[st],1)
+      self.D_si[st]   = torch.sum(self.bop_si[st],1)
+      self.D_pi[st]   = torch.sum(self.bop_pi[st],1)
+      self.D_pp[st]   = torch.sum(self.bop_pp[st],1)
+
+  def message_passing(self,st):
+      self.H         = []    # hiden states (or embeding states)
+      self.D         = []    # degree matrix
+      self.Hsi       = []
+      self.Hpi       = []
+      self.Hpp       = []
+      self.H.append(self.bop)                   # 
+      self.Hsi.append(self.bop_si)              #
+      self.Hpi.append(self.bop_pi )             #
+      self.Hpp.append(self.bop_pp)              # 
+      self.D.append(self.Deltap)                # get the initial hidden state H[0]
+
+      
+      for t in range(1,self.messages+1):
+          Di   = torch.unsqueeze(self.D[t-1],1)
+          Dj   = torch.unsqueeze(self.D[t-1],2)
+          Dbi  = torch.fill_diagonal(Di  - self.H[t-1],0.0) 
+          Dbj  = torch.fill_diagonal(Dj  - self.H[t-1],0.0)  
+
+          bo,bosi,bopi,bopp = self.get_bondorder(st,t,Dbi,Dbj)
+          self.H[st].append(bo)                      # get the hidden state H[t]
+          self.Hsi[st].append(bosi)
+          self.Hpi[st].append(bopi)
+          self.Hpp[st].append(bopp)
+          
+  def get_bondoreder(self,st,t,Dbi,Dbj):
+      ''' compute bond-order according the message function'''
+      flabel  = 'fm'
+      bosi = torch.zeros_like(self.r[st])
+      bopi = torch.zeros_like(self.r[st])
+      bopp = torch.zeros_like(self.r[st])
+
+      bosi_ = []
+      bopi_ = []
+      bopp_ = []
+      for bd in self.bonds:
+          nbd_ = self.nbd[st][bd]
+          if nbd_==0:
+             continue
+          b_   = self.b[st][bd]
+          Di   = Dbi[:,b_[0]:b_[1]]
+          Dj   = Dbj[:,b_[0]:b_[1]]
+
+          h    = self.H[st][t-1][:,b_[0]:b_[1]]
+          hsi  = self.Hsi[st][t-1][:,b_[0]:b_[1]]
+          hpi  = self.Hpi[st][t-1][:,b_[0]:b_[1]]
+          hpp  = self.Hpp[st][t-1][:,b_[0]:b_[1]]
+          b    = bd.split('-')
+ 
+          Fi   = fmessage(flabel,b[0],nbd_,[Di,h,Dj],self.m,
+                          batch=self.batch[st],layer=self.mf_layer[1])
+          Fj   = fmessage(flabel,b[1],nbd_,[Dj,h,Di],self.m,
+                          batch=self.batch[st],layer=self.mf_layer[1])
+          F    = Fi*Fj
+          Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
+
+          bosi_.append(hsi*Fsi)
+          bopi_.append(hpi*Fpi)
+          bopp_.append(hpp*Fpp)
+
+      bosi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bosi_,1)
+      bopi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bopi_,1)
+      bopp[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bopp_,1)
+      bo   = bosi+bopi+bopp
+      return bo,bosi,bopi,bopp
 
   def calculate(self,atoms=None):
       cell      = atoms.get_cell()                    # cell is object now
@@ -269,61 +349,6 @@ class ReaxFF_nn_force(nn.Module):
 
       self.results['energy'] = self.E
       self.results['forces'] = -self.grad
-
-  def get_charge(self,cell,positions):
-      self.Qe.calc(cell,positions)
-      self.q   = self.Qe.q[:-1]
-      qij      = np.expand_dims(self.q,axis=0)*np.expand_dims(self.q,axis=1)
-      self.qij = torch.tensor(qij*14.39975840)
-
-  def get_neighbor(self,cell,rcell,positions):
-      xi    = np.expand_dims(positions,axis=0)
-      xj    = np.expand_dims(positions,axis=1)
-      vr    = xj-xi
-      
-      vrf   = np.dot(vr,rcell)
-      vrf   = np.where(vrf-0.5>0,vrf-1.0,vrf)
-      vrf   = np.where(vrf+0.5<0,vrf+1.0,vrf)  
-      vr    = np.dot(vrf,cell)
-      r     = np.sqrt(np.sum(vr*vr,axis=2))
-      
-      if self.nomb:
-         angs,tors,hbs = [],[],[]
-      else:
-         angs,tors,hbs = get_neighbors(self.natom,self.atom_name,self.r_cuta,r)
-
-      self.Angs  = np.array(angs)
-      self.Tors  = np.array(tors)
-      self.Hbs   = np.array(hbs)
-
-      self.nang  = len(self.Angs)
-      self.ntor  = len(self.Tors)
-      self.nhb   = len(self.Hbs)
-    
-      if self.nang>0:
-         self.angj  = self.Angs[:,1]
-         self.angi  = self.Angs[:,0]
-         self.angk  = self.Angs[:,2]
-         P_ = get_pangle(self.p,self.atom_name,len(self.p_ang),self.p_ang,self.nang,angs)
-         for key in P_:
-             self.P[key] = torch.from_numpy(P_[key])
-
-      if self.ntor>0:
-         self.tori  = self.Tors[:,0]
-         self.torj  = self.Tors[:,1]
-         self.tork  = self.Tors[:,2]
-         self.torl  = self.Tors[:,3]
-         P_ = get_ptorsion(self.p,self.atom_name,len(self.p_tor),self.p_tor,self.ntor,tors)
-         for key in P_:
-             self.P[key] = torch.from_numpy(P_[key])
-
-      if self.nhb>0:
-         self.hbi     = self.Hbs[:,0]
-         self.hbj     = self.Hbs[:,1]
-         self.hbk     = self.Hbs[:,2]
-         P_ = get_phb(self.p,self.atom_name,len(self.p_hb),self.p_hb,self.nhb,hbs)
-         for key in P_:
-             self.P[key] = torch.from_numpy(P_[key])
 
 #   def set_rcut(self,rcut,rcuta,re): 
 #       rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)
@@ -365,164 +390,6 @@ class ReaxFF_nn_force(nn.Module):
       o_  = torch.sigmoid(torch.matmul(o[-1],self.m[pre+'wo']) + self.m[pre+'bo']) 
       out = torch.squeeze(o_)                                          # output layer
       return out
-
-  def message_passing(self):
-      self.H         = []    # hiden states (or embeding states)
-      self.D         = []    # degree matrix
-      self.Hsi       = []
-      self.Hpi       = []
-      self.Hpp       = []
-      self.H.append(self.bop)                   # 
-      self.Hsi.append(self.bop_si)              #
-      self.Hpi.append(self.bop_pi)              #
-      self.Hpp.append(self.bop_pp)              # 
-      self.D.append(self.Deltap)                # get the initial hidden state H[0]
-
-      for t in range(1,self.messages+1):
-          Di        = torch.unsqueeze(self.D[t-1],0)*self.eye
-          Dj        = torch.unsqueeze(self.D[t-1],1)*self.eye
-
-          if self.MessageFunction==1:
-             Dsi_i = torch.unsqueeze(self.D_si[t-1],0)*self.eye - self.Hsi[t-1]
-             Dsi_j = torch.unsqueeze(self.D_si[t-1],1)*self.eye - self.Hsi[t-1]
-
-             Dpi_i = torch.unsqueeze(self.D_pi[t-1],0)*self.eye - self.Hpi[t-1]
-             Dpi_j = torch.unsqueeze(self.D_pi[t-1],1)*self.eye - self.Hpi[t-1]
-
-             Dpp_i = torch.unsqueeze(self.D_pp[t-1],0)*self.eye - self.Hpp[t-1]
-             Dpp_j = torch.unsqueeze(self.D_pp[t-1],1)*self.eye - self.Hpp[t-1]
-
-             Dpii  = Dpi_i + Dpp_i
-             Dpij  = Dpi_j + Dpp_j
-             Fi  = self.f_nn('fm',[Dsi_i,Dpii,self.H[t-1],Dsi_j,Dpij],layer=self.mf_layer[1])
-             #  Fi  = self.f_nn('fm',[Dsi_j,Dsi_i,self.Hsi[t-1],  # +str(t)
-             #                        Dpi_j,Dpi_i,self.Hpi[t-1],
-             #                        Dpp_j,Dpp_i,self.Hpp[t-1]],
-             #                        layer=self.mf_layer[1])
-             Fj  = torch.transpose(Fi,1,0)
-             F   = Fi*Fj
-             Fsi = F[:,:,0]
-             Fpi = F[:,:,1]
-             Fpp = F[:,:,2]
-             self.Hsi.append(self.Hsi[t-1]*Fsi)
-             self.Hpi.append(self.Hpi[t-1]*Fpi)
-             self.Hpp.append(self.Hpp[t-1]*Fpp)
-          elif self.MessageFunction==2:
-             Dbi = Di - self.H[t-1]
-             Dbj = Dj - self.H[t-1]
-             #Fi  = self.f_nn('fm',[Dbj,Dbi,self.Hsi[t-1],self.Hpi[t-1],self.Hpp[t-1]], # +str(t)
-             #                layer=self.mf_layer[1])
-             Fi  = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1])
-             Fj  = torch.transpose(Fi,1,0)
-             F   = Fi*Fj
-             Fsi = F[:,:,0]
-             Fpi = F[:,:,1]
-             Fpp = F[:,:,2]
-             self.Hsi.append(self.Hsi[t-1]*Fsi)
-             self.Hpi.append(self.Hpi[t-1]*Fpi)
-             self.Hpp.append(self.Hpp[t-1]*Fpp)
-          elif self.MessageFunction==3:
-             Dbi = Di  - self.H[t-1] # torch.unsqueeze(self.P['valboc'],0) 
-             Dbj = Dj  - self.H[t-1] # torch.unsqueeze(self.P['valboc'],1)   
-             Fi  = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1]) # +str(t)
-             #Fj = self.f_nn('f'+str(t),[Dbi,self.H[t-1],Dbj],layer=self.mf_layer[1])
-             Fj  = torch.transpose(Fi,1,0)
-             F   = Fi*Fj
-             Fsi = F[:,:,0]
-             Fpi = F[:,:,1]
-             Fpp = F[:,:,2]
-             self.Hsi.append(self.Hsi[t-1]*Fsi)
-             self.Hpi.append(self.Hpi[t-1]*Fpi)
-             self.Hpp.append(self.Hpp[t-1]*Fpp)
-          elif self.MessageFunction==4:
-             Dbi = Di  - torch.unsqueeze(self.P['val'],0)
-             Dbj = Dj  - torch.unsqueeze(self.P['val'],1)
-             Fi  = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1]) # +str(t)
-             Fj  = self.f_nn('fm',[Dbi,self.H[t-1],Dbj],layer=self.mf_layer[1]) # +str(t)
-
-            #  self.f1()
-            #  f11 = self.f_1*self.f_1
-            #  F11 = torch.where(self.P['ovcorr']>=0.0001,f11,1.0)
-
-             F   = Fi*Fj #*F11
-             self.Hsi.append(self.Hsi[t-1]*F)
-             self.Hpi.append(self.Hpi[t-1]*F)
-             self.Hpp.append(self.Hpp[t-1]*F)
-          elif self.MessageFunction==5:
-             Dbi = Di  - torch.unsqueeze(self.P['val'],0) # Di  - self.H[t-1]
-             Dbj = Dj  - torch.unsqueeze(self.P['val'],1) # Dj  - self.H[t-1]
-             Fi  = self.f_nn('fm',[Dbj,self.H[t-1],Dbi],layer=self.mf_layer[1]) # +str(t)
-             Fj  = self.f_nn('fm',[Dbi,self.H[t-1],Dbj],layer=self.mf_layer[1]) # +str(t)
-             #Fj  = torch.transpose(Fi,2,0)
-             F   = Fi*Fj
-             Fsi = F[:,:,0]
-             Fpi = F[:,:,1]
-             Fpp = F[:,:,2]
-             self.Hsi.append(Fsi)
-             self.Hpi.append(Fpi)
-             self.Hpp.append(Fpp)
-          else:
-             raise NotImplementedError('-  Message function not supported yet!')
-          self.H.append(self.Hsi[t]+self.Hpi[t]+self.Hpp[t])
-          self.D.append(torch.sum(self.H[t],1) )
-          if self.MessageFunction==1:
-             self.D_si.append(torch.sum(self.Hsi[t],1))
-             self.D_pi.append(torch.sum(self.Hpi[t],1))
-             self.D_pp.append(torch.sum(self.Hpp[t],1))
-
-  def get_bondorder_nn(self):
-      self.message_passing()
-      self.bosi  = self.Hsi[-1]       # getting the final state
-      self.bopi  = self.Hpi[-1]
-      self.bopp  = self.Hpp[-1]
-
-      self.bo0   = self.H[-1] # torch.where(self.H[-1]<0.000001,0.0,self.H[-1])
-      # self.fbo   = taper(self.bo0,rmin=self.botol,rmax=2.0*self.botol)
-      self.bo    = torch.nn.functional.relu(self.bo0 - self.atol*self.eye)      #bond-order cut-off 0.001 reaxffatol
-      self.bso   = self.P['ovun1']*self.P['Desi']*self.bo0  
-      self.Delta = torch.sum(self.bo0,1)   
-
-      self.Di    = torch.unsqueeze(self.Delta,0)*self.eye          # get energy layer
-      self.Dj    = torch.unsqueeze(self.Delta,1)*self.eye
-      Dbi        = self.Di - self.bo0
-      Dbj        = self.Dj - self.bo0
-
-      if self.EnergyFunction==0:
-         self.powb  = torch.pow(self.bosi+self.safety_value,self.P['be2'])
-         self.expb  = torch.exp(torch.mul(self.P['be1'],1.0-self.powb))
-         self.sieng = self.P['Desi']*self.bosi*self.expb 
-
-         self.pieng = torch.mul(self.P['Depi'],self.bopi)
-         self.ppeng = torch.mul(self.P['Depp'],self.bopp)
-         self.esi   = self.sieng + self.pieng + self.ppeng
-      elif self.EnergyFunction==1: 
-         esi      = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
-         self.esi = esi*torch.where(self.bo0<0.0000001,0.0,1.0)
-      elif self.EnergyFunction==2:
-         self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1])
-         self.esi = self.esi*tf.where(self.bo0<0.0000001,0.0,1.0)
-      elif self.EnergyFunction==3: 
-         e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
-         self.esi = self.bo0*e_
-      elif self.EnergyFunction==4:
-         Fi = self.f_nn('fe',[Dbj,Dbi,self.bo0],layer=self.be_layer[1])
-         Fj = torch.transpose(Fi,1,0)
-         self.esi  = Fi*Fj*self.bo0
-      elif self.EnergyFunction==5:
-         # r_        = self.bodiv1
-         # mors_exp1 = torch.exp(self.P['be2']*(1.0-r_))
-         # mors_exp2 = torch.square(mors_exp1) 
-
-         # mors_exp10= torch.exp(self.P['be2']*self.P['be1'])
-         # mors_exp20= torch.square(mors_exp10) 
-         # emorse    = 2.0*mors_exp1 - mors_exp2 + mors_exp20 - 2.0*mors_exp10
-         # self.esi  = torch.nn.ReLU(emorse)
-         self.sieng = torch.mul(self.P['Desi'],self.bosi)
-         self.pieng = torch.mul(self.P['Depi'],self.bopi)
-         self.ppeng = torch.mul(self.P['Depp'],self.bopp)
-         self.esi   = self.sieng + self.pieng - self.ppeng
-      else:
-         raise NotImplementedError('-  This method is not implimented!')
       
 
   def get_elone(self):
@@ -1185,7 +1052,7 @@ class ReaxFF_nn_force(nn.Module):
           self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
           self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1))
           self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1))
-
+         
     #   for key in self.p_spec:
     #       # unit_ = self.unit if key in self.punit else 1.0
     #       self.P[key] = np.zeros([self.natom],dtype=np.float64)
