@@ -110,7 +110,7 @@ def fnn(pre,bd,x,m,layer=5):
 
     out = torch.sigmoid(torch.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
     # print(out.shape)
-    return  out.squeeze(dim=2) 
+    return  out.squeeze(dim=[2,3]) 
 
 class ReaxFF_nn_force(nn.Module):
   ''' Force Learning '''
@@ -176,24 +176,49 @@ class ReaxFF_nn_force(nn.Module):
   def forward(self):
       for st in self.strcs:
           self.get_bond_energy(st)   # get bond energy for every structure
+          self.get_atom_energy(st)
 
-
-      #   self.get_charge(cell,positions)
-      #   self.get_neighbor(cell,rcell,positions)
-
-      #   cell = torch.tensor(cell)
-      #   rcell= torch.tensor(rcell)
-
-      #   self.positions = torch.tensor(positions,requires_grad=True)
-      #   E = self.get_total_energy(cell,rcell,self.positions)
-      #   grad = torch.autograd.grad(outputs=E,
-      #                              inputs=self.positions,
-      #                              only_inputs=True)
-   
-      #   self.grad              = grad#[0].numpy()
-      #   self.E                 = E#.detach().numpy()[0]
+        #   self.get_threebody_energy(st)
+        #   self.get_fourbody_energy(st)
+        #   self.get_vdw_energy(st)
+        #   self.get_hb_energy(st)
+        #   self.get_total_energy(st)
       return self.E,self.force
   
+  def get_atom_energy(self,st):
+      ''' compute atomic energy of structure (st): elone, eover,eunder'''
+      st_ = st.split('-')[0]
+
+      for sp in self.spec:
+          a = []
+          self.get_elone(st,sp) 
+ 
+      # self.Dang[st]   = self.Delta[st] - valang 
+ 
+      
+      self.elone[st]  = torch.sum(self.Elone[st],0)
+     
+
+    #   self.get_eover(st,val,ovun2) 
+    #   self.eover[st]  = tf.reduce_sum(input_tensor=self.EOV[mol],axis=0,name='eover_{:s}'.format(mol))
+    #   self.get_eunder(mol,ovun2,ovun5) 
+    #   self.eunder[st] = tf.reduce_sum(input_tensor=self.EUN[mol],axis=0,name='eunder_{:s}'.format(mol))
+    #   self.zpe[st]    = tf.reduce_sum(input_tensor=self.eatom[mol],name='zpe') + self.MolEnergy[mol_]
+
+  def get_elone(self,st,sp,delta):
+      Nlp            = 0.5*(self.p['vale_'+sp] - self.p['val_'+sp])
+      delta_e        = 0.5*(delta - self.p['vale_'+sp])
+      De             = -torch.relu(-torch.ceil(self.Delta_e[st])) 
+      self.nlp[st]   = -De + torch.exp(-self.p['lp1']*4.0*torch.square(1.0+delta_e-De))
+
+      self.Delta_lp[st] = Nlp - self.nlp[st]           
+      Delta_lp          = torch.relu(self.Delta_lp[st]+1) -1
+
+      explp             = 1.0+torch.exp(-75.0*Delta_lp) # -self.p['lp3']
+      self.Elone[st]    = self.p['lp2']*self.Delta_lp[st]/explp,
+                                          
+ 
+
   def get_bond_energy(self,st):
       vr         = fvr(self.x[st])
       vrf        = torch.matmul(vr,self.rcell[st])
@@ -218,11 +243,11 @@ class ReaxFF_nn_force(nn.Module):
              continue
           b_  = self.b[st][bd]
           bosi_ = bosi[:,b_[0]:b_[1]]
-          bopi_ = bosi[:,b_[0]:b_[1]]
-          bopp_ = bosi[:,b_[0]:b_[1]]
+          bopi_ = bopi[:,b_[0]:b_[1]]
+          bopp_ = bopp[:,b_[0]:b_[1]]
 
-          esi = fnn('fe',bd, self.nbd[st][bd],[bosi_,bopi_,bopp_],
-                    self.m,batch=self.batch[st],layer=self.be_layer[1])
+          esi = fnn('fe',bd,[bosi_,bopi_,bopp_],
+                    self.m,layer=self.be_layer[1])
           ebd.append(-self.p['Desi_'+bd]*esi)
 
       self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
@@ -232,9 +257,6 @@ class ReaxFF_nn_force(nn.Module):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
       r = self.r[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-      # self.bop_si[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
-      # self.bop_pi[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
-      # self.bop_pp[st] = torch.zeros(self.batch[st],self.natom[st],self.natom[st])
       self.bop_si[st] = torch.zeros_like(self.r[st])
       self.bop_pi[st] = torch.zeros_like(self.r[st])
       self.bop_pp[st] = torch.zeros_like(self.r[st])
@@ -245,8 +267,6 @@ class ReaxFF_nn_force(nn.Module):
           if nbd_==0:
              continue
           rbd = r[:,b_[0]:b_[1]]
-          # print(rbd)
-          # print(b_[0],b_[1],'\n',rbd.shape)
           bodiv1 = torch.div(rbd,self.p['rosi_'+bd])
           bopow1 = torch.pow(bodiv1,self.p['bo2_'+bd])
           eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1)) 
@@ -314,7 +334,7 @@ class ReaxFF_nn_force(nn.Module):
       self.bo[st]     = torch.relu(self.bo0[st] - self.atol)
 
       bso             = []
-      bo0             = self.bo0[:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bo0             = self.bo0[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
 
       for bd in self.bonds:
           if self.nbd[st][bd]==0:
@@ -1330,12 +1350,17 @@ class ReaxFF_nn_force(nn.Module):
       self.r     = {}
       self.E     = {}
       self.force = {}
+      self.ebd,self.ebond   = {},{}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
       self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
 
       self.Deltap,self.Delta = {},{}
       self.D_si,self.D_pi,self.D_pp = {},{},{}
       self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
+
+      self.SO,self.Dpi   = {},{}
+      self.fbot,self.fhb = {},{}
+
 
   def logout(self):
       with open('irff.log','w') as fmd:
