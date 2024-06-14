@@ -490,7 +490,7 @@ class ReaxFF_nn(object):
   def get_bond_energy(self,mol):
       self.get_delta(mol)
       self.message_passing(mol)
-      self.get_final_sate(mol)
+      self.get_final_state(mol)
       self.get_ebond(mol)
       self.ebond[mol]= tf.reduce_sum(input_tensor=self.EBD[mol],axis=0,name='bondenergy')
 
@@ -642,7 +642,7 @@ class ReaxFF_nn(object):
           self.D_pi[mol].append(Dpi)
           self.D_pp[mol].append(Dpp)
 
-  def get_final_sate(self,mol):     
+  def get_final_state(self,mol):     
       self.Delta[mol]  = self.D[mol][-1]
       self.bo0[mol]    = self.H[mol][-1]                 # fetch the final state 
       self.bosi[mol]   = self.Hsi[mol][-1]
