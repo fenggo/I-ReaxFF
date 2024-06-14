@@ -80,20 +80,37 @@ def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
                 Wo:  (8,3)  output = 3
     '''
     X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
-    print(X.shape)
-    print(m[pre+'wi_'+bd].shape)
-
+    # print(X.shape)
+    # print(m[pre+'wi_'+bd].shape)
     # X   = tf.stack(x_,axis=1)       # Dimention: (nbatch,4)
     #                                 #        Wi:  (4,8) 
     o   =  []                         #        Wh:  (8,8)
     o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])))   # input layer
 
-    # for l in range(layer):                                                   # hidden layer      
-    #     o.append(tf.sigmoid(tf.matmul(o[-1],m[pre+'w_'+bd][l],name='bop_hide')+m[pre+'b_'+bd][l]))
+    for l in range(layer):                                                   # hidden layer      
+        o.append(torch.sigmoid(torch.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
 
-    # o_ = tf.sigmoid(tf.matmul(o[-1],m[pre+'wo_'+bd],name='bop_output') + m[pre+'bo_'+bd])  # output layer
-    # out= tf.reshape(o_,[nbd,batch,3])
-    return # out
+    out = torch.sigmoid(torch.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
+    # print(out.shape)
+    return  out.squeeze(dim=2) 
+
+def fnn(pre,bd,x,m,layer=5):
+    ''' Dimention: (nbatch,3) input = 3
+                Wi:  (3,8) 
+                Wh:  (8,8)
+                Wo:  (8,1)  output = 3
+    '''
+    X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
+    #                                 #        Wi:  (3,8) 
+    o   =  []                         #        Wh:  (8,8)
+    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])))   # input layer
+
+    for l in range(layer):                                     # hidden layer      
+        o.append(torch.sigmoid(torch.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
+
+    out = torch.sigmoid(torch.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
+    # print(out.shape)
+    return  out.squeeze(dim=2) 
 
 class ReaxFF_nn_force(nn.Module):
   ''' Force Learning '''
@@ -187,22 +204,29 @@ class ReaxFF_nn_force(nn.Module):
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
- 
+      self.get_final_state(st)
+      
+      self.ebd[st] = torch.zeros_like(self.bosi[st])
+      ebd  = []
+      bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bopp = self.bopp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
 
-    #   self.Dv     = self.Delta - self.P['val']
-    #   self.Dpi   = torch.sum(self.bopi+self.bopp,1) 
+      for bd in self.bonds:
+          nbd_ = self.nbd[st][bd]
+          if nbd_==0:
+             continue
+          b_  = self.b[st][bd]
+          bosi_ = bosi[:,b_[0]:b_[1]]
+          bopi_ = bosi[:,b_[0]:b_[1]]
+          bopp_ = bosi[:,b_[0]:b_[1]]
 
-    #   self.so    = torch.sum(self.P['ovun1']*self.P['Desi']*self.bo0,1)  
-    #   self.fbo   = taper(self.bo0,rmin=self.atol,rmax=2.0*self.atol) 
-    #   self.fhb   = taper(self.bo0,rmin=self.hbtol,rmax=2.0*self.hbtol) 
+          esi = fnn('fe',bd, self.nbd[st][bd],[bosi_,bopi_,bopp_],
+                    self.m,batch=self.batch[st],layer=self.be_layer[1])
+          ebd.append(-self.p['Desi_'+bd]*esi)
 
-    #   if self.EnergyFunction>=1: # or self.EnergyFunction==2 or self.EnergyFunction==3:
-    #      self.ebond = - self.P['Desi']*self.esi
-    #   else:
-    #      self.ebond = -self.esi
-
-    #   self.Ebond = 0.5*torch.sum(self.ebond)
-      return # self.Ebond
+      self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
+      self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2])
   
   def get_bondorder_uc(self,st):
       bop_si,bop_pi,bop_pp = [],[],[]
@@ -239,15 +263,15 @@ class ReaxFF_nn_force(nn.Module):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_si,dim=1)
-      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pi,dim=1)
-      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bop_pp,dim=1)
+      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_si[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_si,dim=1)
+      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pi[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_pi,dim=1)
+      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pp[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_pp,dim=1)
       self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
       # print(self.bop[st].size)
-      self.Deltap[st] = torch.sum(self.bop[st],1)
-      self.D_si[st]   = torch.sum(self.bop_si[st],1)
-      self.D_pi[st]   = torch.sum(self.bop_pi[st],1)
-      self.D_pp[st]   = torch.sum(self.bop_pp[st],1)
+      self.Deltap[st] = torch.sum(self.bop[st],2)
+      self.D_si[st]   = torch.sum(self.bop_si[st],2)
+      self.D_pi[st]   = torch.sum(self.bop_pi[st],2)
+      self.D_pp[st]   = torch.sum(self.bop_pp[st],2)
 
   def message_passing(self,st):
       self.H[st]    = [self.bop[st]]                     # 
@@ -277,9 +301,37 @@ class ReaxFF_nn_force(nn.Module):
           self.Hpi[st].append(bopi)
           self.Hpp[st].append(bopp)
 
-          Delta = torch.sum(bo,1)
+          Delta = torch.sum(bo,2)
           self.D[st].append(Delta)                  # degree matrix
 
+  def get_final_state(self,st):     
+      self.Delta[st]  = self.D[st][-1]
+      self.bo0[st]    = self.H[st][-1]                 # fetch the final state 
+      self.bosi[st]   = self.Hsi[st][-1]
+      self.bopi[st]   = self.Hpi[st][-1]
+      self.bopp[st]   = self.Hpp[st][-1]
+
+      self.bo[st]     = torch.relu(self.bo0[st] - self.atol)
+
+      bso             = []
+      bo0             = self.bo0[:,self.bdid[st][:,0],self.bdid[st][:,1]]
+
+      for bd in self.bonds:
+          if self.nbd[st][bd]==0:
+             continue
+          b_   = self.b[st][bd]
+          bo0_ = bo0[:,b_[0]:b_[1]]
+          bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0_)
+      
+      bso_             = torch.zeros_like(self.bo0[st])
+      bso_[:,self.bdid[st][:,0],self.bdid[st][:,1]]  = torch.cat(bso,1)
+      bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = torch.cat(bso,1)
+
+      self.SO[st]      = torch.sum(bso_,2)  
+      self.Dpi[st]     = torch.sum(self.bopi[st]+self.bopp[st],2) 
+
+      self.fbot[st]   = taper(self.bo0[st],rmin=self.atol,rmax=2.0*self.atol) 
+      self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
   def get_bondorder(self,st,t,Dbi,H,Dbj,Hsi,Hpi,Hpp):
       ''' compute bond-order according the message function'''
@@ -291,6 +343,7 @@ class ReaxFF_nn_force(nn.Module):
       bosi_ = []
       bopi_ = []
       bopp_ = []
+      bso_  = []
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
           if nbd_==0:
@@ -316,9 +369,9 @@ class ReaxFF_nn_force(nn.Module):
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bosi_,1)
-      bopi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bopi_,1)
-      bopp[:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(bopp_,1)
+      bosi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bosi[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bosi_,1)
+      bopi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bopi[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bopi_,1)
+      bopp[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bopp[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bopp_,1)
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
 
@@ -338,20 +391,16 @@ class ReaxFF_nn_force(nn.Module):
       cell = torch.tensor(cell)
       rcell= torch.tensor(rcell)
 
-      if self.autograd:
-         self.positions = torch.tensor(positions,requires_grad=True)
-         E = self.get_total_energy(cell,rcell,self.positions)
-         grad = torch.autograd.grad(outputs=E,
-                                    inputs=self.positions,
-                                    only_inputs=True)
+    
+      self.positions = torch.tensor(positions,requires_grad=True)
+      E = self.get_total_energy(cell,rcell,self.positions)
+      grad = torch.autograd.grad(outputs=E,
+                                 inputs=self.positions,
+                                 only_inputs=True)
       
-         self.grad              = grad[0].numpy()
-         self.E                 = E.detach().numpy()[0]
-      else:
-         self.positions = torch.from_numpy(positions)
-         E              = self.get_total_energy(cell,rcell,self.positions)
-         self.E         = E.numpy()[0]
-         self.grad      = 0.0
+      self.grad              = grad[0].numpy()
+      self.E                 = E.detach().numpy()[0]
+ 
 
       self.results['energy'] = self.E
       self.results['forces'] = -self.grad
@@ -1282,7 +1331,7 @@ class ReaxFF_nn_force(nn.Module):
       self.E     = {}
       self.force = {}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
-      self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{}
+      self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
 
       self.Deltap,self.Delta = {},{}
       self.D_si,self.D_pi,self.D_pp = {},{},{}
