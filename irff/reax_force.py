@@ -178,7 +178,8 @@ class ReaxFF_nn_force(nn.Module):
           self.get_bond_energy(st)   # get bond energy for every structure
           self.get_atomic_energy(st)
 
-        #   self.get_threebody_energy(st)
+          self.get_threebody_energy(st)
+
         #   self.get_fourbody_energy(st)
         #   self.get_vdw_energy(st)
         #   self.get_hb_energy(st)
@@ -420,182 +421,121 @@ class ReaxFF_nn_force(nn.Module):
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
 
-  def calculate(self,atoms=None):
-      cell      = atoms.get_cell()                    # cell is object now
-      cell      = cell[:].astype(dtype=np.float64)
-      rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
+  def get_threebody_energy(self,st):
+      ''' compute three-body term interaction '''
+      PBOpow        = -torch.pow(self.bo[st],8)        # original: self.BO0 
+      PBOexp        =  torch.exp(PBOpow)
+      self.Pbo[st]  =  torch.reduce_prod(PBOexp,2)     # BO Product
 
-      positions = atoms.get_positions()
-      xf        = np.dot(positions,rcell)
-      xf        = np.mod(xf,1.0)
-      positions = np.dot(xf,cell).astype(dtype=np.float64)
+      if self.nang[st]==0 or self.optword.find('noang')>=0:
+         self.eang[st] = torch.zeros(self.batch[st]) 
+         self.epen[st] = torch.zeros(self.batch[st]) 
+         self.tconj[st]= torch.zeros(self.batch[st]) 
+      else:
+         delta_    = self.Delta[st][:,self.ang_j]
+         Eang      = torch.zeros_like(delta_)
+         for ang in self.angs:
+             sp  = ang.split('-')[1]
+             if self.na[ang]>0:
+                delta_ang = delta_ - self.p['valang_'+ang]
+                delta     = delta_ - self.p['val_'+sp]
+                self.get_eangle(st,ang,val1,val2,val3,val4,val5,val7,theta0)
 
-      self.get_charge(cell,positions)
-      self.get_neighbor(cell,rcell,positions)
-
-      cell = torch.tensor(cell)
-      rcell= torch.tensor(rcell)
-
-    
-      self.positions = torch.tensor(positions,requires_grad=True)
-      E = self.get_total_energy(cell,rcell,self.positions)
-      grad = torch.autograd.grad(outputs=E,
-                                 inputs=self.positions,
-                                 only_inputs=True)
-      
-      self.grad              = grad[0].numpy()
-      self.E                 = E.detach().numpy()[0]
+                # self.get_epenalty(mol,pen1,Delta)
+                # self.get_three_conj(mol,valang,valboc,coa1) 
  
+         self.eang[st] = tf.reduce_sum(input_tensor=self.Eang[st],axis=0,name='eang_%s' %mol)
+         self.epen[st] = tf.reduce_sum(input_tensor=self.Epen[st],axis=0,name='epen_%s' %mol)
+         self.tconj[st]= tf.reduce_sum(input_tensor=self.Etc[st],axis=0,name='etc_%s' %mol)
+ 
+  def get_eangle(self,st,ang,boij,bojk,fij,fjk,theta0):
+    #   self.BOij[st] = tf.gather_nd(self.bo[st],self.abij[st])   ### need to be done
+    #   self.BOjk[st] = tf.gather_nd(self.bo[st],self.abjk[st])   ### need to be done
+    #   fij            = tf.gather_nd(self.fbot[st],self.abij[st]) 
+    #   fjk            = tf.gather_nd(self.fbot[st],self.abjk[st]) 
+      fijk           = fij*fjk
 
-      self.results['energy'] = self.E
-      self.results['forces'] = -self.grad
-
-#   def set_rcut(self,rcut,rcuta,re): 
-#       rcut_,rcuta_,re_ = setRcut(self.bonds,rcut,rcuta,re)
-#       self.rcut  = rcut_    ## bond order compute cutoff
-#       self.rcuta = rcuta_   ## angle term cutoff
-
-#       # self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float32)
-#       # self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float32)
-#       self.re = np.zeros([self.natom,self.natom],dtype=np.float32)
-#       for i in range(self.natom):
-#           for j in range(self.natom):
-#               bd = self.atom_name[i] + '-' + self.atom_name[j]
-#               if i!=j:
-#                  # self.r_cut[i][j]  = self.rcut[bd]  
-#                  # self.r_cuta[i][j] = self.rcuta[bd] 
-#                  self.re[i][j]     = re_[bd] 
-
-  def get_rcbo(self):
-      ''' get cut-offs for individual bond '''
-      self.rc_bo = {}
-      for bd in self.bonds:
-          b= bd.split('-')
-          ofd=bd if b[0]!=b[1] else b[0]
-
-          log_ = np.log((self.botol/(1.0+self.botol)))
-          rr = log_/self.p_['bo1_'+bd] 
-          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(log_/self.p_['bo1_'+bd],1.0/self.p_['bo2_'+bd])
-
-
-  def get_theta(self):
-      Rij = self.r[self.angi,self.angj]  
-      Rjk = self.r[self.angj,self.angk]  
-      # Rik = self.r[self.angi,self.angk]  
-      vik = self.vr[self.angi,self.angj] + self.vr[self.angj,self.angk]
-      Rik = torch.sqrt(torch.sum(torch.square(vik),1))
-
-      Rij2= Rij*Rij
-      Rjk2= Rjk*Rjk
-      Rik2= Rik*Rik
-
-      self.cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      self.theta     = torch.acos(self.cos_theta)
-
-
-  def get_theta0(self,dang):
-      sbo   = self.Delta_pi[self.angj]
-      pbo   = self.PBO[self.angj]
-      rnlp  = self.nlp[self.angj]
-      self.pbo = pbo
-      self.rnlp= rnlp
       
-      # if self.nn:
-      #    SBO= sbo   
-      # else:
-      SBO= sbo - (1.0-pbo)*(dang+self.P['val8']*rnlp)  
-      self.SBO= SBO 
-      
-      ok    = torch.logical_and(SBO<=1.0,SBO>0.0)
-      S1    = torch.where(ok,SBO,torch.full_like(SBO,0.0))         #  0< sbo < 1                  
-      SBO01 = torch.where(ok,torch.pow(S1,self.P['val9']),torch.full_like(S1,0.0)) 
+      self.get_theta0(st,theta0)
+      thet           = theta0 - theta
+      thet2          = torch.square(thet)
 
-      ok    = torch.logical_and(SBO<2.0,SBO>1.0)
-      S2    = torch.where(ok,SBO,torch.full_like(SBO,0.0))                     
-      F2    = torch.where(ok,torch.full_like(S2,1.0),torch.full_like(S2,0.0))          #  1< sbo <2
+      expang         = torch.exp(-self.p['val2_'+ang]*thet2)
+      f_7            = self.f7(st,val3,val4)
+      f_8            = self.f8(mol,val5,val7)
+      Eang           = fijk[st]*self.f_7[st]*self.f_8[st]*(val1-val1*self.expang[st]) 
+      return Eang
+
+  def get_theta0(self,mol,theta0):
+      self.sbo[st] = tf.gather_nd(self.Dpi[st],self.ang_j[st])
+      self.pbo[st] = tf.gather_nd(self.Pbo[st],self.ang_j[st])
+      self.rnlp[st]= tf.gather_nd(self.nlp[st],self.ang_j[st])
+      self.SBO[st] = self.sbo[st] - tf.multiply(1.0-self.pbo[st],self.D_ang[st]+self.p['val8']*self.rnlp[st])    
+      
+      ok         = tf.logical_and(tf.less_equal(self.SBO[st],1.0),tf.greater(self.SBO[st],0.0))
+      S1         = tf.where(ok,self.SBO[st],tf.zeros_like(self.SBO[st]))    #  0< sbo < 1                  
+      self.SBO01[st] = tf.where(ok,tf.pow(S1,self.p['val9']),tf.zeros_like(S1)) 
+
+      ok    = tf.logical_and(tf.less(self.SBO[st],2.0),tf.greater(self.SBO[st],1.0))
+      S2    = tf.where(ok,self.SBO[st],tf.zeros_like(self.SBO[st]))                     
+      F2    = tf.where(ok,tf.ones_like(S2),tf.zeros_like(S2))                                    #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      SBO12 = torch.where(ok,2.0-torch.pow(S2,self.P['val9']),torch.full_like(S2,0.0)) #  1< sbo <2
-      SBO2  = torch.where(SBO>2.0,torch.full_like(S2,1.0),torch.full_like(S2,0.0))                         #     sbo >2
+      self.SBO12[st] = tf.where(ok,2.0-tf.pow(S2,self.p['val9']),tf.zeros_like(self.SBO[st]))  #  1< sbo <2
+                                                                                                 #     sbo >2
+      SBO2  = tf.where(tf.greater_equal(self.SBO[st],2.0),
+                       tf.ones_like(self.SBO[st]),tf.zeros_like(self.SBO[st]))
 
-      self.SBO3  = SBO01+SBO12+2.0*SBO2
-      # if self.nn:
-      #    thet_ = torch.mul(self.P['theta0'],(1.0-torch.exp(-self.P['val10']*(2.0-self.SBO3))))
-      # else:
-      thet_      = 180.0 - torch.mul(self.P['theta0'],(1.0-torch.exp(-self.P['val10']*(2.0-self.SBO3))))
-      self.thet0 = thet_/57.29577951
+      self.SBO3[st]   = self.SBO01[st]+self.SBO12[st]+2.0*SBO2
+      theta0_ = 180.0 - theta0*(1.0-tf.exp(-self.p['val10']*(2.0-self.SBO3[st])))
+      self.theta0[st] = theta0_/57.29577951
 
+  def f7(self,mol,val3,val4): 
+      FBOi  = tf.where(tf.greater(self.BOij[st],0.0),
+                       tf.ones_like(self.BOij[st]),tf.zeros_like(self.BOij[st]))   
+      FBORi = 1.0 - FBOi                                                                         # prevent NAN error
+      expij = tf.exp(-val3*tf.pow(self.BOij[st]+FBORi,val4)*FBOi)
 
-  def get_eangle(self):
-      self.Dang  = self.Delta - self.P['valang']
-      self.boaij = self.bo[self.angi,self.angj]
-      self.boajk = self.bo[self.angj,self.angk]
-      fij        = self.fbo[self.angi,self.angj]   
-      fjk        = self.fbo[self.angj,self.angk]   
-      self.fijk  = fij*fjk
-      
-      dang       = self.Dang[self.angj]
-      PBOpow     = -torch.pow(self.bo+self.safety_value,8)  # bo0
-      PBOexp     = torch.exp(PBOpow)
-      self.PBO   = torch.prod(PBOexp,1)
+      FBOk  = tf.where(tf.greater(self.BOjk[st],0.0),
+                        tf.ones_like(self.BOjk[st]),tf.zeros_like(self.BOjk[st]))   
+      FBORk = 1.0 - FBOk 
+      expjk = tf.exp(-val3*tf.pow(self.BOjk[st]+FBORk,val4)*FBOk)
+      fi = 1.0 - expij
+      fk = 1.0 - expjk
+      F  = tf.multiply(fi,fk,name='f7_'+mol)
+      return F 
 
-      self.get_theta()
-      self.get_theta0(dang)
+  def f8(self,mol,val5,val7):
+      exp6 = tf.exp( self.p['val6']*self.D_ang[st])
+      exp7 = tf.exp(-val7*self.D_ang[st])
+      F    = val5 - (val5-1.0)*tf.math.divide(2.0+exp6,1.0+exp6+exp7)
+      return F
 
-      self.thet  = self.thet0-self.theta
-      self.expang= torch.exp(-self.P['val2']*torch.square(self.thet))
-      self.f7(self.boaij,self.boajk)
-      self.f8(dang)
-      self.eang  = self.fijk*self.f_7*self.f_8*(self.P['val1']-self.P['val1']*self.expang) 
-      self.Eang  = torch.sum(self.eang)
+  def get_epenalty(self,mol,pen1,Delta):
+      self.f_9[st] = self.f9(Delta)
+      expi = tf.exp(-self.p['pen2']*tf.square(self.BOij[st]-2.0))
+      expk = tf.exp(-self.p['pen2']*tf.square(self.BOjk[st]-2.0))
+      self.Epen[st] = pen1*self.f_9[st]*expi*expk*self.fijk[st]
 
-      self.get_epenalty(self.boaij,self.boajk)
-      self.get_three_conj(self.boaij,self.boajk)
+  def f9(self,Delta):
+      exp3 = tf.exp(-self.p['pen3']*Delta)
+      exp4 = tf.exp( self.p['pen4']*Delta)
+      F = tf.math.divide(2.0+exp3,1.0+exp3+exp4)
+      return F
 
+  def get_three_conj(self,mol,valang,valboc,coa1):
+      Dcoa = self.D_ang[st] + valang - valboc
+      self.expcoa1[st] = tf.exp(self.p['coa2']*Dcoa)
 
-  def f7(self,boij,bojk):
-      self.expaij = torch.exp(-self.P['val3']*torch.pow(boij+self.safety_value,self.P['val4']))
-      self.expajk = torch.exp(-self.P['val3']*torch.pow(bojk+self.safety_value,self.P['val4']))
-      fi          = 1.0 - self.expaij
-      fk          = 1.0 - self.expajk
-      self.f_7    = fi*fk
+      Di    = tf.gather_nd(self.Delta[st],self.ang_i[st])
+      Dk    = tf.gather_nd(self.Delta[st],self.ang_k[st])
 
-
-  def f8(self,dang):
-      exp6     = torch.exp( self.P['val6']*dang)
-      exp7     = torch.exp(-self.P['val7']*dang)
-      self.f_8 = self.P['val5'] - (self.P['val5'] - 1.0)*(2.0+exp6)/(1.0+exp6+exp7)
-
-
-  def get_epenalty(self,boij,bojk):
-      self.f9()
-      expi = torch.exp(-self.P['pen2']*torch.square(boij-2.0))
-      expk = torch.exp(-self.P['pen2']*torch.square(bojk-2.0))
-      self.epen = self.P['pen1']*self.f_9*expi*expk*self.fijk
-      self.Epen = torch.sum(self.epen)
-
-
-  def f9(self):
-      D    = torch.squeeze(self.Dv[self.angj])
-      exp3 = torch.exp(-self.P['pen3']*D)
-      exp4 = torch.exp( self.P['pen4']*D)
-      self.f_9 = torch.div(2.0+exp3,1.0+exp3+exp4)
-
-
-  def get_three_conj(self,boij,bojk):
-      Dcoa_ = self.Delta-self.P['valboc']
-      Dcoa  = Dcoa_[self.angj]
-      Di    = self.Delta[self.angi]
-      Dk    = self.Delta[self.angk]
-      self.expcoa1 = torch.exp(self.P['coa2']*Dcoa)
-
-      texp0 = torch.div(self.P['coa1'],1.0+self.expcoa1)  
-      texp1 = torch.exp(-self.P['coa3']*torch.square(Di-boij))
-      texp2 = torch.exp(-self.P['coa3']*torch.square(Dk-bojk))
-      texp3 = torch.exp(-self.P['coa4']*torch.square(boij-1.5))
-      texp4 = torch.exp(-self.P['coa4']*torch.square(bojk-1.5))
-      self.etcon = texp0*texp1*texp2*texp3*texp4*self.fijk
-      self.Etcon = torch.sum(self.etcon)
+      texp0 = tf.math.divide(coa1,1.0+self.expcoa1[st])  
+      texp1 = tf.exp(-self.p['coa3']*tf.square(Di-self.BOij[st]))
+      texp2 = tf.exp(-self.p['coa3']*tf.square(Dk-self.BOjk[st]))
+      texp3 = tf.exp(-self.p['coa4']*tf.square(self.BOij[st]-1.5))
+      texp4 = tf.exp(-self.p['coa4']*tf.square(self.BOjk[st]-1.5))
+      self.Etc[st] = texp0*texp1*texp2*texp3*texp4*self.fijk[st] 
   
 
   def get_torsion_angle(self):
@@ -806,6 +746,17 @@ class ReaxFF_nn_force(nn.Module):
                   ehb    = fhb*frhb*self.P['Dehb']*exphb1*exphb2*sin4 
                   self.Ehb += torch.sum(ehb)
 
+
+  def get_rcbo(self):
+      ''' get cut-offs for individual bond '''
+      self.rc_bo = {}
+      for bd in self.bonds:
+          b= bd.split('-')
+          ofd=bd if b[0]!=b[1] else b[0]
+
+          log_ = np.log((self.botol/(1.0+self.botol)))
+          rr = log_/self.p_['bo1_'+bd] 
+          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(log_/self.p_['bo1_'+bd],1.0/self.p_['bo2_'+bd])
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
