@@ -177,10 +177,8 @@ class ReaxFF_nn_force(nn.Module):
       for st in self.strcs:
           self.get_bond_energy(st)   # get bond energy for every structure
           self.get_atomic_energy(st)
-
           self.get_threebody_energy(st)
-
-        #   self.get_fourbody_energy(st)
+          self.get_fourbody_energy(st)
         #   self.get_vdw_energy(st)
         #   self.get_hb_energy(st)
         #   self.get_total_energy(st)
@@ -554,118 +552,65 @@ class ReaxFF_nn_force(nn.Module):
       Etc   = texp0*texp1*texp2*texp3*texp4*fijk 
       return Etc
 
-  def get_torsion_angle(self):
-      rij = self.r[self.tori,self.torj]
-      rjk = self.r[self.torj,self.tork]
-      rkl = self.r[self.tork,self.torl]
+  def get_fourbody_energy(self,st):
+      if self.optword.find('notor')>=0 or self.ntor[st]==0:
+         self.etor[st] = torch.zeros([self.batch[st]])
+         self.efcon[st]= torch.zeros([self.batch[st]])
+      else:
+         self.get_etorsion(st,tor)
+         self.get_four_conj(st,cot1)
 
-      vrjk= self.vr[self.torj,self.tork]
-      vrkl= self.vr[self.tork,self.torl]
+         self.etor[st] = tf.reduce_sum(input_tensor=self.Etor[st],axis=0,name='etor_%s' %mol)
+         self.efcon[st]= tf.reduce_sum(input_tensor=self.Efcon[st],axis=0,name='efcon_%s' %mol)
 
-      vrjl= vrjk + vrkl
-      rjl = torch.sqrt(torch.sum(torch.square(vrjl),1))
+  def get_etorsion(self,mol,tor1,V1,V2,V3):
+      self.BOtij[st]  = tf.gather_nd(self.bo[st],self.tij[st])
+      self.BOtjk[st]  = tf.gather_nd(self.bo[st],self.tjk[st])
+      self.BOtkl[st]  = tf.gather_nd(self.bo[st],self.tkl[st])
+      fij              = tf.gather_nd(self.fbot[st],self.tij[st])
+      fjk              = tf.gather_nd(self.fbot[st],self.tjk[st])
+      fkl              = tf.gather_nd(self.fbot[st],self.tkl[st])
+      self.fijkl[st]  = fij*fjk*fkl
 
-      vrij= self.vr[self.tori,self.torj]
-      vril= vrij + vrjl
-      ril = torch.sqrt(torch.sum(torch.square(vril),1))
+      Dj    = tf.gather_nd(self.Dang[st],self.tor_j[st])
+      Dk    = tf.gather_nd(self.Dang[st],self.tor_k[st])
 
-      vrik= vrij + vrjk
-      rik = torch.sqrt(torch.sum(torch.square(vrik),1))
+      self.f_10[st]   = self.f10(mol)
+      self.f_11[st]   = self.f11(mol,Dj,Dk)
 
-      rij2= torch.square(rij)
-      rjk2= torch.square(rjk)
-      rkl2= torch.square(rkl)
-      rjl2= torch.square(rjl)
-      ril2= torch.square(ril)
-      rik2= torch.square(rik)
+      self.BOpjk[st]  = tf.gather_nd(self.bopi[st],self.tjk[st]) 
+      #   different from reaxff manual
+      self.expv2[st]  = tf.exp(tor1*tf.square(2.0-self.BOpjk[st]-self.f_11[st])) 
 
-      c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
-      c2ijk = torch.square(c_ijk)
-      # tijk  = tf.acos(c_ijk)
-      cijk  =  1.000001 - c2ijk
-      self.s_ijk = torch.sqrt(cijk)
+      self.cos3w[st]  = tf.cos(3.0*self.w[st])
+      v1 = 0.5*V1*(1.0+self.cos_w[st])   
+      v2 = 0.5*V2*self.expv2[st]*(1.0-self.cos2w[st])
+      v3 = 0.5*V3*(1.0+self.cos3w[st])
+      self.Etor[st]=self.fijkl[st]*self.f_10[st]*self.s_ijk[st]*self.s_jkl[st]*(v1+v2+v3)
 
-      c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
-      c2jkl = torch.square(c_jkl)
-      cjkl  = 1.000001  - c2jkl 
-      self.s_jkl = torch.sqrt(cjkl)
+  def f10(self,mol):
+      with tf.compat.v1.name_scope('f10_%s' %mol):
+           exp1 = 1.0 - tf.exp(-self.p['tor2']*self.BOtij[st])
+           exp2 = 1.0 - tf.exp(-self.p['tor2']*self.BOtjk[st])
+           exp3 = 1.0 - tf.exp(-self.p['tor2']*self.BOtkl[st])
+      return exp1*exp2*exp3
 
-      c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
-      c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
+  def f11(self,mol,Dj,Dk):
+      delt = Dj+Dk
+      self.f11exp3[st] = tf.exp(-self.p['tor3']*delt)
+      self.f11exp4[st] = tf.exp( self.p['tor4']*delt)
+      f_11 = tf.math.divide(2.0+self.f11exp3[st],1.0+self.f11exp3[st]+self.f11exp4[st])
+      return f_11
 
-      c2kjl = torch.square(c_kjl)
-      ckjl  = 1.000001 - c2kjl 
-      s_kjl = torch.sqrt(ckjl)
+  def get_four_conj(self,mol,cot1):
+      exptol= tf.exp(-self.p['cot2']*tf.square(self.atol - 1.5))
+      expij = tf.exp(-self.p['cot2']*tf.square(self.BOtij[st]-1.5))-exptol
+      expjk = tf.exp(-self.p['cot2']*tf.square(self.BOtjk[st]-1.5))-exptol 
+      expkl = tf.exp(-self.p['cot2']*tf.square(self.BOtkl[st]-1.5))-exptol
 
-      fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
-      fm    = rij*rjl*self.s_ijk*s_kjl
-
-      fm    = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,1.0),fm)
-      fac   = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,0.0),
-                                                                     torch.full_like(fm,1.0))
-      cos_w = 0.5*fz*fac/fm
-      #cos_w= cos_w*ccijk*ccjkl
-      cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,1.0),cos_w)   
-      self.cos_w = torch.where(cos_w<-0.999999,torch.full_like(cos_w,-1.0),cos_w)
-      self.w= torch.acos(self.cos_w)
-      self.cos2w = torch.cos(2.0*self.w)
-
-
-  def get_etorsion(self):
-      self.get_torsion_angle()
-
-      self.botij = self.bo[self.tori,self.torj]
-      self.botjk = self.bo[self.torj,self.tork]
-      self.botkl = self.bo[self.tork,self.torl]
-      fij        = self.fbo[self.tori,self.torj]
-      fjk        = self.fbo[self.torj,self.tork]
-      fkl        = self.fbo[self.tork,self.torl]
-      self.fijkl = fij*fjk*fkl
-
-      Dj         = self.Dang[self.torj]
-      Dk         = self.Dang[self.tork]
-
-      self.f10(self.botij,self.botjk,self.botkl)
-      self.f11(Dj,Dk)
-
-      self.bopjk = self.bopi[self.torj,self.tork]   #   different from reaxff manual
-      self.expv2 = torch.exp(self.P['tor1']*torch.square(2.0-self.bopjk-self.f_11)) 
-
-      self.cos3w = torch.cos(3.0*self.w)
-      self.v1 = 0.5*self.P['V1']*(1.0+self.cos_w)  
-      self.v2 = 0.5*self.P['V2']*self.expv2*(1.0-self.cos2w)
-      self.v3 = 0.5*self.P['V3']*(1.0+self.cos3w)
-
-      self.etor = self.fijkl*self.f_10*self.s_ijk*self.s_jkl*(self.v1+self.v2+self.v3)
-      self.Etor = torch.sum(self.etor)
-      self.get_four_conj(self.botij,self.botjk,self.botkl)
-
-
-  def f10(self,boij,bojk,bokl):
-      exp1 = 1.0 - torch.exp(-self.P['tor2']*boij)
-      exp2 = 1.0 - torch.exp(-self.P['tor2']*bojk)
-      exp3 = 1.0 - torch.exp(-self.P['tor2']*bokl)
-      self.f_10 = exp1*exp2*exp3
-
-
-  def f11(self,Dj,Dk):
-      delt    = Dj+Dk
-      f11exp3 = torch.exp(-self.P['tor3']*delt)
-      f11exp4 = torch.exp( self.P['tor4']*delt)
-      self.f_11 = torch.div(2.0+f11exp3,1.0+f11exp3+f11exp4)
-
-
-  def get_four_conj(self,boij,bojk,bokl):
-      exptol= torch.exp(-self.P['cot2']*torch.square(torch.tensor(self.atol - 1.5)))
-      expij = torch.exp(-self.P['cot2']*torch.square(boij-1.5))-exptol
-      expjk = torch.exp(-self.P['cot2']*torch.square(bojk-1.5))-exptol 
-      expkl = torch.exp(-self.P['cot2']*torch.square(bokl-1.5))-exptol
-
-      self.f_12  = expij*expjk*expkl
-      self.prod  = 1.0+(torch.square(torch.cos(self.w))-1.0)*self.s_ijk*self.s_jkl
-      self.efcon = self.fijkl*self.f_12*self.P['cot1']*self.prod  
-      self.Efcon = torch.sum(self.efcon)
-
+      self.f_12[st] = expij*expjk*expkl
+      prod = 1.0+(tf.square(tf.cos(self.w[st]))-1.0)*self.s_ijk[st]*self.s_jkl[st]
+      self.Efcon[st] = self.fijkl[st]*self.f_12[st]*cot1*prod  
 
   def f13(self,r):
       rr = torch.pow(r,self.P['vdw1'])+torch.pow(torch.div(1.0,self.P['gammaw']),self.P['vdw1'])
