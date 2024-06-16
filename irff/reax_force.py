@@ -188,20 +188,22 @@ class ReaxFF_nn_force(nn.Module):
   
   def get_atomic_energy(self,st):
       ''' compute atomic energy of structure (st): elone, eover,eunder'''
-      st_ = st.split('-')[0]
+      # st_ = st.split('-')[0]
       self.Elone[st]  = torch.zeros_like(self.Delta[st])
       self.Eover[st]  = torch.zeros_like(self.Delta[st])
       self.Eunder[st] = torch.zeros_like(self.Delta[st])
+      self.Nlp[st]    = torch.zeros_like(self.Delta[st])
 
       for sp in self.spec:
           delta    = self.Delta[st][:,self.s[st][sp]]
           delta_pi = self.Delta_pi[st][:,self.s[st][sp]]
           so       = self.SO[st][:,self.s[st][sp]]
 
-          delta_lp,Elone     = self.get_elone(sp,delta) 
+          delta_lp,nlp,Elone     = self.get_elone(sp,delta) 
           delta_lpcorr,Eover = self.get_eover(sp,delta,delta_lp,delta_pi,so) 
           Eunder             = self.get_eunder(sp,delta_lpcorr,delta_pi) 
-
+          
+          self.Nlp[st][:,self.s[st][sp]]     = nlp
           self.Elone[st][:,self.s[st][sp]]   = Elone
           self.Eover[st][:,self.s[st][sp]]   = Eover
           self.Eunder[st][:,self.s[st][sp]]  = Eunder
@@ -243,7 +245,7 @@ class ReaxFF_nn_force(nn.Module):
 
       explp          = 1.0+torch.exp(-75.0*Delta_lp) # -self.p['lp3']
       Elone          = self.p['lp2_'+sp]*Delta_lp/explp
-      return Delta_lp,Elone
+      return Delta_lp,nlp,Elone
                                         
   def get_bond_energy(self,st):
       vr         = fvr(self.x[st])
@@ -427,53 +429,62 @@ class ReaxFF_nn_force(nn.Module):
       PBOexp        =  torch.exp(PBOpow)
       self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
-      if self.nang[st]==0 or self.optword.find('noang')>=0:
+      if self.nang[st]==0:
          self.eang[st] = torch.zeros(self.batch[st]) 
          self.epen[st] = torch.zeros(self.batch[st]) 
          self.tconj[st]= torch.zeros(self.batch[st]) 
       else:
          Eang  = []
+         Epen  = []
+         Etcon = []
          for ang in self.angs:
              sp  = ang.split('-')[1]
-             if self.na[ang]>0:
-                ai        = self.ang_i[st][self.a[ang][0]:self.a[ang][1]]
-                aj        = self.ang_j[st][self.a[ang][0]:self.a[ang][1]]
-                ak        = self.ang_k[st][self.a[ang][0]:self.a[ang][1]]
+             if self.na[st][ang]>0:
+                ai        = np.squeeze(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                aj        = np.squeeze(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                ak        = np.squeeze(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
                 boij      = self.bo[st][:,ai,aj]
                 bojk      = self.bo[st][:,aj,ak]
                 fij       = self.fbot[st][:,ai,aj]
                 fjk       = self.fbot[st][:,aj,ak]
                 delta     = self.Delta[st][:,aj]
+                delta_i   = self.Delta[st][:,ai]
+                delta_k   = self.Delta[st][:,ak]
                 sbo       = self.Delta_pi[st][:,aj]
                 pbo       = self.Pbo[st][:,aj]
-                rnlp      = self.nlp[st][:,aj]
-                theta     = self.theta[st][:,self.a[ang][0]:self.a[ang][1]]
-                Ea        = self.get_eangle(st,sp,ang,boij,bojk,fij,fjk,theta,delta,sbo,pbo,rnlp)
+                nlp       = self.Nlp[st][:,aj]
+                theta     = self.theta[st][:,self.a[st][ang][0]:self.a[st][ang][1]]
+                Ea,fijk,delta_ang  = self.get_eangle(sp,ang,boij,bojk,fij,fjk,theta,delta,sbo,pbo,nlp)
+                Ep        = self.get_epenalty(ang,delta,boij,bojk,fijk)
+                Et        = self.get_three_conj(ang,delta_ang,delta_i,delta_k,boij,bojk,fijk) 
                 Eang.append(Ea)
-                # self.get_epenalty(mol,pen1,Delta)
-                # self.get_three_conj(mol,valang,valboc,coa1) 
+                Epen.append(Ep)
+                Etcon.append(Et)
+                
          self.Eang[st] = torch.cat(Eang,dim=1)
+         self.Epen[st] = torch.cat(Epen,dim=1)
+         self.Etcon[st]= torch.cat(Etcon,dim=1)
          self.eang[st] = torch.sum(self.Eang[st],1)
-        #  self.epen[st] = torch.sum(self.Epen[st],1)
-        #  self.tconj[st]= torch.sum(self.Etc[st],1)
+         self.epen[st] = torch.sum(self.Epen[st],1)
+         self.etcon[st]= torch.sum(self.Etcon[st],1)
  
-  def get_eangle(self,st,sp,ang,boij,bojk,fij,fjk,theta,delta,sbo,pbo,rnlp):
-      delta_ang      = delta - self.p['valang_'+ang]
-      delta          = delta - self.p['val_'+sp]
+  def get_eangle(self,sp,ang,boij,bojk,fij,fjk,theta,delta,sbo,pbo,nlp):
+      delta_ang      = delta - self.p['valang_'+sp]
+      # delta        = delta - self.p['val_'+sp]
       fijk           = fij*fjk
 
-      theta0         = self.get_theta0(st,ang,delta_ang,sbo,pbo,rnlp)
+      theta0         = self.get_theta0(ang,delta_ang,sbo,pbo,nlp)
       thet           = theta0 - theta
       thet2          = torch.square(thet)
 
       expang         = torch.exp(-self.p['val2_'+ang]*thet2)
       f_7            = self.f7(sp,ang,boij,bojk)
-      f_8            = self.f8(sp,delta_ang)
-      Eang           = fijk[st]*f_7*f_8*(self.p['val1_'+ang]-self.p['val1_'+ang]*expang) 
-      return Eang
+      f_8            = self.f8(sp,ang,delta_ang)
+      Eang           = fijk*f_7*f_8*(self.p['val1_'+ang]-self.p['val1_'+ang]*expang) 
+      return Eang,fijk,delta_ang
 
-  def get_theta0(self,st,ang,delta_ang,sbo,pbo,rnlp):
-      Sbo   = sbo - (1.0-pbo)*(delta_ang+self.p['val8']*rnlp)    
+  def get_theta0(self,ang,delta_ang,sbo,pbo,nlp):
+      Sbo   = sbo - (1.0-pbo)*(delta_ang+self.p['val8']*nlp)    
       
       ok    = torch.logical_and(torch.less_equal(Sbo,1.0),torch.greater(Sbo,0.0))
       S1    = torch.where(ok,Sbo,torch.zeros_like(Sbo))    #  0< sbo < 1                  
@@ -486,7 +497,7 @@ class ReaxFF_nn_force(nn.Module):
       S2    = 2.0*F2-S2  
       Sbo12 = torch.where(ok,2.0-torch.pow(S2,self.p['val9']),torch.zeros_like(Sbo))  #  1< sbo <2
                                                                                                  #     sbo >2
-      Sbo2  = torch.where(torch.greater_equal(self.Sbo,2.0),
+      Sbo2  = torch.where(torch.greater_equal(Sbo,2.0),
                           torch.ones_like(Sbo),torch.zeros_like(Sbo))
 
       Sbo3   = Sbo1 + Sbo12 + 2.0*Sbo2
@@ -509,38 +520,39 @@ class ReaxFF_nn_force(nn.Module):
       F  = fi*fk
       return F 
 
-  def f8(self,sp,delta_ang):
+  def f8(self,sp,ang,delta_ang):
       exp6 = torch.exp( self.p['val6']*delta_ang)
-      exp7 = torch.exp(-self.p['val7']*delta_ang)
+      exp7 = torch.exp(-self.p['val7_'+ang]*delta_ang)
       F    = self.p['val5_'+sp] - (self.p['val5_'+sp]-1.0)*torch.divide(2.0+exp6,1.0+exp6+exp7)
       return F
 
-  def get_epenalty(self,mol,pen1,Delta):
-      self.f_9[st] = self.f9(Delta)
-      expi = tf.exp(-self.p['pen2']*tf.square(self.BOij[st]-2.0))
-      expk = tf.exp(-self.p['pen2']*tf.square(self.BOjk[st]-2.0))
-      self.Epen[st] = pen1*self.f_9[st]*expi*expk*self.fijk[st]
-
+  def get_epenalty(self,ang,delta,boij,bojk,fijk):
+      f_9  = self.f9(delta)
+      expi = torch.exp(-self.p['pen2']*torch.square(boij-2.0))
+      expk = torch.exp(-self.p['pen2']*torch.square(bojk-2.0))
+      Ep   = self.p['pen1_'+ang]*f_9*expi*expk*fijk
+      return Ep
+  
   def f9(self,Delta):
-      exp3 = tf.exp(-self.p['pen3']*Delta)
-      exp4 = tf.exp( self.p['pen4']*Delta)
-      F = tf.math.divide(2.0+exp3,1.0+exp3+exp4)
+      exp3 = torch.exp(-self.p['pen3']*Delta)
+      exp4 = torch.exp( self.p['pen4']*Delta)
+      F = torch.divide(2.0+exp3,1.0+exp3+exp4)
       return F
 
-  def get_three_conj(self,mol,valang,valboc,coa1):
-      Dcoa = self.D_ang[st] + valang - valboc
-      self.expcoa1[st] = tf.exp(self.p['coa2']*Dcoa)
+  def get_three_conj(self,ang,delta_ang,delta_i,delta_k,boij,bojk,fijk):
+      delta_coa  = delta_ang # self.D_ang[st] + valang - valboc
+      expcoa1    = torch.exp(self.p['coa2']*delta_coa)
 
-      Di    = tf.gather_nd(self.Delta[st],self.ang_i[st])
-      Dk    = tf.gather_nd(self.Delta[st],self.ang_k[st])
+    #   delta_i    = tf.gather_nd(self.Delta[st],self.ang_i[st])
+    #   delta_k    = tf.gather_nd(self.Delta[st],self.ang_k[st])
 
-      texp0 = tf.math.divide(coa1,1.0+self.expcoa1[st])  
-      texp1 = tf.exp(-self.p['coa3']*tf.square(Di-self.BOij[st]))
-      texp2 = tf.exp(-self.p['coa3']*tf.square(Dk-self.BOjk[st]))
-      texp3 = tf.exp(-self.p['coa4']*tf.square(self.BOij[st]-1.5))
-      texp4 = tf.exp(-self.p['coa4']*tf.square(self.BOjk[st]-1.5))
-      self.Etc[st] = texp0*texp1*texp2*texp3*texp4*self.fijk[st] 
-  
+      texp0 = torch.divide(self.p['coa1_'+ang],1.0 + expcoa1)  
+      texp1 = torch.exp(-self.p['coa3']*torch.square(delta_i-boij))
+      texp2 = torch.exp(-self.p['coa3']*torch.square(delta_k-bojk))
+      texp3 = torch.exp(-self.p['coa4']*torch.square(boij-1.5))
+      texp4 = torch.exp(-self.p['coa4']*torch.square(bojk-1.5))
+      Etc   = texp0*texp1*texp2*texp3*texp4*fijk 
+      return Etc
 
   def get_torsion_angle(self):
       rij = self.r[self.tori,self.torj]
@@ -876,11 +888,13 @@ class ReaxFF_nn_force(nn.Module):
                 'corr13','ovcorr']
       self.p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
       self.p_g  = ['boc1','boc2','coa2','ovun6','lp1','lp3',
-              'ovun7','ovun8','val6','val9','val10','tor2',
-              'tor3','tor4','cot2','coa4','ovun4',               
-              'ovun3','val8','coa3','pen2','pen3','pen4','vdw1'] 
+                   'ovun7','ovun8','val6','tor2',
+                   'val8','val9','val10',
+                   'tor3','tor4','cot2','coa4','ovun4',               
+                   'ovun3','val8','coa3','pen2','pen3','pen4',
+                   'vdw1'] 
       self.p_spec = ['valang','valboc','val','vale',
-                     'lp2','ovun5',     # 'val3','val5','boc3','boc4','boc5'
+                     'lp2','ovun5','val3','val5', # ,'boc3','boc4','boc5'
                      'ovun2','atomic',
                      'mass','chi','mu'] # 'gamma','gammaw','Devdw','rvdw','alfa'
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
@@ -1145,6 +1159,7 @@ class ReaxFF_nn_force(nn.Module):
 
   def generate_data(self,strucs):
       ''' get data '''
+      self.dft_energy                  = {}
       self.blist,self.bdid             = {},{}
       self.dilink,self.djlink          = {},{}
       self.nbd,self.b,self.a,self.t    = {},{},{},{}
@@ -1155,6 +1170,8 @@ class ReaxFF_nn_force(nn.Module):
       self.tor_i,self.tor_l            = {},{}
       self.atom_name                   = {}
       self.natom                       = {}
+      self.nang                        = {}
+      self.ntor                        = {}
       self.ns                          = {}
       self.s                           = {s:[] for s in self.spec}
       self.nv                          = {}
@@ -1164,14 +1181,19 @@ class ReaxFF_nn_force(nn.Module):
       self.v                           = {}
       self.h                           = {}
       self.hij                         = {}
+      self.s_ijk                       = {}
+      self.s_jkl                       = {}
+      self.w                           = {}
       self.data                        = {}
+      self.theta                       = {}
       self.estruc                      = {}
       for s in strucs:
           self.natom[s]    = strucs[s].natom
           self.blist[s]    = strucs[s].blist
           self.dilink[s]   = strucs[s].dilink
           self.djlink[s]   = strucs[s].djlink
-          
+
+          self.nang[s]     = strucs[s].nang
           self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
           self.ang_i[s]    = np.expand_dims(strucs[s].ang_i,axis=1)
           self.ang_k[s]    = np.expand_dims(strucs[s].ang_k,axis=1)
@@ -1181,7 +1203,7 @@ class ReaxFF_nn_force(nn.Module):
           #   self.tij[s]  = strucs[s].tij
           #   self.tjk[s]  = strucs[s].tjk
           #   self.tkl[s]  = strucs[s].tkl
-          
+          self.ntor[s]     = strucs[s].ntor
           self.tor_i[s]    = np.expand_dims(strucs[s].tor_i,axis=1)
           self.tor_j[s]    = np.expand_dims(strucs[s].tor_j,axis=1)
           self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
@@ -1215,9 +1237,21 @@ class ReaxFF_nn_force(nn.Module):
                                      s_ijk=strucs[s].s_ijk,
                                      s_jkl=strucs[s].s_jkl,
                                      w=strucs[s].w)
-                                    #  strucs[s].rhb,
-                                    #  strucs[s].frhb,
-                                    #  strucs[s].hbthe
+
+          self.dft_energy[s] = torch.tensor(self.data[s].dft_energy)
+          if self.nang[s]>0:
+             self.theta[s] = torch.tensor(self.data[s].theta)
+
+          if self.ntor[s]>0:
+             self.s_ijk[s] = torch.tensor(self.data[s].s_ijk)
+             self.s_jkl[s] = torch.tensor(self.data[s].s_jkl)
+             self.w[s]     = torch.tensor(self.data[s].w)
+
+        #   if self.nhb[s]>0:
+        #      self.rhb[s]   = self.data[s].rhb
+        #      self.frhb[s]  = self.data[s].frhb
+        #      self.hbthe[s] = self.data[s].hbthe
+
           self.estruc[s] =  nn.Parameter(torch.tensor(0.0),requires_grad=True) 
 
   def set_m(self):
@@ -1278,9 +1312,9 @@ class ReaxFF_nn_force(nn.Module):
       return self.m_,rcut,rcuta,re
   
   def set_memory(self):
-      self.r     = {}
-      self.E     = {}
-      self.force = {}
+      self.r               = {}
+      self.E               = {}
+      self.force           = {}
       self.ebd,self.ebond   = {},{}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
       self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
@@ -1295,6 +1329,11 @@ class ReaxFF_nn_force(nn.Module):
       self.Elone,self.Eover,self.Eunder = {},{},{}
       self.elone,self.eover,self.eunder = {},{},{}
       self.eatomic,self.zpe             = {},{}
+
+      self.Eang,self.Epen,self.Etcon    = {},{},{}
+      self.eang,self.epen,self.etcon    = {},{},{}
+
+      self.Pbo,self.Nlp = {},{}
 
 
   def logout(self):

@@ -374,8 +374,8 @@ class reax_force_data(object):
       cos_theta = np.where(cos_theta>1.0,1.0,cos_theta)
       cos_theta = np.where(cos_theta<-1.0,-1.0,cos_theta)
 
-      self.cos_theta = np.transpose(cos_theta,[1,0])
-      self.theta     = np.arccos(self.cos_theta)
+      # self.cos_theta = np.transpose(cos_theta,[1,0])
+      self.theta     = np.arccos(cos_theta)
 
   def compute_torsion(self,R,vr):
       '''  compute torsion angles  '''
