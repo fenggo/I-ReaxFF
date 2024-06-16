@@ -425,7 +425,7 @@ class ReaxFF_nn_force(nn.Module):
       ''' compute three-body term interaction '''
       PBOpow        = -torch.pow(self.bo[st],8)        # original: self.BO0 
       PBOexp        =  torch.exp(PBOpow)
-      self.Pbo[st]  =  torch.reduce_prod(PBOexp,2)     # BO Product
+      self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
       if self.nang[st]==0 or self.optword.find('noang')>=0:
          self.eang[st] = torch.zeros(self.batch[st]) 
