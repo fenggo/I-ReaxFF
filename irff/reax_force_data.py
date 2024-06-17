@@ -548,7 +548,7 @@ class reax_force_data(object):
 
           cos_w = np.where(cos_w>1.0,1.0,cos_w)   
           cos_w = np.where(cos_w<-1.0,-1.0,cos_w)
-          ctm   = np.transpose(cos_w,[1,0])
+          ctm   = cos_w # np.transpose(cos_w,[1,0])
 
           if b==0:
              self.cos_w = ctm
