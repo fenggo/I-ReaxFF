@@ -14,7 +14,8 @@ class Dataset(object):
                x=None,cell=None,rcell=None,
                forces=None,
                rbd=None,rv=None,qij=None,
-               theta=None,s_ijk=None,s_jkl=None,w=None,
+               theta=None,s_ijk=None,s_jkl=None,
+               w=None,cos_w=None,cos2w=None,cos3w=None,
                rhb=None,frhb=None,hbthe=None):
       self.dft_energy = dft_energy
       self.forces     = forces
@@ -28,6 +29,9 @@ class Dataset(object):
       self.s_ijk      = s_ijk
       self.s_jkl      = s_jkl
       self.w          = w
+      self.cos_w      = cos_w
+      self.cos2w      = cos2w
+      self.cos3w      = cos3w
       # self.rhb      = rhb
       # self.frhb     = frhb
       self.hbthe      = hbthe
