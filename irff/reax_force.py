@@ -562,6 +562,7 @@ class ReaxFF_nn_force(nn.Module):
          self.efcon[st]= torch.zeros([self.batch[st]])
       else:
          Etor   =    []
+         Efcon  =    []
          for tor in self.tors:
              if self.nt[st][tor]>0:
                 ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
@@ -586,13 +587,16 @@ class ReaxFF_nn_force(nn.Module):
                 s_ijk     = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
                 s_jkl     = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
 
-                Et        = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
-                                  bopjk,delta_j,delta_k,
-                                  w,cos_w,cos2w,
-                                  s_ijk,s_jkl)
-                # self.get_four_conj(tor)
+                Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
+                                       bopjk,delta_j,delta_k,
+                                       w,cos_w,cos2w,
+                                       s_ijk,s_jkl)
+                Ef        = self.get_four_conj(tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl)
                 Etor.append(Et)
+                Efcon.append(Ef)
+
          self.Etor[st] = torch.cat(Etor,dim=1)
+         self.Efcon[st] = torch.cat(Efcon,dim=1)
          self.etor[st] = torch.sum(self.Etor[st],1)
          self.efcon[st]= torch.sum(self.Efcon[st],1)
 
@@ -604,14 +608,13 @@ class ReaxFF_nn_force(nn.Module):
       f_11    = self.f11(delta_j,delta_k)
       expv2   = torch.exp(self.p['tor1_'+tor]*torch.square(2.0-bopjk-f_11)) 
 
-      print(expv2.shape,cos2w.shape)
-
       cos3w   = torch.cos(3.0*w)
       v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
       v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
       v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
+      # print(fijkl.shape,f_10.shape,s_ijk.shape)
       Etor    = fijkl*f_10*s_ijk*s_jkl*(v1+v2+v3)
-      return Etor
+      return Etor,fijkl
   
   def f10(self,boij,bojk,bokl):
       exp1 = 1.0 - torch.exp(-self.p['tor2']*boij)
@@ -626,15 +629,16 @@ class ReaxFF_nn_force(nn.Module):
       f_11 = torch.divide(2.0+f11exp3,1.0+f11exp3+f11exp4)
       return f_11
 
-  def get_four_conj(self,tor,boij,bojk,bokl):
+  def get_four_conj(self,tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl):
       exptol= torch.exp(-self.p['cot2']*torch.square(self.atol - 1.5))
       expij = torch.exp(-self.p['cot2']*torch.square(boij-1.5))-exptol
       expjk = torch.exp(-self.p['cot2']*torch.square(bojk-1.5))-exptol 
       expkl = torch.exp(-self.p['cot2']*torch.square(bokl-1.5))-exptol
 
       f_12  = expij*expjk*expkl
-      prod = 1.0+(tf.square(tf.cos(self.w[st]))-1.0)*self.s_ijk[st]*self.s_jkl[st]
-      self.Efcon[st] = self.fijkl[st]*self.f_12[st]*self.p['cot1_'+tor]*prod  
+      prod  = 1.0+(torch.square(torch.cos(w))-1.0)*s_ijk*s_jkl
+      Efcon = fijkl*f_12*self.p['cot1_'+tor]*prod  
+      return Efcon
 
   def f13(self,r):
       rr = torch.pow(r,self.P['vdw1'])+torch.pow(torch.div(1.0,self.P['gammaw']),self.P['vdw1'])
@@ -891,9 +895,9 @@ class ReaxFF_nn_force(nn.Module):
                 self.opt.append(key)
 
       
-      self.botol        = 0.01*self.p_['cutoff']
-      self.atol         = self.p_['acut']   # atol
-      self.hbtol        = self.p_['hbtol']  # hbtol
+      self.botol        = torch.tensor(0.01*self.p_['cutoff'])
+      self.atol         = torch.tensor(self.p_['acut'])        # atol
+      self.hbtol        = torch.tensor(self.p_['hbtol'])       # hbtol
       
       self.check_offd()
       self.check_hb()
@@ -1295,6 +1299,8 @@ class ReaxFF_nn_force(nn.Module):
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
       self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
 
+      self.Pbo,self.Nlp = {},{}
+
       self.Deltap,self.Delta = {},{}
       self.D_si,self.D_pi,self.D_pp = {},{},{}
       self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
@@ -1309,8 +1315,8 @@ class ReaxFF_nn_force(nn.Module):
       self.Eang,self.Epen,self.Etcon    = {},{},{}
       self.eang,self.epen,self.etcon    = {},{},{}
 
-      self.Pbo,self.Nlp = {},{}
-
+      self.etor,self.Etor               = {},{}
+      self.efcon,self.Efcon             = {},{}
 
   def logout(self):
       with open('irff.log','w') as fmd:
