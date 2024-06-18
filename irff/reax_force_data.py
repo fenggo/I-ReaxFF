@@ -16,7 +16,7 @@ class Dataset(object):
                rbd=None,rv=None,qij=None,
                theta=None,s_ijk=None,s_jkl=None,
                w=None,cos_w=None,cos2w=None,cos3w=None,
-               rhb=None,frhb=None,hbthe=None):
+               rhb=None,frhb=None,hbthe=None,q=None):
       self.dft_energy = dft_energy
       self.forces     = forces
       self.x          = x
@@ -35,6 +35,7 @@ class Dataset(object):
       # self.rhb      = rhb
       # self.frhb     = frhb
       self.hbthe      = hbthe
+      self.q          = q
 
 
 class reax_force_data(object):
