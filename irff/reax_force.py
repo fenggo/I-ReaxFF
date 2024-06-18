@@ -247,12 +247,12 @@ class ReaxFF_nn_force(nn.Module):
       return Delta_lp,nlp,Elone
                                         
   def get_bond_energy(self,st):
-      vr         = fvr(self.x[st])
-      vrf        = torch.matmul(vr,self.rcell[st])
-      vrf        = torch.where(vrf-0.5>0,vrf-1.0,vrf)
-      vrf        = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
-      vr         = torch.matmul(vrf,self.cell[st])
-      self.r[st] = torch.sqrt(torch.sum(vr*vr,dim=3)) # +0.0000000001
+      vr          = fvr(self.x[st])
+      vrf         = torch.matmul(vr,self.rcell[st])
+      vrf         = torch.where(vrf-0.5>0,vrf-1.0,vrf)
+      vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
+      self.vr[st] = torch.matmul(vrf,self.cell[st])
+      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3)) # +0.0000000001
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
@@ -1208,7 +1208,8 @@ class ReaxFF_nn_force(nn.Module):
                                      s_jkl=strucs[s].s_jkl,
                                      w=strucs[s].w,
                                      cos_w=strucs[s].cos_w,
-                                     cos2w=strucs[s].cos2w)
+                                     cos2w=strucs[s].cos2w,
+                                     q=strucs[s].q)
 
           self.dft_energy[s] = torch.tensor(self.data[s].dft_energy)
           if self.nang[s]>0:
@@ -1287,7 +1288,7 @@ class ReaxFF_nn_force(nn.Module):
       return self.m_,rcut,rcuta,re
   
   def set_memory(self):
-      self.r               = {}
+      self.r,self.vr       = {},{}
       self.E               = {}
       self.force           = {}
       self.ebd,self.ebond   = {},{}
