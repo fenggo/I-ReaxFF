@@ -177,7 +177,7 @@ class ReaxFF_nn_force(nn.Module):
           self.get_atomic_energy(st)
           self.get_threebody_energy(st)
           self.get_fourbody_energy(st)
-        #   self.get_vdw_energy(st)
+          self.get_vdw_energy(st)
         #   self.get_hb_energy(st)
         #   self.get_total_energy(st)
       return self.E,self.force
@@ -661,20 +661,28 @@ class ReaxFF_nn_force(nn.Module):
       return tp,tpc
 
 
-  def get_evdw(self,cell_tensor):
+  def get_vdw_energy(self,st):
       self.evdw = 0.0
       self.ecoul= 0.0
       nc = 0
+      print('\n cell \n',self.cell[st].shape)
+      cell0,cell1,cell2 = torch.unbind(self.cell[st],axis=2)
+      cell0 = torch.unsqueeze(cell0,1)
+      cell1 = torch.unsqueeze(cell1,1)
+      cell2 = torch.unsqueeze(cell2,1)
+      print(cell0.shape)
+      print(self.vr[st].shape)
+      
       for i in range(-1,2):
           for j in range(-1,2):
               for k in range(-1,2):
-                  cell = cell_tensor[0]*i + cell_tensor[1]*j+cell_tensor[2]*k
-                  vr_  = self.vr + cell
+                  cell = cell0*i + cell1*j+cell2*k
+                  vr_  = self.vr[st] + cell
                   r    = torch.sqrt(torch.sum(torch.square(vr_),2)+self.safety_value)
 
                   gm3  = torch.pow(torch.div(1.0,self.P['gamma']),3.0)
                   r3   = torch.pow(r,3.0)
-                  fv_   = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
+                  fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
                                                                                    torch.full_like(r,0.0))
                   if nc<13:
                      fv = fv_*self.d1
@@ -867,7 +875,7 @@ class ReaxFF_nn_force(nn.Module):
                      'mass','chi','mu'] # 'gamma','gammaw','Devdw','rvdw','alfa'
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
       self.p_hb   = ['rohb','Dehb','hb1','hb2']
-      self.p_tor  = ['V1','V2','V3','tor1','cot1']  
+      self.p_tor  = ['V1','V2','V3','tor1','cot1']
       if self.opt is None:
          self.opt = []
          for key in self.p_g:
@@ -1021,61 +1029,36 @@ class ReaxFF_nn_force(nn.Module):
                  else:
                     self.p[key+'_'+tor] = 0.0
       return tors
-      
+
   def stack_tensor(self):
       self.x     = {}
       self.rcell = {}
       self.cell  = {}
       self.eye   = {}
+      self.P     = {}
       for st in self.strcs:
           self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
           self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1))
           self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1))
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0))
-    #   for key in self.p_spec:
-    #       # unit_ = self.unit if key in self.punit else 1.0
-    #       self.P[key] = np.zeros([self.natom],dtype=np.float64)
-    #       self.P[key] = torch.tensor(self.P[key])
+          self.P[st]     = {}
 
-    #   for key in ['boc3','boc4','boc5','gamma','gammaw']:
-    #       self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
-    #       for i in range(self.natom):
-    #           for j in range(self.natom):
-    #               self.P[key][i][j] = np.sqrt(self.p[key+'_'+self.atom_name[i]]*self.p[key+'_'+self.atom_name[j]],
-    #                                           dtype=np.float64)
-    #       self.P[key] = torch.tensor(self.P[key])
+          for key in ['gamma','gammaw']:
+              self.P[st][key] = torch.zeros(self.natom[st],self.natom[st])
+              for i in range(self.natom[st]):
+                  for j in range(self.natom[st]):
+                      self.P[st][key][i][j] = torch.sqrt(self.p[key+'_'+self.atom_name[st][i]]*self.p[key+'_'+self.atom_name[st][j]])
+               
 
-    #   self.rcbo = np.zeros([self.natom,self.natom],dtype=np.float64)
-    #   self.r_cut = np.zeros([self.natom,self.natom],dtype=np.float64)
-    #   self.r_cuta = np.zeros([self.natom,self.natom],dtype=np.float64)
-
-    #   for i in range(self.natom):
-    #       for j in range(self.natom):
-    #           bd = self.atom_name[i] + '-' + self.atom_name[j]
-    #           if not bd in self.bonds:
-    #              bd = self.atom_name[j] + '-' + self.atom_name[i]
-    #           self.rcbo[i][j] = min(self.rcut[bd],self.rc_bo[bd])   #  ###### TODO #####
-
-    #           if i!=j:
-    #              self.r_cut[i][j]  = self.rcut[bd]  
-    #              self.r_cuta[i][j] = self.rcuta[bd] 
-    #           # if i<j:  self.nbe0[bd] += 1
-
-    #   for key in self.p_bond:
-    #       unit_ = self.unit if key in self.punit else 1.0
-    #       self.P[key] = np.zeros([self.natom,self.natom],dtype=np.float64)
-    #       for i in range(self.natom):
-    #           for j in range(self.natom):
-    #               bd = self.atom_name[i] + '-' + self.atom_name[j]
-    #               if bd not in self.bonds:
-    #                  bd = self.atom_name[j] + '-' + self.atom_name[i]
-    #               self.P[key][i][j] = self.p[key+'_'+bd]*unit_
-    #       self.P[key] = torch.tensor(self.P[key])
-
-    #   self.rcbo_tensor = torch.from_numpy(self.rcbo)
-    #   self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
-    #   self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
-    #   self.eye = torch.tensor(1.0 - np.eye(self.natom,dtype=np.float64))
+          for key in ['Devdw','alfa','rvdw']:
+              self.P[st][key] = torch.zeros(self.natom[st],self.natom[st])
+              for i in range(self.natom):
+                  for j in range(self.natom):
+                      bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
+                      if bd not in self.bonds:
+                         bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
+                      self.P[st][key][i][j] = self.p[key+'_'+bd]
+               
 
   def get_data(self): 
       self.nframe      = 0
@@ -1108,15 +1091,15 @@ class ReaxFF_nn_force(nn.Module):
 
           if data_.status:
              self.strcs.append(st)
-             strucs[st]      = data_
-             self.batch[st]  = strucs[st].batch
-             self.nframe    += self.batch[st]
+             strucs[st]        = data_
+             self.batch[st]    = strucs[st].batch
+             self.nframe      += self.batch[st]
              print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
-             self.max_e[st]  = strucs[st].max_e
-             # self.evdw_[st]= strucs[st].evdw
+             self.max_e[st]    = strucs[st].max_e
+             # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
-             self.eself[st]   = strucs[st].eself     
-             self.cell[st]   = strucs[st].cell
+             self.eself[st]    = strucs[st].eself     
+             self.cell[st]     = strucs[st].cell
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
@@ -1281,7 +1264,6 @@ class ReaxFF_nn_force(nn.Module):
          self.be_layer = self.be_layer_
       if self.m_ is None:
          self.nn=False
-         
       # for sp in self.atom_name:
       #     if sp not in self.spec:
       #        self.spec.append(sp)
@@ -1291,7 +1273,7 @@ class ReaxFF_nn_force(nn.Module):
       self.r,self.vr       = {},{}
       self.E               = {}
       self.force           = {}
-      self.ebd,self.ebond   = {},{}
+      self.ebd,self.ebond  = {},{}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
       self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
 
