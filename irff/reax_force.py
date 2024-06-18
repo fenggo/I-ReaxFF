@@ -148,11 +148,6 @@ class ReaxFF_nn_force(nn.Module):
       self.be_layer     = be_layer
       self.mf_universal = mf_universal
       self.be_universal = be_universal
-      # self.atoms      = atoms
-      # self.cell       = atoms.get_cell()
-      # self.atom_name  = self.atoms.get_chemical_symbols()
-      # self.natom      = len(self.atom_name)
-      # self.spec       = []
       self.hbshort      = hbshort
       self.hblong       = hblong
       self.vdwcut       = vdwcut
