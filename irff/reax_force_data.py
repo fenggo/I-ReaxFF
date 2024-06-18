@@ -167,12 +167,10 @@ class reax_force_data(object):
          # self.compute_hbond(image_rs)
          
       # self.compute_vdw(image_rs)
-
       # self.get_gulp_energy()
       self.get_charge()
       # self.get_ecoul(image_rs)
       self.get_eself()
-
       # for i,e in enumerate(self.energy_dft):  # new version zpe = old zpe + max_e
       #     self.energy_dft[i] = e - self.max_e  
       print('-  end of gathering datas from directory {:s} ...\n'.format(traj))
@@ -337,7 +335,6 @@ class reax_force_data(object):
                      if (not ang in angles[an]) and (not angr in angles[an]):
                         angles[an].append(ang)
                         
-
       for ang in self.angs:
           if ang in angles:
              st= len(self.ang_i)
@@ -504,7 +501,7 @@ class reax_force_data(object):
           # print(np.where(np.isinf(c)))
 
           s_ijk = np.sqrt(np.where(c<0.0,0.0,c))
-          strm  = np.transpose(s_ijk,[1,0])
+          strm  = s_ijk # np.transpose(s_ijk,[1,0])
 
           if b==0:
              self.s_ijk = strm
@@ -520,7 +517,7 @@ class reax_force_data(object):
           #thet_jkl = np.arccos(c_jkl)
           c = 1.0-c2jkl
           s_jkl = np.sqrt(np.where(c<0.0,0.0,c))
-          strm  = np.transpose(s_jkl,[1,0])
+          strm  = s_jkl # np.transpose(s_jkl,[1,0])
 
           if b==0:
              self.s_jkl = strm
