@@ -693,44 +693,6 @@ class reax_force_data(object):
          self.hbthe = []
          self.nhb   = 0
 
-  def group_rvdw(self):
-      self.nv   = {}
-      rv        = {}
-      vi        = {}
-      vj        = {}
-      qij       = {}
-      for vb in self.bonds:
-          rv[vb]       = []
-          qij[vb]      = []
-          vi[vb]       = []
-          vj[vb]       = []
-          for i,vi_ in enumerate(self.vi):
-              vj_ = self.vj[i]
-              vn = self.atom_name[vi_]+'-'+self.atom_name[vj_]
-              vn_= self.atom_name[vj_]+'-'+self.atom_name[vi_]
-              if vn==vb or vn_==vb:
-                 rv[vb].append(self.rv[i,:])  # changed here by [:,i]
-                 qij[vb].append(self.q[:,vi_]*self.q[:,vj_]*14.39975840)
-                 vi[vb].append([vi_])
-                 vj[vb].append([vj_])
-          self.nv[vb] = len(vi[vb])
-
-      self.V      = {}
-      self.rv     = []
-      self.vi     = []
-      self.vj     = []
-      self.qij    = []
-      st,ed       = 0,0
-      for vb in self.bonds:
-          if self.nv[vb]>0:
-             st = ed
-             ed = st+self.nv[vb]
-             self.V[vb] = (st,self.nv[vb])
-             self.rv.extend(rv[vb])
-             self.vi.extend(vi[vb])
-             self.vj.extend(vj[vb])
-             self.qij.extend(qij[vb])
-
   def group_rhb(self):
       self.nh   = {}
       rhb       = {}
@@ -777,7 +739,6 @@ class reax_force_data(object):
              self.hbthe.extend(hbthe[hb])
              self.frhb.extend(frhb[hb])
 
-
   def get_charge(self):
       q,ecoul,eself,evdw = [],[],[],[]
       print('-  get charges by QEq ... \n')
@@ -798,6 +759,9 @@ class reax_force_data(object):
           Qe.calc(cell,positions)
           q.append(Qe.q[:-1])
       self.q = np.array(q)
+      qij    = np.expand_dims(self.q,axis=1)*np.expand_dims(self.q,axis=2)
+      qij    = qij*14.39975840
+      self.qij = qij
 
   def get_ecoul(self,rs):
       gm     = np.sqrt(np.expand_dims(self.P['gamma'],axis=0)*np.expand_dims(self.P['gamma'],axis=1))
