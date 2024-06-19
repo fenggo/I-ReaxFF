@@ -306,7 +306,7 @@ class ReaxFF_nn_force(nn.Module):
           bodiv3 = torch.div(rbd,self.p['ropp_'+bd])
           bopow3 = torch.pow(bodiv3,self.p['bo6_'+bd])
           eterm3 = torch.exp(torch.mul(self.p['bo5_'+bd],bopow3))
-          
+
           bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
@@ -314,9 +314,6 @@ class ReaxFF_nn_force(nn.Module):
       bosi_ = torch.cat(bop_si,dim=1)
       bopi_ = torch.cat(bop_pi,dim=1)
       bopp_ = torch.cat(bop_pp,dim=1)
-
-      print(bosi_.shape)
-      print(self.bdid[st][:,0].shape)
 
       self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_si[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bosi_
       self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pi[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bopi_
@@ -329,10 +326,10 @@ class ReaxFF_nn_force(nn.Module):
       self.D_pp[st]   = torch.sum(self.bop_pp[st],2)
 
   def message_passing(self,st):
-      self.H[st]    = [self.bop[st]]                     # 
+      self.H[st]    = [self.bop[st]]                     #
       self.Hsi[st]  = [self.bop_si[st]]                  #
       self.Hpi[st]  = [self.bop_pi[st]]                  #
-      self.Hpp[st]  = [self.bop_pp[st]]                  # 
+      self.Hpp[st]  = [self.bop_pp[st]]                  #
       self.D[st]    = [self.Deltap[st]]    
       
       for t in range(1,self.messages+1):
@@ -351,7 +348,7 @@ class ReaxFF_nn_force(nn.Module):
 
           bo,bosi,bopi,bopp = self.get_bondorder(st,t,Dbi_,H,Dbj_,Hsi,Hpi,Hpp)
           
-          self.H[st].append(bo)                      # get the hidden state H[t]
+          self.H[st].append(bo)                     # get the hidden state H[t]
           self.Hsi[st].append(bosi)
           self.Hpi[st].append(bopi)
           self.Hpp[st].append(bopp)
@@ -361,7 +358,7 @@ class ReaxFF_nn_force(nn.Module):
 
   def get_final_state(self,st):     
       self.Delta[st]  = self.D[st][-1]
-      self.bo0[st]    = self.H[st][-1]                 # fetch the final state 
+      self.bo0[st]    = self.H[st][-1]              # fetch the final state 
       self.bosi[st]   = self.Hsi[st][-1]
       self.bopi[st]   = self.Hpi[st][-1]
       self.bopp[st]   = self.Hpp[st][-1]
@@ -446,10 +443,12 @@ class ReaxFF_nn_force(nn.Module):
          Etcon = []
          for ang in self.angs:
              sp  = ang.split('-')[1]
-             if self.na[st][ang]>0:
+             # print(ang,self.na[st].get(ang,0))
+             if self.na[st].get(ang,0)>0:
                 ai        = np.squeeze(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
                 aj        = np.squeeze(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
                 ak        = np.squeeze(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
+
                 boij      = self.bo[st][:,ai,aj]
                 bojk      = self.bo[st][:,aj,ak]
                 fij       = self.fbot[st][:,ai,aj]
@@ -468,7 +467,7 @@ class ReaxFF_nn_force(nn.Module):
                 Eang.append(Ea)
                 Epen.append(Ep)
                 Etcon.append(Et)
-                
+
          self.Eang[st] = torch.cat(Eang,dim=1)
          self.Epen[st] = torch.cat(Epen,dim=1)
          self.Etcon[st]= torch.cat(Etcon,dim=1)
