@@ -311,9 +311,16 @@ class ReaxFF_nn_force(nn.Module):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_si[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_si,dim=1)
-      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pi[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_pi,dim=1)
-      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pp[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bop_pp,dim=1)
+      bosi_ = torch.cat(bop_si,dim=1)
+      bopi_ = torch.cat(bop_pi,dim=1)
+      bopp_ = torch.cat(bop_pp,dim=1)
+
+      print(bosi_.shape)
+      print(self.bdid[st][:,0].shape)
+
+      self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_si[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bosi_
+      self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pi[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bopi_
+      self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pp[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bopp_
       self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
       # print(self.bop[st].size)
       self.Deltap[st] = torch.sum(self.bop[st],2)
@@ -1267,5 +1274,4 @@ class ReaxFF_nn_force(nn.Module):
 
       self.evdw,self.Evdw               = {},{}
       self.ecoul,self.Ecoul             = {},{}
-
 
