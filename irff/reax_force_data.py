@@ -288,8 +288,9 @@ class reax_force_data(object):
           if bd in bond_:
              self._bond.extend(bond_[bd])
           ed = len(self._bond)
-          self.B[bd]   = (st,ed-st)
+          self.B[bd]   = (st,ed)
           self.nbd[bd] = ed - st
+          # print('\n nbd \n',st,ed)
           
       self.nbond  = len(self._bond)
 
@@ -343,7 +344,7 @@ class reax_force_data(object):
              ed= len(self.ang_i)
              self.ang_j.extend(np.array(angles[ang])[:,1])
              self.ang_k.extend(np.array(angles[ang])[:,2])
-             self.A[ang] = (st,ed-st)
+             self.A[ang] = (st,ed)
              self.na[ang] = ed - st
       self.nang = len(self.ang_i)
       print('-  number of angles: {:d} ...\n'.format(self.nang))
@@ -377,7 +378,7 @@ class reax_force_data(object):
       cos_theta = np.where(cos_theta<-1.0,-1.0,cos_theta)
 
       # self.cos_theta = np.transpose(cos_theta,[1,0])
-      self.theta     = np.arccos(cos_theta)
+      self.theta= np.arccos(cos_theta)
 
   def compute_torsion(self,R,vr):
       '''  compute torsion angles  '''
@@ -430,7 +431,7 @@ class reax_force_data(object):
              self.tor_k.extend(np.array(torsion[t])[:,2])
              self.tor_l.extend(np.array(torsion[t])[:,3])
           ed = len(self.tor_i)
-          self.T[t] = (st,ed-st)
+          self.T[t] = (st,ed)
           self.nt[t] = ed - st
 
       self.ntor = len(self.tor_i)
