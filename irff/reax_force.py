@@ -788,8 +788,8 @@ class ReaxFF_nn_force(nn.Module):
                 for sp2 in self.spec:
                     if sp2 != 'H':
                        hb = sp1+'-H-'+sp2
-                       if hb not in self.Hbs:
-                          self.Hbs.append(hb) # 'rohb','Dehb','hb1','hb2'
+                       if hb not in self.hbs:
+                          self.hbs.append(hb) # 'rohb','Dehb','hb1','hb2'
                           self.p_['rohb_'+hb] = 1.9
                           self.p_['Dehb_'+hb] = 0.0
                           self.p_['hb1_'+hb]  = 2.0
@@ -986,17 +986,17 @@ class ReaxFF_nn_force(nn.Module):
                  tor4 = 'X'+'-'+t2+'-'+t3+'-'+'X'
                  tor5 = 'X'+'-'+t3+'-'+t2+'-'+'X'
                  if tor1 in self.torp:
-                    self.p[key+'_'+tor] = self.p[key+'_'+tor1] # consistent with lammps
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor1] # consistent with lammps
                  elif tor2 in self.torp:
-                    self.p[key+'_'+tor] = self.p[key+'_'+tor2]
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor2]
                  elif tor3 in self.torp:
-                    self.p[key+'_'+tor] = self.p[key+'_'+tor3]    
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor3]    
                  elif tor4 in self.torp:
-                    self.p[key+'_'+tor] = self.p[key+'_'+tor4]  
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor4]  
                  elif tor5 in self.torp:
-                    self.p[key+'_'+tor] = self.p[key+'_'+tor5]     
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]     
                  else:
-                    self.p[key+'_'+tor] = 0.0
+                    self.p_[key+'_'+tor] = 0.0
       return tors
 
   def stack_tensor(self):
@@ -1268,62 +1268,4 @@ class ReaxFF_nn_force(nn.Module):
       self.evdw,self.Evdw               = {},{}
       self.ecoul,self.Ecoul             = {},{}
 
-  def logout(self):
-      with open('irff.log','w') as fmd:
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n-                Energies From Machine Learning MD                     -\n')
-         fmd.write('\n------------------------------------------------------------------------\n')
-
-         fmd.write('-  Ebond =%f  ' %self.Ebond)
-         fmd.write('-  Elone =%f  ' %self.Elone)
-         fmd.write('-  Eover =%f  \n' %self.Eover)
-         fmd.write('-  Eunder=%f  ' %self.Eunder)
-         fmd.write('-  Eang  =%f  ' %self.Eang)
-         fmd.write('-  Epen  =%f  \n' %self.Epen)
-         fmd.write('-  Etcon =%f  ' %self.Etcon)
-         fmd.write('-  Etor  =%f  ' %self.Etor)
-         fmd.write('-  Efcon =%f  \n' %self.Efcon)
-         fmd.write('-  Evdw  =%f  ' %self.Evdw)
-         fmd.write('-  Ecoul =%f  ' %self.Ecoul)
-         fmd.write('-  Ehb   =%f  \n' %self.Ehb)
-         fmd.write('-  Eself =%f  ' %self.Eself)
-         fmd.write('-  Ezpe  =%f  \n' %self.zpe)
-         
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n-              Atomic Information  (Delta and Bond order)              -\n')
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\nAtomID Sym   Delta   NLP    DLPC   -\n')
-         for i in range(self.natom):
-             fmd.write('%6d  %2s %9.6f %9.6f %9.6f' %(i,
-                                      self.atom_name[i],
-                                      self.Delta[i],
-                                      self.nlp[i],
-                                      self.Delta_lpcorr[i]))
-             for j in range(self.natom):
-                   if self.bo0[i][j]>self.botol:
-                      fmd.write(' %3d %2s %9.6f' %(j,self.atom_name[j],
-                                                 self.bo0[i][j]))
-             fmd.write(' \n')
-
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n-                          Atomic Energies                             -\n')
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n  AtomID Sym  Explp     Delta_lp     Elone     Eover      Eunder      Fx        Fy         Fz\n')
-         for i in range(self.natom):
-             fmd.write('%6d  %2s  %9.6f  %9.6f  %9.6f  %9.6f  %9.6f ' %(i,
-                       self.atom_name[i],
-                       self.explp[i],
-                       self.Delta_lp[i],
-                       self.elone[i],
-                       self.eover[i],
-                       self.eunder[i]))
-             fmd.write(' \n')
-
-         fmd.write('\n------------------------------------------------------------------------\n')
-         fmd.write('\n- Machine Learning MD Completed!\n')
-
-  def close(self):
-      self.P  = None
-      self.m  = None
-      self.Qe = None
 
