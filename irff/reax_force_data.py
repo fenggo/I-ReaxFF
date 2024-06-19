@@ -622,7 +622,7 @@ class reax_force_data(object):
 
   def compute_hbond(self):
       self.hb_i,self.hb_j,self.hb_k = [],[],[]
-      hb_i,hb_j,hb_k = [],[],[]
+      hb_i,hb_j,hb_k = {},{},{}
       # self.H  = {}
       for i in range(self.natom): 
           if self.atom_name[i]!='H':
@@ -632,59 +632,17 @@ class reax_force_data(object):
                        for k in range(self.natom):
                            if k!=j and self.atom_name[k]!='H':  # from prime cell
                               hb = str(i)+'-'+str(j)+'-'+str(k)
-                              hb_i.append(i)
-                              hb_j.append(j)
-                              hb_k.append(k)
-
-      hb_i = np.array(hb_i)
-      hb_j = np.array(hb_j)
-      hb_k = np.array(hb_k)
-
-      self.nh   = {}
-      # rhb     = {}
-      hijk      = {}
-      # hbthe   = {}
-      # frhb    = {}
-
-      for hb in self.hbs:
-          # rhb[hb]    = []
-          hijk[hb]     = []
-          # hbthe[hb]  = []
-          # frhb[hb]   = []
-          self.nh[hb]  = 0 
-          for i,hi in enumerate(self.hb_i):
-              hi = self.hb_i[i]
-              hj = self.hb_j[i]
-              hk = self.hb_k[i]
-              hn = self.atom_name[hi]+'-'+self.atom_name[hj]+'-'+self.atom_name[hk]
-              if hn==hb:
-                 bd  = self.atom_name[hi]+'-'+self.atom_name[hj]
-                 bd_ = (hi,hj)
-                 if bd not in self.bonds:
-                    bd = self.atom_name[hj]+'-'+self.atom_name[hi]
-                    bd_ = (hj,hi)
-                 # ibd = self._bond.index(bd_)
-                 hijk[hb].append([hi,hj,hk])
-                 # rhb[hb].append(self.rhb[i,:])  
-                 # hbthe[hb].append(self.hbthe[i,:])
-                 # frhb[hb].append(self.frhb[i,:])
-                 self.nh[hb] += 1
-
-      self.H      = {}
-      self.hijk   = hijk
-      self.rhb    = []
-      self.hbthe  = []
-      self.frhb   = []
-      st,ed       = 0,0
-      for hb in self.hbs:
-          if self.nh[hb]>0:
-             st = ed
-             ed = st+self.nh[hb]
-             self.H[hb] = (st,self.nh[hb])
-             # self.hij.extend(hij[hb])
-             self.rhb.extend(rhb[hb])
-             self.hbthe.extend(hbthe[hb])
-             self.frhb.extend(frhb[hb])
+                              if hb not in hb_i:
+                                 hb_i[hb] = [i]
+                                 hb_j[hb] = [j]
+                                 hb_k[hb] = [k]
+                              else:
+                                 hb_i[hb].append(i)
+                                 hb_j[hb].append(j)
+                                 hb_k[hb].append(k)
+      self.hb_i = hb_i
+      self.hb_j = hb_j
+      self.hb_k = hb_k
 
   def get_charge(self):
       q,ecoul,eself,evdw = [],[],[],[]
