@@ -165,7 +165,7 @@ class reax_force_data(object):
       else:
          self.compute_angle(self.R,self.vr)
          self.compute_torsion(self.R,self.vr)
-         # self.compute_hbond(image_rs)
+         self.compute_hbond()
          
       # self.compute_vdw(image_rs)
       # self.get_gulp_energy()
@@ -620,7 +620,7 @@ class reax_force_data(object):
       self.rv = np.transpose(self.rv,[1,0])
       self.nvb= len(self.rv)
 
-  def compute_hbond(self,image_rs):
+  def compute_hbond(self):
       self.hb_i,self.hb_j,self.hb_k = [],[],[]
       hb_i,hb_j,hb_k = [],[],[]
       # self.H  = {}
@@ -640,92 +640,38 @@ class reax_force_data(object):
       hb_j = np.array(hb_j)
       hb_k = np.array(hb_k)
 
-      if len(hb_i)>0 and len(hb_j)>0:
-         vij  = self.vr[:,hb_i,hb_j,:]
-         Rij2 = np.sum(np.square(vij),axis=2)
-
-         for i,vr in enumerate(image_rs):
-             vjk  = vr[:,hb_j,hb_k,:]
-             vik  = vij + vjk 
-
-             Rik2 = np.sum(np.square(vik),axis=2)
-             Rik  = np.sqrt(Rik2)
-            
-             ind  = np.where(np.logical_and(np.min(Rik,axis=0)<=self.hblong, 
-                                            np.max(Rik,axis=0)>0.000001))
-             ind  = np.reshape(ind,[-1])
-
-             self.hb_i.extend(hb_i[ind])
-             self.hb_j.extend(hb_j[ind])
-             self.hb_k.extend(hb_k[ind])
-
-             Rij2_ = Rij2[:,ind] 
-             Rij_  = np.sqrt(Rij2_)
-
-             vjk_ = vjk[:,ind]
-
-             Rjk2_= np.sum(np.square(vjk_),axis=2)
-             Rjk_ = np.sqrt(Rjk2_)
-
-             Rik_ = Rik[:,ind] 
-             Rik2_= Rik2[:,ind]
-
-             cos_theta = (Rij2_+Rjk2_-Rik2_)/(2.0*Rij_*Rjk_)
-             hbthe_    = 0.5-0.5*cos_theta
-             frhb_     = rtaper(Rik_,rmin=self.hbshort,rmax=self.hblong)
-
-             if i==0:
-                self.rhb   = Rjk_
-                self.frhb  = frhb_
-                self.hbthe = hbthe_
-             else:
-                self.rhb   = np.append(self.rhb,Rjk_,axis=1)
-                self.frhb  = np.append(self.frhb,frhb_,axis=1)
-                self.hbthe = np.append(self.hbthe,hbthe_,axis=1)
-
-         self.rhb   = np.transpose(self.rhb,[1,0])
-         self.frhb  = np.transpose(self.frhb,[1,0])
-         self.hbthe = np.transpose(self.hbthe,[1,0])
-         self.nhb   = len(self.hb_i)
-      else:  
-         # case for no hydrogen atom 
-         self.rhb   = []
-         self.frhb  = []
-         self.hbthe = []
-         self.nhb   = 0
-
-  def group_rhb(self):
       self.nh   = {}
-      rhb       = {}
-      hij       = {}
-      hbthe     = {}
-      frhb      = {}
+      # rhb     = {}
+      hijk      = {}
+      # hbthe   = {}
+      # frhb    = {}
 
       for hb in self.hbs:
-          rhb[hb]    = []
-          hij[hb]    = []
-          hbthe[hb]  = []
-          frhb[hb]   = []
+          # rhb[hb]    = []
+          hijk[hb]     = []
+          # hbthe[hb]  = []
+          # frhb[hb]   = []
+          self.nh[hb]  = 0 
           for i,hi in enumerate(self.hb_i):
-              # hi = self.hb_i[i]
+              hi = self.hb_i[i]
               hj = self.hb_j[i]
               hk = self.hb_k[i]
               hn = self.atom_name[hi]+'-'+self.atom_name[hj]+'-'+self.atom_name[hk]
               if hn==hb:
-                 bd = self.atom_name[hi]+'-'+self.atom_name[hj]
+                 bd  = self.atom_name[hi]+'-'+self.atom_name[hj]
                  bd_ = (hi,hj)
                  if bd not in self.bonds:
                     bd = self.atom_name[hj]+'-'+self.atom_name[hi]
                     bd_ = (hj,hi)
-                 ibd = self._bond.index(bd_)
-                 hij[hb].append([ibd])
-                 rhb[hb].append(self.rhb[i,:])  
-                 hbthe[hb].append(self.hbthe[i,:])
-                 frhb[hb].append(self.frhb[i,:])
-          self.nh[hb] = len(rhb[hb])
+                 # ibd = self._bond.index(bd_)
+                 hijk[hb].append([hi,hj,hk])
+                 # rhb[hb].append(self.rhb[i,:])  
+                 # hbthe[hb].append(self.hbthe[i,:])
+                 # frhb[hb].append(self.frhb[i,:])
+                 self.nh[hb] += 1
 
       self.H      = {}
-      self.hij    = hij
+      self.hijk   = hijk
       self.rhb    = []
       self.hbthe  = []
       self.frhb   = []
@@ -763,32 +709,6 @@ class reax_force_data(object):
       qij    = np.expand_dims(self.q,axis=1)*np.expand_dims(self.q,axis=2)
       qij    = qij*14.39975840
       self.qij = qij
-
-  def get_ecoul(self,rs):
-      gm     = np.sqrt(np.expand_dims(self.P['gamma'],axis=0)*np.expand_dims(self.P['gamma'],axis=1))
-      gm     = np.expand_dims(gm,axis=0)
-      gm3    = (1.0/gm)**3.0
-      qij    = np.expand_dims(self.q,axis=1)*np.expand_dims(self.q,axis=2)
-      qij    = qij*14.39975840
-      self.qij = qij
-      ecoul = 0.0
-
-      for i,vr in enumerate(rs):
-          r_  = np.sqrt(np.sum(np.square(vr),axis=3))
-          if i<13:
-             r = np.triu(r_,k=0)
-          else:
-             r = np.triu(r_,k=1)
-
-          fv   = np.where(np.logical_and(r<=self.vdwcut,r>=0.0001),1.0,0.0)
-          r3   = r**3.0
-          tp   = self.tap_vdw(r,vdwcut=self.vdwcut)
-
-          r3third  = (r3+gm3)**(1.0/3.0)
-          ecoul_   = np.divide(fv*tp*qij,r3third)
-          ecoul   += ecoul_ 
-
-      self.ecoul = np.sum(ecoul,axis=(1,2))
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
