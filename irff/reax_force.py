@@ -73,7 +73,7 @@ def DIV_IF(y,x):
 def relu(x):
     return torch.where(x>0.0,x,torch.full_like(x,0.0))  
 
-def fmessage(pre,bd,nbd,x,m,batch=50,layer=5):
+def fmessage(pre,bd,x,m,layer=5):
     ''' Dimention: (nbatch,3) input = 3
                 Wi:  (4,8) 
                 Wh:  (8,8)
@@ -346,7 +346,7 @@ class ReaxFF_nn_force(nn.Module):
           Hpi  = self.Hpi[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
           Hpp  = self.Hpp[st][t-1][:,self.bdid[st][:,0],self.bdid[st][:,1]]
 
-          bo,bosi,bopi,bopp = self.get_bondorder(st,t,Dbi_,H,Dbj_,Hsi,Hpi,Hpp)
+          bo,bosi,bopi,bopp = self.get_bondorder(st,Dbi_,H,Dbj_,Hsi,Hpi,Hpp)
           
           self.H[st].append(bo)                     # get the hidden state H[t]
           self.Hsi[st].append(bosi)
@@ -385,7 +385,7 @@ class ReaxFF_nn_force(nn.Module):
       self.fbot[st]   = taper(self.bo0[st],rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
-  def get_bondorder(self,st,t,Dbi,H,Dbj,Hsi,Hpi,Hpp):
+  def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
       ''' compute bond-order according the message function'''
       flabel  = 'fm'
       bosi = torch.zeros_like(self.r[st])
@@ -410,13 +410,14 @@ class ReaxFF_nn_force(nn.Module):
           hpp  = Hpp[:,b_[0]:b_[1]]
           b    = bd.split('-')
  
-          Fi   = fmessage(flabel,b[0],nbd_,[Di,h,Dj],self.m,
-                          batch=self.batch[st],layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],nbd_,[Dj,h,Di],self.m,
-                          batch=self.batch[st],layer=self.mf_layer[1])
+          Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
+          Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
+          print('Fs',)
+        #   print(hsi.shape,hpi.shape)
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
-
+        #   print(Fi.shape,Fj.shape)
+          print('Fsi: ',Fsi.shape)
           bosi_.append(hsi*Fsi)
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
@@ -467,6 +468,7 @@ class ReaxFF_nn_force(nn.Module):
                 Eang.append(Ea)
                 Epen.append(Ep)
                 Etcon.append(Et)
+         print(Epen)
 
          self.Eang[st] = torch.cat(Eang,dim=1)
          self.Epen[st] = torch.cat(Epen,dim=1)
