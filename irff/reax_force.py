@@ -539,7 +539,7 @@ class ReaxFF_nn_force(nn.Module):
       expk = torch.exp(-self.p['pen2']*torch.square(bojk-2.0))
       Ep   = self.p['pen1_'+ang]*f_9*expi*expk*fijk
       return Ep
-  
+
   def f9(self,Delta):
       exp3 = torch.exp(-self.p['pen3']*Delta)
       exp4 = torch.exp( self.p['pen4']*Delta)
@@ -694,60 +694,60 @@ class ReaxFF_nn_force(nn.Module):
 
       self.evdw[st]  = torch.sum(self.Evdw[st],1)
       self.ecoul[st] = torch.sum(self.Ecoul[st],1)
-
   
   def get_hb_energy(self,st):
-      self.BOhb   = self.bo0[st][self.hbi,self.hbj]
-      fhb         = self.fhb[self.hbi,self.hbj]
+      self.ehb[st]    = 0.0
+      for hb in self.hbs:
+          if self.nhb[st][hb]==0:
+             continue     
+          bo          = self.bo0[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
+          fhb         = self.fhb[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
 
-      rij         = self.r[self.hbi,self.hbj]
-      rij2        = torch.square(rij)
-      vrij        = self.vr[self.hbi,self.hbj]
-      vrjk_       = self.vr[self.hbj,self.hbk]
-      self.Ehb    = 0.0
+          rij         = self.r[:,self.hb_i[st][hb],self.hb_j[st][hb]]
+          rij2        = torch.square(rij)
+          vrij        = self.vr[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
+          vrjk_       = self.vr[st][:,self.hb_j[st][hb],self.hb_k[st][hb]]
 
-      for i in range(-1,2):
-          for j in range(-1,2):
-              for k in range(-1,2):
-                  cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
-                  vrjk   = vrjk_ + cell
-                  rjk2   = torch.sum(torch.square(vrjk),axis=1)
-                  rjk    = torch.sqrt(rjk2)
-                  
-                  vrik   = vrij + vrjk
-                  rik2   = torch.sum(torch.square(vrik),axis=1)
-                  rik    = torch.sqrt(rik2)
+          for i in range(-1,2):
+              for j in range(-1,2):
+                  for k in range(-1,2):
+                      cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
+                      vrjk   = vrjk_ + cell 
+                      print(vrjk.shape)
+                      rjk2   = torch.sum(torch.square(vrjk),axis=1)
+                      rjk    = torch.sqrt(rjk2)
 
-                  cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
-                  hbthe  = 0.5-0.5*cos_th
-                  frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
+                      vrik   = vrij + vrjk
+                      rik2   = torch.sum(torch.square(vrik),axis=1)
+                      rik    = torch.sqrt(rik2)
 
-                  exphb1 = 1.0-torch.exp(-self.P['hb1']*self.BOhb)
-                  hbsum  = torch.div(self.P['rohb'],rjk)+torch.div(rjk,self.P['rohb'])-2.0
-                  exphb2 = torch.exp(-self.P['hb2']*hbsum)
-               
-                  sin4   = torch.square(hbthe)
-                  ehb    = fhb*frhb*self.P['Dehb']*exphb1*exphb2*sin4 
-                  self.Ehb += torch.sum(ehb)
+                      cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
+                      hbthe  = 0.5-0.5*cos_th
+                      frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
 
+                      exphb1 = 1.0-torch.exp(-self.p['hb1_'+hb]*self.BOhb)
+                      hbsum  = torch.div(self.p['rohb_'+hb],rjk)+torch.div(rjk,self.p['rohb_'+hb])-2.0
+                      exphb2 = torch.exp(-self.p['hb2_'+hb]*hbsum)
+
+                      sin4   = torch.square(hbthe)
+                      ehb    = fhb*frhb*self.P['Dehb']*exphb1*exphb2*sin4 
+                      self.ehb[st] += torch.sum(ehb)
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
       self.rc_bo = {}
       for bd in self.bonds:
-          b= bd.split('-')
-          ofd=bd if b[0]!=b[1] else b[0]
-
+          b    = bd.split('-')
+          ofd  = bd if b[0]!=b[1] else b[0]
           log_ = np.log((self.botol/(1.0+self.botol)))
-          rr = log_/self.p_['bo1_'+bd] 
-          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(log_/self.p_['bo1_'+bd],1.0/self.p_['bo2_'+bd])
+          rr   = log_/self.p_['bo1_'+bd] 
+          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(rr,1.0/self.p_['bo2_'+bd])
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
       mu     = np.expand_dims(self.P['mu'],axis=0)
       self.eself = self.q*(chi+self.q*mu)
       self.Eself = torch.from_numpy(np.sum(self.eself,axis=1))
-
 
   def get_total_energy(self,st):
       ''' compute the total energy of moecule '''
@@ -800,7 +800,6 @@ class ReaxFF_nn_force(nn.Module):
                           self.p_['Dehb_'+hb] = 0.0
                           self.p_['hb1_'+hb]  = 2.0
                           self.p_['hb2_'+hb]  = 19.0
-
 
   def check_offd(self):
       p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
@@ -1124,8 +1123,8 @@ class ReaxFF_nn_force(nn.Module):
       for s in strucs:
           self.natom[s]    = strucs[s].natom
           self.blist[s]    = strucs[s].blist
-          self.dilink[s]   = strucs[s].dilink
-          self.djlink[s]   = strucs[s].djlink
+        #   self.dilink[s]   = strucs[s].dilink
+        #   self.djlink[s]   = strucs[s].djlink
 
           self.nang[s]     = strucs[s].nang
           self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
@@ -1137,6 +1136,10 @@ class ReaxFF_nn_force(nn.Module):
           self.tor_j[s]    = np.expand_dims(strucs[s].tor_j,axis=1)
           self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
           self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
+
+          self.hb_i[s]     = np.expand_dims(strucs[s].hb_i,axis=1)  
+          self.hb_j[s]     = np.expand_dims(strucs[s].hb_j,axis=1) 
+          self.hb_k[s]     = np.expand_dims(strucs[s].hb_k,axis=1) 
 
           self.nbd[s]      = strucs[s].nbd
           self.na[s]       = strucs[s].na
@@ -1180,11 +1183,6 @@ class ReaxFF_nn_force(nn.Module):
              self.cos_w[s] = torch.tensor(self.data[s].cos_w)
              self.cos2w[s] = torch.tensor(self.data[s].cos2w)
              #self.cos3w[s]= torch.tensor(self.data[s].cos3w)
-       
-        #   if self.nhb[s]>0:
-        #      self.rhb[s]   = self.data[s].rhb
-        #      self.frhb[s]  = self.data[s].frhb
-        #      self.hbthe[s] = self.data[s].hbthe
 
           self.estruc[s] =  nn.Parameter(torch.tensor(0.0),requires_grad=True) 
 
@@ -1273,4 +1271,5 @@ class ReaxFF_nn_force(nn.Module):
 
       self.evdw,self.Evdw               = {},{}
       self.ecoul,self.Ecoul             = {},{}
+      self.ehb                          = {}
 
