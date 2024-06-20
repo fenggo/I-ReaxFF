@@ -446,10 +446,10 @@ class ReaxFF_nn_force(nn.Module):
              sp  = ang.split('-')[1]
              # print(ang,self.na[st].get(ang,0))
              if self.na[st].get(ang,0)>0:
-                ai        = np.squeeze(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
-                aj        = np.squeeze(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
-                ak        = np.squeeze(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
-
+                ai        = np.ravel(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                aj        = np.ravel(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                ak        = np.ravel(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                # print('\n ai \n',ai)  
                 boij      = self.bo[st][:,ai,aj]
                 bojk      = self.bo[st][:,aj,ak]
                 fij       = self.fbot[st][:,ai,aj]
@@ -468,7 +468,6 @@ class ReaxFF_nn_force(nn.Module):
                 Eang.append(Ea)
                 Epen.append(Ep)
                 Etcon.append(Et)
-         print(Epen)
 
          self.Eang[st] = torch.cat(Eang,dim=1)
          self.Epen[st] = torch.cat(Epen,dim=1)
