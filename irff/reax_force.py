@@ -1108,10 +1108,12 @@ class ReaxFF_nn_force(nn.Module):
       self.nv                          = {}
       self.na                          = {}
       self.nt                          = {}
-      self.nh                          = {}
+      self.nhb                         = {}
       self.v                           = {}
       self.h                           = {}
-      self.hij                         = {}
+      self.hb_i                        = {}
+      self.hb_j                        = {}
+      self.hb_k                        = {}
       self.s_ijk                       = {}
       self.s_jkl                       = {}
       self.w                           = {}
@@ -1137,14 +1139,15 @@ class ReaxFF_nn_force(nn.Module):
           self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
           self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
 
-          self.hb_i[s]     = np.expand_dims(strucs[s].hb_i,axis=1)  
-          self.hb_j[s]     = np.expand_dims(strucs[s].hb_j,axis=1) 
-          self.hb_k[s]     = np.expand_dims(strucs[s].hb_k,axis=1) 
+          self.hb_i[s]     = strucs[s].hb_i
+          self.hb_j[s]     = strucs[s].hb_j
+          self.hb_k[s]     = strucs[s].hb_k
 
           self.nbd[s]      = strucs[s].nbd
           self.na[s]       = strucs[s].na
           self.nt[s]       = strucs[s].nt
           # self.nv[s]     = strucs[s].nv
+          self.nhb[s]      = strucs[s].nhb
           self.b[s]        = strucs[s].B
           self.a[s]        = strucs[s].A
           self.t[s]        = strucs[s].T
