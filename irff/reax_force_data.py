@@ -150,9 +150,9 @@ class reax_force_data(object):
       self.get_bonds(self.R)
 
       if self.structure.find('nomb')>=0:
-         self.nhb  = 0
-         self.nang = 0
-         self.ntor = 0
+         self.nhb  = {}
+         self.nang = {}
+         self.ntor = {}
          self.hb_i,self.hb_j,self.hb_k = [],[],[]
          self.abij,self.abjk = [],[]
          self.ang_i,self.ang_j,self.ang_k = [],[],[]
@@ -624,6 +624,7 @@ class reax_force_data(object):
       self.hb_i,self.hb_j,self.hb_k = [],[],[]
       hb_i,hb_j,hb_k = {},{},{}
       # self.H  = {}
+      self.nhb  = {}
       for i in range(self.natom): 
           if self.atom_name[i]!='H':
              for n_j,j in enumerate(self.atable[i]):   
@@ -640,6 +641,8 @@ class reax_force_data(object):
                                  hb_i[hb].append(i)
                                  hb_j[hb].append(j)
                                  hb_k[hb].append(k)
+      for hb in self.hb_i:
+          self.nhb[hb] = len(self.hb_i)
       self.hb_i = hb_i
       self.hb_j = hb_j
       self.hb_k = hb_k
