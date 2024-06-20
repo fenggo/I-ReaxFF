@@ -413,10 +413,10 @@ class ReaxFF_nn_force(nn.Module):
           Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
           Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
-          print('Fs',)
-        #   print(hsi.shape,hpi.shape)
+          print('F',F.shape)
+          #   print(hsi.shape,hpi.shape)
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
-        #   print(Fi.shape,Fj.shape)
+          #   print(Fi.shape,Fj.shape)
           print('Fsi: ',Fsi.shape)
           bosi_.append(hsi*Fsi)
           bopi_.append(hpi*Fpi)
@@ -477,8 +477,6 @@ class ReaxFF_nn_force(nn.Module):
          self.etcon[st]= torch.sum(self.Etcon[st],1)
  
   def get_eangle(self,sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp):
-      # delta_ang      = delta - self.p['valang_'+sp]
-      # delta        = delta - self.p['val_'+sp]
       fijk           = fij*fjk
 
       theta0         = self.get_theta0(ang,delta_ang,sbo,pbo,nlp)
