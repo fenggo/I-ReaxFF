@@ -180,7 +180,7 @@ class ReaxFF_nn_force(nn.Module):
           self.get_fourbody_energy(st)
           self.get_vdw_energy(st)
           self.get_hb_energy(st)
-        #   self.get_total_energy(st)
+          self.get_total_energy(st)
       return self.E,self.force
   
   def get_atomic_energy(self,st):
@@ -692,8 +692,8 @@ class ReaxFF_nn_force(nn.Module):
                   self.Ecoul[st] += torch.div(fv*tp*self.q[st],rth)
                   nc += 1
 
-      self.evdw[st]  = torch.sum(self.Evdw[st],1)
-      self.ecoul[st] = torch.sum(self.Ecoul[st],1)
+      self.evdw[st]  = torch.sum(self.Evdw[st],dim=[1,2])
+      self.ecoul[st] = torch.sum(self.Ecoul[st],dim=[1,2])
   
   def get_hb_energy(self,st):
       self.ehb[st]    = 0.0
@@ -731,7 +731,7 @@ class ReaxFF_nn_force(nn.Module):
 
                       sin4   = torch.square(hbthe)
                       ehb    = fhb*frhb*self.P['Dehb']*exphb1*exphb2*sin4 
-                      self.ehb[st] += torch.sum(ehb)
+                      self.ehb[st] += torch.sum(ehb,1)
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
@@ -752,40 +752,12 @@ class ReaxFF_nn_force(nn.Module):
   def get_total_energy(self,st):
       ''' compute the total energy of moecule '''
       self.E[st] = (self.ebond[st] + 
-                           self.eover[st] +
-                           self.eunder[st]+
-                           self.elone[st] +
-                           self.eang[st]  +
-                           self.epen[st]  +
-                           self.tconj[st] +
-                           self.etor[st]  +
-                           self.efcon[st] +
-                           self.evdw[st]  +
-                           self.ecoul[st] +
-                           self.ehb[st]   +
-                           self.eself[st] + 
-                           self.zpe[st]     )
-
-  def get_free_energy(self,atoms=None,BuildNeighbor=False):
-      cell      = atoms.get_cell()                    # cell is object now
-      cell      = cell[:].astype(dtype=np.float64)
-      rcell     = np.linalg.inv(cell).astype(dtype=np.float64)
-
-      positions = atoms.get_positions()
-      xf        = np.dot(positions,rcell)
-      xf        = np.mod(xf,1.0)
-      positions = np.dot(xf,cell).astype(dtype=np.float64)
-
-      self.get_charge(cell,positions)
-      if BuildNeighbor:
-         self.get_neighbor(cell,rcell,positions)
-
-      cell = torch.tensor(cell)
-      rcell= torch.tensor(rcell)
-
-      self.positions = torch.from_numpy(positions)
-      E              = self.get_total_energy(cell,rcell,self.positions)
-      return E
+                    self.eover[st] + self.eunder[st]+ self.elone[st] +
+                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
+                    self.etor[st]  + self.efcon[st] +
+                    self.evdw[st]  + self.ecoul[st] +
+                    self.ehb[st]   +
+                    self.eself[st] + self.zpe[st]     )
 
   def check_hb(self):
       if 'H' in self.spec:
@@ -1077,7 +1049,6 @@ class ReaxFF_nn_force(nn.Module):
              self.max_e[st]    = strucs[st].max_e
              # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
-             self.eself[st]    = strucs[st].eself     
              #  self.cell[st]     = strucs[st].cell
           else:
              print('-  data status of %s:' %st,data_.status)
@@ -1175,6 +1146,7 @@ class ReaxFF_nn_force(nn.Module):
 
           self.dft_energy[s] = torch.tensor(self.data[s].dft_energy)
           self.q[s]          = torch.tensor(self.data[s].q)
+          self.eself[s]      = torch.tensor(strucs[s].eself)  
 
           if self.nang[s]>0:
              self.theta[s] = torch.tensor(self.data[s].theta)
