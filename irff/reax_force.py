@@ -407,7 +407,7 @@ class ReaxFF_nn_force(nn.Module):
           Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
           Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
-          print('\n F \n',F)
+          # print('\n F \n',F)
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
 
           bosi_.append(hsi*Fsi)
