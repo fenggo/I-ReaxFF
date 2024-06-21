@@ -1057,6 +1057,7 @@ class ReaxFF_nn_force(nn.Module):
   def generate_data(self,strucs):
       ''' get data '''
       self.dft_energy                  = {}
+      self.dft_forces                  = {}
       self.q                           = {}
       self.blist,self.bdid             = {},{}
       self.dilink,self.djlink          = {},{}
@@ -1143,6 +1144,10 @@ class ReaxFF_nn_force(nn.Module):
           self.dft_energy[s] = torch.tensor(self.data[s].dft_energy)
           self.q[s]          = torch.tensor(self.data[s].q)
           self.eself[s]      = torch.tensor(strucs[s].eself)  
+          if self.data[s].forces is not  None:
+             self.dft_forces[s] = torch.tensor(self.data[s].forces)
+          else:
+             self.dft_forces[s] = None
 
           if self.nang[s]>0:
              self.theta[s] = torch.tensor(self.data[s].theta)
