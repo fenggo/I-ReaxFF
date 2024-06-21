@@ -437,7 +437,7 @@ class ReaxFF_nn_force(nn.Module):
       if self.nang[st]==0:
          self.eang[st] = torch.zeros(self.batch[st]) 
          self.epen[st] = torch.zeros(self.batch[st]) 
-         self.tconj[st]= torch.zeros(self.batch[st]) 
+         self.etcon[st]= torch.zeros(self.batch[st]) 
       else:
          Eang  = []
          Epen  = []
