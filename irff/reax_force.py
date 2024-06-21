@@ -210,7 +210,7 @@ class ReaxFF_nn_force(nn.Module):
       self.eatomic[st] = torch.tensor(0.0)
       for sp in self.spec:
           if self.ns[st][sp]>0:
-             self.eatomic[st] += self.p['atomic_'+sp]*self.ns[st][sp]
+             self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
       self.zpe[st]    = self.eatomic[st] + self.estruc[st]
   
   def get_eover(self,sp,delta,delta_lp,delta_pi,so):
