@@ -75,23 +75,18 @@ def relu(x):
 
 def fmessage(pre,bd,x,m,layer=5):
     ''' Dimention: (nbatch,3) input = 3
-                Wi:  (4,8) 
-                Wh:  (8,8)
-                Wo:  (8,3)  output = 3
+                Wi:  (3,9) 
+                Wh:  (9,9)
+                Wo:  (9,3)  output = 3
     '''
     X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
-    # print(X.shape)
-    # print(m[pre+'wi_'+bd].shape)
-    # X   = tf.stack(x_,axis=1)       # Dimention: (nbatch,4)
-    #                                 #        Wi:  (4,8) 
-    o   =  []                         #        Wh:  (8,8)
-    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])))   # input layer
-
+    # print('\n X \n',X,X.shape)
+    o   =  []                         
+    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
+    # print('\n ai \n',o[-1])
     for l in range(layer):                                                   # hidden layer      
         o.append(torch.sigmoid(torch.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
-
     out = torch.sigmoid(torch.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
-    # print(out.shape)
     return  out.squeeze(dim=2) 
 
 def fnn(pre,bd,x,m,layer=5):
@@ -103,7 +98,7 @@ def fnn(pre,bd,x,m,layer=5):
     X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
     #                                 #        Wi:  (3,8) 
     o   =  []                         #        Wh:  (8,8)
-    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])))   # input layer
+    o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
 
     for l in range(layer):                                     # hidden layer      
         o.append(torch.sigmoid(torch.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
@@ -395,7 +390,6 @@ class ReaxFF_nn_force(nn.Module):
       bosi_ = []
       bopi_ = []
       bopp_ = []
-      bso_  = []
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
           if nbd_==0:
@@ -413,11 +407,9 @@ class ReaxFF_nn_force(nn.Module):
           Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
           Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
-          print('F',F.shape)
-          #   print(hsi.shape,hpi.shape)
+          print('\n F \n',F)
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
-          #   print(Fi.shape,Fj.shape)
-          print('Fsi: ',Fsi.shape)
+
           bosi_.append(hsi*Fsi)
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
