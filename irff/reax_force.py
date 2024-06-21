@@ -328,8 +328,8 @@ class ReaxFF_nn_force(nn.Module):
       self.D[st]    = [self.Deltap[st]]    
       
       for t in range(1,self.messages+1):
-          Di   = torch.unsqueeze(self.D[st][t-1],1)*self.eye[st]
-          Dj   = torch.unsqueeze(self.D[st][t-1],2)*self.eye[st]
+          Di   = torch.unsqueeze(self.D[st][t-1],2)*self.eye[st]
+          Dj   = torch.unsqueeze(self.D[st][t-1],1)*self.eye[st]
 
           Dbi  = Di  - self.H[st][t-1] 
           Dbj  = Dj  - self.H[st][t-1]
@@ -395,6 +395,10 @@ class ReaxFF_nn_force(nn.Module):
           if nbd_==0:
              continue
           b_   = self.b[st][bd]
+
+          bi   = self.bdid[st][b_[0]:b_[1],0]
+          bj   = self.bdid[st][b_[0]:b_[1],1]
+
           Di   = Dbi[:,b_[0]:b_[1]]
           Dj   = Dbj[:,b_[0]:b_[1]]
 
@@ -407,16 +411,17 @@ class ReaxFF_nn_force(nn.Module):
           Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
           Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
-          # print('\n F \n',F)
+
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
 
           bosi_.append(hsi*Fsi)
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bosi[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bosi_,1)
-      bopi[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bopi[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bopi_,1)
-      bopp[:,self.bdid[st][:,0],self.bdid[st][:,1]] = bopp[:,self.bdid[st][:,1],self.bdid[st][:,0]] = torch.cat(bopp_,1)
+          bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
+          bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
+          bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
+
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
 
@@ -561,7 +566,7 @@ class ReaxFF_nn_force(nn.Module):
                 ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
                 tj        = np.squeeze(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
                 tk        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tl        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tl        = np.squeeze(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
                 boij      = self.bo[st][:,ti,tj]
                 bojk      = self.bo[st][:,tj,tk]
                 bokl      = self.bo[st][:,tk,tl]
@@ -605,7 +610,7 @@ class ReaxFF_nn_force(nn.Module):
       v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
       v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
       v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
-      # print(fijkl.shape,f_10.shape,s_ijk.shape)
+      
       Etor    = fijkl*f_10*s_ijk*s_jkl*(v1+v2+v3)
       return Etor,fijkl
   
