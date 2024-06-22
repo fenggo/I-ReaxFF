@@ -9,7 +9,7 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                vdw_layer,vdw_layer_,VdwFunction_,VdwFunction,
                bo_universal_nn,be_universal,mf_universal,vdw_universal_nn):
     ''' set variable for neural networks '''
-    m = {}
+    m = nn.ParameterDict() 
     bond   = []               # make sure the m matrix is unique 
     for si in spec:
         for sj in spec:
