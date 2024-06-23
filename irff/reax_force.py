@@ -669,24 +669,25 @@ class ReaxFF_nn_force(nn.Module):
       rkl = self.r[st][:,tk,tl]
 
       
-      vrjk= self.vr[st][:,tj,tk,:]
-      vrkl= self.vr[st][:,tk,tl,:]
+      vrjk= self.vr[st][:,tj,tk]
+      vrkl= self.vr[st][:,tk,tl]
 
       vrjl= vrjk + vrkl
-      rjl = torch.sqrt(torch.sum(torch.square(vrjl),1))
+      rjl = torch.sqrt(torch.sum(torch.square(vrjl),2))
 
-      vrij= self.vr[:,ti,tj,:]
+      vrij= self.vr[st][:,ti,tj]
       vril= vrij + vrjl
-      ril = torch.sqrt(torch.sum(torch.square(vril),1))
+      ril = torch.sqrt(torch.sum(torch.square(vril),2))
 
       vrik= vrij + vrjk
-      rik = torch.sqrt(torch.sum(torch.square(vrik),1))
+      rik = torch.sqrt(torch.sum(torch.square(vrik),2))
       rij2= torch.square(rij)
       rjk2= torch.square(rjk)
       rkl2= torch.square(rkl)
       rjl2= torch.square(rjl)
       ril2= torch.square(ril)
       rik2= torch.square(rik)
+      
 
       c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
       c2ijk = torch.square(c_ijk)
@@ -707,7 +708,7 @@ class ReaxFF_nn_force(nn.Module):
       s_kjl = torch.sqrt(ckjl)
 
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
-      fm    = rij*rjl*self.s_ijk*s_kjl
+      fm    = rij*rjl*s_ijk*s_kjl
 
       fm    = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,1.0),fm)
       fac   = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,0.0),
@@ -716,8 +717,8 @@ class ReaxFF_nn_force(nn.Module):
       #cos_w= cos_w*ccijk*ccjkl
       cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,1.0),cos_w)   
       cos_w = torch.where(cos_w<-0.999999,torch.full_like(cos_w,-1.0),cos_w)
-      w= torch.acos(self.cos_w)
-      cos2w = torch.cos(2.0*self.w)
+      w= torch.acos(cos_w)
+      cos2w = torch.cos(2.0*w)
       return w,cos_w,cos2w,s_ijk,s_jkl
   
   def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
