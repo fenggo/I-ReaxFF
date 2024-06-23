@@ -212,7 +212,6 @@ class ReaxFF_nn_force(nn.Module):
       self.force[st] = -self.x[st].grad
       #   print(self.force[st])
       #   print(self.force[st].shape)
-      
                                         
   def get_bond_energy(self,st):
       vr          = fvr(self.x[st])
@@ -504,7 +503,8 @@ class ReaxFF_nn_force(nn.Module):
                 sbo       = self.delta_pi[st][:,aj]
                 pbo       = self.Pbo[st][:,aj]
                 nlp       = self.Nlp[st][:,aj]
-                theta     = self.theta[st][:,self.a[st][ang][0]:self.a[st][ang][1]]
+                # theta   = self.theta[st][:,self.a[st][ang][0]:self.a[st][ang][1]]
+                theta     = self.get_theta(st,ai,aj,ak)
                 Ea,fijk   = self.get_eangle(sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp)
                 Ep        = self.get_epenalty(ang,delta,boij,bojk,fijk)
                 Et        = self.get_three_conj(ang,delta_ang,delta_i,delta_k,boij,bojk,fijk) 
@@ -518,7 +518,23 @@ class ReaxFF_nn_force(nn.Module):
          self.eang[st] = torch.sum(self.Eang[st],1)
          self.epen[st] = torch.sum(self.Epen[st],1)
          self.etcon[st]= torch.sum(self.Etcon[st],1)
- 
+
+  def get_theta(self,st,ai,aj,ak):
+      Rij = self.r[st][:,ai,aj]  
+      Rjk = self.r[st][:,aj,ak]  
+      # Rik = self.r[self.angi,self.angk]  
+      vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
+      # print(vik.shape)
+      Rik = torch.sqrt(torch.sum(torch.square(vik),2))
+
+      Rij2= Rij*Rij
+      Rjk2= Rjk*Rjk
+      Rik2= Rik*Rik
+
+      cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      theta     = torch.acos(cos_theta)
+      return theta
+
   def get_eangle(self,sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp):
       fijk           = fij*fjk
 
@@ -1193,8 +1209,8 @@ class ReaxFF_nn_force(nn.Module):
           else:
              self.dft_forces[s] = None
 
-          if self.nang[s]>0:
-             self.theta[s] = torch.tensor(self.data[s].theta)
+          # if self.nang[s]>0:
+          #    self.theta[s] = torch.tensor(self.data[s].theta)
 
           if self.ntor[s]>0:
              self.s_ijk[s] = torch.tensor(self.data[s].s_ijk)
