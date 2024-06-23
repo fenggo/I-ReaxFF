@@ -152,6 +152,7 @@ class ReaxFF_nn_force(nn.Module):
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
       self.set_p()
+
       self.get_data()
       self.stack_tensor()
 
@@ -176,71 +177,42 @@ class ReaxFF_nn_force(nn.Module):
           self.get_vdw_energy(st)
           self.get_hb_energy(st)
           self.get_total_energy(st)
+          self.get_forces(st)
       return self.E,self.force
   
-  def get_atomic_energy(self,st):
-      ''' compute atomic energy of structure (st): elone, eover,eunder'''
-      # st_ = st.split('-')[0]
-      self.Elone[st]     = torch.zeros_like(self.Delta[st])
-      self.Eover[st]     = torch.zeros_like(self.Delta[st])
-      self.Eunder[st]    = torch.zeros_like(self.Delta[st])
-      self.Nlp[st]       = torch.zeros_like(self.Delta[st])
-      self.Delta_ang[st] = torch.zeros_like(self.Delta[st])
+  def get_loss(self):
+      ''' compute loss '''
+      loss = nn.MSELoss(reduction='sum')
+      self.loss_e = 0.0
+      self.loss_f = 0.0
+      for st in self.strcs:
+          self.loss_e += loss(self.E[st], self.dft_energy[st])
+          if self.dft_forces[st] is not None:
+             self.loss_f += loss(self.force[st], self.dft_forces[st])
+      return self.loss_e + self.loss_f 
 
-      for sp in self.spec:
-          delta    = self.Delta[st][:,self.s[st][sp]]
-          delta_pi = self.Delta_pi[st][:,self.s[st][sp]]
-          so       = self.SO[st][:,self.s[st][sp]]
+  def get_total_energy(self,st):
+      ''' compute the total energy of moecule '''
+      self.E[st] = (self.ebond[st] + 
+                    self.eover[st] + self.eunder[st]+ self.elone[st] +
+                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
+                    self.etor[st]  + self.efcon[st] +
+                    self.evdw[st]  + self.ecoul[st] +
+                    self.ehb[st]   +
+                    self.eself[st] + self.zpe[st]     )
 
-          delta_lp,nlp,Elone  = self.get_elone(sp,delta) 
-          delta_lpcorr,Eover  = self.get_eover(sp,delta,delta_lp,delta_pi,so) 
-          Eunder              = self.get_eunder(sp,delta_lpcorr,delta_pi) 
-          delta_ang           = delta - self.p['valang_'+sp]
-          
-          self.Nlp[st][:,self.s[st][sp]]        = nlp
-          self.Delta_ang[st][:,self.s[st][sp]]  = delta_ang
-          self.Elone[st][:,self.s[st][sp]]      = Elone
-          self.Eover[st][:,self.s[st][sp]]      = Eover
-          self.Eunder[st][:,self.s[st][sp]]     = Eunder
-
-      self.elone[st]  = torch.sum(self.Elone[st],1)
-      self.eover[st]  = torch.sum(self.Eover[st],1)
-      self.eunder[st] = torch.sum(self.Eunder[st],1)
-
-      self.eatomic[st] = torch.tensor(0.0)
-      for sp in self.spec:
-          if self.ns[st][sp]>0:
-             self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
-      self.zpe[st]    = self.eatomic[st] + self.estruc[st]
-  
-  def get_eover(self,sp,delta,delta_lp,delta_pi,so):
-      delta_lpcorr = delta - self.p['val_'+sp] - torch.divide(delta_lp,
-                     1.0+self.p['ovun3']*torch.exp(self.p['ovun4']*delta_pi))
-      otrm1              = DIV_IF(1.0,delta_lpcorr + self.p['val_'+sp])
-      otrm2              = torch.sigmoid(-self.p['ovun2_'+sp]*delta_lpcorr)
-      Eover              = so*otrm1*delta_lpcorr*otrm2
-      return delta_lpcorr,Eover 
-  
-  def get_eunder(self,sp,delta_lpcorr,delta_pi):
-      expeu1            = torch.exp(self.p['ovun6']*delta_lpcorr)
-      eu1               = torch.sigmoid(self.p['ovun2_'+sp]*delta_lpcorr)
-      expeu3            = torch.exp(self.p['ovun8']*delta_pi)
-      eu2               = torch.divide(1.0,1.0+self.p['ovun7']*expeu3)
-      Eunder            = -self.p['ovun5_'+sp]*(1.0-expeu1)*eu1*eu2                          # must positive
-      return Eunder 
-  
-  def get_elone(self,sp,delta):
-      Nlp            = 0.5*(self.p['vale_'+sp] - self.p['val_'+sp])
-      delta_e        = 0.5*(delta - self.p['vale_'+sp])
-      De             = -torch.relu(-torch.ceil(delta_e)) 
-      nlp            = -De + torch.exp(-self.p['lp1']*4.0*torch.square(1.0+delta_e-De))
-
-      Delta_lp       = Nlp - nlp           
-      Delta_lp       = torch.relu(Delta_lp+1) -1
-
-      explp          = 1.0+torch.exp(-75.0*Delta_lp) # -self.p['lp3']
-      Elone          = self.p['lp2_'+sp]*Delta_lp/explp
-      return Delta_lp,nlp,Elone
+  def get_forces(self,st):
+      ''' compute forces with autograd method '''
+      E = torch.sum(self.E[st])
+      # grad = torch.autograd.grad(outputs=E,
+      #                            inputs=self.x[st],
+      #                            only_inputs=True)
+      # print(grad[0])
+      E.backward(retain_graph=True)
+      self.force[st] = -self.x[st].grad
+      #   print(self.force[st])
+      #   print(self.force[st].shape)
+      
                                         
   def get_bond_energy(self,st):
       vr          = fvr(self.x[st])
@@ -248,14 +220,14 @@ class ReaxFF_nn_force(nn.Module):
       vrf         = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
       self.vr[st] = torch.matmul(vrf,self.cell[st])
-      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3)) # +0.0000000001
+      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) +0.0000000001) # 
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
       self.get_final_state(st)
       
       self.ebd[st] = torch.zeros_like(self.bosi[st])
-      ebd  = []
+      # ebd  = []
       bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopp = self.bopp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -265,16 +237,20 @@ class ReaxFF_nn_force(nn.Module):
           if nbd_==0:
              continue
           b_  = self.b[st][bd]
+          bi   = self.bdid[st][b_[0]:b_[1],0]
+          bj   = self.bdid[st][b_[0]:b_[1],1]
+
           bosi_ = bosi[:,b_[0]:b_[1]]
           bopi_ = bopi[:,b_[0]:b_[1]]
           bopp_ = bopp[:,b_[0]:b_[1]]
 
           esi = fnn('fe',bd,[bosi_,bopi_,bopp_],
                     self.m,layer=self.be_layer[1])
-          ebd.append(-self.p['Desi_'+bd]*esi)
+          self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*esi
 
-      self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
-      self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2])
+      # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
+      self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2],keepdim=False)
+      # self.ebond[st]= torch.squeeze(self.ebond[st],2)
   
   def get_bondorder_uc(self,st):
       bop_si,bop_pi,bop_pp = [],[],[]
@@ -424,7 +400,71 @@ class ReaxFF_nn_force(nn.Module):
 
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
+  
+  def get_atomic_energy(self,st):
+      ''' compute atomic energy of structure (st): elone, eover,eunder'''
+      # st_ = st.split('-')[0]
+      self.Elone[st]     = torch.zeros_like(self.Delta[st])
+      self.Eover[st]     = torch.zeros_like(self.Delta[st])
+      self.Eunder[st]    = torch.zeros_like(self.Delta[st])
+      self.Nlp[st]       = torch.zeros_like(self.Delta[st])
+      self.Delta_ang[st] = torch.zeros_like(self.Delta[st])
 
+      for sp in self.spec:
+          delta    = self.Delta[st][:,self.s[st][sp]]
+          delta_pi = self.Delta_pi[st][:,self.s[st][sp]]
+          so       = self.SO[st][:,self.s[st][sp]]
+
+          delta_lp,nlp,Elone  = self.get_elone(sp,delta) 
+          delta_lpcorr,Eover  = self.get_eover(sp,delta,delta_lp,delta_pi,so) 
+          Eunder              = self.get_eunder(sp,delta_lpcorr,delta_pi) 
+          delta_ang           = delta - self.p['valang_'+sp]
+          
+          self.Nlp[st][:,self.s[st][sp]]        = nlp
+          self.Delta_ang[st][:,self.s[st][sp]]  = delta_ang
+          self.Elone[st][:,self.s[st][sp]]      = Elone
+          self.Eover[st][:,self.s[st][sp]]      = Eover
+          self.Eunder[st][:,self.s[st][sp]]     = Eunder
+
+      self.elone[st]  = torch.sum(self.Elone[st],1)
+      self.eover[st]  = torch.sum(self.Eover[st],1)
+      self.eunder[st] = torch.sum(self.Eunder[st],1)
+
+      self.eatomic[st] = torch.tensor(0.0)
+      for sp in self.spec:
+          if self.ns[st][sp]>0:
+             self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
+      self.zpe[st]    = self.eatomic[st] + self.estruc[st]
+  
+  def get_eover(self,sp,delta,delta_lp,delta_pi,so):
+      delta_lpcorr = delta - self.p['val_'+sp] - torch.divide(delta_lp,
+                     1.0+self.p['ovun3']*torch.exp(self.p['ovun4']*delta_pi))
+      otrm1              = DIV_IF(1.0,delta_lpcorr + self.p['val_'+sp])
+      otrm2              = torch.sigmoid(-self.p['ovun2_'+sp]*delta_lpcorr)
+      Eover              = so*otrm1*delta_lpcorr*otrm2
+      return delta_lpcorr,Eover 
+  
+  def get_eunder(self,sp,delta_lpcorr,delta_pi):
+      expeu1            = torch.exp(self.p['ovun6']*delta_lpcorr)
+      eu1               = torch.sigmoid(self.p['ovun2_'+sp]*delta_lpcorr)
+      expeu3            = torch.exp(self.p['ovun8']*delta_pi)
+      eu2               = torch.divide(1.0,1.0+self.p['ovun7']*expeu3)
+      Eunder            = -self.p['ovun5_'+sp]*(1.0-expeu1)*eu1*eu2                          # must positive
+      return Eunder 
+  
+  def get_elone(self,sp,delta):
+      Nlp            = 0.5*(self.p['vale_'+sp] - self.p['val_'+sp])
+      delta_e        = 0.5*(delta - self.p['vale_'+sp])
+      De             = -torch.relu(-torch.ceil(delta_e)) 
+      nlp            = -De + torch.exp(-self.p['lp1']*4.0*torch.square(1.0+delta_e-De))
+
+      Delta_lp       = Nlp - nlp           
+      Delta_lp       = torch.relu(Delta_lp+1) -1
+
+      explp          = 1.0+torch.exp(-75.0*Delta_lp) # -self.p['lp3']
+      Elone          = self.p['lp2_'+sp]*Delta_lp/explp
+      return Delta_lp,nlp,Elone
+  
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
       PBOpow        = -torch.pow(self.bo[st],8)        # original: self.BO0 
@@ -639,7 +679,8 @@ class ReaxFF_nn_force(nn.Module):
       return Efcon
 
   def f13(self,st,r):
-      rr = torch.pow(r,self.p['vdw1'])+torch.pow(torch.div(1.0,self.P[st]['gammaw']),self.p['vdw1'])
+      gammaw = torch.sqrt(torch.unsqueeze(self.P[st]['gammaw'],1)*torch.unsqueeze(self.P[st]['gammaw'],2))
+      rr = torch.pow(r,self.p['vdw1'])+torch.pow(torch.div(1.0,gammaw),self.p['vdw1'])
       f_13 = torch.pow(rr,torch.div(1.0,self.p['vdw1']))  
       return f_13
 
@@ -654,6 +695,7 @@ class ReaxFF_nn_force(nn.Module):
       self.Evdw[st]   = 0.0
       self.Ecoul[st]  = 0.0
       nc = 0
+      # gm3 = torch.zeros_like(self.r[st])
       # print('\n cell \n',self.cell[st].shape)
       cell0,cell1,cell2 = torch.unbind(self.cell[st],axis=2)
       self.cell0[st] = torch.unsqueeze(cell0,1)
@@ -667,8 +709,8 @@ class ReaxFF_nn_force(nn.Module):
                   vr_  = self.vr[st] + cell
                   # print(vr_.shape)
                   r    = torch.sqrt(torch.sum(torch.square(vr_),3)+self.safety_value)
-                  
-                  gm3  = torch.pow(torch.div(1.0,self.P[st]['gamma']),3.0)
+                  gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
+                  gm3  = torch.pow(torch.div(1.0,gamma),3.0)
                   r3   = torch.pow(r,3.0)
                   fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
                                                                                    torch.full_like(r,0.0))
@@ -682,10 +724,9 @@ class ReaxFF_nn_force(nn.Module):
 
                   expvdw1 = torch.exp(0.5*self.P[st]['alfa']*(1.0-torch.div(f_13,2.0*self.P[st]['rvdw'])))
                   expvdw2 = torch.square(expvdw1) 
-                  self.Evdw[st]  += fv*tp*self.P[st]['Devdw']*(expvdw2-2.0*expvdw1)
-
-                  rth         = torch.pow(r3+gm3,1.0/3.0)                                      # ecoul
-                  self.Ecoul[st] += torch.div(fv*tp*self.q[st],rth)
+                  self.Evdw[st]  = self.Evdw[st] + fv*tp*self.P[st]['Devdw']*(expvdw2-2.0*expvdw1)
+                  rth            = torch.pow(r3+gm3,1.0/3.0)                                      # ecoul
+                  self.Ecoul[st] = self.Ecoul[st] + torch.div(fv*tp*self.q[st],rth)
                   nc += 1
 
       self.evdw[st]  = torch.sum(self.Evdw[st],dim=[1,2])
@@ -726,7 +767,7 @@ class ReaxFF_nn_force(nn.Module):
                       exphb2 = torch.exp(-self.p['hb2_'+hb]*hbsum)
 
                       sin4   = torch.square(hbthe)
-                      ehb    = fhb*frhb*self.P['Dehb']*exphb1*exphb2*sin4 
+                      ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
                       self.ehb[st] += torch.sum(ehb,1)
 
   def get_rcbo(self):
@@ -744,16 +785,6 @@ class ReaxFF_nn_force(nn.Module):
       mu     = np.expand_dims(self.P['mu'],axis=0)
       self.eself = self.q*(chi+self.q*mu)
       self.Eself = torch.from_numpy(np.sum(self.eself,axis=1))
-
-  def get_total_energy(self,st):
-      ''' compute the total energy of moecule '''
-      self.E[st] = (self.ebond[st] + 
-                    self.eover[st] + self.eunder[st]+ self.elone[st] +
-                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
-                    self.etor[st]  + self.efcon[st] +
-                    self.evdw[st]  + self.ecoul[st] +
-                    self.ehb[st]   +
-                    self.eself[st] + self.zpe[st]     )
 
   def check_hb(self):
       if 'H' in self.spec:
@@ -805,7 +836,7 @@ class ReaxFF_nn_force(nn.Module):
                      'Devdw','rvdw','alfa','rosi','ropi','ropp',
                      'corr13','ovcorr']
       self.p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
-      self.p_g    = ['boc1','boc2','coa2','ovun6','lp1','lp3',
+      self.p_g    = ['coa2','ovun6','lp1','lp3',         # 'boc1','boc2',
                      'ovun7','ovun8','val6','tor2',
                      'val8','val9','val10',
                      'tor3','tor4','cot2','coa4','ovun4',
@@ -839,7 +870,6 @@ class ReaxFF_nn_force(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      
       self.botol        = torch.tensor(0.01*self.p_['cutoff'])
       self.atol         = torch.tensor(self.p_['acut'])        # atol
       self.hbtol        = torch.tensor(self.p_['hbtol'])       # hbtol
@@ -849,8 +879,7 @@ class ReaxFF_nn_force(nn.Module):
       self.tors = self.check_tors(self.p_tor)
       self.get_rcbo()
       
-      self.p            = {}   # training parameter 
-
+      self.p            = nn.ParameterDict()   # training parameter 
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
           grad = True if key in self.opt else False
@@ -981,28 +1010,40 @@ class ReaxFF_nn_force(nn.Module):
       self.cell2 = {}
       self.eye   = {}
       self.P     = {}
+      self.vb_i  = {}
+      self.vb_j  = {}
       for st in self.strcs:
           self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True)
           self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1))
           self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1))
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0))
           self.P[st]     = {}
+          self.vb_i[st]  = {}
+          self.vb_j[st]  = {}
 
+          for i in range(self.natom[st]):
+              for j in range(self.natom[st]):
+                  bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
+                  if bd not in self.bonds:
+                     bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
+                  if bd in self.vb_i[st]:
+                     self.vb_i[st][bd].append(i)
+                  else:
+                     self.vb_i[st][bd] = [i] 
+                  if bd in self.vb_j[st]:
+                     self.vb_j[st][bd].append(j)
+                  else:
+                     self.vb_j[st][bd] = [j] 
           for key in ['gamma','gammaw']:
-              self.P[st][key] = torch.zeros(1,self.natom[st],self.natom[st])
-              for i in range(self.natom[st]):
-                  for j in range(self.natom[st]):
-                      self.P[st][key][0][i][j] = torch.sqrt(self.p[key+'_'+self.atom_name[st][i]]*self.p[key+'_'+self.atom_name[st][j]])
-               
+              self.P[st][key] = torch.zeros(1,self.natom[st])
+              for sp in self.spec:
+                  self.P[st][key][:,self.s[st][sp]] = self.p[key+'_'+sp]#*torch.ones(1,self.ns[st][sp])
 
           for key in ['Devdw','alfa','rvdw']:
               self.P[st][key] = torch.zeros(1,self.natom[st],self.natom[st])
-              for i in range(self.natom[st]):
-                  for j in range(self.natom[st]):
-                      bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
-                      if bd not in self.bonds:
-                         bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
-                      self.P[st][key][0][i][j] = self.p[key+'_'+bd]
+              for bd in self.bonds:
+                  if self.vb_i[st].get(bd):
+                     self.P[st][key][:,self.vb_i[st][bd],self.vb_j[st][bd]] = self.p[key+'_'+bd]
           # mask             
           # self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
           # self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
