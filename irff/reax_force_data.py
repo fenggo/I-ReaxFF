@@ -363,22 +363,22 @@ class reax_force_data(object):
           n = self._bond.index(bjk)
           self.abjk.append([n])
     
-      Rij   = R[:,self.ang_i,self.ang_j]
-      Rjk   = R[:,self.ang_j,self.ang_k]
-      # Rik = R[:,self.ang_i,self.ang_k]
-      vik   = vr[:,self.ang_i,self.ang_j] + vr[:,self.ang_j,self.ang_k]  
-      Rik   = np.sqrt(np.sum(vik*vik,axis=2),dtype=np.float32)
+      # Rij   = R[:,self.ang_i,self.ang_j]
+      # Rjk   = R[:,self.ang_j,self.ang_k]
+      # # Rik = R[:,self.ang_i,self.ang_k]
+      # vik   = vr[:,self.ang_i,self.ang_j] + vr[:,self.ang_j,self.ang_k]  
+      # Rik   = np.sqrt(np.sum(vik*vik,axis=2),dtype=np.float32)
 
-      Rij2  = Rij*Rij
-      Rjk2  = Rjk*Rjk
-      Rik2  = Rik*Rik
+      # Rij2  = Rij*Rij
+      # Rjk2  = Rjk*Rjk
+      # Rik2  = Rik*Rik
 
-      cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      cos_theta = np.where(cos_theta>1.0,1.0,cos_theta)
-      cos_theta = np.where(cos_theta<-1.0,-1.0,cos_theta)
+      # cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      # cos_theta = np.where(cos_theta>1.0,1.0,cos_theta)
+      # cos_theta = np.where(cos_theta<-1.0,-1.0,cos_theta)
 
       # self.cos_theta = np.transpose(cos_theta,[1,0])
-      self.theta= np.arccos(cos_theta)
+      # self.theta= np.arccos(cos_theta)
 
   def compute_torsion(self,R,vr):
       '''  compute torsion angles  '''
@@ -462,112 +462,112 @@ class reax_force_data(object):
       yu = self.batch-nb*self.minib
       if yu>0: nb += 1
 
-      for b in range(nb): 
-          st = b*self.minib
-          ed = (b+1)*self.minib
-          if ed > self.batch:
-             ed = self.batch
-          Rij = R[st:ed,self.tor_i,self.tor_j]
-          Rjk = R[st:ed,self.tor_j,self.tor_k]
-          Rkl = R[st:ed,self.tor_k,self.tor_l]     
+      # for b in range(nb): 
+      #     st = b*self.minib
+      #     ed = (b+1)*self.minib
+      #     if ed > self.batch:
+      #        ed = self.batch
+      #     Rij = R[st:ed,self.tor_i,self.tor_j]
+      #     Rjk = R[st:ed,self.tor_j,self.tor_k]
+      #     Rkl = R[st:ed,self.tor_k,self.tor_l]     
 
-          vrjk = vr[st:ed,self.tor_j,self.tor_k,:]
-          vrkl = vr[st:ed,self.tor_k,self.tor_l,:]
-          vrjl = vrjk + vrkl                   # consist with GULP
-          Rjl  = np.sqrt(np.sum(vrjl*vrjl,axis=2),dtype=np.float32)
+      #     vrjk = vr[st:ed,self.tor_j,self.tor_k,:]
+      #     vrkl = vr[st:ed,self.tor_k,self.tor_l,:]
+      #     vrjl = vrjk + vrkl                   # consist with GULP
+      #     Rjl  = np.sqrt(np.sum(vrjl*vrjl,axis=2),dtype=np.float32)
 
-          vrij = vr[st:ed,self.tor_i,self.tor_j,:]
-          #vrjl = vr[st:ed,self.tor_j,self.tor_l,:]
-          vril = vrij + vrjl                   # consist with GULP
-          Ril  = np.sqrt(np.sum(vril*vril,axis=2),dtype=np.float32)
+      #     vrij = vr[st:ed,self.tor_i,self.tor_j,:]
+      #     #vrjl = vr[st:ed,self.tor_j,self.tor_l,:]
+      #     vril = vrij + vrjl                   # consist with GULP
+      #     Ril  = np.sqrt(np.sum(vril*vril,axis=2),dtype=np.float32)
 
-          vrik = vrij + vrjk
-          Rik  = np.sqrt(np.sum(vrik*vrik,axis=2),dtype=np.float32)
+      #     vrik = vrij + vrjk
+      #     Rik  = np.sqrt(np.sum(vrik*vrik,axis=2),dtype=np.float32)
 
-          Rij2 = Rij*Rij
-          Rjk2 = Rjk*Rjk
-          Rkl2 = Rkl*Rkl
-          Rjl2 = Rjl*Rjl
-          Ril2 = Ril*Ril
-          Rik2 = Rik*Rik
+      #     Rij2 = Rij*Rij
+      #     Rjk2 = Rjk*Rjk
+      #     Rkl2 = Rkl*Rkl
+      #     Rjl2 = Rjl*Rjl
+      #     Ril2 = Ril*Ril
+      #     Rik2 = Rik*Rik
 
-          c_ijk = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-          c_ijk = np.where(c_ijk>1.0,1.0,c_ijk)
-          c_ijk = np.where(c_ijk<-1.0,-1.0,c_ijk)
+      #     c_ijk = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      #     c_ijk = np.where(c_ijk>1.0,1.0,c_ijk)
+      #     c_ijk = np.where(c_ijk<-1.0,-1.0,c_ijk)
 
-          ccijk = np.where(c_ijk>0.99999999,0.0,1.000)
-          c2ijk = c_ijk*c_ijk
-          #thet_ijk = np.arccos(c_ijk)
+      #     ccijk = np.where(c_ijk>0.99999999,0.0,1.000)
+      #     c2ijk = c_ijk*c_ijk
+      #     #thet_ijk = np.arccos(c_ijk)
 
-          c     = 1.0-c2ijk
-          # print(np.where(np.isinf(c)))
+      #     c     = 1.0-c2ijk
+      #     # print(np.where(np.isinf(c)))
 
-          s_ijk = np.sqrt(np.where(c<0.0,0.0,c))
-          strm  = s_ijk # np.transpose(s_ijk,[1,0])
+      #     s_ijk = np.sqrt(np.where(c<0.0,0.0,c))
+      #     strm  = s_ijk # np.transpose(s_ijk,[1,0])
 
-          if b==0:
-             self.s_ijk = strm
-          else:
-             self.s_ijk = np.concatenate((self.s_ijk,strm),axis=1)
+      #     if b==0:
+      #        self.s_ijk = strm
+      #     else:
+      #        self.s_ijk = np.concatenate((self.s_ijk,strm),axis=1)
 
-          c_jkl = (Rjk2+Rkl2-Rjl2)/(2.0*Rjk*Rkl)
-          c_jkl = np.where(c_jkl>1.0,1.0,c_jkl)
-          c_jkl = np.where(c_jkl<-1.0,-1.0,c_jkl)
+      #     c_jkl = (Rjk2+Rkl2-Rjl2)/(2.0*Rjk*Rkl)
+      #     c_jkl = np.where(c_jkl>1.0,1.0,c_jkl)
+      #     c_jkl = np.where(c_jkl<-1.0,-1.0,c_jkl)
 
-          ccjkl = np.where(c_jkl>0.99999999,0.0,1.0)
-          c2jkl = c_jkl*c_jkl
-          #thet_jkl = np.arccos(c_jkl)
-          c = 1.0-c2jkl
-          s_jkl = np.sqrt(np.where(c<0.0,0.0,c))
-          strm  = s_jkl # np.transpose(s_jkl,[1,0])
+      #     ccjkl = np.where(c_jkl>0.99999999,0.0,1.0)
+      #     c2jkl = c_jkl*c_jkl
+      #     #thet_jkl = np.arccos(c_jkl)
+      #     c = 1.0-c2jkl
+      #     s_jkl = np.sqrt(np.where(c<0.0,0.0,c))
+      #     strm  = s_jkl # np.transpose(s_jkl,[1,0])
 
-          if b==0:
-             self.s_jkl = strm
-          else:
-             self.s_jkl = np.concatenate((self.s_jkl,strm),axis=1)
+      #     if b==0:
+      #        self.s_jkl = strm
+      #     else:
+      #        self.s_jkl = np.concatenate((self.s_jkl,strm),axis=1)
 
-          #c_ijl = (Rij2+Rjl2-Ril2)/(2.0*Rij*Rjl)
+      #     #c_ijl = (Rij2+Rjl2-Ril2)/(2.0*Rij*Rjl)
 
-          c_kjl = (Rjk2+Rjl2-Rkl2)/(2.0*Rjk*Rjl)
-          c_kjl = np.where(c_kjl>1.0,1.0,c_kjl)
-          c_kjl = np.where(c_kjl<-1.0,-1.0,c_kjl)
+      #     c_kjl = (Rjk2+Rjl2-Rkl2)/(2.0*Rjk*Rjl)
+      #     c_kjl = np.where(c_kjl>1.0,1.0,c_kjl)
+      #     c_kjl = np.where(c_kjl<-1.0,-1.0,c_kjl)
 
-          # cckjl = np.where(c_kjl>0.99999999,0.0,1.0)
-          c2kjl = c_kjl*c_kjl
-          c     = 1.0-c2kjl
-          s_kjl = np.sqrt(np.where(c<0.0,0.0,c))
+      #     # cckjl = np.where(c_kjl>0.99999999,0.0,1.0)
+      #     c2kjl = c_kjl*c_kjl
+      #     c     = 1.0-c2kjl
+      #     s_kjl = np.sqrt(np.where(c<0.0,0.0,c))
 
-          fz = Rij2+Rjl2-Ril2-2.0*Rij*Rjl*c_ijk*c_kjl
-          fm = Rij*Rjl*s_ijk*s_kjl
+      #     fz = Rij2+Rjl2-Ril2-2.0*Rij*Rjl*c_ijk*c_kjl
+      #     fm = Rij*Rjl*s_ijk*s_kjl
 
-          fm = np.where(fm==0.0,1.0,fm)
-          fac= np.where(fm==0.0,0.0,1.0)
-          cos_w = 0.5*fz*fac/fm
-          cos_w = cos_w*ccijk*ccjkl
+      #     fm = np.where(fm==0.0,1.0,fm)
+      #     fac= np.where(fm==0.0,0.0,1.0)
+      #     cos_w = 0.5*fz*fac/fm
+      #     cos_w = cos_w*ccijk*ccjkl
 
-          cos_w = np.where(cos_w>1.0,1.0,cos_w)   
-          cos_w = np.where(cos_w<-1.0,-1.0,cos_w)
-          ctm   = cos_w # np.transpose(cos_w,[1,0])
+      #     cos_w = np.where(cos_w>1.0,1.0,cos_w)   
+      #     cos_w = np.where(cos_w<-1.0,-1.0,cos_w)
+      #     ctm   = cos_w # np.transpose(cos_w,[1,0])
 
-          if b==0:
-             self.cos_w = ctm
-          else:
-             self.cos_w = np.concatenate((self.cos_w,ctm),axis=1)
+      #     if b==0:
+      #        self.cos_w = ctm
+      #     else:
+      #        self.cos_w = np.concatenate((self.cos_w,ctm),axis=1)
 
-          # self.w= np.arccos(self.cos_w)
-          wtm = np.arccos(ctm)
-          if b==0:
-             self.w = wtm
-          else:
-             self.w = np.concatenate((self.w,wtm),axis=1)
+      #     # self.w= np.arccos(self.cos_w)
+      #     wtm = np.arccos(ctm)
+      #     if b==0:
+      #        self.w = wtm
+      #     else:
+      #        self.w = np.concatenate((self.w,wtm),axis=1)
 
-          # self.cos2w = np.cos(2.0*self.w)
-          c2wtm = np.cos(2.0*wtm)
-          # print('-- mini batch shape',c2wtm.shape[1])
-          if b==0:
-             self.cos2w = c2wtm
-          else:
-             self.cos2w = np.concatenate((self.cos2w,c2wtm),axis=1) 
+      #     # self.cos2w = np.cos(2.0*self.w)
+      #     c2wtm = np.cos(2.0*wtm)
+      #     # print('-- mini batch shape',c2wtm.shape[1])
+      #     if b==0:
+      #        self.cos2w = c2wtm
+      #     else:
+      #        self.cos2w = np.concatenate((self.cos2w,c2wtm),axis=1) 
 
   def compute_vdw(self,image_rs):
       vi,vj,vi_p,vj_p,self.vi,self.vj = [],[],[],[],[],[]
