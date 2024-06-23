@@ -351,7 +351,8 @@ class ReaxFF_nn_force(nn.Module):
       bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = torch.cat(bso,1)
 
       self.SO[st]      = torch.sum(bso_,2)  
-      self.Delta_pi[st]= torch.sum(self.bopi[st]+self.bopp[st],2) 
+      self.Delta_pi[st]= self.bopi[st]+self.bopp[st]
+      self.delta_pi[st]= torch.sum(self.Delta_pi[st],2) 
 
       self.fbot[st]   = taper(self.bo0[st],rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
@@ -415,9 +416,12 @@ class ReaxFF_nn_force(nn.Module):
           delta_pi = self.Delta_pi[st][:,self.s[st][sp]]
           so       = self.SO[st][:,self.s[st][sp]]
 
-          delta_lp,nlp,Elone  = self.get_elone(sp,delta) 
-          delta_lpcorr,Eover  = self.get_eover(sp,delta,delta_lp,delta_pi,so) 
-          Eunder              = self.get_eunder(sp,delta_lpcorr,delta_pi) 
+          delta_lp,nlp,dlp,Elone = self.get_elone(sp,delta) 
+         
+          dpi                 =torch.sum(delta_pi*torch.unsqueeze(dlp,1), 2)
+          # print(dpi)
+          delta_lpcorr,Eover  = self.get_eover(sp,delta,delta_lp,dpi,so) 
+          Eunder              = self.get_eunder(sp,delta_lpcorr,dpi) 
           delta_ang           = delta - self.p['valang_'+sp]
           
           self.Nlp[st][:,self.s[st][sp]]        = nlp
@@ -436,18 +440,19 @@ class ReaxFF_nn_force(nn.Module):
              self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
       self.zpe[st]    = self.eatomic[st] + self.estruc[st]
   
-  def get_eover(self,sp,delta,delta_lp,delta_pi,so):
-      delta_lpcorr = delta - self.p['val_'+sp] - torch.divide(delta_lp,
-                     1.0+self.p['ovun3']*torch.exp(self.p['ovun4']*delta_pi))
+  def get_eover(self,sp,delta,delta_lp,dpi,so):
+      delta_val    = delta - self.p['val_'+sp]
+      delta_lpcorr = delta_val - torch.divide(delta_lp,
+                     1.0+self.p['ovun3']*torch.exp(self.p['ovun4']*dpi))
       otrm1              = DIV_IF(1.0,delta_lpcorr + self.p['val_'+sp])
       otrm2              = torch.sigmoid(-self.p['ovun2_'+sp]*delta_lpcorr)
       Eover              = so*otrm1*delta_lpcorr*otrm2
       return delta_lpcorr,Eover 
   
-  def get_eunder(self,sp,delta_lpcorr,delta_pi):
+  def get_eunder(self,sp,delta_lpcorr,dpi):
       expeu1            = torch.exp(self.p['ovun6']*delta_lpcorr)
       eu1               = torch.sigmoid(self.p['ovun2_'+sp]*delta_lpcorr)
-      expeu3            = torch.exp(self.p['ovun8']*delta_pi)
+      expeu3            = torch.exp(self.p['ovun8']*dpi)
       eu2               = torch.divide(1.0,1.0+self.p['ovun7']*expeu3)
       Eunder            = -self.p['ovun5_'+sp]*(1.0-expeu1)*eu1*eu2                          # must positive
       return Eunder 
@@ -458,12 +463,13 @@ class ReaxFF_nn_force(nn.Module):
       De             = -torch.relu(-torch.ceil(delta_e)) 
       nlp            = -De + torch.exp(-self.p['lp1']*4.0*torch.square(1.0+delta_e-De))
 
-      Delta_lp       = Nlp - nlp           
-      Delta_lp       = torch.relu(Delta_lp+1) -1
+      delta_lp       = Nlp - nlp           
+      # Delta_lp     = torch.relu(Delta_lp+1) -1
+      dlp            = delta -self.p['val_'+sp] - delta_lp
 
-      explp          = 1.0+torch.exp(-75.0*Delta_lp) # -self.p['lp3']
-      Elone          = self.p['lp2_'+sp]*Delta_lp/explp
-      return Delta_lp,nlp,Elone
+      explp          = 1.0+torch.exp(-75.0*delta_lp) # -self.p['lp3']
+      Elone          = self.p['lp2_'+sp]*delta_lp/explp
+      return delta_lp,nlp,dlp,Elone
   
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
@@ -495,7 +501,7 @@ class ReaxFF_nn_force(nn.Module):
                 delta_ang = self.Delta_ang[st][:,aj]
                 delta_i   = self.Delta[st][:,ai]
                 delta_k   = self.Delta[st][:,ak]
-                sbo       = self.Delta_pi[st][:,aj]
+                sbo       = self.delta_pi[st][:,aj]
                 pbo       = self.Pbo[st][:,aj]
                 nlp       = self.Nlp[st][:,aj]
                 theta     = self.theta[st][:,self.a[st][ang][0]:self.a[st][ang][1]]
@@ -1086,7 +1092,7 @@ class ReaxFF_nn_force(nn.Module):
              self.max_e[st]    = strucs[st].max_e
              # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
-             #  self.cell[st]     = strucs[st].cell
+             # self.cell[st]   = strucs[st].cell
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
@@ -1100,7 +1106,7 @@ class ReaxFF_nn_force(nn.Module):
       self.dft_energy                  = {}
       self.dft_forces                  = {}
       self.q                           = {}
-      self.blist,self.bdid             = {},{}
+      self.bdid                        = {}
       self.dilink,self.djlink          = {},{}
       self.nbd,self.b,self.a,self.t    = {},{},{},{}
       self.ang_i,self.ang_j,self.ang_k = {},{},{}
@@ -1132,11 +1138,8 @@ class ReaxFF_nn_force(nn.Module):
       self.theta                       = {}
       self.estruc                      = {}
       for s in strucs:
+          s_ = s.split('-')[0]
           self.natom[s]    = strucs[s].natom
-          self.blist[s]    = strucs[s].blist
-        #   self.dilink[s]   = strucs[s].dilink
-        #   self.djlink[s]   = strucs[s].djlink
-
           self.nang[s]     = strucs[s].nang
           self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
           self.ang_i[s]    = np.expand_dims(strucs[s].ang_i,axis=1)
@@ -1200,9 +1203,16 @@ class ReaxFF_nn_force(nn.Module):
              self.cos_w[s] = torch.tensor(self.data[s].cos_w)
              self.cos2w[s] = torch.tensor(self.data[s].cos2w)
              #self.cos3w[s]= torch.tensor(self.data[s].cos3w)
-
-          self.estruc[s] =  nn.Parameter(torch.tensor(0.0),requires_grad=True) 
-
+          if s_ in self.estruc:
+             self.estruc[s] = self.estruc[s_]
+          else:
+             if s_ in self.MolEnergy_:
+                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_]),requires_grad=True) 
+                if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
+             else:
+                self.estruc[s_] = nn.Parameter(torch.tensor(0.0),requires_grad=True) 
+                if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
+  
   def set_m(self):
       self.m = set_matrix(self.m_,self.spec,self.bonds,
                           self.mfopt,self.beopt,self.bdopt,1,
@@ -1273,7 +1283,8 @@ class ReaxFF_nn_force(nn.Module):
       self.D_si,self.D_pi,self.D_pp = {},{},{}
       self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
 
-      self.SO,self.Delta_pi,self.Delta_ang   = {},{},{}
+      self.Delta_pi,self.delta_pi = {},{}
+      self.SO,self.Delta_ang   = {},{}
       self.fbot,self.fhb = {},{}
 
       self.Elone,self.Eover,self.Eunder = {},{},{}
