@@ -10,51 +10,31 @@ from ase import Atoms
 import numpy as np
 from irff.reax_force import ReaxFF_nn_force
 from irff.irff_np import IRFF_NP
+from irff.irff_autograd import IRFF
 from irff.data.ColData import ColData
 from irff.dft.CheckEmol import check_emol
 import matplotlib.pyplot as plt
 
 
-atoms = read('gp4.traj')
-
-ir = ReaxFF_nn_force(dataset={'gp4':'gp4.traj'},
+ir = ReaxFF_nn_force(dataset={'md':'md.traj'},
                      libfile='ffield.json')
 ir.forward()
 
 print('\n---- reax_nn_force ----\n')
 for s in ir.bop:
-    # print(ir.bo0[s])
-    # print(ir.ebond[s])
-    # print(ir.eang[s])
-    # print(ir.epen[s])
-    # print(ir.etor[s])
-    # print(ir.efcon[s])
-    # print(ir.evdw[s])
-    # print(ir.ecoul[s])
-    # print(ir.ehb[s])
-    # print(ir.eself[s])
-    # print(ir.zpe[s])
     print(ir.E[s])
-    # print('\n-- bond list --\n',ir.bdid[s])
-#     print(ir.bop[b].detach().numpy())
-# print(ir.E)
+
 
 print('\n---- irff ----\n')
-ir_ = IRFF_NP(atoms=atoms,libfile='ffield.json',nn=True)
-ir_.calculate(atoms=atoms)
-# print(ir_.bo0)
-# print(ir_.Ebond)
-# print(ir_.Eang)
-# print(ir_.Epen)
-# print(ir_.Etor)
-# print(ir_.Efcon)
-# print(ir_.Evdw)
-# print(ir_.Ecoul)
-# print(ir_.Ehb)
-# print(ir_.Eself)
-# print(ir_.zpe)
-print(ir_.E)
-# print(ir_.E)
-# print('\n F \n')
+images = Trajectory('md.traj')
+ir_ = IRFF(atoms=images[0],libfile='ffield.json',nn=True)
+
+for i,img in enumerate(images):
+    ir_.calculate(atoms=img)
+    print(ir_.E,ir.E[s][i].item())
+ 
+# for i,img in enumerate(images):
+ir_.calculate(atoms=images[0])
+print(ir_.results['forces'] ,ir.force[s][0])
 
 
