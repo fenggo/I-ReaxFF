@@ -640,12 +640,14 @@ class ReaxFF_nn_force(nn.Module):
                 delta_j   = self.Delta_ang[st][:,tj]
                 delta_k   = self.Delta_ang[st][:,tk]
 
-                w         = self.w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                cos_w     = self.cos_w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                cos2w     = self.cos2w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,ti,tj,tk,tl)
+
+                # w         = self.w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # cos_w     = self.cos_w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # cos2w     = self.cos2w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
                 # cos3w   = self.cos3w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                s_ijk     = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                s_jkl     = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # s_ijk     = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # s_jkl     = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
 
                 Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
                                        bopjk,delta_j,delta_k,
@@ -660,6 +662,64 @@ class ReaxFF_nn_force(nn.Module):
          self.etor[st] = torch.sum(self.Etor[st],1)
          self.efcon[st]= torch.sum(self.Efcon[st],1)
 
+  def get_torsion_angle(self,st,ti,tj,tk,tl):
+      ''' compute torsion angle '''
+      rij = self.r[st][:,ti,tj]
+      rjk = self.r[st][:,tj,tk]
+      rkl = self.r[st][:,tk,tl]
+
+      
+      vrjk= self.vr[st][:,tj,tk,:]
+      vrkl= self.vr[st][:,tk,tl,:]
+
+      vrjl= vrjk + vrkl
+      rjl = torch.sqrt(torch.sum(torch.square(vrjl),1))
+
+      vrij= self.vr[:,ti,tj,:]
+      vril= vrij + vrjl
+      ril = torch.sqrt(torch.sum(torch.square(vril),1))
+
+      vrik= vrij + vrjk
+      rik = torch.sqrt(torch.sum(torch.square(vrik),1))
+      rij2= torch.square(rij)
+      rjk2= torch.square(rjk)
+      rkl2= torch.square(rkl)
+      rjl2= torch.square(rjl)
+      ril2= torch.square(ril)
+      rik2= torch.square(rik)
+
+      c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
+      c2ijk = torch.square(c_ijk)
+      # tijk  = tf.acos(c_ijk)
+      cijk  =  1.00000001 - c2ijk
+      s_ijk = torch.sqrt(cijk)
+
+      c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
+      c2jkl = torch.square(c_jkl)
+      cjkl  = 1.00000001  - c2jkl 
+      s_jkl = torch.sqrt(cjkl)
+
+      # c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
+      c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
+
+      c2kjl = torch.square(c_kjl)
+      ckjl  = 1.00000001 - c2kjl 
+      s_kjl = torch.sqrt(ckjl)
+
+      fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
+      fm    = rij*rjl*self.s_ijk*s_kjl
+
+      fm    = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,1.0),fm)
+      fac   = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,0.0),
+                                                                     torch.full_like(fm,1.0))
+      cos_w = 0.5*fz*fac/fm
+      #cos_w= cos_w*ccijk*ccjkl
+      cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,1.0),cos_w)   
+      cos_w = torch.where(cos_w<-0.999999,torch.full_like(cos_w,-1.0),cos_w)
+      w= torch.acos(self.cos_w)
+      cos2w = torch.cos(2.0*self.w)
+      return w,cos_w,cos2w,s_ijk,s_jkl
+  
   def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
                         w,cos_w,cos2w,s_ijk,s_jkl):
       fijkl   = fij*fjk*fkl
@@ -772,7 +832,7 @@ class ReaxFF_nn_force(nn.Module):
                   for k in range(-1,2):
                       cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                       vrjk   = vrjk_ + cell 
-                      print(vrjk.shape)
+                      # print(vrjk.shape)
                       rjk2   = torch.sum(torch.square(vrjk),axis=1)
                       rjk    = torch.sqrt(rjk2)
 
@@ -1193,12 +1253,12 @@ class ReaxFF_nn_force(nn.Module):
                                      cell=strucs[s].cell,
                                      rcell=strucs[s].rcell,
                                      forces=strucs[s].forces,
-                                     theta=strucs[s].theta,
-                                     s_ijk=strucs[s].s_ijk,
-                                     s_jkl=strucs[s].s_jkl,
-                                     w=strucs[s].w,
-                                     cos_w=strucs[s].cos_w,
-                                     cos2w=strucs[s].cos2w,
+                                     #  theta=strucs[s].theta,
+                                     #  s_ijk=strucs[s].s_ijk,
+                                     #  s_jkl=strucs[s].s_jkl,
+                                     #  w=strucs[s].w,
+                                     #  cos_w=strucs[s].cos_w,
+                                     #  cos2w=strucs[s].cos2w,
                                      q=strucs[s].qij)
 
           self.dft_energy[s] = torch.tensor(self.data[s].dft_energy)
@@ -1212,12 +1272,12 @@ class ReaxFF_nn_force(nn.Module):
           # if self.nang[s]>0:
           #    self.theta[s] = torch.tensor(self.data[s].theta)
 
-          if self.ntor[s]>0:
-             self.s_ijk[s] = torch.tensor(self.data[s].s_ijk)
-             self.s_jkl[s] = torch.tensor(self.data[s].s_jkl)
-             self.w[s]     = torch.tensor(self.data[s].w)
-             self.cos_w[s] = torch.tensor(self.data[s].cos_w)
-             self.cos2w[s] = torch.tensor(self.data[s].cos2w)
+          #   if self.ntor[s]>0:
+          #      self.s_ijk[s] = torch.tensor(self.data[s].s_ijk)
+          #      self.s_jkl[s] = torch.tensor(self.data[s].s_jkl)
+          #      self.w[s]     = torch.tensor(self.data[s].w)
+          #      self.cos_w[s] = torch.tensor(self.data[s].cos_w)
+          #      self.cos2w[s] = torch.tensor(self.data[s].cos2w)
              #self.cos3w[s]= torch.tensor(self.data[s].cos3w)
           if s_ in self.estruc:
              self.estruc[s] = self.estruc[s_]
