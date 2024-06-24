@@ -211,14 +211,16 @@ class ReaxFF_nn_force(nn.Module):
   def get_forces(self,st):
       ''' compute forces with autograd method '''
       E = torch.sum(self.E[st])
-      # grad = torch.autograd.grad(outputs=E,
-      #                            inputs=self.x[st],
-      #                            only_inputs=True)
+      grad = torch.autograd.grad(outputs=E,
+                                 inputs=self.x[st],
+                                 create_graph=True,
+                                 only_inputs=True)
+      self.force[st] = -grad[0]
       # print(grad[0])
-      E.backward(retain_graph=True)
-      self.force[st] = -self.x[st].grad
-      #   print(self.force[st])
-      #   print(self.force[st].shape)
+      # E.backward(retain_graph=True)
+      # self.force[st] = -self.x[st].grad
+      # print(self.force[st])
+      # print(self.force[st].shape)
                                         
   def get_bond_energy(self,st):
       vr          = fvr(self.x[st])
