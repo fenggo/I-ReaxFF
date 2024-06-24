@@ -49,8 +49,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                 m[pref+'bi_'+bd] = nn.Parameter(torch.randn(layer[0]),
                                                     requires_grad=True)  
 
-            m[pref+'w_'+bd] = []                                    # hidden layer
-            m[pref+'b_'+bd] = []
+            m[pref+'w_'+bd] = nn.ParameterList()                                    # hidden layer
+            m[pref+'b_'+bd] = nn.ParameterList()
             if pref+'_'+bd in universal_nn:
                 for i in range(layer[1]):  
                     m[pref+'w_'+bd] = m[pref+'w']
@@ -98,8 +98,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
         if m_ is None:
            m_ = {}
         for sp in spec:
-            m[pref+'w_'+sp] = []                                    
-            m[pref+'b_'+sp] = []
+            m[pref+'w_'+sp] = nn.ParameterList()                                    
+            m[pref+'b_'+sp] = nn.ParameterList()
             if pref+'_'+sp in universal_nn:
                 m[pref+'wi_'+sp] = m[pref+'wi']
                 m[pref+'bi_'+sp] = m[pref+'bi']
@@ -146,8 +146,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
         nonlocal m
         if m_ is None:
            m_ = {}
-        m[pref+'w'] = []                      # hidden layer
-        m[pref+'b'] = []
+        m[pref+'w'] = nn.ParameterList()                      # hidden layer
+        m[pref+'b'] = nn.ParameterList()
 
         if pref+'wi' in m_:
            bd_ = ''
