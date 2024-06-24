@@ -171,6 +171,16 @@ class ReaxFF_nn_force(nn.Module):
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
 
+  def get_total_energy(self,st):
+      ''' compute the total energy of moecule '''
+      self.E[st] = (self.ebond[st] + 
+                    self.eover[st] + self.eunder[st]+ self.elone[st] +
+                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
+                    self.etor[st]  + self.efcon[st] +
+                    self.ecoul[st] + self.evdw[st] + 
+                    self.ehb[st]   +
+                    self.eself[st] + self.zpe[st]     )
+      
   def forward(self):
       for st in self.strcs:
           self.get_bond_energy(st)   # get bond energy for every structure
@@ -198,26 +208,17 @@ class ReaxFF_nn_force(nn.Module):
              self.loss_f = self.loss_f + loss(self.force[st], self.dft_forces[st])*weight_f
       return self.loss_e + self.loss_f 
 
-  def get_total_energy(self,st):
-      ''' compute the total energy of moecule '''
-      self.E[st] = (self.ebond[st] + 
-                    self.eover[st] + self.eunder[st]+ self.elone[st] +
-                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
-                    self.etor[st]  + self.efcon[st] +
-                    self.evdw[st]  + self.ecoul[st] +
-                    self.ehb[st]   +
-                    self.eself[st] + self.zpe[st]     )
-
   def get_forces(self,st):
       ''' compute forces with autograd method '''
+      torch.autograd.set_detect_anomaly(True)
       E = torch.sum(self.E[st])
       grad = torch.autograd.grad(outputs=E,
                                  inputs=self.x[st],
                                  create_graph=True,
                                  only_inputs=True)
       self.force[st] = -grad[0]
-      # print(grad[0])
-      # E.backward(retain_graph=True)
+       
+      # E.backward(retain_graph=True,create_graph=True)
       # self.force[st] = -self.x[st].grad
       # print(self.force[st])
       # print(self.force[st].shape)
@@ -228,7 +229,7 @@ class ReaxFF_nn_force(nn.Module):
       vrf         = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
       self.vr[st] = torch.matmul(vrf,self.cell[st])
-      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) +0.0000000001) # 
+      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) + 0.0000000001) # 
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
@@ -571,7 +572,7 @@ class ReaxFF_nn_force(nn.Module):
       
       ok    = torch.logical_and(torch.less_equal(Sbo,1.0),torch.greater(Sbo,0.0))
       S1    = torch.where(ok,Sbo,torch.zeros_like(Sbo))    #  0< sbo < 1                  
-      Sbo1  = torch.where(ok,torch.pow(S1,self.p['val9']),torch.zeros_like(S1)) 
+      Sbo1  = torch.where(ok,torch.pow(S1+0.0000001,self.p['val9']),torch.zeros_like(S1)) 
 
       ok    = torch.logical_and(torch.less(Sbo,2.0),torch.greater(Sbo,1.0))
       S2    = torch.where(ok,Sbo,torch.zeros_like(Sbo))                     
@@ -733,8 +734,8 @@ class ReaxFF_nn_force(nn.Module):
                                                                      torch.full_like(fm,1.0))
       cos_w = 0.5*fz*fac/fm
       #cos_w= cos_w*ccijk*ccjkl
-      cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,1.0),cos_w)   
-      cos_w = torch.where(cos_w<-0.999999,torch.full_like(cos_w,-1.0),cos_w)
+      cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,0.999999),cos_w)   
+      cos_w = torch.where(cos_w<-0.9999999,torch.full_like(cos_w,-0.999999),cos_w)
       w= torch.acos(cos_w)
       cos2w = torch.cos(2.0*w)
       return w,cos_w,cos2w,s_ijk,s_jkl
