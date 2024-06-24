@@ -1397,3 +1397,54 @@ class ReaxFF_nn_force(nn.Module):
       self.ecoul,self.Ecoul             = {},{}
       self.ehb                          = {}
 
+  def save_ffield(self,ffield='ffield.json',loss=None):
+      for key in self.MolEnergy:
+          self.MolEnergy_[key] = self.MolEnergy[key].item()
+
+      for k in self.p:
+          key = k.split('_')[0]
+          if key in ['V1','V2','V3','tor1','cot1']:
+             k_ = k.split('_')[1]
+             if k_ not in self.torp:
+                continue
+          # if k in self.ea_var:
+          #    self.p_[k] = self.ea_var[k]
+          # else:
+          if key in self.punit:
+             self.p_[k] = float(self.p[k].item()/self.unit)
+          else:
+             self.p_[k] = float(self.p[k].item())
+
+      score = loss if loss is None else -loss
+         
+      if ffield.endswith('.json'):
+         for key in self.m:
+             k = key.split('_')[0]
+             if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
+                for i,m in enumerate(self.m[key]):
+                    # if isinstance(M, np.ndarray):
+                    self.m_[key][i] = m.detach().numpy().tolist()
+             else:
+                self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
+         # print(' * save parameters to file ...')
+         fj = open(ffield,'w')
+         j = {'p':self.p_,'m':self.m_,
+              'score':score,
+              'BOFunction':self.BOFunction,
+              'EnergyFunction':self.EnergyFunction,
+              'MessageFunction':self.MessageFunction, 
+              'VdwFunction':self.VdwFunction,
+              'messages':self.messages,
+              'bo_layer':self.bo_layer,
+              'mf_layer':self.mf_layer,
+              'be_layer':self.be_layer,
+              'vdw_layer':self.vdw_layer,
+              'rcut':self.rcut,
+              'rcutBond':self.rcuta,
+              'rEquilibrium':self.re,
+              'MolEnergy':self.MolEnergy_}
+         js.dump(j,fj,sort_keys=True,indent=2)
+         fj.close()
+      else:
+         raise RuntimeError('Error: other format is not supported yet!')
+         
