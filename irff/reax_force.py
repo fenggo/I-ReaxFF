@@ -126,6 +126,7 @@ class ReaxFF_nn_force(nn.Module):
                opt_term={'etcon':0,'efcon':0,'etor':1,
                          'elone':0,'eover':0,'eunder':0,'epen':0},
                bdopt=None,mfopt=None,beopt=None,
+               weight_force={'others':1.0},weight_energy={'others':1.0},
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                autograd=True):
@@ -140,6 +141,8 @@ class ReaxFF_nn_force(nn.Module):
       self.beopt        = beopt
       self.eaopt        = eaopt
       self.cons         = cons
+      self.weight_force = weight_force
+      self.weight_energy= weight_energy
       self.mf_layer     = mf_layer
       self.be_layer     = be_layer
       self.mf_universal = mf_universal
@@ -186,9 +189,11 @@ class ReaxFF_nn_force(nn.Module):
       self.loss_e = 0.0
       self.loss_f = 0.0
       for st in self.strcs:
-          self.loss_e += loss(self.E[st], self.dft_energy[st])
+          weight_e = self.weight_energy['others'] if st not in self.weight_energy else self.weight_energy[st]
+          self.loss_e += loss(self.E[st], self.dft_energy[st])*weight_e
           if self.dft_forces[st] is not None:
-             self.loss_f += loss(self.force[st], self.dft_forces[st])
+             weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
+             self.loss_f += loss(self.force[st], self.dft_forces[st])*weight_f
       return self.loss_e + self.loss_f 
 
   def get_total_energy(self,st):
