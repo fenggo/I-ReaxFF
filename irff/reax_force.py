@@ -151,7 +151,7 @@ class ReaxFF_nn_force(nn.Module):
       self.hblong       = hblong
       self.vdwcut       = vdwcut
 
-      self.m_,self.rcut,self.rcuta,re  = self.read_ffield(libfile)
+      self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
       self.set_p()
@@ -1398,8 +1398,8 @@ class ReaxFF_nn_force(nn.Module):
       self.ehb                          = {}
 
   def save_ffield(self,ffield='ffield.json',loss=None):
-      for key in self.MolEnergy:
-          self.MolEnergy_[key] = self.MolEnergy[key].item()
+      for key in self.estruc:
+          self.MolEnergy_[key] = self.estruc[key].item()
 
       for k in self.p:
           key = k.split('_')[0]
@@ -1435,10 +1435,10 @@ class ReaxFF_nn_force(nn.Module):
               'MessageFunction':self.MessageFunction, 
               'VdwFunction':self.VdwFunction,
               'messages':self.messages,
-              'bo_layer':self.bo_layer,
+              'bo_layer':None,
               'mf_layer':self.mf_layer,
               'be_layer':self.be_layer,
-              'vdw_layer':self.vdw_layer,
+              'vdw_layer':None,
               'rcut':self.rcut,
               'rcutBond':self.rcuta,
               'rEquilibrium':self.re,
