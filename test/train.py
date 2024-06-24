@@ -6,6 +6,8 @@ from irff.reax_force import ReaxFF_nn_force
 
 
 rn = ReaxFF_nn_force(dataset={'gp4':'gp4.traj'},
+                     weight_energy={'others':1.0},
+                     weight_force={'others':0.01},
                      libfile='ffield.json')
 # rn.forward()
 
@@ -23,7 +25,7 @@ iter_num = 100
 for step in range(iter_num):
     E,F = rn()
     loss = rn.get_loss()
-    # optimizer.zero_grad()
+    optimizer.zero_grad()
     loss.backward(retain_graph=True)
     optimizer.step()
 
