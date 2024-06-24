@@ -409,23 +409,32 @@ class ReaxFF_nn_force(nn.Module):
       self.Eunder[st]    = torch.zeros_like(self.Delta[st])
       self.Nlp[st]       = torch.zeros_like(self.Delta[st])
       self.Delta_ang[st] = torch.zeros_like(self.Delta[st])
+      Dlp                = torch.zeros_like(self.Delta[st])
+
+      delta       = {}
+      delta_pi    = {}
+      delta_lp    = {}
+      so          = {}
 
       for sp in self.spec:
-          delta    = self.Delta[st][:,self.s[st][sp]]
-          delta_pi = self.Delta_pi[st][:,self.s[st][sp]]
-          so       = self.SO[st][:,self.s[st][sp]]
-
-          delta_lp,nlp,dlp,Elone = self.get_elone(sp,delta) 
-         
-          dpi                 =torch.sum(delta_pi*torch.unsqueeze(dlp,1), 2)
-          # print(dpi)
-          delta_lpcorr,Eover  = self.get_eover(sp,delta,delta_lp,dpi,so) 
-          Eunder              = self.get_eunder(sp,delta_lpcorr,dpi) 
-          delta_ang           = delta - self.p['valang_'+sp]
+          delta[sp]    = self.Delta[st][:,self.s[st][sp]]
+          delta_pi[sp] = self.Delta_pi[st][:,self.s[st][sp]]
+          so[sp]       = self.SO[st][:,self.s[st][sp]]
           
-          self.Nlp[st][:,self.s[st][sp]]        = nlp
+          delta_lp[sp],nlp,dlp,Elone        = self.get_elone(sp,delta[sp]) 
+          self.Nlp[st][:,self.s[st][sp]]    = nlp
+          self.Elone[st][:,self.s[st][sp]]  = Elone
+          Dlp[:,self.s[st][sp]]             = dlp
+
+      for sp in self.spec:
+          # print(delta_pi.shape,dlp.shape)
+          dpi                 = torch.sum(delta_pi[sp]*torch.unsqueeze(Dlp,1), 2)
+          # print(dpi)
+          delta_lpcorr,Eover  = self.get_eover(sp,delta[sp],delta_lp[sp],dpi,so[sp]) 
+          Eunder              = self.get_eunder(sp,delta_lpcorr,dpi) 
+          delta_ang           = delta[sp] - self.p['valang_'+sp]
+          
           self.Delta_ang[st][:,self.s[st][sp]]  = delta_ang
-          self.Elone[st][:,self.s[st][sp]]      = Elone
           self.Eover[st][:,self.s[st][sp]]      = Eover
           self.Eunder[st][:,self.s[st][sp]]     = Eunder
 
