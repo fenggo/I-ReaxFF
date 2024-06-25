@@ -10,6 +10,9 @@ install with commond
   "python setup install --user"
 or with command
 
+*  version 1.6.2 
+  Bus fixes.
+
 *  version 1.6.1 
   Add force learning and PyTorch backend.
 
@@ -18,7 +21,7 @@ or with command
 '''
 
 
-__version__ = '1.6.1'
+__version__ = '1.6.2'
 install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko','argh','scikit-learn']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
