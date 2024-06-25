@@ -1396,7 +1396,7 @@ class ReaxFF_nn_force(nn.Module):
       self.ecoul,self.Ecoul             = {},{}
       self.ehb                          = {}
 
-  def save_ffield(self,ffield='ffield.json',loss=None):
+  def save_ffield(self,ffield='ffield.json'):
       for key in self.estruc:
           self.MolEnergy_[key] = self.estruc[key].item()
 
@@ -1418,7 +1418,7 @@ class ReaxFF_nn_force(nn.Module):
              b = k.split('_')[1]
              if b[0]==b[1]:
                 self.p_[key+'_'+b[0]] = self.p_[key+'_'+b[0]+'-'+b[1]]
-
+      loss  = self.loss_e.item() + self.loss_f.item()
       score = loss if loss is None else -loss
          
       if ffield.endswith('.json'):
