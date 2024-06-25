@@ -910,8 +910,8 @@ class ReaxFF_nn_force(nn.Module):
 
       for bd in self.bonds:             # check offd parameters
           b= bd.split('-')
-          if 'rvdw_'+bd not in self.p_:
-             for key in p_offd:        # set offd parameters according combine rules
+          for key in p_offd:        # set offd parameters according combine rules
+              if key+'_'+bd not in self.p_:
                  if self.p_[key+'_'+b[0]]>0.0 and self.p_[key+'_'+b[1]]>0.0:
                     self.p_[key+'_'+bd] = np.sqrt(self.p_[key+'_'+b[0]]*self.p_[key+'_'+b[1]])
                  else:
@@ -935,8 +935,8 @@ class ReaxFF_nn_force(nn.Module):
       ##  All Parameters
       self.p_bond = ['Desi','Depi','Depp','be1','bo5','bo6','ovun1',
                      'be2','bo3','bo4','bo1','bo2',
-                     'Devdw','rvdw','alfa','rosi','ropi','ropp',
-                     'corr13','ovcorr']
+                     'Devdw','rvdw','alfa','rosi','ropi','ropp'] # 'corr13','ovcorr'
+                     
       self.p_offd = ['Devdw','rvdw','alfa','rosi','ropi','ropp']
       self.p_g    = ['coa2','ovun6','lp1','lp3',         # 'boc1','boc2',
                      'ovun7','ovun8','val6','tor2',
@@ -1026,7 +1026,6 @@ class ReaxFF_nn_force(nn.Module):
               grad = True if key in self.opt or key_ in self.opt else False
               self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=grad)
-   
       if self.nn:
          self.set_m()
 
@@ -1415,10 +1414,10 @@ class ReaxFF_nn_force(nn.Module):
           else:
              self.p_[k] = float(self.p[k].item())
           
-        #   if key in self.p_offd:
-        #      b = k.split('_')[1]
-        #      if b[0]==b[1]:
-        #         self.p_[key+'_'+b[0]] = self.p_[key+'_'+b[0]+'-'+b[1]]
+          if key in self.p_offd:
+             b = k.split('_')[1]
+             if b[0]==b[1]:
+                self.p_[key+'_'+b[0]] = self.p_[key+'_'+b[0]+'-'+b[1]]
 
       score = loss if loss is None else -loss
          
