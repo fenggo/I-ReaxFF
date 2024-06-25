@@ -42,7 +42,7 @@ for step in range(iter_num):
     loss.backward(retain_graph=True)
     optimizer.step()
 
-    print( "{:8d} loss: {:10.5f}   energy: {:20.5f}   force: {:10.5f}".format(step,
+    print( "{:8d} loss: {:10.5f}   energy: {:10.5f}   force: {:10.5f}".format(step,
                 loss.item(),rn.loss_e.item(),rn.loss_f.item()))
     if step%1000==0:
        rn.save_ffield('ffield_{:d}.json'.format(step))
