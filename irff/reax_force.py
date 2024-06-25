@@ -129,7 +129,7 @@ class ReaxFF_nn_force(nn.Module):
                weight_force={'others':1.0},weight_energy={'others':1.0},
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
-               autograd=True):
+               device='cpu'):
       super(ReaxFF_nn_force, self).__init__()
       self.dataset      = dataset 
       self.batch_size   = batch
@@ -161,7 +161,6 @@ class ReaxFF_nn_force(nn.Module):
 
       self.results      = {}
       self.EnergyFunction = 0
-      self.autograd     = autograd
       self.nomb         = nomb # without angle, torsion and hbond manybody term
       self.messages     = messages 
       self.safety_value = 0.000000001
