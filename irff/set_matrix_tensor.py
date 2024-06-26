@@ -7,7 +7,8 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                mf_layer,mf_layer_,MessageFunction_,MessageFunction,
                be_layer,be_layer_,EnergyFunction_,EnergyFunction,
                vdw_layer,vdw_layer_,VdwFunction_,VdwFunction,
-               bo_universal_nn,be_universal,mf_universal,vdw_universal_nn):
+               bo_universal_nn,be_universal,mf_universal,vdw_universal_nn,
+               device='cpu'):
     ''' set variable for neural networks '''
     m = nn.ParameterDict() 
     bond   = []               # make sure the m matrix is unique 
@@ -37,16 +38,16 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
             elif pref+'wi_'+bd in m_ and reuse_m:                  # input layer
                 if bd in bdopt:
                     m[pref+'wi_'+bd] = nn.Parameter(torch.tensor(m_[pref+'wi_'+bd],
-                                             dtype=torch.double),requires_grad=True)
+                                             dtype=torch.double,device=device),requires_grad=True)
                     m[pref+'bi_'+bd] = nn.Parameter(torch.tensor(m_[pref+'bi_'+bd],
-                                                 dtype=torch.double),requires_grad=True)
+                                                 dtype=torch.double,device=device),requires_grad=True)
                 else:
-                    m[pref+'wi_'+bd] = torch.tensor(m_[pref+'wi_'+bd],dtype=torch.double)
-                    m[pref+'bi_'+bd] = torch.tensor(m_[pref+'bi_'+bd],dtype=torch.double)
+                    m[pref+'wi_'+bd] = torch.tensor(m_[pref+'wi_'+bd],dtype=torch.double,device=device)
+                    m[pref+'bi_'+bd] = torch.tensor(m_[pref+'bi_'+bd],dtype=torch.double,device=device)
             else:
-                m[pref+'wi_'+bd] = nn.Parameter(torch.randn(nin,layer[0]),
+                m[pref+'wi_'+bd] = nn.Parameter(torch.randn(nin,layer[0],device=device),
                                                 requires_grad=True)  
-                m[pref+'bi_'+bd] = nn.Parameter(torch.randn(layer[0]),
+                m[pref+'bi_'+bd] = nn.Parameter(torch.randn(layer[0],device=device),
                                                     requires_grad=True)  
 
             m[pref+'w_'+bd] = nn.ParameterList()                                    # hidden layer
@@ -59,16 +60,18 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                 if bd in bdopt:                            
                     for i in range(layer[1]):   
                         m[pref+'w_'+bd].append(nn.Parameter(torch.tensor(m_[pref+'w_'+bd][i],
-                                                     dtype=torch.double),requires_grad=True) ) 
+                                                     dtype=torch.double,device=device),requires_grad=True) ) 
                         m[pref+'b_'+bd].append(nn.Parameter(torch.tensor(m_[pref+'b_'+bd][i],
-                                                    dtype=torch.double),requires_grad=True) ) 
+                                                    dtype=torch.double,device=device),requires_grad=True) ) 
                 else:
                     for i in range(layer[1]):   
-                        m[pref+'w_'+bd].append(torch.tensor(m_[pref+'w_'+bd][i],dtype=torch.double) )
-                        m[pref+'b_'+bd].append(torch.tensor(m_[pref+'b_'+bd][i],dtype=torch.double)) 
+                        m[pref+'w_'+bd].append(torch.tensor(m_[pref+'w_'+bd][i],dtype=torch.double,
+                                            device=device) )
+                        m[pref+'b_'+bd].append(torch.tensor(m_[pref+'b_'+bd][i],dtype=torch.double,
+                                            device=device)) 
             else:
                 for i in range(layer[1]):   
-                    m[pref+'w_'+bd].append(nn.Parameter(torch.randn(layer[0],layer[0]), 
+                    m[pref+'w_'+bd].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device), 
                                                         requires_grad=True) ) 
                     m[pref+'b_'+bd].append(nn.Parameter(torch.randn(layer[0]),
                                                         requires_grad=True) ) 
@@ -79,16 +82,16 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
             elif pref+'wo_'+bd in m_ and reuse_m:          # output layer
                 if bd in bdopt:       
                     m[pref+'wo_'+bd] = nn.Parameter(torch.tensor(m_[pref+'wo_'+bd],
-                                             dtype=torch.double),requires_grad=True) 
+                                             dtype=torch.double,device=device),requires_grad=True) 
                     m[pref+'bo_'+bd] = nn.Parameter(torch.tensor(m_[pref+'bo_'+bd],
-                                             dtype=torch.double),requires_grad=True) 
+                                             dtype=torch.double,device=device),requires_grad=True) 
                 else:
-                    m[pref+'wo_'+bd] = torch.tensor(m_[pref+'wo_'+bd],dtype=torch.double)
-                    m[pref+'bo_'+bd] = torch.tensor(m_[pref+'bo_'+bd],dtype=torch.double)
+                    m[pref+'wo_'+bd] = torch.tensor(m_[pref+'wo_'+bd],dtype=torch.double,device=device)
+                    m[pref+'bo_'+bd] = torch.tensor(m_[pref+'bo_'+bd],dtype=torch.double,device=device)
             else:
-                m[pref+'wo_'+bd] = nn.Parameter(torch.randn([layer[0],nout],stddev=0.2), 
+                m[pref+'wo_'+bd] = nn.Parameter(torch.randn([layer[0],nout],stddev=0.2,device=device), 
                                                 requires_grad=True)    
-                m[pref+'bo_'+bd] = nn.Parameter(torch.randn([nout], stddev=0.01)+bias,
+                m[pref+'bo_'+bd] = nn.Parameter(torch.randn([nout], stddev=0.01,device=device)+bias,
                                                     requires_grad=True) 
         return None
 
@@ -110,34 +113,36 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
             elif pref+'wi_'+sp in m_ and reuse_m:
                 if sp in mfopt:
                     m[pref+'wi_'+sp] = nn.Parameter(torch.tensor(m_[pref+'wi_'+sp],
-                                            dtype=torch.double),requires_grad=True)
+                                            dtype=torch.double,device=device),requires_grad=True)
                     m[pref+'bi_'+sp] = nn.Parameter(torch.tensor(m_[pref+'bi_'+sp],
-                                            dtype=torch.double), requires_grad=True)
+                                            dtype=torch.double,device=device), requires_grad=True)
                     m[pref+'wo_'+sp] = nn.Parameter(torch.tensor(m_[pref+'wo_'+sp],
-                                            dtype=torch.double),requires_grad=True)
+                                            dtype=torch.double,device=device),requires_grad=True)
                     m[pref+'bo_'+sp] = nn.Parameter(torch.tensor(m_[pref+'bo_'+sp],
-                                            dtype=torch.double),requires_grad=True)
+                                            dtype=torch.double,device=device),requires_grad=True)
                     for i in range(layer[1]):   
                         m[pref+'w_'+sp].append(nn.Parameter(torch.tensor(m_[pref+'w_'+sp][i],
-                                            dtype=torch.double),requires_grad=True)) 
+                                            dtype=torch.double,device=device),requires_grad=True)) 
                         m[pref+'b_'+sp].append(nn.Parameter(torch.tensor(m_[pref+'b_'+sp][i],
-                                            dtype=torch.double),requires_grad=True)) 
+                                            dtype=torch.double,device=device),requires_grad=True)) 
                 else:
-                    m[pref+'wi_'+sp] = torch.tensor(m_[pref+'wi_'+sp],dtype=torch.double)
-                    m[pref+'bi_'+sp] = torch.tensor(m_[pref+'bi_'+sp],dtype=torch.double)
-                    m[pref+'wo_'+sp] = torch.tensor(m_[pref+'wo_'+sp],dtype=torch.double)
-                    m[pref+'bo_'+sp] = torch.tensor(m_[pref+'bo_'+sp],dtype=torch.double)
+                    m[pref+'wi_'+sp] = torch.tensor(m_[pref+'wi_'+sp],dtype=torch.double,device=device)
+                    m[pref+'bi_'+sp] = torch.tensor(m_[pref+'bi_'+sp],dtype=torch.double,device=device)
+                    m[pref+'wo_'+sp] = torch.tensor(m_[pref+'wo_'+sp],dtype=torch.double,device=device)
+                    m[pref+'bo_'+sp] = torch.tensor(m_[pref+'bo_'+sp],dtype=torch.double,device=device)
                     for i in range(layer[1]):   
-                        m[pref+'w_'+sp].append(torch.tensor(m_[pref+'w_'+sp][i],dtype=torch.double ) ) 
-                        m[pref+'b_'+sp].append(torch.tensor(m_[pref+'b_'+sp][i],dtype=torch.double ) ) 
+                        m[pref+'w_'+sp].append(torch.tensor(m_[pref+'w_'+sp][i],
+                                               dtype=torch.double,device=device ) ) 
+                        m[pref+'b_'+sp].append(torch.tensor(m_[pref+'b_'+sp][i],
+                                               dtype=torch.double,device=device ) ) 
             else:
-                m[pref+'wi_'+sp] = nn.Parameter(torch.randn(nin,layer[0]))   
-                m[pref+'bi_'+sp] = nn.Parameter(torch.randn(layer[0]))  
-                m[pref+'wo_'+sp] = nn.Parameter(torch.randn(layer[0],nout))   
-                m[pref+'bo_'+sp] = nn.Parameter(torch.randn(nout))  
+                m[pref+'wi_'+sp] = nn.Parameter(torch.randn(nin,layer[0],device=device))   
+                m[pref+'bi_'+sp] = nn.Parameter(torch.randn(layer[0],device=device))  
+                m[pref+'wo_'+sp] = nn.Parameter(torch.randn(layer[0],nout,device=device))   
+                m[pref+'bo_'+sp] = nn.Parameter(torch.randn(nout,device=device))  
                 for i in range(layer[1]):   
-                    m[pref+'w_'+sp].append(nn.Parameter(torch.randn(layer[0],layer[0] ) ))
-                    m[pref+'b_'+sp].append(nn.Parameter(torch.randn([layer[0]]) )) 
+                    m[pref+'w_'+sp].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device ) ))
+                    m[pref+'b_'+sp].append(nn.Parameter(torch.randn([layer[0]],device=device) )) 
         # return m  
 
     def set_universal_wb(m_,pref='f',bd='C-C',reuse_m=True,nin=8,nout=3,
@@ -157,28 +162,28 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
         if reuse_m and pref+'wi'+bd_ in m_:   # input layer
             
             m[pref+'wi'] = nn.Parameter(torch.tensor(m_[pref+'wi'+bd_],
-                                                    dtype=torch.double),requires_grad=True)
+                                                    dtype=torch.double,device=device),requires_grad=True)
             m[pref+'bi'] = nn.Parameter(torch.tensor(m_[pref+'bi'+bd_],
-                                                    dtype=torch.double),requires_grad=True)
+                                                    dtype=torch.double,device=device),requires_grad=True)
             m[pref+'wo'] = nn.Parameter(torch.tensor(m_[pref+'wo'+bd_],
-                                                    dtype=torch.double),requires_grad=True)
+                                                    dtype=torch.double,device=device),requires_grad=True)
             m[pref+'bo'] = nn.Parameter(torch.tensor(m_[pref+'bo'+bd_],
-                                                    dtype=torch.double),requires_grad=True)
+                                                    dtype=torch.double,device=device),requires_grad=True)
             for i in range(layer[1]):   
                 m[pref+'w'].append(nn.Parameter(torch.tensor(m_[pref+'w'+bd_][i],
-                                                 dtype=torch.double),requires_grad=True) ) 
+                                                 dtype=torch.double,device=device),requires_grad=True) ) 
                 m[pref+'b'].append(nn.Parameter(torch.tensor(m_[pref+'b'+bd_][i],
-                                                 dtype=torch.double),requires_grad=True) )
+                                                 dtype=torch.double,device=device),requires_grad=True) )
         else:
-            m[pref+'wi'] = nn.Parameter(torch.randn(nin,layer[0]),requires_grad=True)   
-            m[pref+'bi'] = nn.Parameter(torch.randn(layer[0]),requires_grad=True)  
-            m[pref+'wo'] = nn.Parameter(torch.randn(layer[0],nout),requires_grad=True)   
-            m[pref+'bo'] = nn.Parameter(torch.randn(nout)+bias,requires_grad=True)
+            m[pref+'wi'] = nn.Parameter(torch.randn(nin,layer[0],device=device),requires_grad=True)   
+            m[pref+'bi'] = nn.Parameter(torch.randn(layer[0],device=device),requires_grad=True)  
+            m[pref+'wo'] = nn.Parameter(torch.randn(layer[0],nout,device=device),requires_grad=True)   
+            m[pref+'bo'] = nn.Parameter(torch.randn(nout,device=device)+bias,requires_grad=True)
             for i in range(layer[1]):   
                 m[pref+'w'].append(nn.Parameter(torch.randn(layer[0],layer[0],
-                                        dtype=torch.double),requires_grad=True)) 
+                                        dtype=torch.double,device=device),requires_grad=True)) 
                 m[pref+'b'].append(nn.Parameter(torch.randn(layer[0],
-                                        dtype=torch.double),requires_grad=True)) 
+                                        dtype=torch.double,device=device),requires_grad=True)) 
         return None  # End of local funciton definition
 
     ############ set weight and bias for message neural network ###################

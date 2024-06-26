@@ -1306,11 +1306,11 @@ class ReaxFF_nn_force(nn.Module):
              self.estruc[s] = self.estruc[s_]
           else:
              if s_ in self.MolEnergy_:
-                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_]),
+                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_],device=self.device),
                                                requires_grad=True) 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
              else:
-                self.estruc[s_] = nn.Parameter(torch.tensor(0.0),requires_grad=True) 
+                self.estruc[s_] = nn.Parameter(torch.tensor(0.0,device=self.device),requires_grad=True) 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
   
   def set_m(self):
@@ -1320,7 +1320,8 @@ class ReaxFF_nn_force(nn.Module):
                           self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
-                          None,self.be_universal,self.mf_universal,None)
+                          None,self.be_universal,self.mf_universal,None,
+                          device=self.device)
       
   def read_ffield(self,libfile):
       if libfile.endswith('.json'):
