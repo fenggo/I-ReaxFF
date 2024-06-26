@@ -726,9 +726,9 @@ class ReaxFF_nn_force(nn.Module):
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
       fm    = rij*rjl*s_ijk*s_kjl
 
-      fm    = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.ones_like(fm,1.0),fm)
+      fm    = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,1.0),fm)
       fac   = torch.where(torch.logical_and(fm<=0.000001,fm>=-0.000001),torch.full_like(fm,0.0),
-                                                                     torch.full_like(fm,1.0))
+                                                                        torch.full_like(fm,1.0))
       cos_w = 0.5*fz*fac/fm
       #cos_w= cos_w*ccijk*ccjkl
       cos_w = torch.where(cos_w>0.9999999,torch.full_like(cos_w,0.999999),cos_w)   
