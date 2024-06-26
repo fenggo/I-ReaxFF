@@ -1428,8 +1428,9 @@ class ReaxFF_nn_force(nn.Module):
           
           if key in self.p_offd:
              b = k.split('_')[1]
-             if b[0]==b[1]:
-                self.p_[key+'_'+b[0]] = self.p_[key+'_'+b[0]+'-'+b[1]]
+             s = b.split('-')
+             if s[0]==s[1]:
+                self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]]
 
       loss  = self.loss_e.item() + self.loss_f.item()
       score = loss if loss is None else -loss
