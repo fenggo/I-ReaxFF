@@ -153,7 +153,9 @@ class ReaxFF_nn_force(nn.Module):
       self.hblong       = hblong
       self.vdwcut       = vdwcut
       self.screen       = screen
-
+      self.EnergyFunction = EnergyFunction
+      self.MessageFunction= MessageFunction
+      
       self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
@@ -164,8 +166,6 @@ class ReaxFF_nn_force(nn.Module):
       self.stack_tensor()
 
       self.results        = {}
-      self.EnergyFunction = EnergyFunction
-      self.MessageFunction= MessageFunction
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
       self.safety_value   = torch.tensor(0.00000001,device=self.device)
