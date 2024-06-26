@@ -1435,9 +1435,15 @@ class ReaxFF_nn_force(nn.Module):
              if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
                 for i,m in enumerate(self.m[key]):
                     # if isinstance(M, np.ndarray):
-                    self.m_[key][i] = m.detach().numpy().tolist()
+                    if self.device.type == 'cpu':
+                       self.m_[key][i] = m.detach().numpy().tolist()
+                    else:
+                       self.m_[key][i] = m.cpu.detach().numpy().tolist()
              else:
-                self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
+                if self.device.type == 'cpu':
+                   self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
+                else:
+                   self.m_[key] = self.m[key].cpu.detach().numpy().tolist()
          # print(' * save parameters to file ...')
          fj = open(ffield,'w')
          j = {'p':self.p_,'m':self.m_,
