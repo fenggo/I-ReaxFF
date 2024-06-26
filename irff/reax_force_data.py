@@ -6,7 +6,41 @@ from .md.gulp import write_gulp_in,get_reaxff_q
 from .qeq import qeq
 from .reax_data import rtaper
 import random
-    
+
+
+def taper(r,rmin=0.001,rmax=0.002):
+    ''' taper function for bond-order '''
+    r3    = np.where(r>rmax,1.0,0.0) # r > rmax then 1 else 0
+
+    ok    = np.logical_and(r<=rmax,r>rmin)      # rmin < r < rmax  = r else 0
+    r2    = np.where(ok,r,0.0)
+    r20   = np.where(ok,1.0,0.0)
+
+    rterm = 1.0/(rmin-rmax)**3.0
+    rm    = rmin*r20
+    rd    = rm - r2
+    trm1  = rm + 2.0*r2 - 3.0*rmax*r20
+    r22   = rterm*rd*rd*trm1
+    return r22+r3
+
+def fmessage(pre,sp,x,m,layer=5):
+    X   = np.expand_dims(np.stack(x,axis=2),2)
+    #  print(X.shape)
+
+    o   = []
+    o.append(sigmoid(np.matmul(X,m[pre+'wi_'+sp])+m[pre+'bi_'+sp]))  
+                                                                  # input layer
+    for l in range(layer):                                        # hidden layer      
+        o.append(sigmoid(np.matmul(o[-1],m[pre+'w_'+sp][l])+m[pre+'b_'+sp][l]))
+   
+    o_  = sigmoid(np.matmul(o[-1],m[pre+'wo_'+sp]) + m[pre+'bo_'+sp]) 
+    out = np.squeeze(o_)                                          # output layer
+    return out
+
+def sigmoid(x):
+    s = 1.0/(1.0+np.exp(-x))
+    return s
+
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
@@ -22,9 +56,6 @@ class Dataset(object):
       self.x          = x
       self.cell       = cell
       self.rcell      = rcell
-      # self.rbd      = rbd.transpose()
-      # self.rv       = rv
-      # self.qij      = qij
       self.theta      = theta
       self.s_ijk      = s_ijk
       self.s_jkl      = s_jkl
@@ -32,8 +63,6 @@ class Dataset(object):
       self.cos_w      = cos_w
       self.cos2w      = cos2w
       self.cos3w      = cos3w
-      # self.rhb      = rhb
-      # self.frhb     = frhb
       self.hbthe      = hbthe
       self.q          = q
 
@@ -50,7 +79,8 @@ class reax_force_data(object):
                hbshort=6.75,hblong=7.5,
                atoms=None,
                batch=1000,minib=100,sample='uniform',
-               p=None,m=None,spec=None,bonds=None,angs=None,
+               p=None,m=None,mf_layer=None,
+               spec=None,bonds=None,angs=None,
                tors=None,hbs=None,      
                variable_batch=False,
                screen=False,
@@ -75,6 +105,7 @@ class reax_force_data(object):
       self.rcuta     = rcuta
       self.status    = True
       self.screen    = screen
+      self.mf_layer  = mf_layer
 
       print('-  Getting informations from trajectory {:s} ...\n'.format(traj))
 
@@ -216,43 +247,101 @@ class reax_force_data(object):
       # print(self.r)
       nframe = len(self.x)
       r = self.R[:,self.bond[:,0],self.bond[:,1]]
-      print(self.R.shape)
-      print(r.shape)
+      self.botol = self.p['cutoff']*0.01
+
       self.bop_si = np.zeros([nframe,self.natom,self.natom])
       self.bop_pi = np.zeros([nframe,self.natom,self.natom])
       self.bop_pp = np.zeros([nframe,self.natom,self.natom])
 
       for bd in self.bonds:
           nbd_ = self.nbd[bd]
-          b_   = self.b[bd]
+          b_   = self.B[bd]
           if nbd_==0:
              continue
           rbd = r[:,b_[0]:b_[1]]
-          bodiv1 = np.div(rbd,self.p['rosi_'+bd])
-          bopow1 = np.pow(bodiv1,self.p['bo2_'+bd])
-          eterm1 = (1.0+self.botol)*np.exp(np.mul(self.p['bo1_'+bd],bopow1)) 
+          bodiv1 = rbd/self.p['rosi_'+bd]
+          bopow1 = np.power(bodiv1,self.p['bo2_'+bd])
+          eterm1 = (1.0+self.botol)*np.exp(np.multiply(self.p['bo1_'+bd],bopow1)) 
 
-          bodiv2 = np.div(rbd,self.p['ropi_'+bd])
-          bopow2 = np.pow(bodiv2,self.p['bo4_'+bd])
-          eterm2 = np.exp(np.mul(self.p['bo3_'+bd],bopow2))
+          bodiv2 = rbd/self.p['ropi_'+bd]
+          bopow2 = np.power(bodiv2,self.p['bo4_'+bd])
+          eterm2 = np.exp(np.multiply(self.p['bo3_'+bd],bopow2))
 
-          bodiv3 = np.div(rbd,self.p['ropp_'+bd])
-          bopow3 = np.pow(bodiv3,self.p['bo6_'+bd])
-          eterm3 = np.exp(np.mul(self.p['bo5_'+bd],bopow3))
+          bodiv3 = rbd/self.p['ropp_'+bd]
+          bopow3 = np.power(bodiv3,self.p['bo6_'+bd])
+          eterm3 = np.exp(np.multiply(self.p['bo5_'+bd],bopow3))
 
           bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      bosi_ = np.cat(bop_si,dim=1)
-      bopi_ = np.cat(bop_pi,dim=1)
-      bopp_ = np.cat(bop_pp,dim=1)
+      bosi_ = np.concatenate(bop_si,axis=1)
+      bopi_ = np.concatenate(bop_pi,axis=1)
+      bopp_ = np.concatenate(bop_pp,axis=1)
 
-      self.bop_si[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_si[:,self.bdid[:,1],self.bdid[:,0]] = bosi_
-      self.bop_pi[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_pi[:,self.bdid[:,1],self.bdid[:,0]] = bopi_
-      self.bop_pp[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_pp[:,self.bdid[:,1],self.bdid[:,0]] = bopp_
+      self.bop_si[:,self.bond[:,0],self.bond[:,1]] = self.bop_si[:,self.bond[:,1],self.bond[:,0]] = bosi_
+      self.bop_pi[:,self.bond[:,0],self.bond[:,1]] = self.bop_pi[:,self.bond[:,1],self.bond[:,0]] = bopi_
+      self.bop_pp[:,self.bond[:,0],self.bond[:,1]] = self.bop_pp[:,self.bond[:,1],self.bond[:,0]] = bopp_
       self.bop    = self.bop_si + self.bop_pi + self.bop_pp
 
+      self.Deltap = np.sum(self.bop,axis=2)
+
+  def get_bondorder(self):
+      bosi = np.zeros([self.batch,self.natom,self.natom])
+      bopi = np.zeros([self.batch,self.natom,self.natom])
+      bopp = np.zeros([self.batch,self.natom,self.natom])
+
+      I    = np.expand_dims(1.0 - np.eye(self.natom),axis=0)
+                                         
+      Di   = np.expand_dims(self.Deltap,axis=2)*I
+      Dj   = np.expand_dims(self.Deltap,axis=1)*I
+
+      Dbi  = Di  - self.bop
+      Dbj  = Dj  - self.bop
+
+      dbi  = Dbi[:,self.bond[:,0],self.bond[:,1]]
+      dbj  = Dbj[:,self.bond[:,0],self.bond[:,1]]
+      H    = self.bop[:,self.bond[:,0],self.bond[:,1]]
+      Hsi  = self.bop_si[:,self.bond[:,0],self.bond[:,1]]
+      Hpi  = self.bop_pi[:,self.bond[:,0],self.bond[:,1]]
+      Hpp  = self.bop_pp[:,self.bond[:,0],self.bond[:,1]]
+
+      for bd in self.bonds:
+          nbd_ = self.nbd[bd]
+          if nbd_==0:
+             continue
+          b_   = self.B[bd]
+
+          bi   = self.bond[b_[0]:b_[1],0]
+          bj   = self.bond[b_[0]:b_[1],1]
+
+          Di   = dbi[:,b_[0]:b_[1]]
+          Dj   = dbj[:,b_[0]:b_[1]]
+
+          h    = H[:,b_[0]:b_[1]]
+          hsi  = Hsi[:,b_[0]:b_[1]]
+          hpi  = Hpi[:,b_[0]:b_[1]]
+          hpp  = Hpp[:,b_[0]:b_[1]]
+
+          b    = bd.split('-')
+          Fi   = fmessage('fm',b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
+          Fj   = fmessage('fm',b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
+          F    = Fi*Fj
+          
+          Fsi   = F[:,:,0]
+          Fpi   = F[:,:,1]
+          Fpp   = F[:,:,2]
+
+          bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
+          bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
+          bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
+      
+      atol      = self.p['acut']*0.96
+      self.bo   = bosi+bopi+bopp
+      self.fbo  = taper(self.bo,rmin=atol,rmax=2.0*atol) 
+      # print('\n- fbo -\n',self.fbo)
+      # print('\n-  bo -\n',self.bo)
+      
   def get_neighbors(self,atoms=None,R=None,rcut=None,rcuta=None):
       table  = [[] for i in range(self.natom)]
       atable = [[] for i in range(self.natom)]
@@ -380,6 +469,13 @@ class reax_force_data(object):
                  continue
               for k in self.atable[j]:
                   if k != i and k!=j:
+                     if self.screen:
+                        fij = self.fbo[:,i,j]
+                        fjk = self.fbo[:,j,k]
+                        fijk= np.sum(fij*fjk)
+                        # print(fij*fjk)
+                        if fijk<0.000001:
+                           continue
                      ang = (i,j,k)
                      angr= (k,j,i)
                      an  = self.atom_name[i]+'-' + self.atom_name[j]+'-'+self.atom_name[k]
@@ -431,7 +527,13 @@ class reax_force_data(object):
                   for l in self.atable[k]:
                       if l==k or l==j or l==i:
                          continue
-                      
+                      if self.screen:
+                         fij = self.fbo[:,i,j]
+                         fjk = self.fbo[:,j,k]
+                         fkl = self.fbo[:,k,l]
+                         f   = np.sum(fij*fjk*fkl)
+                         if f<0.000001:
+                            continue
                       t1=self.atom_name[i]+'-'+self.atom_name[j]+'-'+self.atom_name[k]+'-'+self.atom_name[l]
                       t2=self.atom_name[l]+'-'+self.atom_name[k]+'-'+self.atom_name[j]+'-'+self.atom_name[i]
                       t3=self.atom_name[i]+'-'+self.atom_name[j]+'-'+self.atom_name[k]+'-X'
