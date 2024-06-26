@@ -118,6 +118,7 @@ class ReaxFF_nn_force(nn.Module):
                vdwcut=10.0,
                messages=1,
                hbshort=6.75,hblong=7.5,
+               EnergyFunction=1,MessageFunction=3,
                mf_layer=None,be_layer=None,
                be_universal=None,mf_universal=None,
                cons=['val','vale','valang','vale','valboc','lp3','gamma',
@@ -162,12 +163,13 @@ class ReaxFF_nn_force(nn.Module):
       self.get_data()
       self.stack_tensor()
 
-      self.results      = {}
-      self.EnergyFunction = 0
-      self.nomb         = nomb # without angle, torsion and hbond manybody term
-      self.messages     = messages 
-      self.safety_value = torch.tensor(0.00000001,device=self.device)
-      self.GPa          = 1.60217662*1.0e2
+      self.results        = {}
+      self.EnergyFunction = EnergyFunction
+      self.MessageFunction= MessageFunction
+      self.nomb           = nomb # without angle, torsion and hbond manybody term
+      self.messages       = messages 
+      self.safety_value   = torch.tensor(0.00000001,device=self.device)
+      self.GPa            = 1.60217662*1.0e2
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -1330,21 +1332,21 @@ class ReaxFF_nn_force(nn.Module):
       
   def read_ffield(self,libfile):
       if libfile.endswith('.json'):
-         lf                  = open(libfile,'r')
-         j                   = js.load(lf)
-         self.p_             = j['p']
-         self.m_             = j['m']
-         self.MolEnergy_     = j['MolEnergy']
-         self.messages       = j['messages']
-         self.BOFunction     = j['BOFunction']
-         self.EnergyFunction_ = self.EnergyFunction = j['EnergyFunction']
-         self.MessageFunction_=self.MessageFunction= j['MessageFunction']
-         self.VdwFunction    = j['VdwFunction']
-         self.mf_layer_      = j['mf_layer']
-         self.be_layer_      = j['be_layer']
-         rcut                = j['rcut']
-         rcuta               = j['rcutBond']
-         re                  = j['rEquilibrium']
+         lf                   = open(libfile,'r')
+         j                    = js.load(lf)
+         self.p_              = j['p']
+         self.m_              = j['m']
+         self.MolEnergy_      = j['MolEnergy']
+         self.messages        = j['messages']
+         self.BOFunction      = j['BOFunction']
+         self.EnergyFunction_ =  j['EnergyFunction']
+         self.MessageFunction_= j['MessageFunction']
+         self.VdwFunction     = j['VdwFunction']
+         self.mf_layer_       = j['mf_layer']
+         self.be_layer_       = j['be_layer']
+         rcut                 = j['rcut']
+         rcuta                = j['rcutBond']
+         re                   = j['rEquilibrium']
          lf.close()
          self.init_bonds()
          self.emol = 0.0
