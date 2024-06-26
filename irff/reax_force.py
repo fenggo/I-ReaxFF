@@ -1438,12 +1438,12 @@ class ReaxFF_nn_force(nn.Module):
                     if self.device.type == 'cpu':
                        self.m_[key][i] = m.detach().numpy().tolist()
                     else:
-                       self.m_[key][i] = m.cpu.detach().numpy().tolist()
+                       self.m_[key][i] = m.cpu.numpy().tolist()
              else:
                 if self.device.type == 'cpu':
                    self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
                 else:
-                   self.m_[key] = self.m[key].cpu.detach().numpy().tolist()
+                   self.m_[key] = self.m[key].cpu.numpy().tolist()
          # print(' * save parameters to file ...')
          fj = open(ffield,'w')
          j = {'p':self.p_,'m':self.m_,
