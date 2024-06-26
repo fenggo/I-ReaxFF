@@ -1180,6 +1180,7 @@ class ReaxFF_nn_force(nn.Module):
                        variable_batch=True,
                                sample=self.sample,
                                     m=self.m_,
+                             mf_layer=self.mf_layer_,
                        p=self.p_,spec=self.spec,bonds=self.bonds,
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
