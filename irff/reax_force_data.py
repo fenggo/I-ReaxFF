@@ -6,7 +6,7 @@ from .md.gulp import write_gulp_in,get_reaxff_q
 from .qeq import qeq
 from .reax_data import rtaper
 import random
-
+    
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
@@ -50,9 +50,10 @@ class reax_force_data(object):
                hbshort=6.75,hblong=7.5,
                atoms=None,
                batch=1000,minib=100,sample='uniform',
-               p=None,spec=None,bonds=None,angs=None,
+               p=None,m=None,spec=None,bonds=None,angs=None,
                tors=None,hbs=None,      
                variable_batch=False,
+               screen=False,
                nindex=[]):
       self.structure = structure
       self.energy_dft,self.energy_ml = [],[]
@@ -64,6 +65,7 @@ class reax_force_data(object):
       self.hbshort   = hbshort
       self.hblong    = hblong
       self.p         = p
+      self.m         = m
       self.spec      = spec
       self.bonds     = bonds
       self.angs      = angs
@@ -72,6 +74,7 @@ class reax_force_data(object):
       self.r_cut     = rcut
       self.rcuta     = rcuta
       self.status    = True
+      self.screen    = screen
 
       print('-  Getting informations from trajectory {:s} ...\n'.format(traj))
 
@@ -82,7 +85,7 @@ class reax_force_data(object):
          images      = [atoms]
          self.nframe = 1
          trajonly    = True
-      
+
       if variable_batch:
          if self.nframe>batch:
             n = self.nframe//batch
@@ -135,7 +138,7 @@ class reax_force_data(object):
       self.min_e     = min(self.energy_dft)
       self.max_e     = max(self.energy_dft)
 
-      # self.natom_images = self.natom                                    # all atoms include images
+      # self.natom_images = self.natom                             # all atoms include images
       r_  = max(self.r_cut.values())* 2.0
       R_  = np.max(np.sqrt(np.sum(self.cell*self.cell,axis=2)))    
       # self.image_mask = [0,0,0]
@@ -144,11 +147,14 @@ class reax_force_data(object):
          raise RuntimeError('-  Error: cell length must lager than 2.0*r_cut, using supercell!')
              
       self.R,self.vr = self.compute_bond(self.x)
-      # image_rs = self.compute_image(self.vr)                            # vdw interaction images
+      # image_rs = self.compute_image(self.vr)                    # vdw interaction images
 
       self.get_table()
       self.get_bonds(self.R)
-
+     
+      if self.screen: 
+         self.compute_bondorder()
+      
       if self.structure.find('nomb')>=0:
          self.nhb  = {}
          self.nang = {}
@@ -199,6 +205,53 @@ class reax_force_data(object):
       vr  = np.matmul(vr,np.expand_dims(self.cell,axis=1)) # convert to ordinary coordinate
       R   = np.sqrt(np.sum(vr*vr,axis=3),dtype=np.float32)
       return R,vr 
+  
+  def compute_bondorder(self):
+      ''' compute bond-orderes '''
+      self.get_bondorder_uc()
+      self.get_bondorder()
+
+  def get_bondorder_uc(self):
+      bop_si,bop_pi,bop_pp = [],[],[]
+      # print(self.r)
+      nframe = len(self.x)
+      r = self.R[:,self.bond[:,0],self.bond[:,1]]
+      print(self.R.shape)
+      print(r.shape)
+      self.bop_si = np.zeros([nframe,self.natom,self.natom])
+      self.bop_pi = np.zeros([nframe,self.natom,self.natom])
+      self.bop_pp = np.zeros([nframe,self.natom,self.natom])
+
+      for bd in self.bonds:
+          nbd_ = self.nbd[bd]
+          b_   = self.b[bd]
+          if nbd_==0:
+             continue
+          rbd = r[:,b_[0]:b_[1]]
+          bodiv1 = np.div(rbd,self.p['rosi_'+bd])
+          bopow1 = np.pow(bodiv1,self.p['bo2_'+bd])
+          eterm1 = (1.0+self.botol)*np.exp(np.mul(self.p['bo1_'+bd],bopow1)) 
+
+          bodiv2 = np.div(rbd,self.p['ropi_'+bd])
+          bopow2 = np.pow(bodiv2,self.p['bo4_'+bd])
+          eterm2 = np.exp(np.mul(self.p['bo3_'+bd],bopow2))
+
+          bodiv3 = np.div(rbd,self.p['ropp_'+bd])
+          bopow3 = np.pow(bodiv3,self.p['bo6_'+bd])
+          eterm3 = np.exp(np.mul(self.p['bo5_'+bd],bopow3))
+
+          bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
+          bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
+          bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
+      
+      bosi_ = np.cat(bop_si,dim=1)
+      bopi_ = np.cat(bop_pi,dim=1)
+      bopp_ = np.cat(bop_pp,dim=1)
+
+      self.bop_si[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_si[:,self.bdid[:,1],self.bdid[:,0]] = bosi_
+      self.bop_pi[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_pi[:,self.bdid[:,1],self.bdid[:,0]] = bopi_
+      self.bop_pp[:,self.bdid[:,0],self.bdid[:,1]] = self.bop_pp[:,self.bdid[:,1],self.bdid[:,0]] = bopp_
+      self.bop    = self.bop_si + self.bop_pi + self.bop_pp
 
   def get_neighbors(self,atoms=None,R=None,rcut=None,rcuta=None):
       table  = [[] for i in range(self.natom)]
@@ -293,8 +346,8 @@ class reax_force_data(object):
           # print('\n nbd \n',st,ed)
           
       self.nbond  = len(self._bond)
-
       self.blist  = [] # np.zeros((self.natom,self.max_nei))
+
       for i,tab in enumerate(self.table):                       # construct bond table of every atom
           bl = [[0] for _ in range(self.max_nei)]
           for n,j in enumerate(tab):
@@ -306,7 +359,7 @@ class reax_force_data(object):
           self.blist.append(bl)
       self.blist = np.array(self.blist)
       #self.blist.expand_dims(axis=0)
-      
+
       self.bond   = np.array(self._bond,dtype=np.int64)
       self.rbd    = R[:,self.bond[:,0],self.bond[:,1]]
       dilink      = np.expand_dims(self.bond[:,0],axis=1)
@@ -317,6 +370,7 @@ class reax_force_data(object):
           self.djlink[bd] = djlink[self.B[bd][0]:self.B[bd][0]+self.B[bd][1]]
 
   def compute_angle(self):
+      # print(len(self.x))
       angles,self.A,self.ang_i,self.ang_j,self.ang_k = {},{},[],[],[]
       self.na = {}
 
@@ -336,7 +390,7 @@ class reax_force_data(object):
                         angles[an] = [] 
                      if (not ang in angles[an]) and (not angr in angles[an]):
                         angles[an].append(ang)
-
+                        
       for ang in self.angs:
           if ang in angles:
              st= len(self.ang_i)
@@ -362,23 +416,6 @@ class reax_force_data(object):
              bjk = (self.ang_k[i],self.ang_j[i])
           n = self._bond.index(bjk)
           self.abjk.append([n])
-    
-      # Rij   = R[:,self.ang_i,self.ang_j]
-      # Rjk   = R[:,self.ang_j,self.ang_k]
-      # # Rik = R[:,self.ang_i,self.ang_k]
-      # vik   = vr[:,self.ang_i,self.ang_j] + vr[:,self.ang_j,self.ang_k]  
-      # Rik   = np.sqrt(np.sum(vik*vik,axis=2),dtype=np.float32)
-
-      # Rij2  = Rij*Rij
-      # Rjk2  = Rjk*Rjk
-      # Rik2  = Rik*Rik
-
-      # cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      # cos_theta = np.where(cos_theta>1.0,1.0,cos_theta)
-      # cos_theta = np.where(cos_theta<-1.0,-1.0,cos_theta)
-
-      # self.cos_theta = np.transpose(cos_theta,[1,0])
-      # self.theta= np.arccos(cos_theta)
 
   def compute_torsion(self):
       '''  compute torsion angles  '''
@@ -461,113 +498,6 @@ class reax_force_data(object):
       nb = int(self.batch/self.minib)
       yu = self.batch-nb*self.minib
       if yu>0: nb += 1
-
-      # for b in range(nb): 
-      #     st = b*self.minib
-      #     ed = (b+1)*self.minib
-      #     if ed > self.batch:
-      #        ed = self.batch
-      #     Rij = R[st:ed,self.tor_i,self.tor_j]
-      #     Rjk = R[st:ed,self.tor_j,self.tor_k]
-      #     Rkl = R[st:ed,self.tor_k,self.tor_l]     
-
-      #     vrjk = vr[st:ed,self.tor_j,self.tor_k,:]
-      #     vrkl = vr[st:ed,self.tor_k,self.tor_l,:]
-      #     vrjl = vrjk + vrkl                   # consist with GULP
-      #     Rjl  = np.sqrt(np.sum(vrjl*vrjl,axis=2),dtype=np.float32)
-
-      #     vrij = vr[st:ed,self.tor_i,self.tor_j,:]
-      #     #vrjl = vr[st:ed,self.tor_j,self.tor_l,:]
-      #     vril = vrij + vrjl                   # consist with GULP
-      #     Ril  = np.sqrt(np.sum(vril*vril,axis=2),dtype=np.float32)
-
-      #     vrik = vrij + vrjk
-      #     Rik  = np.sqrt(np.sum(vrik*vrik,axis=2),dtype=np.float32)
-
-      #     Rij2 = Rij*Rij
-      #     Rjk2 = Rjk*Rjk
-      #     Rkl2 = Rkl*Rkl
-      #     Rjl2 = Rjl*Rjl
-      #     Ril2 = Ril*Ril
-      #     Rik2 = Rik*Rik
-
-      #     c_ijk = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      #     c_ijk = np.where(c_ijk>1.0,1.0,c_ijk)
-      #     c_ijk = np.where(c_ijk<-1.0,-1.0,c_ijk)
-
-      #     ccijk = np.where(c_ijk>0.99999999,0.0,1.000)
-      #     c2ijk = c_ijk*c_ijk
-      #     #thet_ijk = np.arccos(c_ijk)
-
-      #     c     = 1.0-c2ijk
-      #     # print(np.where(np.isinf(c)))
-
-      #     s_ijk = np.sqrt(np.where(c<0.0,0.0,c))
-      #     strm  = s_ijk # np.transpose(s_ijk,[1,0])
-
-      #     if b==0:
-      #        self.s_ijk = strm
-      #     else:
-      #        self.s_ijk = np.concatenate((self.s_ijk,strm),axis=1)
-
-      #     c_jkl = (Rjk2+Rkl2-Rjl2)/(2.0*Rjk*Rkl)
-      #     c_jkl = np.where(c_jkl>1.0,1.0,c_jkl)
-      #     c_jkl = np.where(c_jkl<-1.0,-1.0,c_jkl)
-
-      #     ccjkl = np.where(c_jkl>0.99999999,0.0,1.0)
-      #     c2jkl = c_jkl*c_jkl
-      #     #thet_jkl = np.arccos(c_jkl)
-      #     c = 1.0-c2jkl
-      #     s_jkl = np.sqrt(np.where(c<0.0,0.0,c))
-      #     strm  = s_jkl # np.transpose(s_jkl,[1,0])
-
-      #     if b==0:
-      #        self.s_jkl = strm
-      #     else:
-      #        self.s_jkl = np.concatenate((self.s_jkl,strm),axis=1)
-
-      #     #c_ijl = (Rij2+Rjl2-Ril2)/(2.0*Rij*Rjl)
-
-      #     c_kjl = (Rjk2+Rjl2-Rkl2)/(2.0*Rjk*Rjl)
-      #     c_kjl = np.where(c_kjl>1.0,1.0,c_kjl)
-      #     c_kjl = np.where(c_kjl<-1.0,-1.0,c_kjl)
-
-      #     # cckjl = np.where(c_kjl>0.99999999,0.0,1.0)
-      #     c2kjl = c_kjl*c_kjl
-      #     c     = 1.0-c2kjl
-      #     s_kjl = np.sqrt(np.where(c<0.0,0.0,c))
-
-      #     fz = Rij2+Rjl2-Ril2-2.0*Rij*Rjl*c_ijk*c_kjl
-      #     fm = Rij*Rjl*s_ijk*s_kjl
-
-      #     fm = np.where(fm==0.0,1.0,fm)
-      #     fac= np.where(fm==0.0,0.0,1.0)
-      #     cos_w = 0.5*fz*fac/fm
-      #     cos_w = cos_w*ccijk*ccjkl
-
-      #     cos_w = np.where(cos_w>1.0,1.0,cos_w)   
-      #     cos_w = np.where(cos_w<-1.0,-1.0,cos_w)
-      #     ctm   = cos_w # np.transpose(cos_w,[1,0])
-
-      #     if b==0:
-      #        self.cos_w = ctm
-      #     else:
-      #        self.cos_w = np.concatenate((self.cos_w,ctm),axis=1)
-
-      #     # self.w= np.arccos(self.cos_w)
-      #     wtm = np.arccos(ctm)
-      #     if b==0:
-      #        self.w = wtm
-      #     else:
-      #        self.w = np.concatenate((self.w,wtm),axis=1)
-
-      #     # self.cos2w = np.cos(2.0*self.w)
-      #     c2wtm = np.cos(2.0*wtm)
-      #     # print('-- mini batch shape',c2wtm.shape[1])
-      #     if b==0:
-      #        self.cos2w = c2wtm
-      #     else:
-      #        self.cos2w = np.concatenate((self.cos2w,c2wtm),axis=1) 
 
   def compute_vdw(self,image_rs):
       vi,vj,vi_p,vj_p,self.vi,self.vj = [],[],[],[],[],[]
