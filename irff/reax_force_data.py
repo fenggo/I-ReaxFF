@@ -6,7 +6,7 @@ from .md.gulp import write_gulp_in,get_reaxff_q
 from .qeq import qeq
 from .reax_data import rtaper
 import random
-    
+
 
 class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
@@ -336,7 +336,7 @@ class reax_force_data(object):
                         angles[an] = [] 
                      if (not ang in angles[an]) and (not angr in angles[an]):
                         angles[an].append(ang)
-                        
+
       for ang in self.angs:
           if ang in angles:
              st= len(self.ang_i)
