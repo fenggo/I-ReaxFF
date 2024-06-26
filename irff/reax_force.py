@@ -129,6 +129,7 @@ class ReaxFF_nn_force(nn.Module):
                weight_force={'others':1.0},weight_energy={'others':1.0},
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
+               screen=False,
                device='cpu'):
       super(ReaxFF_nn_force, self).__init__()
       self.dataset      = dataset 
@@ -150,6 +151,7 @@ class ReaxFF_nn_force(nn.Module):
       self.hbshort      = hbshort
       self.hblong       = hblong
       self.vdwcut       = vdwcut
+      self.screen       = screen
 
       self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
       if self.m_ is not None:
@@ -1181,6 +1183,7 @@ class ReaxFF_nn_force(nn.Module):
                        p=self.p_,spec=self.spec,bonds=self.bonds,
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
+                               screen=self.screen,
                                nindex=nindex)
 
           if data_.status:
