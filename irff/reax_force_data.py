@@ -163,8 +163,8 @@ class reax_force_data(object):
          self.theta,self.s_ijk,self.s_jkl,self.w,self.rhb = None,None,None,None,None
          self.frhb,self.hbthe = None,None
       else:
-         self.compute_angle(self.R,self.vr)
-         self.compute_torsion(self.R,self.vr)
+         self.compute_angle()
+         self.compute_torsion()
          self.compute_hbond()
          
       # self.compute_vdw(image_rs)
@@ -316,7 +316,7 @@ class reax_force_data(object):
           self.dilink[bd] = dilink[self.B[bd][0]:self.B[bd][0]+self.B[bd][1]]
           self.djlink[bd] = djlink[self.B[bd][0]:self.B[bd][0]+self.B[bd][1]]
 
-  def compute_angle(self,R,vr):
+  def compute_angle(self):
       angles,self.A,self.ang_i,self.ang_j,self.ang_k = {},{},[],[],[]
       self.na = {}
 
@@ -380,7 +380,7 @@ class reax_force_data(object):
       # self.cos_theta = np.transpose(cos_theta,[1,0])
       # self.theta= np.arccos(cos_theta)
 
-  def compute_torsion(self,R,vr):
+  def compute_torsion(self):
       '''  compute torsion angles  '''
       self.tor_i,self.tor_j,self.tor_k,self.tor_l = [],[],[],[]
       torsion,self.T,self.nt = {},{},{}
