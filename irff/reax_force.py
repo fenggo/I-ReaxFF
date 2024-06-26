@@ -573,13 +573,13 @@ class ReaxFF_nn_force(nn.Module):
 
       ok    = torch.logical_and(torch.less(Sbo,2.0),torch.greater(Sbo,1.0))
       S2    = torch.where(ok,Sbo,torch.zeros_like(Sbo,device=self.device))                     
-      F2    = torch.where(ok,torch.ones_like(S2),torch.zeros_like(S2,device=self.device))                                    #  1< sbo <2
+      F2    = torch.where(ok,torch.ones_like(S2,device=self.device),torch.zeros_like(S2,device=self.device))                                    #  1< sbo <2
      
       S2    = 2.0*F2-S2  
       Sbo12 = torch.where(ok,2.0-torch.pow(S2,self.p['val9']),torch.zeros_like(Sbo,device=self.device))  #  1< sbo <2
                                                                                                  #     sbo >2
       Sbo2  = torch.where(torch.greater_equal(Sbo,2.0),
-                          torch.ones_like(Sbo),torch.zeros_like(Sbo,device=self.device))
+                          torch.ones_like(Sbo,device=self.device),torch.zeros_like(Sbo,device=self.device))
 
       Sbo3   = Sbo1 + Sbo12 + 2.0*Sbo2
       theta0_ = 180.0 - self.p['theta0_'+ang]*(1.0-torch.exp(-self.p['val10']*(2.0-Sbo3)))
