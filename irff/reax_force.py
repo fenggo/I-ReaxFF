@@ -1235,13 +1235,7 @@ class ReaxFF_nn_force(nn.Module):
       self.hb_i                        = {}
       self.hb_j                        = {}
       self.hb_k                        = {}
-      self.s_ijk                       = {}
-      self.s_jkl                       = {}
-      self.w                           = {}
-      self.cos_w                       = {}
-      self.cos2w                       = {}
       self.data                        = {}
-      self.theta                       = {}
       self.estruc                      = {}
       for s in strucs:
           s_ = s.split('-')[0]
@@ -1283,12 +1277,6 @@ class ReaxFF_nn_force(nn.Module):
                                      cell=strucs[s].cell,
                                      rcell=strucs[s].rcell,
                                      forces=strucs[s].forces,
-                                     #  theta=strucs[s].theta,
-                                     #  s_ijk=strucs[s].s_ijk,
-                                     #  s_jkl=strucs[s].s_jkl,
-                                     #  w=strucs[s].w,
-                                     #  cos_w=strucs[s].cos_w,
-                                     #  cos2w=strucs[s].cos2w,
                                      q=strucs[s].qij)
 
           self.dft_energy[s] = torch.tensor(self.data[s].dft_energy,device=self.device)
@@ -1299,16 +1287,6 @@ class ReaxFF_nn_force(nn.Module):
           else:
              self.dft_forces[s] = None
 
-          # if self.nang[s]>0:
-          #    self.theta[s] = torch.tensor(self.data[s].theta)
-
-          #   if self.ntor[s]>0:
-          #      self.s_ijk[s] = torch.tensor(self.data[s].s_ijk)
-          #      self.s_jkl[s] = torch.tensor(self.data[s].s_jkl)
-          #      self.w[s]     = torch.tensor(self.data[s].w)
-          #      self.cos_w[s] = torch.tensor(self.data[s].cos_w)
-          #      self.cos2w[s] = torch.tensor(self.data[s].cos2w)
-             #self.cos3w[s]= torch.tensor(self.data[s].cos3w)
           if s_ in self.estruc:
              self.estruc[s] = self.estruc[s_]
           else:
