@@ -946,6 +946,7 @@ class ReaxFF_nn_force(nn.Module):
                      'val8','val9','val10',
                      'tor3','tor4','cot2','coa4','ovun4',
                      'ovun3','val8','coa3','pen2','pen3','pen4',
+                     'acut',
                      'vdw1']
       self.p_spec = ['valang','valboc','val','vale',
                      'lp2','ovun5','val3','val5',        # ,'boc3','boc4','boc5'
