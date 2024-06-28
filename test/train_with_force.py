@@ -39,6 +39,10 @@ for step in range(iter_num):
     E,F = rn()
     loss = rn.get_loss()
     optimizer.zero_grad()
+
+    if step%1000==0:
+       rn.save_ffield('ffield_{:d}.json'.format(step))
+       
     loss.backward(retain_graph=True)
     optimizer.step()
 
