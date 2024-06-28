@@ -938,7 +938,7 @@ class ReaxFF_nn_force(nn.Module):
       self.punit  = ['Desi','Depi','Depp','lp2','ovun5','val1',
                      'coa1','V1','V2','V3','cot1','pen1','Devdw','Dehb']
       ##  All Parameters
-      self.p_bond = ['Desi','Depi','Depp','ovun1',
+      self.p_bond = ['Desi','ovun1',                             # 'Depi','Depp',
                      'bo3','bo4','bo1','bo2','bo5','bo6',        # 'be2','be1',
                      'Devdw','rvdw','alfa','rosi','ropi','ropp'] # 'corr13','ovcorr'
                      
