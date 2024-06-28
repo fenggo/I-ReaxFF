@@ -1162,6 +1162,8 @@ class ReaxFF_nn_force(nn.Module):
           for key in ['Devdw','alfa','rvdw']:
               pmask = {}
               for bd in self.bonds:
+                  if len(self.vb_i[st][bd])==0:
+                     continue
                   pmask = np.zeros([1,self.natom[st],self.natom[st]])
                   pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
                   pmask_tensor = torch.tensor(pmask,device=self.device)
