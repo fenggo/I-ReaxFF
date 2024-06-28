@@ -1148,19 +1148,27 @@ class ReaxFF_nn_force(nn.Module):
                   else:
                      self.vb_j[st][bd] = [j] 
           for key in ['gamma','gammaw']:
-              self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
+              # self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
               for sp in self.spec:
-                  self.P[st][key][:,self.s[st][sp]] = self.p[key+'_'+sp]#*torch.ones(1,self.ns[st][sp])
-          # print('P device\n',self.P[st][key].device)
+                  pmask = np.zeros([1,self.natom[st]])
+                  pmask[:,self.s[st][sp]] = 1.0
+                  pmask_tensor = torch.tensor(pmask,device=self.device)
+                  if key not in self.P[st]:
+                     self.P[st][key] = self.p[key+'_'+sp]*pmask_tensor
+                  else:
+                     self.P[st][key] = self.P[st][key] + self.p[key+'_'+sp]*pmask_tensor
+                  # self.P[st][key][:,self.s[st][sp]] = self.p[key+'_'+sp] 
 
           for key in ['Devdw','alfa','rvdw']:
-              self.P[st][key] = torch.zeros(1,self.natom[st],self.natom[st],device=self.device)
-              for bd in self.bonds:
-                  if self.vb_i[st].get(bd):
-                     self.P[st][key][:,self.vb_i[st][bd],self.vb_j[st][bd]] = self.p[key+'_'+bd]
-          # mask             
-          # self.d1  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=0))
-          # self.d2  = torch.tensor(np.triu(np.ones([self.natom,self.natom],dtype=np.float64),k=1))
+              pmask = {}
+              for bd in self.bond:
+                  pmask = np.zeros([1,self.natom[st],self.natom[st]])
+                  pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
+                  pmask_tensor = torch.tensor(pmask,device=self.device)
+                  if key not in self.P[st]:
+                     self.P[st][key] = self.p[key+'_'+bd]*pmask_tensor
+                  else:
+                     self.P[st][key] = self.P[st][key] + pmask_tensor
 
   def get_data(self): 
       self.nframe      = 0
