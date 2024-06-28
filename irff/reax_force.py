@@ -1398,14 +1398,16 @@ class ReaxFF_nn_force(nn.Module):
           self.forward()
           loss = self.get_loss()
           optimizer.zero_grad()
-          loss.backward(retain_graph=True)
-          optimizer.step()
         
           if i%10==0:
              print( "{:8d} loss: {:10.5f}   energy: {:10.5f}   force: {:10.5f}".format(i,
                     loss.item(),self.loss_e.item(),self.loss_f.item()))
           if i%1000==0:
              self.save_ffield('ffield_{:d}.json'.format(i))
+          
+          loss.backward(retain_graph=True)
+          optimizer.step()
+          
       self.save_ffield('ffield.json')
 
   def save_ffield(self,ffield='ffield.json'):
