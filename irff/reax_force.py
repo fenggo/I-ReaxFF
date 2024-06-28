@@ -142,7 +142,9 @@ class ReaxFF_nn_force(nn.Module):
       self.mfopt        = mfopt
       self.beopt        = beopt
       self.eaopt        = eaopt
-      self.cons         = cons
+      self.cons         = ['val','vale','valang','vale','valboc','lp3','gamma',
+                           'cutoff','hbtol']
+      self.cons.extend(cons)
       self.weight_force = weight_force
       self.weight_energy= weight_energy
       self.mf_layer     = mf_layer
@@ -1388,30 +1390,53 @@ class ReaxFF_nn_force(nn.Module):
       self.ecoul,self.Ecoul             = {},{}
       self.ehb                          = {}
 
+  def run(self,step=1000):
+      optimizer = torch.optim.Adam(self.parameters(), lr=0.0001 )
+      for i in range(step):
+          self.forward()
+          loss = self.get_loss()
+          optimizer.zero_grad()
+          loss.backward(retain_graph=True)
+          optimizer.step()
+        
+          if i%10==0:
+             print( "{:8d} loss: {:10.5f}   energy: {:10.5f}   force: {:10.5f}".format(i,
+                    loss.item(),self.loss_e.item(),self.loss_f.item()))
+          if i%1000==0:
+             self.save_ffield('ffield_{:d}.json'.format(i))
+      self.save_ffield('ffield.json')
+
   def save_ffield(self,ffield='ffield.json'):
+      # print('save parameter file ...')
       for key in self.estruc:
           k = key.split('-')[0]
           self.MolEnergy_[k] = self.estruc[k].item()
 
       for k in self.p:
           key = k.split('_')[0]
+          unit = self.unit if key in self.punit else 1.0
           if key in ['V1','V2','V3','tor1','cot1']:
              k_ = k.split('_')[1]
              if k_ not in self.torp:
                 continue
-          # if k in self.ea_var:
-          #    self.p_[k] = self.ea_var[k]
-          # else:
-          if key in self.punit:
-             self.p_[k] = float(self.p[k].item()/self.unit)
-          else:
-             self.p_[k] = float(self.p[k].item())
-          
-          if key in self.p_offd:
+             self.p_[k] = float(self.p[k].item()/unit)
+          elif key in self.p_offd:
              b = k.split('_')[1]
              s = b.split('-')
              if s[0]==s[1]:
-                self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]]
+                self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]] = float(self.p[k].item()/unit)
+             else:
+                self.p_[k] = float(self.p[k].item()/unit)
+          else:
+             self.p_[k] = float(self.p[k].item()/unit)
+        # if k in self.ea_var:
+        #    self.p_[k] = self.ea_var[k]
+        # else:
+        #    if key in self.p_offd:
+        #       b = k.split('_')[1]
+        #       s = b.split('-')
+        #       if s[0]==s[1]:
+        #          self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]]
 
       loss  = self.loss_e.item() + self.loss_f.item()
       score = loss if loss is None else -loss
