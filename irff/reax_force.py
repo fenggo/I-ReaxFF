@@ -1147,6 +1147,7 @@ class ReaxFF_nn_force(nn.Module):
                      self.vb_j[st][bd].append(j)
                   else:
                      self.vb_j[st][bd] = [j] 
+                     
           for key in ['gamma','gammaw']:
               # self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
               for sp in self.spec:
