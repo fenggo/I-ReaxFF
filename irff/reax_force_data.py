@@ -336,7 +336,7 @@ class reax_force_data(object):
           bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
           bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
       
-      atol      = self.p['acut']*0.96
+      atol      = self.p['acut']*0.95
       self.bo   = bosi+bopi+bopp
       self.fbo  = taper(self.bo,rmin=atol,rmax=2.0*atol) 
       # print('\n- fbo -\n',self.fbo)

@@ -993,7 +993,7 @@ class ReaxFF_nn_force(nn.Module):
           self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
                                      requires_grad=grad)
       # self.atol         = torch.clamp(self.p['acut'],min=self.p_['acut']*0.96)        # atol
-      self.p['acut'].data = torch.clamp(self.p['acut'].data,min=self.p_['acut']*0.96)
+      self.p['acut'].data = torch.clamp(self.p['acut'].data,min=self.p_['acut']*0.95,min=self.p_['acut']*1.05)
 
       for key in self.p_spec:
           unit_ = self.unit if key in self.punit else 1.0
