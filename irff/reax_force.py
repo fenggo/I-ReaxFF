@@ -1168,7 +1168,7 @@ class ReaxFF_nn_force(nn.Module):
                   if key not in self.P[st]:
                      self.P[st][key] = self.p[key+'_'+bd]*pmask_tensor
                   else:
-                     self.P[st][key] = self.P[st][key] + pmask_tensor
+                     self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*pmask_tensor
 
   def get_data(self): 
       self.nframe      = 0
