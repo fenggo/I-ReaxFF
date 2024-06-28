@@ -1430,7 +1430,8 @@ class ReaxFF_nn_force(nn.Module):
              b = k.split('_')[1]
              s = b.split('-')
              if s[0]==s[1]:
-                self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]] = value
+                self.p_[key+'_'+s[0]]          = value
+                self.p_[key+'_'+s[0]+'-'+s[1]] = value
              else:
                 self.p_[k] = value
           else:
