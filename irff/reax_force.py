@@ -982,7 +982,7 @@ class ReaxFF_nn_force(nn.Module):
       #self.atol        = torch.tensor(self.p_['acut'],device=self.device)        # atol
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device)       # hbtol
       
-      # self.check_offd()
+      self.check_offd()
       self.check_hb()
       self.tors = self.check_tors(self.p_tor)
       self.get_rcbo()
