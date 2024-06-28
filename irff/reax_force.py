@@ -1419,35 +1419,25 @@ class ReaxFF_nn_force(nn.Module):
       for k in self.p:
           key   = k.split('_')[0]
           unit  = self.unit if key in self.punit else 1.0
-          # value = float(self.p[k].item()/unit)
+          value = float(self.p[k].item()/unit)
           # print(k,' = ',value)
           if key in ['V1','V2','V3','tor1','cot1']:
              k_ = k.split('_')[1]
              if k_ not in self.torp:
                 continue
+              
+          if key in self.p_offd:
+             b = k.split('_')[1]
+             s = b.split('-')
+             if s[0]==s[1]:
+                self.p_[key+'_'+s[0]] = value
              self.p_[k] = value
-          if key in self.punit:
-             self.p_[k] = float(self.p[k].item()/self.unit)
           else:
-             self.p_[k] = float(self.p[k].item())
-        #   if key in self.p_offd:
-        #      b = k.split('_')[1]
-        #      s = b.split('-')
-        #      if s[0]==s[1]:
-        #         self.p_[key+'_'+s[0]]          = value
-        #         self.p_[key+'_'+s[0]+'-'+s[1]] = value
-        #      else:
-        #         self.p_[k] = value
-        #   else:
-        #      self.p_[k] = value
+             self.p_[k] = value
         # if k in self.ea_var:
         #    self.p_[k] = self.ea_var[k]
         # else:
-        #    if key in self.p_offd:
-        #       b = k.split('_')[1]
-        #       s = b.split('-')
-        #       if s[0]==s[1]:
-        #          self.p_[key+'_'+s[0]] = self.p_[key+'_'+s[0]+'-'+s[1]]
+
 
       loss  = self.loss_e.item() + self.loss_f.item()
       score = loss if loss is None else -loss
