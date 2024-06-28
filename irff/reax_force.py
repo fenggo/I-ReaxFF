@@ -346,7 +346,7 @@ class ReaxFF_nn_force(nn.Module):
       self.bopi[st]   = self.Hpi[st][-1]
       self.bopp[st]   = self.Hpp[st][-1]
 
-      self.bo[st]     = torch.relu(self.bo0[st] - self.p['acut'])
+      self.bo[st]     = torch.relu(self.bo0[st] - self.atol)
 
       bso             = []
       bo0             = self.bo0[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -366,7 +366,7 @@ class ReaxFF_nn_force(nn.Module):
       self.Delta_pi[st]= self.bopi[st]+self.bopp[st]
       self.delta_pi[st]= torch.sum(self.Delta_pi[st],2) 
 
-      self.fbot[st]   = taper(self.bo0[st],rmin=self.p['acut'],rmax=2.0*self.p['acut']) 
+      self.fbot[st]   = taper(self.bo0[st],rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
   def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
@@ -773,7 +773,7 @@ class ReaxFF_nn_force(nn.Module):
       return f_11
 
   def get_four_conj(self,tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl):
-      exptol= torch.exp(-self.p['cot2']*torch.square(self.p['acut'] - 1.5))
+      exptol= torch.exp(-self.p['cot2']*torch.square(self.atol - 1.5))
       expij = torch.exp(-self.p['cot2']*torch.square(boij-1.5))-exptol
       expjk = torch.exp(-self.p['cot2']*torch.square(bojk-1.5))-exptol 
       expkl = torch.exp(-self.p['cot2']*torch.square(bokl-1.5))-exptol
@@ -979,7 +979,6 @@ class ReaxFF_nn_force(nn.Module):
                 self.opt.append(key)
 
       self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device)
-      #self.atol        = torch.tensor(self.p_['acut'],device=self.device)        # atol
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device)       # hbtol
       
       self.check_offd()
@@ -993,6 +992,8 @@ class ReaxFF_nn_force(nn.Module):
           grad = True if key in self.opt else False
           self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
                                      requires_grad=grad)
+      self.atol         = torch.clamp(self.p['acut'],min=self.p_['acut']*0.96)        # atol
+
       for key in self.p_spec:
           unit_ = self.unit if key in self.punit else 1.0
           for sp in self.spec:
