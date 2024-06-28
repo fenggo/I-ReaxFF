@@ -1161,7 +1161,7 @@ class ReaxFF_nn_force(nn.Module):
 
           for key in ['Devdw','alfa','rvdw']:
               pmask = {}
-              for bd in self.bond:
+              for bd in self.bonds:
                   pmask = np.zeros([1,self.natom[st],self.natom[st]])
                   pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
                   pmask_tensor = torch.tensor(pmask,device=self.device)
@@ -1445,7 +1445,6 @@ class ReaxFF_nn_force(nn.Module):
         # if k in self.ea_var:
         #    self.p_[k] = self.ea_var[k]
         # else:
-
 
       loss  = self.loss_e.item() + self.loss_f.item()
       score = loss if loss is None else -loss
