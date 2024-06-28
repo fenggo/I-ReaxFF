@@ -808,11 +808,11 @@ class ReaxFF_nn_force(nn.Module):
       self.cell1[st] = torch.unsqueeze(cell1,1)
       self.cell2[st] = torch.unsqueeze(cell2,1)
 
-      for key in ['gamma','gammaw']
+      for key in ['gamma','gammaw']:
           self.P[st][key] =0.0 
           for sp in self.spec: 
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+sp]*self.pmask[st][key][sp]
-      for key in ['Devdw','alfa','rvdw']
+      for key in ['Devdw','alfa','rvdw']:
           self.P[st][key] =0.0 
           for bd in self.bonds:
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][key][bd]
