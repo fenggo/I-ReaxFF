@@ -10,6 +10,9 @@ install with commond
   "python setup install --user"
 or with command
 
+*  version 1.7.0 
+  Force learning with TensorFlow.
+
 *  version 1.6.2 
   Bus fixes.
 
@@ -21,7 +24,7 @@ or with command
 '''
 
 
-__version__ = '1.6.3'
+__version__ = '1.7.0'
 install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko','argh','scikit-learn','cython']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
