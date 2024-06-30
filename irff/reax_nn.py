@@ -298,6 +298,9 @@ class ReaxFF_nn(object):
       self.data                        = {}
       self.estruc                      = {}
       self.pmask                       = {}
+      self.cell                        = {}
+      self.rcell                       = {}
+      self.eye                         = {}
       for s in strucs:
           s_ = s.split('-')[0]
           self.natom[s]    = strucs[s].natom
@@ -368,7 +371,7 @@ class ReaxFF_nn(object):
              pmask = np.zeros([1,self.natom[s],self.natom[s]])
              pmask[:,self.vb_i[s][bd],self.vb_j[s][bd]] = 1.0
              self.pmask[s][bd] = tf.constant(pmask,name='pmask_{:s}_{:s}'.format(s,bd))
-             
+
           self.cell[s]  = tf.constant(np.expand_dims(self.data[s].cell,axis=1),name='cell_{:s}'.format(s))
           self.rcell[s] = tf.constant(np.expand_dims(self.data[s].rcell,axis=1),name='rcell_{:s}'.format(s))
           self.eye[s]   = tf.constant(np.expand_dims(1.0 - np.eye(self.natom[s]),axis=0),name='eye_{:s}'.format(s))
