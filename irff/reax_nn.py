@@ -265,10 +265,13 @@ class ReaxFF_nn(object):
       self.initialized = True
       return strucs
 
-  def generate_data(self,molecules):
+  def generate_data(self,strucs):
       ''' get data '''
-      self.blist,self.bdid             = {},{}
-      self.dilink,self.djlink          = {},{}
+      self.dft_energy                  = {}
+      self.dft_forces                  = {}
+      self.q                           = {}
+      self.bdid                        = {}
+      # self.dilink,self.djlink          = {},{}
       self.nbd,self.b,self.a,self.t    = {},{},{},{}
       self.ang_i,self.ang_j,self.ang_k = {},{},{}
       self.abij,self.abjk              = {},{}
@@ -277,62 +280,91 @@ class ReaxFF_nn(object):
       self.tor_i,self.tor_l            = {},{}
       self.atom_name                   = {}
       self.natom                       = {}
+      self.nang                        = {}
+      self.ntor                        = {}
       self.ns                          = {}
       self.s                           = {s:[] for s in self.spec}
       self.nv                          = {}
       self.na                          = {}
       self.nt                          = {}
-      self.nh                          = {}
+      self.nhb                         = {}
       self.v                           = {}
       self.h                           = {}
-      self.hij                         = {}
+      self.hb_i                        = {}
+      self.hb_j                        = {}
+      self.hb_k                        = {}
       self.data                        = {}
-      for m in molecules:
-          self.natom[m]    = molecules[m].natom
-          self.blist[m]    = molecules[m].blist
-          self.dilink[m]   = molecules[m].dilink
-          self.djlink[m]   = molecules[m].djlink
+      self.estruc                      = {}
+      for s in strucs:
+          s_ = s.split('-')[0]
+          self.natom[s]    = strucs[s].natom
+          self.nang[s]     = strucs[s].nang
+          self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
+          self.ang_i[s]    = np.expand_dims(strucs[s].ang_i,axis=1)
+          self.ang_k[s]    = np.expand_dims(strucs[s].ang_k,axis=1)
+
+          self.ntor[s]     = strucs[s].ntor
+          self.tor_i[s]    = np.expand_dims(strucs[s].tor_i,axis=1)
+          self.tor_j[s]    = np.expand_dims(strucs[s].tor_j,axis=1)
+          self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
+          self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
+
+          self.hb_i[s]     = strucs[s].hb_i
+          self.hb_j[s]     = strucs[s].hb_j
+          self.hb_k[s]     = strucs[s].hb_k
+
+          self.nbd[s]      = strucs[s].nbd
+          self.na[s]       = strucs[s].na
+          self.nt[s]       = strucs[s].nt
+          # self.nv[s]     = strucs[s].nv
+          self.nhb[s]      = strucs[s].nhb
+          self.b[s]        = strucs[s].B
+          self.a[s]        = strucs[s].A
+          self.t[s]        = strucs[s].T
+
+          self.bdid[s]     = strucs[s].bond  # bond index like pair (i,j).
+          self.atom_name[s]= strucs[s].atom_name
           
-          self.ang_j[m]    = np.expand_dims(molecules[m].ang_j,axis=1)
-          self.ang_i[m]    = np.expand_dims(molecules[m].ang_i,axis=1)
-          self.ang_k[m]    = np.expand_dims(molecules[m].ang_k,axis=1)
-          self.abij[m]     = molecules[m].abij
-          self.abjk[m]     = molecules[m].abjk
+          self.s[s]        = {sp:[] for sp in self.spec}
+          for i,sp in enumerate(self.atom_name[s]):
+              self.s[s][sp].append(i)
+          self.ns[s]       = {sp:len(self.s[s][sp]) for sp in self.spec}
 
-          self.tij[m]      = molecules[m].tij
-          self.tjk[m]      = molecules[m].tjk
-          self.tkl[m]      = molecules[m].tkl
-          
-          self.tor_i[m]    = np.expand_dims(molecules[m].tor_i,axis=1)
-          self.tor_j[m]    = np.expand_dims(molecules[m].tor_j,axis=1)
-          self.tor_k[m]    = np.expand_dims(molecules[m].tor_k,axis=1)
-          self.tor_l[m]    = np.expand_dims(molecules[m].tor_l,axis=1)
+          self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
+                                     x=strucs[s].x,
+                                     cell=strucs[s].cell,
+                                     rcell=strucs[s].rcell,
+                                     forces=strucs[s].forces,
+                                     q=strucs[s].qij)
 
-          self.nbd[m]      = molecules[m].nbd
-          self.na[m]       = molecules[m].na
-          self.nt[m]       = molecules[m].nt
-          self.nv[m]       = molecules[m].nv
-          self.b[m]        = molecules[m].B
-          self.a[m]        = molecules[m].A
-          self.t[m]        = molecules[m].T
-          self.v[m]        = molecules[m].V
-          self.nh[m]       = molecules[m].nh
-          self.h[m]        = molecules[m].H
-          self.hij[m]      = molecules[m].hij
-          self.bdid[m]     = molecules[m].bond  # bond index like pair (i,j).
-          self.atom_name[m]= molecules[m].atom_name
+          self.vb_i[s]  = {}
+          self.vb_j[s]  = {}
+          for i in range(self.natom[s]):
+              for j in range(self.natom[s]):
+                  bd = self.atom_name[s][i]+'-'+self.atom_name[s][j]
+                  if bd not in self.bonds:
+                     bd = self.atom_name[s][j]+'-'+self.atom_name[s][i]
+                  if bd in self.vb_i[s]:
+                     self.vb_i[s][bd].append(i)
+                  else:
+                     self.vb_i[s][bd] = [i] 
+                  if bd in self.vb_j[s]:
+                     self.vb_j[s][bd].append(j)
+                  else:
+                     self.vb_j[s][bd] = [j] 
 
-          self.s[m]        = {sp:[] for sp in self.spec}
-          for i,sp in enumerate(self.atom_name[m]):
-              self.s[m][sp].append(i)
-          self.ns[m]       = {sp:len(self.s[m][sp]) for sp in self.spec}
+          self.pmask[s] = {}
+          for sp in self.spec:
+             pmask = np.zeros([1,self.natom[s]])
+             pmask[:,self.s[s][sp]] = 1.0
+             self.pmask[s][sp] = tf.constant(pmask)
 
-          self.data[m]     = Dataset(dft_energy=molecules[m].energy_dft,
-                                     x=molecules[m].x,
-                                     cell=molecules[m].cell,
-                                     rcell=molecules[m].rcell,
-                                     forces=molecules[m].forces,
-                                     q=molecules[m].qij)
+          for bd in self.bonds:
+             if len(self.vb_i[s][bd])==0:
+                continue
+             pmask = np.zeros([1,self.natom[s],self.natom[s]])
+             pmask[:,self.vb_i[s][bd],self.vb_j[s][bd]] = 1.0
+             self.pmask[s][bd] = tf.constant(pmask,name='pmask_{:s}_{:s}'.format(s,bd))
 
   def memory(self,molecules):
       self.frc = {}
@@ -355,16 +387,12 @@ class ReaxFF_nn(object):
       self.rbd_  = {}
       self.Dbi   = {}
       self.Dbj   = {}
-      #self.bop_ = {}
-      #self.bo0_ = {}
-      for mol in self.mols:
-          self.esi[mol]   = {}
-          self.ebd[mol]   = {}
-          self.rbd_[mol]  = {}
-          self.Dbi[mol]   = {}
-          self.Dbj[mol]   = {}
-          #self.bop_[mol]  = {}
-          #self.bo0_[mol]  = {}
+      for st in self.strcs:
+          self.esi[st]   = {}
+          self.ebd[st]   = {}
+          self.rbd_[st]  = {}
+          self.Dbi[st]   = {}
+          self.Dbj[st]   = {}
 
       self.Delta_e,self.DE,self.Delta_lp,self.Dlp,self.Dang  = {},{},{},{},{}
       self.Bpi,self.Dpi,self.Dpil,self.BSO,self.BOpi,self.Delta_lpcorr = {},{},{},{},{},{}
@@ -405,7 +433,7 @@ class ReaxFF_nn(object):
       self.rhb,self.frhb,self.hbthe = {},{},{}
       self.nang,self.ntor,self.nhb  = {},{},{}
 
-      for mol in self.mols:
+      for mol in self.strcs:
           self.dft_energy[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol]],
                                                 name='DFT_energy_%s' %mol)
 
@@ -448,7 +476,7 @@ class ReaxFF_nn(object):
       print('-  building graph: ')
       self.accuracy   = tf.constant(0.0,name='accuracy')
       self.accuracies = {}
-      for mol in self.mols:
+      for mol in self.strcs:
           self.get_bond_energy(mol)
           self.get_atom_energy(mol)
          #  self.get_threebody_energy(mol)
@@ -475,25 +503,6 @@ class ReaxFF_nn(object):
                            # self.ehb[mol]   +
                            self.eself[mol], 
                            self.zpe[mol],name='E_%s' %mol)   
-
-  def get_delta(self,mol):
-      ''' compute the uncorrected Delta: the sum of BO '''
-      BOP    = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
-      BOP_si = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
-      BOP_pi = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
-      BOP_pp = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
-      self.get_bondorder_uc(mol)
-
-      BOP              = tf.concat([BOP,self.bop[mol]],0)
-      BOP_si           = tf.concat([BOP,self.bop_si[mol]],0)
-      BOP_pi           = tf.concat([BOP,self.bop_pi[mol]],0)
-      BOP_pp           = tf.concat([BOP,self.bop_pp[mol]],0)
-
-      self.Bp[mol]     = tf.gather_nd(BOP,self.blist[mol])
-      self.Deltap[mol] = tf.reduce_sum(input_tensor=self.Bp[mol],axis=1,name='Deltap')
-      self.D_si[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_si,self.blist[mol]),axis=1,name='Deltap_si')]
-      self.D_pi[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pi,self.blist[mol]),axis=1,name='Deltap_pi')]
-      self.D_pp[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pp,self.blist[mol]),axis=1,name='Deltap_pp')]
 
   def get_bond_energy(self,st):
       ''' get bond-energy of structure: st '''
@@ -1027,7 +1036,7 @@ class ReaxFF_nn(object):
       if self.MolEnergy_ is None:
          self.MolEnergy_ = {}
 
-      for mol in self.mols:
+      for mol in self.strcs:
           mols = mol.split('-')[0] 
           if mols not in self.MolEnergy:
              if mols in self.MolEnergy_:
@@ -1044,7 +1053,7 @@ class ReaxFF_nn(object):
   def get_loss(self):
       ''' return the losses of the model '''
       self.Loss = 0.0
-      for mol in self.mols:
+      for mol in self.strcs:
           mol_ = mol.split('-')[0]
           if mol in self.weight:
              w_ = self.weight[mol]
@@ -1082,7 +1091,7 @@ class ReaxFF_nn(object):
              self.nmol -= 1
 
       self.ME   = 0.0
-      for mol in self.mols:
+      for mol in self.strcs:
           mol_     = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mol_])
 
@@ -1264,39 +1273,6 @@ class ReaxFF_nn(object):
          for k in self.var:
              key       = k.split('_')[0]
              self.p[k] = self.var[k]
-
-      self.pmask = {}
-      self.vb_i  = {}
-      self.vb_j  = {}
-      for st in self.mols:
-          self.vb_i[st]  = {}
-          self.vb_j[st]  = {}
-          for i in range(self.natom[st]):
-              for j in range(self.natom[st]):
-                  bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
-                  if bd not in self.bonds:
-                     bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
-                  if bd in self.vb_i[st]:
-                     self.vb_i[st][bd].append(i)
-                  else:
-                     self.vb_i[st][bd] = [i] 
-                  if bd in self.vb_j[st]:
-                     self.vb_j[st][bd].append(j)
-                  else:
-                     self.vb_j[st][bd] = [j] 
-
-          self.pmask[st] = {}
-          for sp in self.spec:
-             pmask = np.zeros([1,self.natom[st]])
-             pmask[:,self.s[st][sp]] = 1.0
-             self.pmask[st][sp] = tf.constant(pmask)
-
-          for bd in self.bonds:
-             if len(self.vb_i[st][bd])==0:
-                continue
-             pmask = np.zeros([1,self.natom[st],self.natom[st]])
-             pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
-             self.pmask[st][bd] = tf.constant(pmask,device=self.device)
 
       self.botol       = 0.01*self.p['cutoff']
       self.atol        = self.p['acut']
@@ -1528,7 +1504,7 @@ class ReaxFF_nn(object):
                    self.feed_dict[self.var[key]] = p_
                    self.ea_var[key]              = p[key]
       
-      for mol in self.mols:
+      for mol in self.strcs:
           mol_ = mol.split('-')[0]
           if reset_emol: self.MolEnergy_[mol_] = 0.0
           emol_ = 0.0 if mol_ not in self.MolEnergy_  else self.MolEnergy_[mol_]
@@ -1656,7 +1632,7 @@ class ReaxFF_nn(object):
 
   def feed_data(self):
       feed_dict = {}
-      for mol in self.mols:
+      for mol in self.strcs:
           feed_dict[self.dft_energy[mol]] = self.data[mol].dft_energy
           # feed_dict[self.rbd[mol]] = self.data[mol].rbd
           feed_dict[self.rv[mol]]  = self.data[mol].rv
@@ -1873,7 +1849,7 @@ class ReaxFF_nn(object):
           self.penalty_bo_rcut[bd] = tf.constant(0.0)
           self.penalty_bo[bd]      = tf.constant(0.0)
 
-          for mol in self.mols:
+          for mol in self.strcs:
               if self.nbd[mol][bd]>0:       
                  b_   = self.b[mol][bd]
                  #rbd_= tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])        
@@ -1982,7 +1958,7 @@ class ReaxFF_nn(object):
       # print('\n------------------------------------------------------------------------')
       # print('-                 -  Energy Components Information  -                  -')
       # print('------------------------------------------------------------------------\n')
-      # for mol in self.mols:
+      # for mol in self.strcs:
       #     print('Max Bond-Order of {:s} {:f}'.format(mol,np.max(bo[mol])))
       #     print('Max Bond Energy of {:s} {:f}'.format(mol,max(ebond[mol])))
       #     print('Max Angle Energy of {:s} {:f}'.format(mol,max(eang[mol])))
@@ -1993,7 +1969,7 @@ class ReaxFF_nn(object):
          makedirs('results')
       Y,Yp = [],[]
       
-      for mol in self.mols:
+      for mol in self.strcs:
           maxe = self.max_e[mol]
           x  = np.linspace(0,self.batch[mol],self.batch[mol])
           plt.figure()
