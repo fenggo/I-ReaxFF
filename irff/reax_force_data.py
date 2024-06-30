@@ -757,11 +757,11 @@ class reax_force_data(object):
              # print('-  ignoring the forces as are not available.')
           forces.append(force_)
           energy_dft.append(e)
-      self.energy_dft = np.array(energy_dft)
-      self.x         = np.array(x)
-      self.cell      = np.array(cell)
-      self.rcell     = np.array(rcell)
-                       # Inverted lattice vector
+      self.energy_dft = np.array(energy_dft,dtype=np.float32)
+      self.x         = np.array(x,dtype=np.float32)
+      self.cell      = np.array(cell,dtype=np.float32)
+      self.rcell     = np.array(rcell,dtype=np.float32)   # Inverted lattice vector
+      
       if force_has_none:
          self.forces = None
       else:
