@@ -157,7 +157,7 @@ class ReaxFF_nn(object):
       self.fixrcbo       = fixrcbo
       self.m_,self.m     = None,None
       self.safety_value  = 0.00000001
-      
+
       self.rcut,self.rcuta,self.re = self.read_lib()
       self.set_rcut(self.rcut,self.rcuta,self.re)
 
@@ -443,7 +443,7 @@ class ReaxFF_nn(object):
       self.s_ijk,self.s_jkl,self.cos_w,self.cos2w,self.w={},{},{},{},{}
       self.rhb,self.frhb,self.hbthe = {},{},{}
       self.nang,self.ntor,self.nhb  = {},{},{}
-      self.x,self.vr                = {},{}
+      self.x,self.vr,self.r         = {},{},{}
       for mol in self.strcs:
           self.dft_energy[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol]],
                                                 name='DFT_energy_%s' %mol)
