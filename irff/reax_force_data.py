@@ -744,7 +744,7 @@ class reax_force_data(object):
           else:
              e  = imag.get_potential_energy()
           cell_ = imag.get_cell()
-          rcell_= np.linalg.inv(cell_,dtype=np.float32)
+          rcell_= np.linalg.inv(cell_)
           cell.append(cell_)
           rcell.append(rcell_)
 
