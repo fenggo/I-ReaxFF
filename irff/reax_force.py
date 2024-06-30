@@ -811,11 +811,11 @@ class ReaxFF_nn_force(nn.Module):
       for key in ['gamma','gammaw']:
           self.P[st][key] =0.0 
           for sp in self.spec: 
-              self.P[st][key] = self.P[st][key] + self.p[key+'_'+sp]*self.pmask[st][key][sp]
+              self.P[st][key] = self.P[st][key] + self.p[key+'_'+sp]*self.pmask[st][sp]
       for key in ['Devdw','alfa','rvdw']:
           self.P[st][key] =0.0 
           for bd in self.bonds:
-              self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][key][bd]
+              self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
 
       for i in range(-1,2):
           for j in range(-1,2):
@@ -1141,7 +1141,6 @@ class ReaxFF_nn_force(nn.Module):
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0),
                                         device=self.device)
           self.P[st]     = {}
-          self.pmask[st] = {}
           self.vb_i[st]  = {}
           self.vb_j[st]  = {}
 
@@ -1159,22 +1158,22 @@ class ReaxFF_nn_force(nn.Module):
                   else:
                      self.vb_j[st][bd] = [j] 
                      
-          for key in ['gamma','gammaw']:
-              # self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
-              self.pmask[st][key] = {}
-              for sp in self.spec:
-                  pmask = np.zeros([1,self.natom[st]])
-                  pmask[:,self.s[st][sp]] = 1.0
-                  self.pmask[st][key][sp] = torch.tensor(pmask,device=self.device)
+          # for key in ['gamma','gammaw']:
+          # self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
+          self.pmask[st] = {}
+          for sp in self.spec:
+              pmask = np.zeros([1,self.natom[st]])
+              pmask[:,self.s[st][sp]] = 1.0
+              self.pmask[st][sp] = torch.tensor(pmask,device=self.device)
 
-          for key in ['Devdw','alfa','rvdw']:
-              self.pmask[st][key] = {}
-              for bd in self.bonds:
-                  if len(self.vb_i[st][bd])==0:
-                     continue
-                  pmask = np.zeros([1,self.natom[st],self.natom[st]])
-                  pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
-                  self.pmask[st][key][bd] = torch.tensor(pmask,device=self.device)
+          # for key in ['Devdw','alfa','rvdw']:
+          # self.pmask[st][key] = {}
+          for bd in self.bonds:
+              if len(self.vb_i[st][bd])==0:
+                 continue
+              pmask = np.zeros([1,self.natom[st],self.natom[st]])
+              pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
+              self.pmask[st][bd] = torch.tensor(pmask,device=self.device)
                 #   if key not in self.P[st]:
                 #      self.P[st][key] = self.p[key+'_'+bd]*pmask_tensor
                 #   else:
