@@ -442,7 +442,7 @@ class ReaxFF_nn(object):
 
           self.x[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],3],
                                                     name='x_%s' %mol)
-          self.nvb[mol] = molecules[mol].nvb
+         #  self.nvb[mol] = molecules[mol].nvb
          #  self.rv[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[mol],self.batch[mol]],
          #                                           name='rvdw_%s' %mol)
           self.q[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],self.natom[mol]],
