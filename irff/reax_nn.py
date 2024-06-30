@@ -156,7 +156,8 @@ class ReaxFF_nn(object):
       #self.hbtol        = hbtol    # hydrogen-bond bond-order tolerence
       self.fixrcbo       = fixrcbo
       self.m_,self.m     = None,None
-
+      self.safety_value  = 0.00000001
+      
       self.rcut,self.rcuta,self.re = self.read_lib()
       self.set_rcut(self.rcut,self.rcuta,self.re)
 
