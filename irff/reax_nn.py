@@ -435,7 +435,7 @@ class ReaxFF_nn(object):
       self.s_ijk,self.s_jkl,self.cos_w,self.cos2w,self.w={},{},{},{},{}
       self.rhb,self.frhb,self.hbthe = {},{},{}
       self.nang,self.ntor,self.nhb  = {},{},{}
-
+      self.x                        = {}
       for mol in self.strcs:
           self.dft_energy[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol]],
                                                 name='DFT_energy_%s' %mol)
