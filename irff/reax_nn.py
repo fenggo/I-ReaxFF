@@ -5,7 +5,8 @@ import time
 import tensorflow as tf
 import numpy as np
 import json as js
-from .reax_data import reax_data,Dataset
+#from .reax_data import reax_data,Dataset
+from .reax_force_data import reax_force_data,Dataset
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
 from .RadiusCutOff import setRcut
@@ -25,6 +26,12 @@ def find_torsion_angle(atomi,atomj,atomk,atoml,tors):
        return tor2  
     else:
        raise RuntimeError('-  Torsion angle {:s} not find in ffield!'.format(tor1))
+
+def fvr(x):
+    xi  =  tf.expand_dims(x, axis=1)  
+    xj  =  tf.expand_dims(x, axis=2)   
+    vr  = xj - xi
+    return vr
 
 class ReaxFF_nn(object):
   def __init__(self,libfile='ffield',dataset={},
@@ -56,7 +63,6 @@ class ReaxFF_nn(object):
                messages=1,MessageFunction=2,
                bo_layer=None,
                spec=[],
-               board=False,
                lambda_bd=100000.0,
                lambda_pi=1.0,
                lambda_reg=0.01,
@@ -67,7 +73,7 @@ class ReaxFF_nn(object):
                spv_ang=False,
                fixrcbo=False,
                to_train=True,
-               #optMethod='ADAM',
+               screen=True,
                maxstep=60000,
                emse=0.9,
                convergence=0.97,
@@ -98,6 +104,7 @@ class ReaxFF_nn(object):
       self.clip_op       = clip_op
       self.clip          = clip
       self.InitCheck     = InitCheck
+      self.screen        = screen
       self.resetDeadNeuron = resetDeadNeuron
       self.hbshort       = hbshort
       self.hblong        = hblong
@@ -135,7 +142,6 @@ class ReaxFF_nn(object):
       self.spec          = spec
       self.time          = time.time()
       self.interactive   = interactive
-      self.board         = board 
       self.to_train      = to_train
       self.maxstep       = maxstep
       self.emse          = emse
@@ -203,22 +209,20 @@ class ReaxFF_nn(object):
 
   def initialize(self): 
       self.nframe      = 0
-      molecules        = {}
+      strucs           = {}
       self.max_e       = {}
-      # self.cell      = {}
-      self.mols        = []
+      # self.cell        = {}
+      self.strcs       = []
       self.batch       = {}
       self.eself,self.evdw_,self.ecoul_ = {},{},{}
 
-      for mol in self.dataset: 
+      for st in self.dataset: 
           nindex = []
-          for key in molecules:
-              if self.dataset[key]==self.dataset[mol]:
-                 nindex.extend(molecules[key].indexs)
-          data_ = reax_data(structure=mol,
-                                direc=self.dataset[mol],
-                                 # dft=self.dft,
-                                atoms=self.atoms,
+          for key in strucs:
+              if self.dataset[key]==self.dataset[st]:
+                 nindex.extend(strucs[key].indexs)
+          data_ = reax_force_data(structure=st,
+                                 traj=self.dataset[st],
                                vdwcut=self.vdwcut,
                                  rcut=self.rcut,
                                 rcuta=self.rcuta,
@@ -227,37 +231,39 @@ class ReaxFF_nn(object):
                                 batch=self.batch_size,
                        variable_batch=True,
                                sample=self.sample,
+                                    m=self.m_,
+                             mf_layer=self.mf_layer_,
                        p=self.p_,spec=self.spec,bonds=self.bonds,
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
+                               screen=self.screen,
                                nindex=nindex)
 
           if data_.status:
-             self.mols.append(mol)
-             molecules[mol]   = data_
-             self.batch[mol]  = molecules[mol].batch
-             self.nframe     += self.batch[mol]
-             print('-  max energy of %s: %f.' %(mol,molecules[mol].max_e))
-             self.max_e[mol]  = molecules[mol].max_e
-             # self.evdw_[mol]= molecules[mol].evdw
-             self.ecoul_[mol] = molecules[mol].ecoul  
-             self.eself[mol]  = molecules[mol].eself     
-             # self.cell[mol] = molecules[mol].cell
+             self.strcs.append(st)
+             strucs[st]        = data_
+             self.batch[st]    = strucs[st].batch
+             self.nframe      += self.batch[st]
+             print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
+             self.max_e[st]    = strucs[st].max_e
+             # self.evdw_[st]  = strucs[st].evdw
+             # self.ecoul_[st] = strucs[st].ecoul  
+             # self.cell[st]   = strucs[st].cell
           else:
-             print('-  data status of %s:' %mol,data_.status)
-      self.nmol = len(molecules)
+             print('-  data status of %s:' %st,data_.status)
+      self.nmol = len(strucs)
 
-      self.generate_data(molecules)
+      self.generate_data(strucs)
       with tf.compat.v1.name_scope('input'):
-           self.memory(molecules=molecules)
+           self.memory(molecules=strucs)
       print('-  generating dataset ...')
-      self.set_zpe(molecules=molecules)
+      self.set_zpe(molecules=strucs)
 
       self.build_graph()    
       self.feed_dict = self.feed_data()
 
       self.initialized = True
-      return molecules
+      return strucs
 
   def generate_data(self,molecules):
       ''' get data '''
@@ -313,18 +319,12 @@ class ReaxFF_nn(object):
           self.hij[m]      = molecules[m].hij
           self.bdid[m]     = molecules[m].bond  # bond index like pair (i,j).
           self.atom_name[m]= molecules[m].atom_name
-          self.data[m]     = Dataset(molecules[m].energy_nw,
-                                     molecules[m].forces,
-                                     molecules[m].rbd,
-                                     molecules[m].rv,
-                                     molecules[m].qij,
-                                     molecules[m].theta,
-                                     molecules[m].s_ijk,
-                                     molecules[m].s_jkl,
-                                     molecules[m].w,
-                                     molecules[m].rhb,
-                                     molecules[m].frhb,
-                                     molecules[m].hbthe)
+          self.data[m]     = Dataset(dft_energy=molecules[m].energy_dft,
+                                     x=molecules[m].x,
+                                     cell=molecules[m].cell,
+                                     rcell=molecules[m].rcell,
+                                     forces=molecules[m].forces,
+                                     q=molecules[m].qij)
 
   def memory(self,molecules):
       self.frc = {}
@@ -401,39 +401,39 @@ class ReaxFF_nn(object):
           self.dft_energy[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol]],
                                                 name='DFT_energy_%s' %mol)
 
-          self.rbd[mol] = tf.compat.v1.placeholder(tf.float32,shape=[molecules[mol].nbond,self.batch[mol]],
-                                                   name='rbd_%s' %mol)
+          self.x[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],3],
+                                                    name='x_%s' %mol)
           self.nvb[mol] = molecules[mol].nvb
-          self.rv[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[mol],self.batch[mol]],
-                                                   name='rvdw_%s' %mol)
-          self.qij[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[mol],self.batch[mol]],
+         #  self.rv[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[mol],self.batch[mol]],
+         #                                           name='rvdw_%s' %mol)
+          self.q[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],self.natom[mol]],
                                                    name='qij_%s' %mol)
           self.nang[mol] = molecules[mol].nang
-          if self.nang[mol]>0:                             
-             self.theta[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nang[mol],self.batch[mol]],
-                                                     name='theta_%s' %mol)
-          self.ntor[mol] = molecules[mol].ntor
-          if self.ntor[mol]>0:
-             self.s_ijk[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-                                                      name='sijk_%s' %mol)
-             self.s_jkl[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-                                                      name='sjkl_%s' %mol)
-             self.w[mol]     = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-                                             name='w_%s' %mol)
-             self.cos_w[mol] = tf.cos(self.w[mol])
-             self.cos2w[mol] = tf.cos(2.0*self.w[mol])
+         #  if self.nang[mol]>0:                             
+         #     self.theta[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nang[mol],self.batch[mol]],
+         #                                             name='theta_%s' %mol)
+         #  self.ntor[mol] = molecules[mol].ntor
+         #  if self.ntor[mol]>0:
+         #     self.s_ijk[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
+         #                                              name='sijk_%s' %mol)
+         #     self.s_jkl[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
+         #                                              name='sjkl_%s' %mol)
+         #     self.w[mol]     = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
+         #                                     name='w_%s' %mol)
+         #     self.cos_w[mol] = tf.cos(self.w[mol])
+         #     self.cos2w[mol] = tf.cos(2.0*self.w[mol])
 
       
           self.nhb[mol] = molecules[mol].nhb
-          if self.nhb[mol]>0:
-             self.rhb[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-                                            name='rhb_%s' %mol)
-             self.frhb[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-                                            name='frhb_%s' %mol)
-             self.hbthe[mol]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-                                            name='hbthe_%s' %mol)
+         #  if self.nhb[mol]>0:
+         #     self.rhb[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
+         #                                    name='rhb_%s' %mol)
+         #     self.frhb[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
+         #                                    name='frhb_%s' %mol)
+         #     self.hbthe[mol]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
+         #                                    name='hbthe_%s' %mol)
           if self.data[mol].forces is not None:
-             self.forces[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[mol],3,self.batch[mol]],
+             self.forces[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],3],
                                             name='forces_%s' %mol)
 
   def build_graph(self):
@@ -487,12 +487,21 @@ class ReaxFF_nn(object):
       self.D_pi[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pi,self.blist[mol]),axis=1,name='Deltap_pi')]
       self.D_pp[mol]   = [tf.reduce_sum(tf.gather_nd(BOP_pp,self.blist[mol]),axis=1,name='Deltap_pp')]
 
-  def get_bond_energy(self,mol):
-      self.get_delta(mol)
-      self.message_passing(mol)
-      self.get_final_state(mol)
-      self.get_ebond(mol)
-      self.ebond[mol]= tf.reduce_sum(input_tensor=self.EBD[mol],axis=0,name='bondenergy')
+  def get_bond_energy(self,st):
+      ''' get bond-energy of structure: st '''
+      vr          = fvr(self.x[st])
+      vrf         = tf.matmul(vr,self.rcell[st])
+      vrf         = tf.where(vrf-0.5>0,vrf-1.0,vrf)
+      vrf         = tf.where(vrf+0.5<0,vrf+1.0,vrf) 
+      
+      self.vr[st] = tf.matmul(vrf,self.cell[st])
+      self.r[st]  = tf.sqrt(tf.sum(self.vr[st]*self.vr[st],dim=3) + self.safety_value) # 
+      
+      self.get_delta(st)
+      self.message_passing(st)
+      self.get_final_state(st)
+      self.get_ebond(st)
+      self.ebond[st]= tf.reduce_sum(input_tensor=self.EBD[st],axis=0,name='bondenergy')
 
   def get_ebond(self,mol):
       Ebd = []
@@ -514,6 +523,9 @@ class ReaxFF_nn(object):
 
   def get_bondorder_uc(self,mol):
       bop_si,bop_pi,bop_pp = [],[],[]
+      # print(self.r[st])
+      self.rbd[mol] = tf.gather_nd(tf.transpose(self.r[mol],perm=(1,2,0)),self.bdid)
+
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
           if nbd_==0:
@@ -543,11 +555,6 @@ class ReaxFF_nn(object):
       self.bop_pi[mol] = tf.concat(bop_pi,0)
       self.bop_pp[mol] = tf.concat(bop_pp,0)
       self.bop[mol]    = self.bop_si[mol] + self.bop_pi[mol] + self.bop_pp[mol]
-
-  def dbop_dr():
-      ''' derivetiv of bop/dr '''
-      ### TODO
-      return None
       
   def get_bondorder(self,mol,t):
       ''' compute bond-order according the message function '''
@@ -672,30 +679,24 @@ class ReaxFF_nn(object):
       self.fhb[mol]    = taper(self.bo0[mol],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
   def get_atom_energy(self,mol):
-      mol_ = mol.split('-')[0]
-      val_     = []
-      vale_    = []
-      valang_  = []
-      lp2_     = []
-      eatom_   = []
-      ovun2_   = []
-      ovun5_   = []
+      mol_     = mol.split('-')[0]
+      eatom    = 0.0
+      valang   = 0.0 
+      val      = 0.0
+      vale     = 0.0
+      lp2      = 0.0
+      ovun2    = 0.0
+      ovun5    = 0.0
       for sp in self.atom_name[mol]:
-          eatom_.append([-self.p['atomic_'+sp]])  
-          valang_.append([self.p['valang_'+sp]])
-          val_.append([self.p['val_'+sp]])
-          vale_.append([self.p['vale_'+sp]])
-          lp2_.append([self.p['lp2_'+sp]])
-          ovun2_.append([self.p['ovun2_'+sp]])
-          ovun5_.append([self.p['ovun5_'+sp]])
+          eatom  = eatom - self.p['atomic_'+sp]*self.pmask[mol][sp]
+          valang = valang + self.p['valang_'+sp]*self.pmask[mol][sp]
+          val    = val    + self.p['val_'+sp]*self.pmask[mol][sp]
+          vale   = vale   + self.p['vale_'+sp]*self.pmask[mol][sp]
+          lp2    = lp2    + self.p['lp2_'+sp]*self.pmask[mol][sp]
+          ovun2  = ovun2  + self.p['ovun2_'+sp]*self.pmask[mol][sp]
+          ovun5  = ovun5  + self.p['ovun5_'+sp]*self.pmask[mol][sp]
 
-      val              = tf.stack(val_)
-      vale             = tf.stack(vale_)
-      valang           = tf.stack(valang_)
-      lp2              = tf.stack(lp2_)
-      ovun2            = tf.stack(ovun2_)
-      ovun5            = tf.stack(ovun5_)
-      self.eatom[mol]  = tf.stack(eatom_)
+      self.eatom[mol]  = eatom
       self.Dang[mol]   = self.Delta[mol] - valang 
  
       self.get_elone(mol,lp2,val,vale) 
@@ -1243,6 +1244,39 @@ class ReaxFF_nn(object):
              key       = k.split('_')[0]
              self.p[k] = self.var[k]
 
+      self.pmask = {}
+      self.vb_i  = {}
+      self.vb_j  = {}
+      for st in self.mols:
+          self.vb_i[st]  = {}
+          self.vb_j[st]  = {}
+          for i in range(self.natom[st]):
+              for j in range(self.natom[st]):
+                  bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
+                  if bd not in self.bonds:
+                     bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
+                  if bd in self.vb_i[st]:
+                     self.vb_i[st][bd].append(i)
+                  else:
+                     self.vb_i[st][bd] = [i] 
+                  if bd in self.vb_j[st]:
+                     self.vb_j[st][bd].append(j)
+                  else:
+                     self.vb_j[st][bd] = [j] 
+
+          self.pmask[st] = {}
+          for sp in self.spec:
+             pmask = np.zeros([1,self.natom[st]])
+             pmask[:,self.s[st][sp]] = 1.0
+             self.pmask[st][sp] = tf.constant(pmask)
+
+          for bd in self.bonds:
+             if len(self.vb_i[st][bd])==0:
+                continue
+             pmask = np.zeros([1,self.natom[st],self.natom[st]])
+             pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
+             self.pmask[st][bd] = tf.constant(pmask,device=self.device)
+
       self.botol       = 0.01*self.p['cutoff']
       self.atol        = self.p['acut']
       self.hbtol       = self.p['hbtol']
@@ -1416,8 +1450,8 @@ class ReaxFF_nn(object):
       else: 
          self.sess= tf.compat.v1.Session(config=self.config)  
 
-         if self.board:
-            writer = tf.compat.v1.summary.FileWriter("logs/", self.sess.graph)
+         # if self.board:
+         #    writer = tf.compat.v1.summary.FileWriter("logs/", self.sess.graph)
             # see logs using command: tensorboard --logdir logs
 
          if method=='GradientDescentOptimizer':
@@ -1603,7 +1637,7 @@ class ReaxFF_nn(object):
       feed_dict = {}
       for mol in self.mols:
           feed_dict[self.dft_energy[mol]] = self.data[mol].dft_energy
-          feed_dict[self.rbd[mol]] = self.data[mol].rbd
+          # feed_dict[self.rbd[mol]] = self.data[mol].rbd
           feed_dict[self.rv[mol]]  = self.data[mol].rv
           # if self.optword.find('nocoul')<0:
           #    feed_dict[self.qij[mol]] = self.data[mol].qij
@@ -1978,5 +2012,3 @@ class ReaxFF_nn(object):
            print('Edft,Epred',file=fcsv)
            for y,yp in zip(Y,Yp):
                print(y,yp,sep=',',file=fcsv)
-
-   
