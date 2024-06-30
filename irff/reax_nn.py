@@ -297,6 +297,7 @@ class ReaxFF_nn(object):
       self.hb_k                        = {}
       self.data                        = {}
       self.estruc                      = {}
+      self.pmask                       = {}
       for s in strucs:
           s_ = s.split('-')[0]
           self.natom[s]    = strucs[s].natom
