@@ -522,7 +522,7 @@ class ReaxFF_nn(object):
       vrf         = tf.where(vrf+0.5<0,vrf+1.0,vrf) 
       
       self.vr[st] = tf.matmul(vrf,self.cell[st])
-      self.r[st]  = tf.sqrt(tf.sum(self.vr[st]*self.vr[st],dim=3) + self.safety_value) # 
+      self.r[st]  = tf.sqrt(tf.reduce_sum(self.vr[st]*self.vr[st],axis==3) + self.safety_value) # 
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
