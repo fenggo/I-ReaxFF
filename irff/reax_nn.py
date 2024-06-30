@@ -278,6 +278,8 @@ class ReaxFF_nn(object):
       self.tij,self.tjk,self.tkl       = {},{},{}
       self.tor_j,self.tor_k            = {},{}
       self.tor_i,self.tor_l            = {},{}
+      self.vb_i                        = {}
+      self.vb_j                        = {}
       self.atom_name                   = {}
       self.natom                       = {}
       self.nang                        = {}
