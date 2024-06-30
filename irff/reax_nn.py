@@ -277,6 +277,8 @@ class ReaxFF_nn(object):
       self.tor_i,self.tor_l            = {},{}
       self.atom_name                   = {}
       self.natom                       = {}
+      self.ns                          = {}
+      self.s                           = {s:[] for s in self.spec}
       self.nv                          = {}
       self.na                          = {}
       self.nt                          = {}
@@ -319,6 +321,12 @@ class ReaxFF_nn(object):
           self.hij[m]      = molecules[m].hij
           self.bdid[m]     = molecules[m].bond  # bond index like pair (i,j).
           self.atom_name[m]= molecules[m].atom_name
+
+          self.s[m]        = {sp:[] for sp in self.spec}
+          for i,sp in enumerate(self.atom_name[m]):
+              self.s[m][sp].append(i)
+          self.ns[m]       = {sp:len(self.s[m][sp]) for sp in self.spec}
+
           self.data[m]     = Dataset(dft_energy=molecules[m].energy_dft,
                                      x=molecules[m].x,
                                      cell=molecules[m].cell,
@@ -359,7 +367,7 @@ class ReaxFF_nn(object):
           #self.bo0_[mol]  = {}
 
       self.Delta_e,self.DE,self.Delta_lp,self.Dlp,self.Dang  = {},{},{},{},{}
-      self.Bpi,self.Dpi,self.BSO,self.BOpi,self.Delta_lpcorr = {},{},{},{},{}
+      self.Bpi,self.Dpi,self.Dpil,self.BSO,self.BOpi,self.Delta_lpcorr = {},{},{},{},{},{}
       self.eover,self.eunder,self.elone,self.Elone= {},{},{},{}
       self.EOV,self.EUN = {},{}
 
@@ -443,10 +451,10 @@ class ReaxFF_nn(object):
       for mol in self.mols:
           self.get_bond_energy(mol)
           self.get_atom_energy(mol)
-          self.get_threebody_energy(mol)
-          self.get_fourbody_energy(mol)
-          self.get_vdw_energy(mol)
-          self.get_hb_energy(mol)
+         #  self.get_threebody_energy(mol)
+         #  self.get_fourbody_energy(mol)
+         #  self.get_vdw_energy(mol)
+         #  self.get_hb_energy(mol)
           self.get_total_energy(mol)
       self.get_loss()
       print('-  end of build.')
@@ -457,14 +465,14 @@ class ReaxFF_nn(object):
                            self.eover[mol] +
                            self.eunder[mol]+
                            self.elone[mol] +
-                           self.eang[mol]  +
-                           self.epen[mol]  +
-                           self.tconj[mol] +
-                           self.etor[mol]  +
-                           self.efcon[mol] +
-                           self.evdw[mol]  +
-                           self.ecoul[mol] +
-                           self.ehb[mol]   +
+                           # self.eang[mol]  +
+                           # self.epen[mol]  +
+                           # self.tconj[mol] +
+                           # self.etor[mol]  +
+                           # self.efcon[mol] +
+                           # self.evdw[mol]  +
+                           # self.ecoul[mol] +
+                           # self.ehb[mol]   +
                            self.eself[mol], 
                            self.zpe[mol],name='E_%s' %mol)   
 
@@ -497,7 +505,7 @@ class ReaxFF_nn(object):
       self.vr[st] = tf.matmul(vrf,self.cell[st])
       self.r[st]  = tf.sqrt(tf.sum(self.vr[st]*self.vr[st],dim=3) + self.safety_value) # 
       
-      self.get_delta(st)
+      self.get_bondorder_uc(st)
       self.message_passing(st)
       self.get_final_state(st)
       self.get_ebond(st)
@@ -551,17 +559,31 @@ class ReaxFF_nn(object):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
 
-      self.bop_si[mol] = tf.concat(bop_si,0)
-      self.bop_pi[mol] = tf.concat(bop_pi,0)
-      self.bop_pp[mol] = tf.concat(bop_pp,0)
+      self.bop_si[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_si,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      self.bop_pi[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_pi,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      self.bop_pp[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_pp,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       self.bop[mol]    = self.bop_si[mol] + self.bop_pi[mol] + self.bop_pp[mol]
       
+      self.Deltap[mol] = tf.reduce_sum(self.bop[mol],axis=1,name='Deltap')
+      self.D_si[mol]   = [tf.reduce_sum(self.bop_si[mol],axis=1,name='Deltap_si')]
+      self.D_pi[mol]   = [tf.reduce_sum(self.bop_pi[mol],axis=1,name='Deltap_pi')]
+      self.D_pp[mol]   = [tf.reduce_sum(self.bop_pp[mol],axis=1,name='Deltap_pp')]
+
+
   def get_bondorder(self,mol,t):
       ''' compute bond-order according the message function '''
       flabel  = 'fm'
       bosi_ = []
       bopi_ = []
       bopp_ = []
+
+      H    =  tf.gather_nd(self.H[mol][t-1],self.bdid,name=bd+'_h_gather')
+      Hsi  =  tf.gather_nd(self.Hsi[mol][t-1],self.bdid,name=bd+'_hsi_gather')
+      Hpi  =  tf.gather_nd(self.Hpi[mol][t-1],self.bdid,name=bd+'_hpi_gather')
+      Hpp  =  tf.gather_nd(self.Hpp[mol][t-1],self.bdid,name=bd+'_hpp_gather')
 
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
@@ -571,10 +593,10 @@ class ReaxFF_nn(object):
           Di   = tf.gather_nd(self.D[mol][t-1],self.dilink[mol][bd]) 
           Dj   = tf.gather_nd(self.D[mol][t-1],self.djlink[mol][bd])
 
-          h    = tf.slice(self.H[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_h_slice')
-          hsi  = tf.slice(self.Hsi[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hsi_slice')
-          hpi  = tf.slice(self.Hpi[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpi_slice')
-          hpp  = tf.slice(self.Hpp[mol][t-1],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpp_slice')
+          h    = tf.slice(H,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_h_slice')
+          hsi  = tf.slice(Hsi,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hsi_slice')
+          hpi  = tf.slice(Hpi,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpi_slice')
+          hpp  = tf.slice(Hpp,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpp_slice')
 
           b    = bd.split('-')
 
@@ -594,7 +616,7 @@ class ReaxFF_nn(object):
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
              Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpij,h,Dpii,Dsi_i],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
-          elif self.MessageFunction==2:
+          else:
              self.Dbi[mol][bd]  = Di - h   
              self.Dbj[mol][bd]  = Dj - h   
              Fi   = fmessage(flabel,b[0],nbd_,[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
@@ -608,9 +630,12 @@ class ReaxFF_nn(object):
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosi = tf.concat(bosi_,0)
-      bopi = tf.concat(bopi_,0)
-      bopp = tf.concat(bopp_,0)
+      bosi = tf.scatter_nd(self.bdid,tf.concat(bosi_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bopi = tf.scatter_nd(self.bdid,tf.concat(bopi_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bopp = tf.scatter_nd(self.bdid,tf.concat(bopp_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
 
@@ -624,25 +649,16 @@ class ReaxFF_nn(object):
 
       for t in range(1,self.messages+1):
           print('- {:s} '.format(mol))           
-          BO    = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
-          BOsi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
-          BOpi  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
-          BOpp  = tf.zeros([1,self.batch[mol]])           # for ghost atom, the value is zero
           bo,bosi,bopi,bopp = self.get_bondorder(mol,t)
           self.H[mol].append(bo)                      # get the hidden state H[t]
           self.Hsi[mol].append(bosi)
           self.Hpi[mol].append(bopi)
           self.Hpp[mol].append(bopp)
 
-          BO      = tf.concat([BO,bo],0)
-          BOsi    = tf.concat([BOsi,bosi],0)
-          BOpi    = tf.concat([BOpi,bopi],0)
-          BOpp    = tf.concat([BOpp,bopp],0)
-
-          Delta   = tf.reduce_sum(tf.gather_nd(BO,self.blist[mol]),axis=1) 
-          Dsi     = tf.reduce_sum(tf.gather_nd(BOsi,self.blist[mol]),axis=1) 
-          Dpi     = tf.reduce_sum(tf.gather_nd(BOpi,self.blist[mol]),axis=1) 
-          Dpp     = tf.reduce_sum(tf.gather_nd(BOpp,self.blist[mol]),axis=1)  
+          Delta   = tf.reduce_sum(bo,axis=1) 
+          Dsi     = tf.reduce_sum(bosi,axis=1) 
+          Dpi     = tf.reduce_sum(bopi,axis=1) 
+          Dpp     = tf.reduce_sum(bopp,axis=1)  
 
           self.D[mol].append(Delta)                  # degree matrix
           self.D_si[mol].append(Dsi)
@@ -656,7 +672,6 @@ class ReaxFF_nn(object):
       self.bopi[mol]   = self.Hpi[mol][-1]
       self.bopp[mol]   = self.Hpp[mol][-1]
 
-      zero             = tf.zeros([1,self.batch[mol]])   # for ghost atom, the value is zero
       self.bo[mol]     = tf.nn.relu(self.bo0[mol] - self.atol)
 
       bso              = []
@@ -667,14 +682,12 @@ class ReaxFF_nn(object):
           bo0  = tf.slice(self.bo0[mol],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_slice')
           bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0)
       
-      self.bso[mol]    = tf.concat(bso,0)
-      BSO              = tf.concat([zero,self.bso[mol]],0)
-      BPI              = tf.concat([zero,self.bopi[mol]+self.bopp[mol]],0)
+      self.bso[mol]    = tf.scatter_nd(self.bdid,tf.concat(bso,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      Bpi              = self.bopi[mol]+self.bopp[mol]
 
-      SO_              = tf.gather_nd(BSO,self.blist[mol],name='SO') 
-      self.Bpi[mol]    = tf.gather_nd(BPI,self.blist[mol],name='Bpi') 
-      self.Dpi[mol]    = tf.reduce_sum(input_tensor=self.Bpi[mol],axis=1,name='sumover_Bpi') 
-      self.SO[mol]     = tf.reduce_sum(input_tensor=SO_,axis=1,name='sumover_bso')  
+      self.Dpi[mol]    = tf.reduce_sum(Bpi,axis=1,name='sumover_Bpi')
+      self.So[mol]     = tf.reduce_sum(self.bso[mol],axis=1,name='sumover_bso')  
       self.fbot[mol]   = taper(self.bo0[mol],rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb[mol]    = taper(self.bo0[mol],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
@@ -687,14 +700,15 @@ class ReaxFF_nn(object):
       lp2      = 0.0
       ovun2    = 0.0
       ovun5    = 0.0
-      for sp in self.atom_name[mol]:
-          eatom  = eatom - self.p['atomic_'+sp]*self.pmask[mol][sp]
-          valang = valang + self.p['valang_'+sp]*self.pmask[mol][sp]
-          val    = val    + self.p['val_'+sp]*self.pmask[mol][sp]
-          vale   = vale   + self.p['vale_'+sp]*self.pmask[mol][sp]
-          lp2    = lp2    + self.p['lp2_'+sp]*self.pmask[mol][sp]
-          ovun2  = ovun2  + self.p['ovun2_'+sp]*self.pmask[mol][sp]
-          ovun5  = ovun5  + self.p['ovun5_'+sp]*self.pmask[mol][sp]
+      for sp in self.spec:
+          if self.ns[sp]>0:
+             eatom  = eatom - self.p['atomic_'+sp]*self.pmask[mol][sp]
+             valang = valang + self.p['valang_'+sp]*self.pmask[mol][sp]
+             val    = val    + self.p['val_'+sp]*self.pmask[mol][sp]
+             vale   = vale   + self.p['vale_'+sp]*self.pmask[mol][sp]
+             lp2    = lp2    + self.p['lp2_'+sp]*self.pmask[mol][sp]
+             ovun2  = ovun2  + self.p['ovun2_'+sp]*self.pmask[mol][sp]
+             ovun5  = ovun5  + self.p['ovun5_'+sp]*self.pmask[mol][sp]
 
       self.eatom[mol]  = eatom
       self.Dang[mol]   = self.Delta[mol] - valang 
@@ -702,6 +716,13 @@ class ReaxFF_nn(object):
       self.get_elone(mol,lp2,val,vale) 
       self.elone[mol]  = tf.reduce_sum(input_tensor=self.Elone[mol],axis=0,name='elone_{:s}'.format(mol))
      
+      dlp = self.Delta[mol] - val - self.Delta_lp[mol]
+      djlink = []
+      for bd in self.bond:
+          if self.nbd[bd]>0:
+             djlink.extend(self.djlink[mol][bd])
+      Dj               = tf.gather_nd(dlp,self.djlink)
+      dpil             = Dj*self.BPI[mol]
       #if 'ovun1' in self.cons:
       #    self.eover[mol] = 0.0
       #else:
@@ -730,7 +751,7 @@ class ReaxFF_nn(object):
                                           
   def get_eover(self,mol,val,ovun2):
       self.Delta_lpcorr[mol] = self.Delta[mol] - val - tf.math.divide(self.Delta_lp[mol],
-                                1.0+self.p['ovun3']*tf.exp(self.p['ovun4']*self.Dpi[mol]))
+                                1.0+self.p['ovun3']*tf.exp(self.p['ovun4']*self.Dpil[mol]))
 
       #self.so[atom]     = tf.gather_nd(self.SO,self.atomlist[atom])
       otrm1              = DIV_IF(1.0,self.Delta_lpcorr[mol]+val)
@@ -741,7 +762,7 @@ class ReaxFF_nn(object):
   def get_eunder(self,mol,ovun2,ovun5):
       expeu1            = tf.exp(self.p['ovun6']*self.Delta_lpcorr[mol])
       eu1               = tf.sigmoid(ovun2*self.Delta_lpcorr[mol])
-      expeu3            = tf.exp(self.p['ovun8']*self.Dpi[mol])
+      expeu3            = tf.exp(self.p['ovun8']*self.Dpil[mol])
       eu2               = tf.math.divide(1.0,1.0+self.p['ovun7']*expeu3)
       self.EUN[mol]     = -ovun5*(1.0-expeu1)*eu1*eu2                          # must positive
 
@@ -2012,3 +2033,5 @@ class ReaxFF_nn(object):
            print('Edft,Epred',file=fcsv)
            for y,yp in zip(Y,Yp):
                print(y,yp,sep=',',file=fcsv)
+
+   
