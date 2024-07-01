@@ -759,8 +759,8 @@ class reax_force_data(object):
           energy_dft.append(e)
       self.energy_dft = np.array(energy_dft)
       self.x          = np.array(x)
-      self.cell       = np.float32(np.array(cell))
-      self.rcell      = np.float32(np.array(rcell))   # Inverted lattice vector
+      self.cell       = np.array(cell)  # np.float32(np.array(cell))
+      self.rcell      = np.array(rcell) # np.float32(np.array(rcell))   # Inverted lattice vector
       
       if force_has_none:
          self.forces = None

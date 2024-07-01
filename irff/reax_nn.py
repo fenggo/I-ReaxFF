@@ -339,8 +339,8 @@ class ReaxFF_nn(object):
 
           self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
-                                     cell=strucs[s].cell,
-                                     rcell=strucs[s].rcell,
+                                     cell=np.float32(strucs[s].cell),
+                                     rcell=np.float32(strucs[s].rcell), 
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
@@ -552,7 +552,7 @@ class ReaxFF_nn(object):
   def get_bondorder_uc(self,mol):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
-      self.rbd[mol] = tf.gather_nd(tf.transpose(self.r[mol],perm=(1,2,0)),self.bdid)
+      self.rbd[mol] = tf.gather_nd(tf.transpose(self.r[mol],perm=(1,2,0)),self.bdid[mol])
 
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
@@ -579,11 +579,11 @@ class ReaxFF_nn(object):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
 
-      self.bop_si[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_si,0),
+      self.bop_si[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_si,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      self.bop_pi[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_pi,0),
+      self.bop_pi[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pi,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      self.bop_pp[mol] = tf.scatter_nd(self.bdid,tf.concat(bop_pp,0),
+      self.bop_pp[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pp,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       self.bop[mol]    = self.bop_si[mol] + self.bop_pi[mol] + self.bop_pp[mol]
       
@@ -600,10 +600,10 @@ class ReaxFF_nn(object):
       bopi_ = []
       bopp_ = []
 
-      H    =  tf.gather_nd(self.H[mol][t-1],self.bdid,name=bd+'_h_gather')
-      Hsi  =  tf.gather_nd(self.Hsi[mol][t-1],self.bdid,name=bd+'_hsi_gather')
-      Hpi  =  tf.gather_nd(self.Hpi[mol][t-1],self.bdid,name=bd+'_hpi_gather')
-      Hpp  =  tf.gather_nd(self.Hpp[mol][t-1],self.bdid,name=bd+'_hpp_gather')
+      H    =  tf.gather_nd(self.H[mol][t-1],self.bdid[mol],name=bd+'_h_gather')
+      Hsi  =  tf.gather_nd(self.Hsi[mol][t-1],self.bdid[mol],name=bd+'_hsi_gather')
+      Hpi  =  tf.gather_nd(self.Hpi[mol][t-1],self.bdid[mol],name=bd+'_hpi_gather')
+      Hpp  =  tf.gather_nd(self.Hpp[mol][t-1],self.bdid[mol],name=bd+'_hpp_gather')
 
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
@@ -650,11 +650,11 @@ class ReaxFF_nn(object):
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosi = tf.scatter_nd(self.bdid,tf.concat(bosi_,0),
+      bosi = tf.scatter_nd(self.bdid[mol],tf.concat(bosi_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bopi = tf.scatter_nd(self.bdid,tf.concat(bopi_,0),
+      bopi = tf.scatter_nd(self.bdid[mol],tf.concat(bopi_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bopp = tf.scatter_nd(self.bdid,tf.concat(bopp_,0),
+      bopp = tf.scatter_nd(self.bdid[mol],tf.concat(bopp_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
@@ -702,7 +702,7 @@ class ReaxFF_nn(object):
           bo0  = tf.slice(self.bo0[mol],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_slice')
           bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0)
       
-      self.bso[mol]    = tf.scatter_nd(self.bdid,tf.concat(bso,0),
+      self.bso[mol]    = tf.scatter_nd(self.bdid[mol],tf.concat(bso,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       Bpi              = self.bopi[mol]+self.bopp[mol]
 
@@ -1237,14 +1237,14 @@ class ReaxFF_nn(object):
           if key != 'n.u.':
              if (k in self.VariablesToOpt) and (key in self.opt) and (key not in self.cons):
                 if key in self.punit:
-                   self.var[k] = tf.Variable(np.float32(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(self.unit*self.p_[k]),name=k)
                 else:
-                   self.var[k] = tf.Variable(np.float32(self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(self.p_[k]),name=k)
              else:
                 if key in self.punit:
-                   self.var[k] = tf.constant(np.float32(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.constant(self.unit*self.p_[k]),name=k)
                 else:
-                   self.var[k] = tf.constant(np.float32(self.p_[k]),name=k)
+                   self.var[k] = tf.constant(self.p_[k]),name=k)
 
       if self.clip_op:
          self.p = clip_parameters(self.p_,self.var,self.clip)
