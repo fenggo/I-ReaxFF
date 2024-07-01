@@ -272,7 +272,8 @@ class ReaxFF_nn(object):
       self.dft_forces                  = {}
       self.q                           = {}
       self.bdid                        = {}
-      # self.dilink,self.djlink          = {},{}
+      self.bdidr                       = {}
+      self.dilink,self.djlink          = {},{}
       self.nbd,self.b,self.a,self.t    = {},{},{},{}
       self.ang_i,self.ang_j,self.ang_k = {},{},{}
       self.abij,self.abjk              = {},{}
@@ -330,7 +331,10 @@ class ReaxFF_nn(object):
           self.t[s]        = strucs[s].T
 
           self.bdid[s]     = strucs[s].bond  # bond index like pair (i,j).
+          self.bdidr[s]    = strucs[s].bond[:,[1,0]]  # bond index like pair (i,j).
           self.atom_name[s]= strucs[s].atom_name
+          self.dilink[s]   = strucs[s].dilink
+          self.djlink[s]   = strucs[s].djlink
           
           self.s[s]        = {sp:[] for sp in self.spec}
           for i,sp in enumerate(self.atom_name[s]):
@@ -340,7 +344,7 @@ class ReaxFF_nn(object):
           self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
                                      cell=np.float32(strucs[s].cell),
-                                     rcell=np.float32(strucs[s].rcell), 
+                                     rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
@@ -362,16 +366,18 @@ class ReaxFF_nn(object):
 
           self.pmask[s] = {}
           for sp in self.spec:
-             pmask = np.zeros([1,self.natom[s]])
-             pmask[:,self.s[s][sp]] = 1.0
-             self.pmask[s][sp] = tf.constant(pmask)
+             pmask = np.zeros([self.natom[s],1])
+             pmask[self.s[s][sp],:] = 1.0
+             self.pmask[s][sp] = tf.constant(pmask,dtype=tf.float32,
+                                             name='pmask_{:s}_{:s}'.format(s,sp))
 
           for bd in self.bonds:
              if len(self.vb_i[s][bd])==0:
                 continue
-             pmask = np.zeros([1,self.natom[s],self.natom[s]])
-             pmask[:,self.vb_i[s][bd],self.vb_j[s][bd]] = 1.0
-             self.pmask[s][bd] = tf.constant(pmask,name='pmask_{:s}_{:s}'.format(s,bd))
+             pmask = np.zeros([self.natom[s],self.natom[s],1])
+             pmask[self.vb_i[s][bd],self.vb_j[s][bd],:] = 1.0
+             self.pmask[s][bd] = tf.constant(pmask,dtype=tf.float32,
+                                             name='pmask_{:s}_{:s}'.format(s,bd))
 
           self.cell[s]  = tf.constant(np.expand_dims(self.data[s].cell,axis=1),name='cell_{:s}'.format(s))
           self.rcell[s] = tf.constant(np.expand_dims(self.data[s].rcell,axis=1),name='rcell_{:s}'.format(s))
@@ -388,7 +394,7 @@ class ReaxFF_nn(object):
       self.D,self.D_si,self.D_pi,self.D_pp = {},{},{},{}
       self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{}
 
-      self.SO,self.fbot,self.fhb = {},{},{}
+      self.So,self.fbot,self.fhb = {},{},{}
       self.EBD,self.E = {},{}
       self.powb,self.expb,self.ebond = {},{},{}
 
@@ -532,16 +538,22 @@ class ReaxFF_nn(object):
       self.ebond[st]= tf.reduce_sum(input_tensor=self.EBD[st],axis=0,name='bondenergy')
 
   def get_ebond(self,mol):
-      Ebd = []
+      Ebd  = []
+      bosi = tf.gather_nd(self.bosi[mol],self.bdid[mol],
+                          name='bosi_{:s}'.format(mol))
+      bopi = tf.gather_nd(self.bopi[mol],self.bdid[mol],
+                          name='bopi_{:s}'.format(mol)) 
+      bopp = tf.gather_nd(self.bopp[mol],self.bdid[mol],
+                          name='bopp_{:s}'.format(mol))
       
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
           if nbd_==0:
              continue
           b_  = self.b[mol][bd]
-          bosi_ = tf.slice(self.bosi[mol],[b_[0],0],[b_[1],self.batch[mol]])
-          bopi_ = tf.slice(self.bopi[mol],[b_[0],0],[b_[1],self.batch[mol]])
-          bopp_ = tf.slice(self.bopp[mol],[b_[0],0],[b_[1],self.batch[mol]])
+          bosi_ = tf.slice(bosi,[b_[0],0],[b_[1],self.batch[mol]])
+          bopi_ = tf.slice(bopi,[b_[0],0],[b_[1],self.batch[mol]])
+          bopp_ = tf.slice(bopp,[b_[0],0],[b_[1],self.batch[mol]])
 
           self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
                     self.m,batch=self.batch[mol],layer=self.be_layer[1])
@@ -552,7 +564,9 @@ class ReaxFF_nn(object):
   def get_bondorder_uc(self,mol):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
-      self.rbd[mol] = tf.gather_nd(tf.transpose(self.r[mol],perm=(1,2,0)),self.bdid[mol])
+      r = tf.transpose(self.r[mol],perm=(1,2,0))
+      self.rbd[mol] = tf.gather_nd(r,self.bdid[mol],
+                                   name='rbd_{:s}'.format(mol))
 
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
@@ -592,7 +606,6 @@ class ReaxFF_nn(object):
       self.D_pi[mol]   = [tf.reduce_sum(self.bop_pi[mol],axis=1,name='Deltap_pi')]
       self.D_pp[mol]   = [tf.reduce_sum(self.bop_pp[mol],axis=1,name='Deltap_pp')]
 
-
   def get_bondorder(self,mol,t):
       ''' compute bond-order according the message function '''
       flabel  = 'fm'
@@ -600,18 +613,21 @@ class ReaxFF_nn(object):
       bopi_ = []
       bopp_ = []
 
-      H    =  tf.gather_nd(self.H[mol][t-1],self.bdid[mol],name=bd+'_h_gather')
-      Hsi  =  tf.gather_nd(self.Hsi[mol][t-1],self.bdid[mol],name=bd+'_hsi_gather')
-      Hpi  =  tf.gather_nd(self.Hpi[mol][t-1],self.bdid[mol],name=bd+'_hpi_gather')
-      Hpp  =  tf.gather_nd(self.Hpp[mol][t-1],self.bdid[mol],name=bd+'_hpp_gather')
+      H    =  tf.gather_nd(self.H[mol][t-1],self.bdid[mol],name=mol+'_h_gather')
+      Hsi  =  tf.gather_nd(self.Hsi[mol][t-1],self.bdid[mol],name=mol+'_hsi_gather')
+      Hpi  =  tf.gather_nd(self.Hpi[mol][t-1],self.bdid[mol],name=mol+'_hpi_gather')
+      Hpp  =  tf.gather_nd(self.Hpp[mol][t-1],self.bdid[mol],name=mol+'_hpp_gather')
 
       for bd in self.bonds:
           nbd_ = self.nbd[mol][bd]
           if nbd_==0:
              continue
           b_   = self.b[mol][bd]
-          Di   = tf.gather_nd(self.D[mol][t-1],self.dilink[mol][bd]) 
-          Dj   = tf.gather_nd(self.D[mol][t-1],self.djlink[mol][bd])
+          bi   = self.dilink[mol][bd]
+          bj   = self.djlink[mol][bd]
+
+          Di   = tf.gather_nd(self.D[mol][t-1],bi) 
+          Dj   = tf.gather_nd(self.D[mol][t-1],bj)
 
           h    = tf.slice(H,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_h_slice')
           hsi  = tf.slice(Hsi,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hsi_slice')
@@ -650,12 +666,23 @@ class ReaxFF_nn(object):
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosi = tf.scatter_nd(self.bdid[mol],tf.concat(bosi_,0),
+      bosir = tf.scatter_nd(self.bdid[mol],tf.concat(bosi_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bopi = tf.scatter_nd(self.bdid[mol],tf.concat(bopi_,0),
+      bosil = tf.scatter_nd(self.bdidr[mol],tf.concat(bosi_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bopp = tf.scatter_nd(self.bdid[mol],tf.concat(bopp_,0),
+      bosi  = bosir + bosil
+
+      bopir = tf.scatter_nd(self.bdid[mol],tf.concat(bopi_,0),
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bopil = tf.scatter_nd(self.bdidr[mol],tf.concat(bopi_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bopi  = bopir + bopil
+
+      boppr = tf.scatter_nd(self.bdid[mol],tf.concat(bopp_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      boppl = tf.scatter_nd(self.bdidr[mol],tf.concat(bopp_,0),
+                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bopp  = boppr + boppl
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
 
@@ -668,7 +695,7 @@ class ReaxFF_nn(object):
       self.D[mol]    = [self.Deltap[mol]]                  # get the initial hidden state H[0]
 
       for t in range(1,self.messages+1):
-          print('- {:s} '.format(mol))           
+          print('-  {:s} '.format(mol))           
           bo,bosi,bopi,bopp = self.get_bondorder(mol,t)
           self.H[mol].append(bo)                      # get the hidden state H[t]
           self.Hsi[mol].append(bosi)
@@ -695,15 +722,14 @@ class ReaxFF_nn(object):
       self.bo[mol]     = tf.nn.relu(self.bo0[mol] - self.atol)
 
       bso              = []
+      ovun             = 0.0
       for bd in self.bonds:
           if self.nbd[mol][bd]==0:
              continue
-          b_   = self.b[mol][bd]
-          bo0  = tf.slice(self.bo0[mol],[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_slice')
-          bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0)
-      
-      self.bso[mol]    = tf.scatter_nd(self.bdid[mol],tf.concat(bso,0),
-                           shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+          ovun = ovun + self.p['ovun1_'+bd]*self.p['Desi_'+bd]*self.pmask[mol][bd]
+          # bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0)
+
+      self.bso[mol]    = ovun*self.bo0[mol]
       Bpi              = self.bopi[mol]+self.bopp[mol]
 
       self.Dpi[mol]    = tf.reduce_sum(Bpi,axis=1,name='sumover_Bpi')
@@ -1237,14 +1263,14 @@ class ReaxFF_nn(object):
           if key != 'n.u.':
              if (k in self.VariablesToOpt) and (key in self.opt) and (key not in self.cons):
                 if key in self.punit:
-                   self.var[k] = tf.Variable(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(np.float32(self.unit*self.p_[k]),name=k)
                 else:
-                   self.var[k] = tf.Variable(self.p_[k]),name=k)
+                   self.var[k] = tf.Variable(np.float32(self.p_[k]),name=k)
              else:
                 if key in self.punit:
-                   self.var[k] = tf.constant(self.unit*self.p_[k]),name=k)
+                   self.var[k] = tf.constant(np.float32(self.unit*self.p_[k]),name=k)
                 else:
-                   self.var[k] = tf.constant(self.p_[k]),name=k)
+                   self.var[k] = tf.constant(np.float32(self.p_[k]),name=k)
 
       if self.clip_op:
          self.p = clip_parameters(self.p_,self.var,self.clip)
