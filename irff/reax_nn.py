@@ -250,6 +250,7 @@ class ReaxFF_nn(object):
              # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
              # self.cell[st]   = strucs[st].cell
+             self.eself[st]    = strucs[st].eself  
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nmol = len(strucs)
@@ -257,7 +258,6 @@ class ReaxFF_nn(object):
       self.generate_data(strucs)
       with tf.compat.v1.name_scope('input'):
            self.memory(molecules=strucs)
-      print('-  generating dataset ...')
       self.set_zpe(molecules=strucs)
 
       self.build_graph()    
@@ -268,6 +268,7 @@ class ReaxFF_nn(object):
 
   def generate_data(self,strucs):
       ''' get data '''
+      print('-  generating dataset ...')
       self.dft_energy                  = {}
       self.dft_forces                  = {}
       self.q                           = {}
@@ -385,6 +386,7 @@ class ReaxFF_nn(object):
 
   def memory(self,molecules):
       self.frc = {}
+      self.Bsi,self.Bpi,self.Bpp  = {},{},{}
       self.bop_si,self.bop_pi,self.bop_pp,self.bop = {},{},{},{}
       self.bosi,self.bosi_pen = {},{}
       self.bopi,self.bopp,self.bo0,self.bo,self.bso = {},{},{},{},{}
@@ -411,8 +413,8 @@ class ReaxFF_nn(object):
           self.Dbi[st]   = {}
           self.Dbj[st]   = {}
 
-      self.Delta_e,self.DE,self.Delta_lp,self.Dlp,self.Dang  = {},{},{},{},{}
-      self.Bpi,self.Dpi,self.Dpil,self.BSO,self.BOpi,self.Delta_lpcorr = {},{},{},{},{},{}
+      self.Delta_e,self.DE,self.Delta_lp,self.Dlp,self.Delta_ang  = {},{},{},{},{}
+      self.Bpi,self.Delta_pi,self.Dpil,self.BSO,self.BOpi,self.Delta_lpcorr = {},{},{},{},{},{}
       self.eover,self.eunder,self.elone,self.Elone= {},{},{},{}
       self.EOV,self.EUN = {},{}
 
@@ -666,21 +668,24 @@ class ReaxFF_nn(object):
           bopi_.append(hpi*Fpi)
           bopp_.append(hpp*Fpp)
 
-      bosir = tf.scatter_nd(self.bdid[mol],tf.concat(bosi_,0),
+      self.Bsi[mol] = tf.concat(bosi_,0)
+      bosir = tf.scatter_nd(self.bdid[mol],self.Bsi[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bosil = tf.scatter_nd(self.bdidr[mol],tf.concat(bosi_,0),
+      bosil = tf.scatter_nd(self.bdidr[mol],self.Bsi[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bosi  = bosir + bosil
 
-      bopir = tf.scatter_nd(self.bdid[mol],tf.concat(bopi_,0),
+      self.Bpi[mol] = tf.concat(bopi_,0)
+      bopir = tf.scatter_nd(self.bdid[mol],self.Bpi[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bopil = tf.scatter_nd(self.bdidr[mol],tf.concat(bopi_,0),
+      bopil = tf.scatter_nd(self.bdidr[mol],self.Bpi[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bopi  = bopir + bopil
 
-      boppr = tf.scatter_nd(self.bdid[mol],tf.concat(bopp_,0),
+      self.Bpp[mol] = tf.concat(bopp_,0)
+      boppr = tf.scatter_nd(self.bdid[mol],self.Bpp[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      boppl = tf.scatter_nd(self.bdidr[mol],tf.concat(bopp_,0),
+      boppl = tf.scatter_nd(self.bdidr[mol],self.Bpp[mol],
                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bopp  = boppr + boppl
       bo   = bosi+bopi+bopp
@@ -729,16 +734,17 @@ class ReaxFF_nn(object):
           ovun = ovun + self.p['ovun1_'+bd]*self.p['Desi_'+bd]*self.pmask[mol][bd]
           # bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0)
 
-      self.bso[mol]    = ovun*self.bo0[mol]
-      Bpi              = self.bopi[mol]+self.bopp[mol]
+      self.bso[mol]      = ovun*self.bo0[mol]
+      self.Bpi[mol]      = self.bopi[mol]+self.bopp[mol]
 
-      self.Dpi[mol]    = tf.reduce_sum(Bpi,axis=1,name='sumover_Bpi')
-      self.So[mol]     = tf.reduce_sum(self.bso[mol],axis=1,name='sumover_bso')  
-      self.fbot[mol]   = taper(self.bo0[mol],rmin=self.atol,rmax=2.0*self.atol) 
-      self.fhb[mol]    = taper(self.bo0[mol],rmin=self.hbtol,rmax=2.0*self.hbtol) 
+      self.Delta_pi[mol] = tf.reduce_sum(self.Bpi[mol],axis=1,name='sumover_Bpi')
+      self.So[mol]       = tf.reduce_sum(self.bso[mol],axis=1,name='sumover_bso')  
+      self.fbot[mol]     = taper(self.bo0[mol],rmin=self.atol,rmax=2.0*self.atol) 
+      self.fhb[mol]      = taper(self.bo0[mol],rmin=self.hbtol,rmax=2.0*self.hbtol) 
 
-  def get_atom_energy(self,mol):
-      mol_     = mol.split('-')[0]
+  def get_atom_energy(self,st):
+      ''' atomic energy of structure: st '''
+      st_     = st.split('-')[0]
       eatom    = 0.0
       valang   = 0.0 
       val      = 0.0
@@ -747,53 +753,50 @@ class ReaxFF_nn(object):
       ovun2    = 0.0
       ovun5    = 0.0
       for sp in self.spec:
-          if self.ns[sp]>0:
-             eatom  = eatom - self.p['atomic_'+sp]*self.pmask[mol][sp]
-             valang = valang + self.p['valang_'+sp]*self.pmask[mol][sp]
-             val    = val    + self.p['val_'+sp]*self.pmask[mol][sp]
-             vale   = vale   + self.p['vale_'+sp]*self.pmask[mol][sp]
-             lp2    = lp2    + self.p['lp2_'+sp]*self.pmask[mol][sp]
-             ovun2  = ovun2  + self.p['ovun2_'+sp]*self.pmask[mol][sp]
-             ovun5  = ovun5  + self.p['ovun5_'+sp]*self.pmask[mol][sp]
+          if self.ns[st][sp]>0:
+             eatom  = eatom - self.p['atomic_'+sp]*self.pmask[st][sp]
+             valang = valang + self.p['valang_'+sp]*self.pmask[st][sp]
+             val    = val    + self.p['val_'+sp]*self.pmask[st][sp]
+             vale   = vale   + self.p['vale_'+sp]*self.pmask[st][sp]
+             lp2    = lp2    + self.p['lp2_'+sp]*self.pmask[st][sp]
+             ovun2  = ovun2  + self.p['ovun2_'+sp]*self.pmask[st][sp]
+             ovun5  = ovun5  + self.p['ovun5_'+sp]*self.pmask[st][sp]
 
-      self.eatom[mol]  = eatom
-      self.Dang[mol]   = self.Delta[mol] - valang 
+      self.eatom[st]  = eatom
+      self.Delta_ang[st]   = self.Delta[st] - valang 
  
-      self.get_elone(mol,lp2,val,vale) 
-      self.elone[mol]  = tf.reduce_sum(input_tensor=self.Elone[mol],axis=0,name='elone_{:s}'.format(mol))
+      self.get_elone(st,lp2,val,vale) 
+      self.elone[st]  = tf.reduce_sum(input_tensor=self.Elone[st],axis=0,name='elone_{:s}'.format(st))
      
-      dlp = self.Delta[mol] - val - self.Delta_lp[mol]
-      djlink = []
-      for bd in self.bond:
-          if self.nbd[bd]>0:
-             djlink.extend(self.djlink[mol][bd])
-      Dj               = tf.gather_nd(dlp,self.djlink)
-      dpil             = Dj*self.BPI[mol]
+      dlp  = self.Delta[st] - val - self.Delta_lp[st]
+      dlp_ = tf.expand_dims(dlp,axis=0)
+      self.Dpil[st] = tf.reduce_sum(dlp_*self.Bpi[st],axis=1)
       #if 'ovun1' in self.cons:
       #    self.eover[mol] = 0.0
       #else:
-      self.get_eover(mol,val,ovun2) 
-      self.eover[mol]  = tf.reduce_sum(input_tensor=self.EOV[mol],axis=0,name='eover_{:s}'.format(mol))
+      self.get_eover(st,val,ovun2) 
+      self.eover[st]  = tf.reduce_sum(input_tensor=self.EOV[st],axis=0,name='eover_{:s}'.format(st))
       # if 'ovun5' in self.cons:
       #    self.eunder[mol] = 0.0
       # else:
-      self.get_eunder(mol,ovun2,ovun5) 
-      self.eunder[mol] = tf.reduce_sum(input_tensor=self.EUN[mol],axis=0,name='eunder_{:s}'.format(mol))
-      self.zpe[mol]    = tf.reduce_sum(input_tensor=self.eatom[mol],name='zpe') + self.MolEnergy[mol_]
+      self.get_eunder(st,ovun2,ovun5) 
+      self.eunder[st] = tf.reduce_sum(input_tensor=self.EUN[st],axis=0,name='eunder_{:s}'.format(st))
+      self.zpe[st]    = tf.reduce_sum(input_tensor=self.eatom[st],name='zpe') + self.MolEnergy[st_]
 
-  def get_elone(self,mol,lp2,val,vale):
+  def get_elone(self,st,lp2,val,vale):
+      ''' lone pair energy of structure: st '''
       Nlp                = 0.5*(vale - val)
-      self.Delta_e[mol]  = 0.5*(self.Delta[mol] - vale)
-      self.DE[mol]       = -tf.nn.relu(-tf.math.ceil(self.Delta_e[mol])) 
-      self.nlp[mol]      = -self.DE[mol] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[mol]-self.DE[mol]))
+      self.Delta_e[st]  = 0.5*(self.Delta[st] - vale)
+      self.DE[st]       = -tf.nn.relu(-tf.math.ceil(self.Delta_e[st])) 
+      self.nlp[st]      = -self.DE[st] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[st]-self.DE[st]))
 
-      self.Delta_lp[mol] = Nlp - self.nlp[mol]                             # nan error
+      self.Delta_lp[st] = Nlp - self.nlp[st]                             # nan error
       # Delta_lp         = tf.clip_by_value(self.Delta_lp[mol],-1.0,10.0)  # temporary solution
-      Delta_lp           = tf.nn.relu(self.Delta_lp[mol]+1) -1
+      # Delta_lp           = tf.nn.relu(self.Delta_lp[st]+1) -1
 
-      explp              = 1.0+tf.exp(-75.0*Delta_lp) # -self.p['lp3']
-      self.Elone[mol]    = tf.math.divide(lp2*self.Delta_lp[mol],explp,
-                                          name='Elone_{:s}'.format(mol))
+      explp              = 1.0+tf.exp(-75.0*self.Delta_lp[st]) # -self.p['lp3']
+      self.Elone[st]    = tf.math.divide(lp2*self.Delta_lp[st],explp,
+                                          name='Elone_{:s}'.format(st))
                                           
   def get_eover(self,mol,val,ovun2):
       self.Delta_lpcorr[mol] = self.Delta[mol] - val - tf.math.divide(self.Delta_lp[mol],
@@ -803,7 +806,7 @@ class ReaxFF_nn(object):
       otrm1              = DIV_IF(1.0,self.Delta_lpcorr[mol]+val)
       # self.otrm2[atom] = tf.math.divide(1.0,1.0+tf.exp(self.p['ovun2_'+atom]*self.Delta_lpcorr[atom]))
       otrm2              = tf.sigmoid(-ovun2*self.Delta_lpcorr[mol])
-      self.EOV[mol]      = self.SO[mol] *otrm1*self.Delta_lpcorr[mol]*otrm2
+      self.EOV[mol]      = self.So[mol] *otrm1*self.Delta_lpcorr[mol]*otrm2
 
   def get_eunder(self,mol,ovun2,ovun5):
       expeu1            = tf.exp(self.p['ovun6']*self.Delta_lpcorr[mol])
@@ -824,7 +827,7 @@ class ReaxFF_nn(object):
          self.epen[mol] = tf.cast(np.zeros([self.batch[mol]]),tf.float32)
          self.tconj[mol]= tf.cast(np.zeros([self.batch[mol]]),tf.float32)
       else:
-         self.D_ang[mol] = tf.gather_nd(self.Dang[mol],self.ang_j[mol])
+         self.D_ang[mol] = tf.gather_nd(self.Delta_ang[mol],self.ang_j[mol])
 
          val,val1,val2,val3,val4,val5,val7,valang,valboc,theta0,pen1,coa1 = self.stack_threebody_parameters(mol)
          Delta= self.D_ang[mol] + valang - val
@@ -855,7 +858,7 @@ class ReaxFF_nn(object):
       self.Eang[mol]  = self.fijk[mol]*self.f_7[mol]*self.f_8[mol]*(val1-val1*self.expang[mol]) 
 
   def get_theta0(self,mol,theta0):
-      self.sbo[mol] = tf.gather_nd(self.Dpi[mol],self.ang_j[mol])
+      self.sbo[mol] = tf.gather_nd(self.Delta_pi[mol],self.ang_j[mol])
       self.pbo[mol] = tf.gather_nd(self.Pbo[mol],self.ang_j[mol])
       self.rnlp[mol]= tf.gather_nd(self.nlp[mol],self.ang_j[mol])
       self.SBO[mol] = self.sbo[mol] - tf.multiply(1.0-self.pbo[mol],self.D_ang[mol]+self.p['val8']*self.rnlp[mol])    
@@ -946,8 +949,8 @@ class ReaxFF_nn(object):
       fkl              = tf.gather_nd(self.fbot[mol],self.tkl[mol])
       self.fijkl[mol]  = fij*fjk*fkl
 
-      Dj    = tf.gather_nd(self.Dang[mol],self.tor_j[mol])
-      Dk    = tf.gather_nd(self.Dang[mol],self.tor_k[mol])
+      Dj    = tf.gather_nd(self.Delta_ang[mol],self.tor_j[mol])
+      Dk    = tf.gather_nd(self.Delta_ang[mol],self.tor_k[mol])
 
       self.f_10[mol]   = self.f10(mol)
       self.f_11[mol]   = self.f11(mol,Dj,Dk)
@@ -1862,7 +1865,7 @@ class ReaxFF_nn(object):
       self.penalty_ang     = {}
       self.penalty_w       = tf.constant(0.0)
       self.penalty_b       = tf.constant(0.0)
-
+      
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
           bdr = atomj + '-' + atomi
@@ -1888,13 +1891,14 @@ class ReaxFF_nn(object):
 
           for mol in self.strcs:
               if self.nbd[mol][bd]>0:       
-                 b_   = self.b[mol][bd]
-                 #rbd_= tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])        
-                 bop_ = tf.slice(self.bop[mol],[b_[0],0],[b_[1],self.batch[mol]]) 
-                 bo0_ = tf.slice(self.bo0[mol],[b_[0],0],[b_[1],self.batch[mol]]) 
+                 b_    = self.b[mol][bd]
+                 #rbd_ = tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])        
+                 # bop_= tf.slice(self.bop[mol],[b_[0],0],[b_[1],self.batch[mol]]) 
+                 bdid  = self.bdid[b_[0]:b_[1]]
+                 bo0_  = tf.gather_nd(self.bo0[mol],bdid,name='bo0_supervize') 
 
-                 fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
-                 self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
+                 # fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
+                 # self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
 
                  fao  = tf.where(tf.greater(self.rbd_[mol][bd],self.rcuta[bd]),1.0,0.0)  ##### r> rcuta that bo = 0.0
                  self.penalty_bo_rcut[bd] += tf.reduce_sum(bo0_*fao)
