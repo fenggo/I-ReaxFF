@@ -419,7 +419,7 @@ class ReaxFF_nn(object):
       self.EOV,self.EUN = {},{}
 
       self.BOij,self.BOjk = {},{}
-      self.nlp,self.Pbo = {},{}
+      self.Nlp,self.Pbo = {},{}
       self.Eang,self.eang,self.theta0,self.fijk = {},{},{},{}
       self.pbo,self.sbo,self.SBO,self.SBO12,self.SBO3,self.SBO01 = {},{},{},{},{},{}
       self.dang,self.D_ang = {},{}
@@ -512,7 +512,7 @@ class ReaxFF_nn(object):
                            self.eover[mol] +
                            self.eunder[mol]+
                            self.elone[mol] +
-                           # self.eang[mol]  +
+                           self.eang[mol]  +
                            # self.epen[mol]  +
                            # self.tconj[mol] +
                            # self.etor[mol]  +
@@ -788,9 +788,9 @@ class ReaxFF_nn(object):
       Nlp                = 0.5*(vale - val)
       self.Delta_e[st]  = 0.5*(self.Delta[st] - vale)
       self.DE[st]       = -tf.nn.relu(-tf.math.ceil(self.Delta_e[st])) 
-      self.nlp[st]      = -self.DE[st] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[st]-self.DE[st]))
+      self.Nlp[st]      = -self.DE[st] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[st]-self.DE[st]))
 
-      self.Delta_lp[st] = Nlp - self.nlp[st]                             # nan error
+      self.Delta_lp[st] = Nlp - self.Nlp[st]                             # nan error
       # Delta_lp         = tf.clip_by_value(self.Delta_lp[mol],-1.0,10.0)  # temporary solution
       # Delta_lp           = tf.nn.relu(self.Delta_lp[st]+1) -1
 
@@ -832,18 +832,18 @@ class ReaxFF_nn(object):
              sp  = ang.split('-')[1]
              # print(ang,self.na[st].get(ang,0))
              if self.na[st].get(ang,0)>0:
-                ai        = np.ravel(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
-                aj        = np.ravel(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
-                ak        = np.ravel(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
-                aij       = np.concatenate([np.expand_dims(ai,axis=1),
-                                            np.expand_dims(aj,axis=1)],axis=1)
-                ajk       = np.concatenate([np.expand_dims(aj,axis=1),
-                                            np.expand_dims(ak,axis=1)],axis=1)
-                # print('\n aij \n',aij)  
+                ai        = self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]]
+                aj        = self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]]
+                ak        = self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]]
+                aij       = np.concatenate([ai,aj],axis=1)
+                ajk       = np.concatenate([aj,ak],axis=1)
+                aik       = np.concatenate([aj,ak],axis=1)
+                # print('\n ai \n',self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])  
                 boij      = tf.gather_nd(self.bo[st],aij,name='boij_'+ang+sp)
                 bojk      = tf.gather_nd(self.bo[st],ajk,name='bojk_'+ang+sp)
                 fij       = tf.gather_nd(self.fbot[st],aij,name='fboij_'+ang+sp)  
                 fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang+sp) 
+
                 delta     = tf.gather_nd(self.Delta[st],aj,
                                          name='deltai_{:s}_{:s}'.format(ang,sp))
                 delta_ang = tf.gather_nd(self.Delta_ang[st],aj,
@@ -859,7 +859,7 @@ class ReaxFF_nn(object):
                 nlp       = tf.gather_nd(self.Nlp[st],aj,
                                          name='pbo_{:s}_{:s}'.format(ang,sp))
 
-                theta     = self.get_theta(st,ai,aj,ak)
+                theta     = self.get_theta(st,aij,ajk,aik)
                 Ea,fijk   = self.get_eangle(sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp)
                 Ep        = self.get_epenalty(ang,delta,boij,bojk,fijk)
                 Et        = self.get_three_conj(ang,delta_ang,delta_i,delta_k,boij,bojk,fijk) 
@@ -874,20 +874,21 @@ class ReaxFF_nn(object):
          self.epen[st] = tf.reduce_sum(self.Epen[st],1)
          self.etcon[st]= tf.reduce_sum(self.Etcon[st],1)
 
-  def get_theta(self,st,ai,aj,ak):
-      Rij = self.r[st][:,ai,aj]  
-      Rjk = self.r[st][:,aj,ak]  
+  def get_theta(self,st,aij,ajk,aik):
+      Rij = tf.gather_nd(self.r[st],aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
+      Rjk = tf.gather_nd(self.r[st],ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
       # Rik = self.r[self.angi,self.angk]  
-      vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
+      vik = tf.gather_nd(self.vr[st],aij) + tf.gather_nd(self.vr[st],ajk)
+      # vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
       # print(vik.shape)
-      Rik = torch.sqrt(torch.sum(torch.square(vik),2))
+      Rik = tf.sqrt(tf.reduce_sum(tf.square(vik),2))
 
       Rij2= Rij*Rij
       Rjk2= Rjk*Rjk
       Rik2= Rik*Rik
 
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      theta     = torch.acos(cos_theta)
+      theta     = tf.acos(cos_theta)
       return theta
  
   def get_eangle(self,mol,val1,val2,val3,val4,val5,val7,theta0):
@@ -910,7 +911,7 @@ class ReaxFF_nn(object):
   def get_theta0(self,mol,theta0):
       self.sbo[mol] = tf.gather_nd(self.Delta_pi[mol],self.ang_j[mol])
       self.pbo[mol] = tf.gather_nd(self.Pbo[mol],self.ang_j[mol])
-      self.rnlp[mol]= tf.gather_nd(self.nlp[mol],self.ang_j[mol])
+      self.rnlp[mol]= tf.gather_nd(self.Nlp[mol],self.ang_j[mol])
       self.SBO[mol] = self.sbo[mol] - tf.multiply(1.0-self.pbo[mol],self.D_ang[mol]+self.p['val8']*self.rnlp[mol])    
       
       ok         = tf.logical_and(tf.less_equal(self.SBO[mol],1.0),tf.greater(self.SBO[mol],0.0))
@@ -1377,39 +1378,39 @@ class ReaxFF_nn(object):
                           (9,0),(9,0),1,1,
                           None,self.be_universal_nn,self.mf_universal_nn,None)
 
-  def stack_threebody_parameters(self,mol):
-      val,val1,val2,val3,val4,val5,val7= 0.0,0.0,0.0,0.0,0.0,0.0,0.0
-      valboc_,valang_,theta0_,pen1_,coa1_ = 0.0,0.0,0.0,0.0,0.0
-      for i in range(self.nang[mol]):
-          ang = (self.atom_name[mol][self.ang_i[mol][i][0]] + '-' + 
-                  self.atom_name[mol][self.ang_j[mol][i][0]] + '-' + 
-                  self.atom_name[mol][self.ang_k[mol][i][0]])
-          aj  = self.atom_name[mol][self.ang_j[mol][i][0]]
-          val_.append([self.p['val_'+aj]])
-          valang_.append([self.p['valang_'+aj]])
-          valboc_.append([self.p['valboc_'+aj]])
-          val1_.append([self.p['val1_'+ang]])
-          val2_.append([self.p['val2_'+ang]]) 
-          val3_.append([self.p['val3_'+aj]])
-          val4_.append([self.p['val4_'+ang]]) 
-          val5_.append([self.p['val5_'+aj]])
-          val7_.append([self.p['val7_'+ang]]) 
-          pen1_.append([self.p['pen1_'+ang]]) 
-          coa1_.append([self.p['coa1_'+ang]])
-          theta0_.append([self.p['theta0_'+ang]])
-      val  = tf.stack(val_)
-      val1 = tf.stack(val1_)
-      val2 = tf.stack(val2_)
-      val3 = tf.stack(val3_)
-      val4 = tf.stack(val4_)
-      val5 = tf.stack(val5_)
-      val7 = tf.stack(val7_)
-      valang = tf.stack(valang_)
-      valboc = tf.stack(valboc_)
-      theta0 = tf.stack(theta0_)
-      pen1 = tf.stack(pen1_)
-      coa1 = tf.stack(coa1_)
-      return val,val1,val2,val3,val4,val5,val7,valang,valboc,theta0,pen1,coa1
+#   def stack_threebody_parameters(self,mol):
+#       val,val1,val2,val3,val4,val5,val7= 0.0,0.0,0.0,0.0,0.0,0.0,0.0
+#       valboc_,valang_,theta0_,pen1_,coa1_ = 0.0,0.0,0.0,0.0,0.0
+#       for i in range(self.nang[mol]):
+#           ang = (self.atom_name[mol][self.ang_i[mol][i][0]] + '-' + 
+#                   self.atom_name[mol][self.ang_j[mol][i][0]] + '-' + 
+#                   self.atom_name[mol][self.ang_k[mol][i][0]])
+#           aj  = self.atom_name[mol][self.ang_j[mol][i][0]]
+#           val_.append([self.p['val_'+aj]])
+#           valang_.append([self.p['valang_'+aj]])
+#           valboc_.append([self.p['valboc_'+aj]])
+#           val1_.append([self.p['val1_'+ang]])
+#           val2_.append([self.p['val2_'+ang]]) 
+#           val3_.append([self.p['val3_'+aj]])
+#           val4_.append([self.p['val4_'+ang]]) 
+#           val5_.append([self.p['val5_'+aj]])
+#           val7_.append([self.p['val7_'+ang]]) 
+#           pen1_.append([self.p['pen1_'+ang]]) 
+#           coa1_.append([self.p['coa1_'+ang]])
+#           theta0_.append([self.p['theta0_'+ang]])
+#       val  = tf.stack(val_)
+#       val1 = tf.stack(val1_)
+#       val2 = tf.stack(val2_)
+#       val3 = tf.stack(val3_)
+#       val4 = tf.stack(val4_)
+#       val5 = tf.stack(val5_)
+#       val7 = tf.stack(val7_)
+#       valang = tf.stack(valang_)
+#       valboc = tf.stack(valboc_)
+#       theta0 = tf.stack(theta0_)
+#       pen1 = tf.stack(pen1_)
+#       coa1 = tf.stack(coa1_)
+#       return val,val1,val2,val3,val4,val5,val7,valang,valboc,theta0,pen1,coa1
 
   def stack_fourbody_parameters(self,mol):
       tor1_,V1_,V2_,V3_,cot1_ = [],[],[],[],[]
