@@ -446,7 +446,7 @@ class ReaxFF_nn(object):
       self.dft_energy,self.E,self.zpe,self.eatom,self.forces = {},{},{},{},{}
       self.loss,self.penalty,self.accur,self.MolEnergy = {},{},{},{}
 
-      self.rv,self.qij = {},{}
+      self.rv,self.q = {},{}
       self.theta = {}
       self.s_ijk,self.s_jkl,self.cos_w,self.cos2w,self.w={},{},{},{},{}
       self.rhb,self.frhb,self.hbthe = {},{},{}
@@ -498,7 +498,7 @@ class ReaxFF_nn(object):
       for mol in self.strcs:
           self.get_bond_energy(mol)
           self.get_atom_energy(mol)
-         #  self.get_threebody_energy(mol)
+          self.get_threebody_energy(mol)
          #  self.get_fourbody_energy(mol)
          #  self.get_vdw_energy(mol)
          #  self.get_hb_energy(mol)
@@ -815,30 +815,80 @@ class ReaxFF_nn(object):
       eu2               = tf.math.divide(1.0,1.0+self.p['ovun7']*expeu3)
       self.EUN[mol]     = -ovun5*(1.0-expeu1)*eu1*eu2                          # must positive
 
-  def get_threebody_energy(self,mol):
-      bo            = tf.concat([tf.zeros([1,self.batch[mol]]),self.bo[mol]],0)
-      PBOpow        = tf.negative(tf.pow(bo,8)) # original: self.BO0 
-      PBOexp        = tf.exp(PBOpow)
-      PBO_          = tf.gather_nd(PBOexp,self.blist[mol],name=mol+'gather_boexp')
-      self.Pbo[mol] = tf.reduce_prod(input_tensor=PBO_,axis=1,name=mol+'_pbo') # BO Product
+  def get_threebody_energy(self,st):
+      pbopow        = tf.negative(tf.pow(self.bo[st],8)) # original: self.BO0 
+      pboexp        = tf.exp(pbopow)
+      self.Pbo[st] = tf.reduce_prod(pboexp,axis=1,name=st+'_pbo') # BO Product
 
-      if self.nang[mol]==0 or self.optword.find('noang')>=0:
-         self.eang[mol] = tf.cast(np.zeros([self.batch[mol]]),tf.float32)
-         self.epen[mol] = tf.cast(np.zeros([self.batch[mol]]),tf.float32)
-         self.tconj[mol]= tf.cast(np.zeros([self.batch[mol]]),tf.float32)
+      if self.nang[st]==0 or self.optword.find('noang')>=0:
+         self.eang[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
+         self.epen[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
+         self.tconj[st]= tf.cast(np.zeros([self.batch[st]]),tf.float32)
       else:
-         self.D_ang[mol] = tf.gather_nd(self.Delta_ang[mol],self.ang_j[mol])
+         Eang  = []
+         Epen  = []
+         Etcon = []
+         for ang in self.angs:
+             sp  = ang.split('-')[1]
+             # print(ang,self.na[st].get(ang,0))
+             if self.na[st].get(ang,0)>0:
+                ai        = np.ravel(self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                aj        = np.ravel(self.ang_j[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                ak        = np.ravel(self.ang_k[st][self.a[st][ang][0]:self.a[st][ang][1]])
+                aij       = np.concatenate([np.expand_dims(ai,axis=1),
+                                            np.expand_dims(aj,axis=1)],axis=1)
+                ajk       = np.concatenate([np.expand_dims(aj,axis=1),
+                                            np.expand_dims(ak,axis=1)],axis=1)
+                # print('\n aij \n',aij)  
+                boij      = tf.gather_nd(self.bo[st],aij,name='boij_'+ang+sp)
+                bojk      = tf.gather_nd(self.bo[st],ajk,name='bojk_'+ang+sp)
+                fij       = tf.gather_nd(self.fbot[st],aij,name='fboij_'+ang+sp)  
+                fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang+sp) 
+                delta     = tf.gather_nd(self.Delta[st],aj,
+                                         name='deltai_{:s}_{:s}'.format(ang,sp))
+                delta_ang = tf.gather_nd(self.Delta_ang[st],aj,
+                                         name='delta_ang_{:s}_{:s}'.format(ang,sp))
+                delta_i   = tf.gather_nd(self.Delta[st],ai,
+                                         name='deltaj_{:s}_{:s}'.format(ang,sp))
+                delta_k   = tf.gather_nd(self.Delta[st],ak,
+                                         name='deltak_{:s}_{:s}'.format(ang,sp))
+                sbo       = tf.gather_nd(self.Delta_pi[st],aj,
+                                         name='Delta_pi_{:s}_{:s}'.format(ang,sp))
+                pbo       = tf.gather_nd(self.Pbo[st],aj,
+                                         name='pbo_{:s}_{:s}'.format(ang,sp))
+                nlp       = tf.gather_nd(self.Nlp[st],aj,
+                                         name='pbo_{:s}_{:s}'.format(ang,sp))
 
-         val,val1,val2,val3,val4,val5,val7,valang,valboc,theta0,pen1,coa1 = self.stack_threebody_parameters(mol)
-         Delta= self.D_ang[mol] + valang - val
+                theta     = self.get_theta(st,ai,aj,ak)
+                Ea,fijk   = self.get_eangle(sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp)
+                Ep        = self.get_epenalty(ang,delta,boij,bojk,fijk)
+                Et        = self.get_three_conj(ang,delta_ang,delta_i,delta_k,boij,bojk,fijk) 
+                Eang.append(Ea)
+                Epen.append(Ep)
+                Etcon.append(Et)
 
-         self.get_eangle(mol,val1,val2,val3,val4,val5,val7,theta0)
-         self.get_epenalty(mol,pen1,Delta)
-         self.get_three_conj(mol,valang,valboc,coa1) 
- 
-         self.eang[mol] = tf.reduce_sum(input_tensor=self.Eang[mol],axis=0,name='eang_%s' %mol)
-         self.epen[mol] = tf.reduce_sum(input_tensor=self.Epen[mol],axis=0,name='epen_%s' %mol)
-         self.tconj[mol]= tf.reduce_sum(input_tensor=self.Etc[mol],axis=0,name='etc_%s' %mol)
+         self.Eang[st] = tf.cat(Eang,dim=1)
+         self.Epen[st] = tf.cat(Epen,dim=1)
+         self.Etcon[st]= tf.cat(Etcon,dim=1)
+         self.eang[st] = tf.reduce_sum(self.Eang[st],1)
+         self.epen[st] = tf.reduce_sum(self.Epen[st],1)
+         self.etcon[st]= tf.reduce_sum(self.Etcon[st],1)
+
+  def get_theta(self,st,ai,aj,ak):
+      Rij = self.r[st][:,ai,aj]  
+      Rjk = self.r[st][:,aj,ak]  
+      # Rik = self.r[self.angi,self.angk]  
+      vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
+      # print(vik.shape)
+      Rik = torch.sqrt(torch.sum(torch.square(vik),2))
+
+      Rij2= Rij*Rij
+      Rjk2= Rjk*Rjk
+      Rik2= Rik*Rik
+
+      cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      theta     = torch.acos(cos_theta)
+      return theta
  
   def get_eangle(self,mol,val1,val2,val3,val4,val5,val7,theta0):
       self.BOij[mol] = tf.gather_nd(self.bo[mol],self.abij[mol])   ### need to be done
@@ -1030,7 +1080,7 @@ class ReaxFF_nn(object):
              with tf.compat.v1.name_scope('vdW_%s' %vb):
                   v_  = self.v[mol][vb]
                   rv_ = tf.slice(self.rv[mol],[v_[0],0],[v_[1],self.batch[mol]])
-                  qij_= tf.slice(self.qij[mol],[v_[0],0],[v_[1],self.batch[mol]])
+                  qij_= tf.slice(self.q[mol],[v_[0],0],[v_[1],self.batch[mol]])
                   Evdw_,Ecoul_ = self.get_ev(vb,rv_,qij_)
                   Evdw.append(Evdw_)
                   Ecoul.append(Ecoul_)
@@ -1328,8 +1378,8 @@ class ReaxFF_nn(object):
                           None,self.be_universal_nn,self.mf_universal_nn,None)
 
   def stack_threebody_parameters(self,mol):
-      val_,val1_,val2_,val3_,val4_,val5_,val7_= [],[],[],[],[],[],[]
-      valboc_,valang_,theta0_,pen1_,coa1_ = [],[],[],[],[]
+      val,val1,val2,val3,val4,val5,val7= 0.0,0.0,0.0,0.0,0.0,0.0,0.0
+      valboc_,valang_,theta0_,pen1_,coa1_ = 0.0,0.0,0.0,0.0,0.0
       for i in range(self.nang[mol]):
           ang = (self.atom_name[mol][self.ang_i[mol][i][0]] + '-' + 
                   self.atom_name[mol][self.ang_j[mol][i][0]] + '-' + 
@@ -1675,21 +1725,22 @@ class ReaxFF_nn(object):
       for mol in self.strcs:
           feed_dict[self.dft_energy[mol]] = self.data[mol].dft_energy
           # feed_dict[self.rbd[mol]] = self.data[mol].rbd
-          feed_dict[self.rv[mol]]  = self.data[mol].rv
+          feed_dict[self.x[mol]]   = self.data[mol].x
+          feed_dict[self.q[mol]] = self.data[mol].q
           # if self.optword.find('nocoul')<0:
           #    feed_dict[self.qij[mol]] = self.data[mol].qij
-          if self.nang[mol]>0:
-             feed_dict[self.theta[mol]] = self.data[mol].theta
+         #  if self.nang[mol]>0:
+         #     feed_dict[self.theta[mol]] = self.data[mol].theta
 
-          if self.ntor[mol]>0:
-             feed_dict[self.s_ijk[mol]] = self.data[mol].s_ijk
-             feed_dict[self.s_jkl[mol]] = self.data[mol].s_jkl
-             feed_dict[self.w[mol]]     = self.data[mol].w
+         #  if self.ntor[mol]>0:
+         #     feed_dict[self.s_ijk[mol]] = self.data[mol].s_ijk
+         #     feed_dict[self.s_jkl[mol]] = self.data[mol].s_jkl
+         #     feed_dict[self.w[mol]]     = self.data[mol].w
 
-          if self.nhb[mol]>0:
-             feed_dict[self.rhb[mol]]   = self.data[mol].rhb
-             feed_dict[self.frhb[mol]]  = self.data[mol].frhb
-             feed_dict[self.hbthe[mol]] = self.data[mol].hbthe
+         #  if self.nhb[mol]>0:
+         #     feed_dict[self.rhb[mol]]   = self.data[mol].rhb
+         #     feed_dict[self.frhb[mol]]  = self.data[mol].frhb
+         #     feed_dict[self.hbthe[mol]] = self.data[mol].hbthe
       for k in self.ea_var:
           key = k.split('_')[0]
           p_  = self.p_[k]*self.unit if key in self.punit else self.p_[k]
@@ -1893,9 +1944,11 @@ class ReaxFF_nn(object):
               if self.nbd[mol][bd]>0:       
                  b_    = self.b[mol][bd]
                  #rbd_ = tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])        
-                 # bop_= tf.slice(self.bop[mol],[b_[0],0],[b_[1],self.batch[mol]]) 
-                 bdid  = self.bdid[b_[0]:b_[1]]
-                 bo0_  = tf.gather_nd(self.bo0[mol],bdid,name='bo0_supervize') 
+                 # bop_= tf.slice(self.bop[mol],[b_[0],0],[b_[1],self.batch[mol]])
+                 # print(self.bdid.shape) 
+                 bdid  = self.bdid[mol][b_[0]:b_[1]]
+                 bo0_  = tf.gather_nd(self.bo0[mol],bdid,
+                                      name='bo0_supervize_{:s}'.format(bd)) 
 
                  # fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
                  # self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
