@@ -867,16 +867,18 @@ class ReaxFF_nn(object):
                 Epen.append(Ep)
                 Etcon.append(Et)
 
-         self.Eang[st] = tf.cat(Eang,dim=1)
-         self.Epen[st] = tf.cat(Epen,dim=1)
-         self.Etcon[st]= tf.cat(Etcon,dim=1)
-         self.eang[st] = tf.reduce_sum(self.Eang[st],1)
-         self.epen[st] = tf.reduce_sum(self.Epen[st],1)
-         self.etcon[st]= tf.reduce_sum(self.Etcon[st],1)
+         self.Eang[st] = tf.concat(Eang,axis=0)
+         self.Epen[st] = tf.concat(Epen,axis=0)
+         self.Etcon[st]= tf.concat(Etcon,axis=0)
+         self.eang[st] = tf.reduce_sum(self.Eang[st],0)
+         self.epen[st] = tf.reduce_sum(self.Epen[st],0)
+         self.etcon[st]= tf.reduce_sum(self.Etcon[st],0)
 
   def get_theta(self,st,aij,ajk,aik):
-      Rij = tf.gather_nd(self.r[st],aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
-      Rjk = tf.gather_nd(self.r[st],ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
+      r   = tf.transpose(self.r[st],[1,2,0])
+      Rij = tf.gather_nd(r,aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
+      Rjk = tf.gather_nd(r,ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
+      print(self.vr[st])
       # Rik = self.r[self.angi,self.angk]  
       vik = tf.gather_nd(self.vr[st],aij) + tf.gather_nd(self.vr[st],ajk)
       # vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
@@ -891,93 +893,83 @@ class ReaxFF_nn(object):
       theta     = tf.acos(cos_theta)
       return theta
  
-  def get_eangle(self,mol,val1,val2,val3,val4,val5,val7,theta0):
-      self.BOij[mol] = tf.gather_nd(self.bo[mol],self.abij[mol])   ### need to be done
-      self.BOjk[mol] = tf.gather_nd(self.bo[mol],self.abjk[mol])   ### need to be done
-      fij            = tf.gather_nd(self.fbot[mol],self.abij[mol]) 
-      fjk            = tf.gather_nd(self.fbot[mol],self.abjk[mol]) 
-      self.fijk[mol] = fij*fjk
+  def get_eangle(self,sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp):
+      fijk           = fij*fjk
 
-      with tf.compat.v1.name_scope('Theta0_%s' %mol):
-           self.get_theta0(mol,theta0)
-      self.thet[mol]  = self.theta0[mol]-self.theta[mol]
-      self.thet2[mol] = tf.square(self.thet[mol])
+      theta0         = self.get_theta0(ang,delta_ang,sbo,pbo,nlp)
+      thet           = theta0 - theta
+      thet2          = tf.square(thet)
 
-      self.expang[mol]= tf.exp(-val2*self.thet2[mol])
-      self.f_7[mol]   = self.f7(mol,val3,val4)
-      self.f_8[mol]   = self.f8(mol,val5,val7)
-      self.Eang[mol]  = self.fijk[mol]*self.f_7[mol]*self.f_8[mol]*(val1-val1*self.expang[mol]) 
+      expang         = tf.exp(-self.p['val2_'+ang]*thet2)
+      f_7            = self.f7(sp,ang,boij,bojk)
+      f_8            = self.f8(sp,ang,delta_ang)
+      Eang           = fijk*f_7*f_8*(self.p['val1_'+ang]-self.p['val1_'+ang]*expang) 
+      return Eang,fijk
 
-  def get_theta0(self,mol,theta0):
-      self.sbo[mol] = tf.gather_nd(self.Delta_pi[mol],self.ang_j[mol])
-      self.pbo[mol] = tf.gather_nd(self.Pbo[mol],self.ang_j[mol])
-      self.rnlp[mol]= tf.gather_nd(self.Nlp[mol],self.ang_j[mol])
-      self.SBO[mol] = self.sbo[mol] - tf.multiply(1.0-self.pbo[mol],self.D_ang[mol]+self.p['val8']*self.rnlp[mol])    
+  def get_theta0(self,ang,delta_ang,sbo,pbo,nlp):
+      Sbo   = sbo - (1.0-pbo)*(delta_ang+self.p['val8']*nlp)    
       
-      ok         = tf.logical_and(tf.less_equal(self.SBO[mol],1.0),tf.greater(self.SBO[mol],0.0))
-      S1         = tf.where(ok,self.SBO[mol],tf.zeros_like(self.SBO[mol]))    #  0< sbo < 1                  
-      self.SBO01[mol] = tf.where(ok,tf.pow(S1,self.p['val9']),tf.zeros_like(S1)) 
+      cond1 = tf.logical_and(tf.less_equal(Sbo,1.0),tf.greater(Sbo,0.0))
+      S1    = tf.where(cond1,Sbo,0.0)                                    #  0< sbo < 1                  
+      Sbo1  = tf.where(cond1,tf.pow(S1+0.0000001,self.p['val9']),0.0) 
 
-      ok    = tf.logical_and(tf.less(self.SBO[mol],2.0),tf.greater(self.SBO[mol],1.0))
-      S2    = tf.where(ok,self.SBO[mol],tf.zeros_like(self.SBO[mol]))                     
-      F2    = tf.where(ok,tf.ones_like(S2),tf.zeros_like(S2))                                    #  1< sbo <2
+      cond2 = tf.logical_and(tf.less(Sbo,2.0),tf.greater(Sbo,1.0))
+      S2    = tf.where(cond2,Sbo,0.0)                     
+      F2    = tf.where(cond2,1.0,0.0)                                    #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      self.SBO12[mol] = tf.where(ok,2.0-tf.pow(S2,self.p['val9']),tf.zeros_like(self.SBO[mol]))  #  1< sbo <2
+      Sbo12 = tf.where(cond2,2.0-tf.pow(S2,self.p['val9']),0.0)          #  1< sbo <2
                                                                                                  #     sbo >2
-      SBO2  = tf.where(tf.greater_equal(self.SBO[mol],2.0),
-                       tf.ones_like(self.SBO[mol]),tf.zeros_like(self.SBO[mol]))
+      Sbo2  = tf.where(tf.greater_equal(Sbo,2.0),1.0,0.0)
 
-      self.SBO3[mol]   = self.SBO01[mol]+self.SBO12[mol]+2.0*SBO2
-      theta0_ = 180.0 - theta0*(1.0-tf.exp(-self.p['val10']*(2.0-self.SBO3[mol])))
-      self.theta0[mol] = theta0_/57.29577951
+      Sbo3   = Sbo1 + Sbo12 + 2.0*Sbo2
+      theta0_ = 180.0 - self.p['theta0_'+ang]*(1.0-tf.exp(-self.p['val10']*(2.0-Sbo3)))
+      theta0 = theta0_/57.29577951
+      return theta0
 
-  def f7(self,mol,val3,val4): 
-      FBOi  = tf.where(tf.greater(self.BOij[mol],0.0),
-                       tf.ones_like(self.BOij[mol]),tf.zeros_like(self.BOij[mol]))   
-      FBORi = 1.0 - FBOi                                                                         # prevent NAN error
-      expij = tf.exp(-val3*tf.pow(self.BOij[mol]+FBORi,val4)*FBOi)
+  def f7(self,sp,ang,boij,bojk): 
+      Fboi  = tf.where(tf.greater(boij,0.0),1.0,0.0)   
+      Fbori = 1.0 - Fboi                                                                         # prevent NAN error
+      expij = tf.exp(-self.p['val3_'+sp]*tf.pow(boij+Fbori,self.p['val4_'+ang])*Fboi)
 
-      FBOk  = tf.where(tf.greater(self.BOjk[mol],0.0),
-                        tf.ones_like(self.BOjk[mol]),tf.zeros_like(self.BOjk[mol]))   
-      FBORk = 1.0 - FBOk 
-      expjk = tf.exp(-val3*tf.pow(self.BOjk[mol]+FBORk,val4)*FBOk)
+      Fbok  = tf.where(tf.greater(bojk,0.0),1.0,0.0)   
+      Fbork = 1.0 - Fbok 
+      expjk = tf.exp(-self.p['val3_'+sp]*tf.pow(bojk+Fbork,self.p['val4_'+ang])*Fbok)
       fi = 1.0 - expij
       fk = 1.0 - expjk
-      F  = tf.multiply(fi,fk,name='f7_'+mol)
+      F  = fi*fk
       return F 
 
-  def f8(self,mol,val5,val7):
-      exp6 = tf.exp( self.p['val6']*self.D_ang[mol])
-      exp7 = tf.exp(-val7*self.D_ang[mol])
-      F    = val5 - (val5-1.0)*tf.math.divide(2.0+exp6,1.0+exp6+exp7)
+  def f8(self,sp,ang,delta_ang):
+      exp6 = tf.exp( self.p['val6']*delta_ang)
+      exp7 = tf.exp(-self.p['val7_'+ang]*delta_ang)
+      F    = self.p['val5_'+sp] - (self.p['val5_'+sp]-1.0)*tf.divide(2.0+exp6,1.0+exp6+exp7)
       return F
 
-  def get_epenalty(self,mol,pen1,Delta):
-      self.f_9[mol] = self.f9(Delta)
-      expi = tf.exp(-self.p['pen2']*tf.square(self.BOij[mol]-2.0))
-      expk = tf.exp(-self.p['pen2']*tf.square(self.BOjk[mol]-2.0))
-      self.Epen[mol] = pen1*self.f_9[mol]*expi*expk*self.fijk[mol]
+  def get_epenalty(self,ang,delta,boij,bojk,fijk):
+      f_9  = self.f9(delta)
+      expi = tf.exp(-self.p['pen2']*tf.square(boij-2.0))
+      expk = tf.exp(-self.p['pen2']*tf.square(bojk-2.0))
+      Ep   = self.p['pen1_'+ang]*f_9*expi*expk*fijk
+      return Ep
 
   def f9(self,Delta):
       exp3 = tf.exp(-self.p['pen3']*Delta)
       exp4 = tf.exp( self.p['pen4']*Delta)
-      F = tf.math.divide(2.0+exp3,1.0+exp3+exp4)
+      F = tf.divide(2.0+exp3,1.0+exp3+exp4)
       return F
 
-  def get_three_conj(self,mol,valang,valboc,coa1):
-      Dcoa = self.D_ang[mol] + valang - valboc
-      self.expcoa1[mol] = tf.exp(self.p['coa2']*Dcoa)
+  def get_three_conj(self,ang,delta_ang,delta_i,delta_k,boij,bojk,fijk):
+      delta_coa  = delta_ang # self.D_ang[st] + valang - valboc
+      expcoa1    = tf.exp(self.p['coa2']*delta_coa)
 
-      Di    = tf.gather_nd(self.Delta[mol],self.ang_i[mol])
-      Dk    = tf.gather_nd(self.Delta[mol],self.ang_k[mol])
-
-      texp0 = tf.math.divide(coa1,1.0+self.expcoa1[mol])  
-      texp1 = tf.exp(-self.p['coa3']*tf.square(Di-self.BOij[mol]))
-      texp2 = tf.exp(-self.p['coa3']*tf.square(Dk-self.BOjk[mol]))
-      texp3 = tf.exp(-self.p['coa4']*tf.square(self.BOij[mol]-1.5))
-      texp4 = tf.exp(-self.p['coa4']*tf.square(self.BOjk[mol]-1.5))
-      self.Etc[mol] = texp0*texp1*texp2*texp3*texp4*self.fijk[mol] 
+      texp0 = tf.divide(self.p['coa1_'+ang],1.0 + expcoa1)  
+      texp1 = tf.exp(-self.p['coa3']*tf.square(delta_i-boij))
+      texp2 = tf.exp(-self.p['coa3']*tf.square(delta_k-bojk))
+      texp3 = tf.exp(-self.p['coa4']*tf.square(boij-1.5))
+      texp4 = tf.exp(-self.p['coa4']*tf.square(bojk-1.5))
+      Etc   = texp0*texp1*texp2*texp3*texp4*fijk 
+      return Etc
 
   def get_fourbody_energy(self,mol):
       if self.optword.find('notor')>=0 or self.ntor[mol]==0:
