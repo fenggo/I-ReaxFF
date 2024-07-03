@@ -982,10 +982,10 @@ class ReaxFF_nn(object):
          Efcon  =    []
          for tor in self.tors:
              if self.nt[st][tor]>0:
-                ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tj        = np.squeeze(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tk        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tl        = np.squeeze(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                ti        = np.ravel(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tj        = np.ravel(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tk        = np.ravel(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tl        = np.ravel(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
                 boij      = self.bo[st][:,ti,tj]
                 bojk      = self.bo[st][:,tj,tk]
                 bokl      = self.bo[st][:,tk,tl]
