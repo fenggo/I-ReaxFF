@@ -37,7 +37,8 @@ class ReaxFF_nn(object):
   def __init__(self,libfile='ffield',dataset={},
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
-               opt=None,optword='nocoul',
+               opt=None,opt_term={'etor':True,'eang':True,'eover':True,'eunder':True,
+                                  'ecoul':True,'evdw':True,'elone':True,'ehb':True},
                mpopt=None,bdopt=None,mfopt=None,eaopt=[],
                VariablesToOpt=None,
                batch=200,sample='uniform',
@@ -93,7 +94,9 @@ class ReaxFF_nn(object):
       self.opt           = opt
       self.VariablesToOpt= VariablesToOpt
       self.cons          = cons
-      self.optword       = optword
+      self.opt_term      = {'etor':True,'eang':True,'eover':True,'eunder':True,
+                            'ecoul':True,'evdw':True,'elone':True,'ehb':True}
+      self.opt_term.update(opt_term)
       self.optmol        = optmol
       self.lambda_me     = lambda_me
       self.vdwcut        = vdwcut
@@ -427,7 +430,7 @@ class ReaxFF_nn(object):
       self.Epen,self.epen = {},{}
 
       self.expcoa1,self.texp0,self.texp1,self.texp2,self.texp3 = {},{},{},{},{}
-      self.texp4,self.tconj,self.Etc = {},{},{}
+      self.texp4,self.etcon,self.Etcon = {},{},{}
 
       self.cos3w,self.etor,self.Etor = {},{},{}
       self.BOpjk,self.BOtij,self.BOtjk,self.BOtkl,self.fijkl,self.so = {},{},{},{},{},{}
@@ -513,8 +516,8 @@ class ReaxFF_nn(object):
                            self.eunder[mol]+
                            self.elone[mol] +
                            self.eang[mol]  +
-                           # self.epen[mol]  +
-                           # self.tconj[mol] +
+                           self.epen[mol]  +
+                           self.etcon[mol] +
                            # self.etor[mol]  +
                            # self.efcon[mol] +
                            # self.evdw[mol]  +
@@ -820,7 +823,7 @@ class ReaxFF_nn(object):
       pboexp        = tf.exp(pbopow)
       self.Pbo[st] = tf.reduce_prod(pboexp,axis=1,name=st+'_pbo') # BO Product
 
-      if self.nang[st]==0 or self.optword.find('noang')>=0:
+      if self.nang[st]==0 or (not self.opt_term['eang']):
          self.eang[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
          self.epen[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
          self.tconj[st]= tf.cast(np.zeros([self.batch[st]]),tf.float32)
@@ -882,16 +885,12 @@ class ReaxFF_nn(object):
       # Rik = self.r[self.angi,self.angk]  
       vik = tf.gather_nd(vr,aij) + tf.gather_nd(vr,ajk)
       # vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
-      # print(vik.shape)
-      Rik = tf.sqrt(tf.reduce_sum(tf.square(vik),2))
+      Rik = tf.sqrt(tf.reduce_sum(tf.square(vik),1))
 
       Rij2= Rij*Rij
       Rjk2= Rjk*Rjk
       Rik2= Rik*Rik
-      print('\n Rij2 \n',Rij2)
-      print('\n Rjk2 \n',Rjk2)
-      print('\n Rik2 \n',Rik2)
-
+      # print('\n Rij2 \n',Rij2)
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
       theta     = tf.acos(cos_theta)
       return theta
@@ -974,17 +973,49 @@ class ReaxFF_nn(object):
       Etc   = texp0*texp1*texp2*texp3*texp4*fijk 
       return Etc
 
-  def get_fourbody_energy(self,mol):
-      if self.optword.find('notor')>=0 or self.ntor[mol]==0:
-         self.etor[mol] = tf.zeros([self.batch[mol]])
-         self.efcon[mol]= tf.zeros([self.batch[mol]])
+  def get_fourbody_energy(self,st):
+      if (not self.opt_term['etor'] and not self.opt_term['efcon']) or self.ntor[st]==0:
+         self.etor[st] = tf.zeros([self.batch[st]])
+         self.efcon[st]= tf.zeros([self.batch[st]])
       else:
-         tor1,V1,V2,V3,cot1 = self.stack_fourbody_parameters(mol)
-         self.get_etorsion(mol,tor1,V1,V2,V3)
-         self.get_four_conj(mol,cot1)
+         Etor   =    []
+         Efcon  =    []
+         for tor in self.tors:
+             if self.nt[st][tor]>0:
+                ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tj        = np.squeeze(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tk        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                tl        = np.squeeze(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                boij      = self.bo[st][:,ti,tj]
+                bojk      = self.bo[st][:,tj,tk]
+                bokl      = self.bo[st][:,tk,tl]
+                bopjk     = self.bopi[st][:,tj,tk]
+                fij       = self.fbot[st][:,ti,tj]
+                fjk       = self.fbot[st][:,tj,tk]
+                fkl       = self.fbot[st][:,tk,tl]
+                
+                delta_j   = self.Delta_ang[st][:,tj]
+                delta_k   = self.Delta_ang[st][:,tk]
 
-         self.etor[mol] = tf.reduce_sum(input_tensor=self.Etor[mol],axis=0,name='etor_%s' %mol)
-         self.efcon[mol]= tf.reduce_sum(input_tensor=self.Efcon[mol],axis=0,name='efcon_%s' %mol)
+                w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,ti,tj,tk,tl)
+                # w       = self.w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # cos_w   = self.cos_w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # cos2w   = self.cos2w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # cos3w   = self.cos3w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # s_ijk   = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                # s_jkl   = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
+                                       bopjk,delta_j,delta_k,
+                                       w,cos_w,cos2w,
+                                       s_ijk,s_jkl)
+                Ef        = self.get_four_conj(tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl)
+                Etor.append(Et)
+                Efcon.append(Ef)
+
+         self.Etor[st] = torch.cat(Etor,dim=1)
+         self.Efcon[st] = torch.cat(Efcon,dim=1)
+         self.etor[st] = torch.sum(self.Etor[st],1)
+         self.efcon[st]= torch.sum(self.Efcon[st],1)
 
   def get_etorsion(self,mol,tor1,V1,V2,V3):
       self.BOtij[mol]  = tf.gather_nd(self.bo[mol],self.tij[mol])
@@ -1062,11 +1093,9 @@ class ReaxFF_nn(object):
       expvdw2 = tf.square(expvdw1) 
       Evdw    = fv*tpv*self.p['Devdw_'+vb]*(expvdw2-2.0*expvdw1)
 
-      if self.optword.find('nocoul')<0:
-         rth   = tf.pow(r3+gm3,1.0/3.0)
-         Ecoul = tf.math.divide(fv*tpv*qij,rth)
-      else:
-         Ecoul = 0.0
+      # if self.optword.find('nocoul')<0:
+      rth   = tf.pow(r3+gm3,1.0/3.0)
+      Ecoul = tf.math.divide(fv*tpv*qij,rth)
       return Evdw,Ecoul
 
   def get_vdw_energy(self,mol):
@@ -1083,11 +1112,11 @@ class ReaxFF_nn(object):
       self.Evdw[mol] = tf.concat(Evdw,0)
       self.evdw[mol] = tf.reduce_sum(input_tensor=self.Evdw[mol],axis=0,name='evdw_%s' %mol)
 
-      if self.optword.find('nocoul')<0:
-         self.Ecoul[mol] = tf.concat(Ecoul,0)
-         self.ecoul[mol]= tf.reduce_sum(input_tensor=self.Ecou[mol],axis=0,name='ecoul_%s' %mol)
-      else:
-         self.ecoul[mol]= tf.constant(self.ecoul_[mol],dtype=tf.float32)
+      # if self.optword.find('nocoul')<0:
+      self.Ecoul[mol] = tf.concat(Ecoul,0)
+      self.ecoul[mol]= tf.reduce_sum(input_tensor=self.Ecou[mol],axis=0,name='ecoul_%s' %mol)
+      # else:
+      #    self.ecoul[mol]= tf.constant(self.ecoul_[mol],dtype=tf.float32)
 
   def get_hb_energy(self,mol):
       Ehb = []
@@ -1243,28 +1272,28 @@ class ReaxFF_nn(object):
       self.lopt = ['gammaw','vdw1','rvdw','Devdw','alfa',
                    'rohb','Dehb','hb1','hb2','atomic']  
 
-      if self.optword.find('noover')>=0:
+      if not self.opt_term['eover']:
          cons = cons + ['ovun1' ,'ovun2','ovun3','ovun4'] #
-      if self.optword.find('nounder')>=0:
+      if not self.opt_term['eunder']:
          cons = cons + ['ovun5','ovun6','ovun7','ovun8'] 
       # if self.optword.find('noover')>=0 and self.optword.find('nounder')>=0:
       #    cons = cons + ['ovun2','ovun3','ovun4'] 
-      if self.optword.find('nolone')>=0:
+      if not self.opt_term['elone']:
          cons = cons + ['lp2','lp3', 'lp1'] #
-      if self.optword.find('novdw')>=0:
+      if not self.opt_term['evdw']:
          cons = cons + ['gammaw','vdw1','rvdw','Devdw','alfa'] 
-      if self.optword.find('nohb')>=0:
+      if not self.opt_term['ehb']:
          cons = cons + ['Dehb','rohb','hb1','hb2'] #,'hbtol'
 
       self.tor_v = ['tor2','tor3','tor4','V1','V2','V3','tor1','cot1','cot2'] 
 
-      if self.optword.find('notor')>=0:
+      if not self.opt_term['etor']:
          cons = cons + self.tor_v
       self.ang_v = ['theta0',
                     'val1','val2','val3','val4','val5','val6','val7',
                     'pen1','pen2','pen3','pen4',
                     'coa1','coa2','coa3','coa4'] 
-      if self.optword.find('noang')>=0:
+      if not self.opt_term['eang']:
          cons = cons + self.ang_v
 
       if self.cons is None:
@@ -1291,19 +1320,19 @@ class ReaxFF_nn(object):
           key = k.split('_')[0]
           ktor= ['cot1','V1','V2','V3']
 
-          if self.optword.find('notor')>=0:
+          if not self.opt_term['etor']:
              if key in ktor:
                 self.p_[k] = 0.0
-          if self.optword.find('nolone')>=0:
+          if not self.opt_term['elone']:
              if key in 'lp2':
                 self.p_[k] = 0.0
-          if self.optword.find('noover')>=0:
+          if not self.opt_term['eover']:
              if key in 'ovun1':
                 self.p_[k] = 0.0
-          if self.optword.find('nounder')>=0:
+          if not self.opt_term['eunder']:
              if key in 'ovun5':
                 self.p_[k] = 0.0
-          if self.optword.find('noang')>=0:
+          if not self.opt_term['eang']:
              if key in ['val1','coa1','pen1']:
                 self.p_[k] = 0.0
 
@@ -1342,7 +1371,7 @@ class ReaxFF_nn(object):
   def set_parameters(self,libfile=None):
       if not libfile is None:
          self.p_,zpe,spec,bonds,offd,angs,torp,hbs = read_ffield(libfile=libfile)
-      self.var = set_variables(self.p_, self.optword, self.cons, self.opt,self.eaopt,
+      self.var = set_variables(self.p_, self.opt_term, self.cons, self.opt,self.eaopt,
                                self.punit, self.unit, self.conf_vale,
                                self.ang_v,self.tor_v)
 
@@ -1721,8 +1750,8 @@ class ReaxFF_nn(object):
       for mol in self.strcs:
           feed_dict[self.dft_energy[mol]] = self.data[mol].dft_energy
           # feed_dict[self.rbd[mol]] = self.data[mol].rbd
-          feed_dict[self.x[mol]]   = self.data[mol].x
-          feed_dict[self.q[mol]] = self.data[mol].q
+          feed_dict[self.x[mol]]     = self.data[mol].x
+          feed_dict[self.q[mol]]     = self.data[mol].q
           # if self.optword.find('nocoul')<0:
           #    feed_dict[self.qij[mol]] = self.data[mol].qij
          #  if self.nang[mol]>0:
