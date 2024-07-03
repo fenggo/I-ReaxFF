@@ -878,9 +878,9 @@ class ReaxFF_nn(object):
       r   = tf.transpose(self.r[st],[1,2,0])
       Rij = tf.gather_nd(r,aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
       Rjk = tf.gather_nd(r,ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
-      print(self.vr[st])
+      vr  = tf.transpose(self.vr[st],[1,2,3,0])
       # Rik = self.r[self.angi,self.angk]  
-      vik = tf.gather_nd(self.vr[st],aij) + tf.gather_nd(self.vr[st],ajk)
+      vik = tf.gather_nd(vr,aij) + tf.gather_nd(vr,ajk)
       # vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
       # print(vik.shape)
       Rik = tf.sqrt(tf.reduce_sum(tf.square(vik),2))
@@ -888,6 +888,9 @@ class ReaxFF_nn(object):
       Rij2= Rij*Rij
       Rjk2= Rjk*Rjk
       Rik2= Rik*Rik
+      print('\n Rij2 \n',Rij2)
+      print('\n Rjk2 \n',Rjk2)
+      print('\n Rik2 \n',Rik2)
 
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
       theta     = tf.acos(cos_theta)
