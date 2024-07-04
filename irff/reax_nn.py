@@ -10,12 +10,92 @@ from .reax_force_data import reax_force_data,Dataset
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
 from .RadiusCutOff import setRcut
-from .reax import logger,taper,DIV_IF,clip_parameters,set_variables
+from .reax import logger,taper,DIV_IF,clip_parameters # ,set_variables
 from .mpnn import fmessage,fnn,set_matrix
 # tf_upgrade_v2 --infile reax.py --outfile reax_v1.py
 # tf.compat.v1.disable_v2_behavior()
 tf.compat.v1.disable_eager_execution()
 
+def set_variables(p_,opt_term,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
+    v = {}
+    for k in p_:
+        key = k.split('_')[0]
+        ktor= ['cot1','V1','V2','V3']
+
+        if not opt_term['etor']:
+           if key in ktor:
+              p_[k] = 0.0
+        if not opt_term['eang']:
+           if key in ['val1','coa1','pen1']:
+              p_[k] = 0.0
+        if not opt_term['elone']:
+           if key == 'lp2':
+              p_[k] = 0.0
+        if not opt_term['eover']:
+           if key == 'ovun1':
+              p_[k] = 0.0
+        if not opt_term['eunder']:
+           if key == 'ovun5':
+              p_[k] = 0.0
+
+        if key == 'zpe':
+            continue
+        if key != 'n.u.':
+            if key in cons or k in cons:
+               if key in punit:
+                  v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
+                  # v[k]  =  tf.Variable(np.float32(unit*p_[k]),trainable=trainable,name=k)  
+               else:
+                  v[k] = tf.constant(np.float32(p_[k]),name=k)
+                  # v[k]  = tf.Variable(np.float32(p_[k]),trainable=trainable,name=k)
+            elif key in eaopt:
+               v[k] = tf.compat.v1.placeholder(tf.float32,shape=None,name=k)
+            elif key in opt:
+               # with tf.variable_scope('Neurons'):
+               trainable=True if key in opt else False       
+               if key in punit:
+                  if key in tor_v :
+                     key_ = k.split('_')[1]
+                     k_  = key_.split('-')
+                     if k_[1]=='H' or k_[2]=='H':
+                           v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
+                     else:
+                           v[k] = tf.Variable(np.float32(unit*p_[k]),
+                                                   trainable=trainable,name=k)   
+                  elif key in ang_v:
+                     key_ = k.split('_')[1]
+                     k_   = key_.split('-')
+                     if k_[1]=='H':
+                           v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
+                     else:
+                           v[k] = tf.Variable(np.float32(unit*p_[k]),
+                                                   trainable=trainable,name=k)  
+                  else:
+                     v[k] = tf.Variable(np.float32(unit*p_[k]),
+                                             trainable=trainable,name=k)
+               elif key=='vale':
+                  if conf_vale is None:
+                     v[k] = tf.Variable(np.float32(p_[k]),
+                                             trainable=trainable,name=k)
+                  else:
+                     e = k.split('_')[0]
+                     if e in conf_vale:
+                          v[k] = v['val_'+e]
+                     else:
+                          v[k] = tf.Variable(np.float32(p_[k]),
+                                             trainable=trainable,name=k)
+               else:
+                  v[k] = tf.Variable(np.float32(p_[k]),
+                                          trainable=trainable,name=k)
+            else:
+               if key in punit:
+                  v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
+               else:
+                  v[k] = tf.constant(np.float32(p_[k]),name=k)
+        else:
+            v[k] = tf.constant(p_[k])
+    v['hbtol'] = v['acut']
+    return v
 
 def find_torsion_angle(atomi,atomj,atomk,atoml,tors):
     tor1 = atomi+'-'+atomj+'-'+atomk+'-'+atoml
@@ -842,10 +922,10 @@ class ReaxFF_nn(object):
                 ajk       = np.concatenate([aj,ak],axis=1)
                 aik       = np.concatenate([aj,ak],axis=1)
                 # print('\n ai \n',self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])  
-                boij      = tf.gather_nd(self.bo[st],aij,name='boij_'+ang+sp)
-                bojk      = tf.gather_nd(self.bo[st],ajk,name='bojk_'+ang+sp)
-                fij       = tf.gather_nd(self.fbot[st],aij,name='fboij_'+ang+sp)  
-                fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang+sp) 
+                boij      = tf.gather_nd(self.bo[st],aij,name='boij_'+ang)
+                bojk      = tf.gather_nd(self.bo[st],ajk,name='bojk_'+ang)
+                fij       = tf.gather_nd(self.fbot[st],aij,name='fboij_'+ang)  
+                fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang) 
 
                 delta     = tf.gather_nd(self.Delta[st],aj,
                                          name='deltai_{:s}_{:s}'.format(ang,sp))
@@ -981,29 +1061,32 @@ class ReaxFF_nn(object):
          Etor   =    []
          Efcon  =    []
          for tor in self.tors:
+             spj  = tor.split('-')[1]
+             spk  = tor.split('-')[2]
              if self.nt[st][tor]>0:
-                ti        = np.ravel(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tj        = np.ravel(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tk        = np.ravel(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tl        = np.ravel(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                boij      = self.bo[st][:,ti,tj]
-                bojk      = self.bo[st][:,tj,tk]
-                bokl      = self.bo[st][:,tk,tl]
-                bopjk     = self.bopi[st][:,tj,tk]
-                fij       = self.fbot[st][:,ti,tj]
-                fjk       = self.fbot[st][:,tj,tk]
-                fkl       = self.fbot[st][:,tk,tl]
-                
-                delta_j   = self.Delta_ang[st][:,tj]
-                delta_k   = self.Delta_ang[st][:,tk]
+                ti        = self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]]
+                tj        = self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]]
+                tk        = self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]]
+                tl        = self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]]
+                tij       = np.concatenate([ti,tj],axis=1)
+                tjk       = np.concatenate([tj,tk],axis=1)
+                tkl       = np.concatenate([tk,tl],axis=1)
+                # print('\n ai \n',self.ang_i[st][self.a[st][ang][0]:self.a[st][ang][1]])  
+                boij      = tf.gather_nd(self.bo[st],tij,name='boij_{:s}_{:s}'.format(st,tor))
+                bojk      = tf.gather_nd(self.bo[st],tjk,name='bojk_{:s}_{:s}'.format(st,tor))
+                bokl      = tf.gather_nd(self.bo[st],tkl,name='bokl_{:s}_{:s}'.format(st,tor))
+                bopjk     = tf.gather_nd(self.bopi[st],tjk,name='bojk_{:s}_{:s}'.format(st,tor))
+                fij       = tf.gather_nd(self.fbot[st],tij,name='fij_{:s}_{:s}'.format(st,tor))
+                fjk       = tf.gather_nd(self.fbot[st],tjk,name='fjk_{:s}_{:s}'.format(st,tor))
+                fkl       = tf.gather_nd(self.fbot[st],tkl,name='fkl_{:s}_{:s}'.format(st,tor))
+
+                delta_j   = tf.gather_nd(self.Delta_ang[st],tj,
+                                         name='delta_ang_{:s}_{:s}'.format(tor,spj))
+                 
+                delta_k   = tf.gather_nd(self.Delta_ang[st],tj,
+                                         name='delta_ang_{:s}_{:s}'.format(tor,spk))
 
                 w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,ti,tj,tk,tl)
-                # w       = self.w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos_w   = self.cos_w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos2w   = self.cos2w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos3w   = self.cos3w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # s_ijk   = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # s_jkl   = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
                 Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
                                        bopjk,delta_j,delta_k,
                                        w,cos_w,cos2w,
@@ -1012,65 +1095,58 @@ class ReaxFF_nn(object):
                 Etor.append(Et)
                 Efcon.append(Ef)
 
-         self.Etor[st] = torch.cat(Etor,dim=1)
-         self.Efcon[st] = torch.cat(Efcon,dim=1)
-         self.etor[st] = torch.sum(self.Etor[st],1)
-         self.efcon[st]= torch.sum(self.Efcon[st],1)
+         self.Etor[st]  = tf.concat(Etor,dim=1)
+         self.Efcon[st] = tf.concat(Efcon,dim=1)
+         self.etor[st]  = tf.reduce_sum(self.Etor[st],1)
+         self.efcon[st] = tf.reduce_sum(self.Efcon[st],1)
 
-  def get_etorsion(self,mol,tor1,V1,V2,V3):
-      self.BOtij[mol]  = tf.gather_nd(self.bo[mol],self.tij[mol])
-      self.BOtjk[mol]  = tf.gather_nd(self.bo[mol],self.tjk[mol])
-      self.BOtkl[mol]  = tf.gather_nd(self.bo[mol],self.tkl[mol])
-      fij              = tf.gather_nd(self.fbot[mol],self.tij[mol])
-      fjk              = tf.gather_nd(self.fbot[mol],self.tjk[mol])
-      fkl              = tf.gather_nd(self.fbot[mol],self.tkl[mol])
-      self.fijkl[mol]  = fij*fjk*fkl
+  def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
+                        w,cos_w,cos2w,s_ijk,s_jkl):
+      fijkl   = fij*fjk*fkl
 
-      Dj    = tf.gather_nd(self.Delta_ang[mol],self.tor_j[mol])
-      Dk    = tf.gather_nd(self.Delta_ang[mol],self.tor_k[mol])
+      f_10    = self.f10(boij,bojk,bokl)
+      f_11    = self.f11(delta_j,delta_k)
+      expv2   = torch.exp(self.p['tor1_'+tor]*torch.square(2.0-bopjk-f_11)) 
 
-      self.f_10[mol]   = self.f10(mol)
-      self.f_11[mol]   = self.f11(mol,Dj,Dk)
-
-      self.BOpjk[mol]  = tf.gather_nd(self.bopi[mol],self.tjk[mol]) 
-      #   different from reaxff manual
-      self.expv2[mol]  = tf.exp(tor1*tf.square(2.0-self.BOpjk[mol]-self.f_11[mol])) 
-
-      self.cos3w[mol]  = tf.cos(3.0*self.w[mol])
-      v1 = 0.5*V1*(1.0+self.cos_w[mol])   
-      v2 = 0.5*V2*self.expv2[mol]*(1.0-self.cos2w[mol])
-      v3 = 0.5*V3*(1.0+self.cos3w[mol])
-      self.Etor[mol]=self.fijkl[mol]*self.f_10[mol]*self.s_ijk[mol]*self.s_jkl[mol]*(v1+v2+v3)
-
-  def f10(self,mol):
-      with tf.compat.v1.name_scope('f10_%s' %mol):
-           exp1 = 1.0 - tf.exp(-self.p['tor2']*self.BOtij[mol])
-           exp2 = 1.0 - tf.exp(-self.p['tor2']*self.BOtjk[mol])
-           exp3 = 1.0 - tf.exp(-self.p['tor2']*self.BOtkl[mol])
+      cos3w   = torch.cos(3.0*w)
+      v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
+      v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
+      v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
+      
+      Etor    = fijkl*f_10*s_ijk*s_jkl*(v1+v2+v3)
+      return Etor,fijkl
+  
+  
+  def f10(self,boij,bojk,bokl):
+      exp1 = 1.0 - tf.exp(-self.p['tor2']*boij)
+      exp2 = 1.0 - tf.exp(-self.p['tor2']*bojk)
+      exp3 = 1.0 - tf.exp(-self.p['tor2']*bokl)
       return exp1*exp2*exp3
 
-  def f11(self,mol,Dj,Dk):
-      delt = Dj+Dk
-      self.f11exp3[mol] = tf.exp(-self.p['tor3']*delt)
-      self.f11exp4[mol] = tf.exp( self.p['tor4']*delt)
-      f_11 = tf.math.divide(2.0+self.f11exp3[mol],1.0+self.f11exp3[mol]+self.f11exp4[mol])
+  def f11(self,delta_j,delta_k):
+      delt = delta_j+delta_k
+      f11exp3  = tf.exp(-self.p['tor3']*delt)
+      f11exp4  = tf.exp( self.p['tor4']*delt)
+      f_11 = tf.math.divide(2.0+f11exp3,1.0+f11exp3+f11exp4)
       return f_11
 
-  def get_four_conj(self,mol,cot1):
-      exptol= tf.exp(-self.p['cot2']*tf.square(self.atol - 1.5))
-      expij = tf.exp(-self.p['cot2']*tf.square(self.BOtij[mol]-1.5))-exptol
-      expjk = tf.exp(-self.p['cot2']*tf.square(self.BOtjk[mol]-1.5))-exptol 
-      expkl = tf.exp(-self.p['cot2']*tf.square(self.BOtkl[mol]-1.5))-exptol
+  def get_four_conj(self,tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl):
+      exptol= tf.exp(-self.p['cot2']*tf.square(self.p['acut'] - 1.5))
+      expij = tf.exp(-self.p['cot2']*tf.square(boij-1.5))-exptol
+      expjk = tf.exp(-self.p['cot2']*tf.square(bojk-1.5))-exptol 
+      expkl = tf.exp(-self.p['cot2']*tf.square(bokl-1.5))-exptol
 
-      self.f_12[mol] = expij*expjk*expkl
-      prod = 1.0+(tf.square(tf.cos(self.w[mol]))-1.0)*self.s_ijk[mol]*self.s_jkl[mol]
-      self.Efcon[mol] = self.fijkl[mol]*self.f_12[mol]*cot1*prod  
+      f_12  = expij*expjk*expkl
+      prod  = 1.0+(tf.square(tf.cos(w))-1.0)*s_ijk*s_jkl
+      Efcon = fijkl*f_12*self.p['cot1_'+tor]*prod  
+      return Efcon
 
-  def f13(self,r,ai,aj):
-      gw = tf.sqrt(self.p['gammaw_'+ai]*self.p['gammaw_'+aj])
-      rr = tf.pow(r,self.p['vdw1'])+tf.pow(tf.math.divide(1.0,gw),self.p['vdw1'])
-      f  = tf.pow(rr,tf.math.divide(1.0,self.p['vdw1']))  
-      return f
+  def f13(self,st,r):
+      # print(self.p['vdw1'].device)
+      gammaw = tf.sqrt(tf.unsqueeze(self.P[st]['gammaw'],1)*tf.unsqueeze(self.P[st]['gammaw'],2))
+      rr = tf.pow(r,self.p['vdw1'])+tf.pow(tf.math.divide(1.0,gammaw),self.p['vdw1'])
+      f_13 = tf.pow(rr,tf.math.divide(1.0,self.p['vdw1']))  
+      return f_13
 
   def get_tap(self,r):
       tp = 1.0+tf.math.divide(-35.0,tf.pow(self.vdwcut,4.0))*tf.pow(r,4.0)+ \
@@ -1309,7 +1385,6 @@ class ReaxFF_nn(object):
       self.nvopt = self.p_g+self.p_spec+self.p_bond+self.p_offd+self.p_ang+self.p_tor+self.p_hb
       for v in ['gammaw','vdw1','rvdw','Devdw','alfa','gamma']:
           self.nvopt.remove(v)
-      
 
   def set_parameters_to_opt(self,libfile=None):
       if not libfile is None:
@@ -1401,59 +1476,6 @@ class ReaxFF_nn(object):
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal_nn,self.mf_universal_nn,None)
-
-#   def stack_threebody_parameters(self,mol):
-#       val,val1,val2,val3,val4,val5,val7= 0.0,0.0,0.0,0.0,0.0,0.0,0.0
-#       valboc_,valang_,theta0_,pen1_,coa1_ = 0.0,0.0,0.0,0.0,0.0
-#       for i in range(self.nang[mol]):
-#           ang = (self.atom_name[mol][self.ang_i[mol][i][0]] + '-' + 
-#                   self.atom_name[mol][self.ang_j[mol][i][0]] + '-' + 
-#                   self.atom_name[mol][self.ang_k[mol][i][0]])
-#           aj  = self.atom_name[mol][self.ang_j[mol][i][0]]
-#           val_.append([self.p['val_'+aj]])
-#           valang_.append([self.p['valang_'+aj]])
-#           valboc_.append([self.p['valboc_'+aj]])
-#           val1_.append([self.p['val1_'+ang]])
-#           val2_.append([self.p['val2_'+ang]]) 
-#           val3_.append([self.p['val3_'+aj]])
-#           val4_.append([self.p['val4_'+ang]]) 
-#           val5_.append([self.p['val5_'+aj]])
-#           val7_.append([self.p['val7_'+ang]]) 
-#           pen1_.append([self.p['pen1_'+ang]]) 
-#           coa1_.append([self.p['coa1_'+ang]])
-#           theta0_.append([self.p['theta0_'+ang]])
-#       val  = tf.stack(val_)
-#       val1 = tf.stack(val1_)
-#       val2 = tf.stack(val2_)
-#       val3 = tf.stack(val3_)
-#       val4 = tf.stack(val4_)
-#       val5 = tf.stack(val5_)
-#       val7 = tf.stack(val7_)
-#       valang = tf.stack(valang_)
-#       valboc = tf.stack(valboc_)
-#       theta0 = tf.stack(theta0_)
-#       pen1 = tf.stack(pen1_)
-#       coa1 = tf.stack(coa1_)
-#       return val,val1,val2,val3,val4,val5,val7,valang,valboc,theta0,pen1,coa1
-
-  def stack_fourbody_parameters(self,mol):
-      tor1_,V1_,V2_,V3_,cot1_ = [],[],[],[],[]
-      for i in range(self.ntor[mol]):
-          tor = find_torsion_angle(self.atom_name[mol][self.tor_i[mol][i][0]],
-                                   self.atom_name[mol][self.tor_j[mol][i][0]],
-                                   self.atom_name[mol][self.tor_k[mol][i][0]], 
-                                   self.atom_name[mol][self.tor_l[mol][i][0]],self.tors)
-          tor1_.append([self.p['tor1_'+tor]])
-          V1_.append([self.p['V1_'+tor]])
-          V2_.append([self.p['V2_'+tor]])
-          V3_.append([self.p['V3_'+tor]])
-          cot1_.append([self.p['cot1_'+tor]])
-      tor1 = tf.stack(tor1_)
-      V1   = tf.stack(V1_)
-      V2   = tf.stack(V2_)
-      V3   = tf.stack(V3_)
-      cot1 = tf.stack(cot1_)
-      return tor1,V1,V2,V3,cot1
 
   def checkp(self):
       for key in self.p_offd:
