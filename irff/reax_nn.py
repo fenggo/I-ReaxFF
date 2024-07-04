@@ -337,10 +337,10 @@ class ReaxFF_nn(object):
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nmol = len(strucs)
-
+      
+      self.memory(molecules=strucs)
       self.generate_data(strucs)
-      with tf.compat.v1.name_scope('input'):
-           self.memory(molecules=strucs)
+           
       self.set_zpe(molecules=strucs)
 
       self.build_graph()    
@@ -368,6 +368,8 @@ class ReaxFF_nn(object):
       self.vb_j                        = {}
       self.atom_name                   = {}
       self.natom                       = {}
+      self.x,self.vr,self.r,self.rr    = {},{},{},{}
+      self.vrr                         = {}
       self.nang                        = {}
       self.ntor                        = {}
       self.ns                          = {}
@@ -386,10 +388,14 @@ class ReaxFF_nn(object):
       self.pmask                       = {}
       self.cell                        = {}
       self.rcell                       = {}
+      self.cell0                       = {}
+      self.cell1                       = {}
+      self.cell2                       = {}
       self.eye                         = {}
+      self.P                           = {}
       for s in strucs:
           s_ = s.split('-')[0]
-          self.natom[s]    = strucs[s].natom
+          # self.natom[s]    = strucs[s].natom
           self.nang[s]     = strucs[s].nang
           self.ang_j[s]    = np.expand_dims(strucs[s].ang_j,axis=1)
           self.ang_i[s]    = np.expand_dims(strucs[s].ang_i,axis=1)
@@ -408,7 +414,6 @@ class ReaxFF_nn(object):
           self.nbd[s]      = strucs[s].nbd
           self.na[s]       = strucs[s].na
           self.nt[s]       = strucs[s].nt
-          # self.nv[s]     = strucs[s].nv
           self.nhb[s]      = strucs[s].nhb
           self.b[s]        = strucs[s].B
           self.a[s]        = strucs[s].A
@@ -419,7 +424,8 @@ class ReaxFF_nn(object):
           self.atom_name[s]= strucs[s].atom_name
           self.dilink[s]   = strucs[s].dilink
           self.djlink[s]   = strucs[s].djlink
-          
+          self.P[s]        = {}
+
           self.s[s]        = {sp:[] for sp in self.spec}
           for i,sp in enumerate(self.atom_name[s]):
               self.s[s][sp].append(i)
@@ -432,8 +438,10 @@ class ReaxFF_nn(object):
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.vb_i[s]  = {}
-          self.vb_j[s]  = {}
+          self.vb_i[s]     = {}
+          self.vb_j[s]     = {}
+          self.natom[s]    = strucs[s].natom
+         
           for i in range(self.natom[s]):
               for j in range(self.natom[s]):
                   bd = self.atom_name[s][i]+'-'+self.atom_name[s][j]
@@ -465,8 +473,21 @@ class ReaxFF_nn(object):
 
           self.cell[s]  = tf.constant(np.expand_dims(self.data[s].cell,axis=1),name='cell_{:s}'.format(s))
           self.rcell[s] = tf.constant(np.expand_dims(self.data[s].rcell,axis=1),name='rcell_{:s}'.format(s))
-          self.eye[s]   = tf.constant(np.expand_dims(1.0 - np.eye(self.natom[s]),axis=0),name='eye_{:s}'.format(s))
+          # self.eye[s] = tf.constant(np.expand_dims(1.0 - np.eye(self.natom[s]),axis=0),name='eye_{:s}'.format(s))
+    
+          self.dft_energy[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s]],
+                                                name='DFT_energy_{:s}'.format(s))
 
+          self.x[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
+                                                    name='x_{:s}'.format(s))
+          self.q[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+                                                   name='qij_{:s}'.format(s))
+          # self.nang[mol] = molecules[mol].nang
+          # self.nhb[mol]  = molecules[mol].nhb
+          if strucs[s].forces is not None:
+             self.forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
+                                            name='forces_{:s}'.format(s))
+             
   def memory(self,molecules):
       self.frc = {}
       self.Bsi,self.Bpi,self.Bpp  = {},{},{}
@@ -521,7 +542,7 @@ class ReaxFF_nn(object):
       self.Efcon,self.efcon = {},{}
 
       self.Evdw,self.nvb = {},{}
-      self.Ecou,self.evdw,self.ecoul,self.tpv,self.rth = {},{},{},{},{}
+      self.Ecoul,self.evdw,self.ecoul,self.tpv,self.rth = {},{},{},{},{}
 
       self.exphb1,self.exphb2,self.sin4,self.EHB = {},{},{},{}
       self.pc,self.BOhb,self.ehb,self.Ehb = {},{},{},{}
@@ -532,47 +553,7 @@ class ReaxFF_nn(object):
       self.rv,self.q = {},{}
       self.theta = {}
       self.s_ijk,self.s_jkl,self.cos_w,self.cos2w,self.w={},{},{},{},{}
-      self.rhb,self.frhb,self.hbthe = {},{},{}
-      self.nang,self.ntor,self.nhb  = {},{},{}
-      self.x,self.vr,self.r         = {},{},{}
-      for mol in self.strcs:
-          self.dft_energy[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol]],
-                                                name='DFT_energy_%s' %mol)
-
-          self.x[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],3],
-                                                    name='x_%s' %mol)
-         #  self.nvb[mol] = molecules[mol].nvb
-         #  self.rv[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[mol],self.batch[mol]],
-         #                                           name='rvdw_%s' %mol)
-          self.q[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],self.natom[mol]],
-                                                   name='qij_%s' %mol)
-          self.nang[mol] = molecules[mol].nang
-         #  if self.nang[mol]>0:                             
-         #     self.theta[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nang[mol],self.batch[mol]],
-         #                                             name='theta_%s' %mol)
-         #  self.ntor[mol] = molecules[mol].ntor
-         #  if self.ntor[mol]>0:
-         #     self.s_ijk[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-         #                                              name='sijk_%s' %mol)
-         #     self.s_jkl[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-         #                                              name='sjkl_%s' %mol)
-         #     self.w[mol]     = tf.compat.v1.placeholder(tf.float32,shape=[self.ntor[mol],self.batch[mol]],
-         #                                     name='w_%s' %mol)
-         #     self.cos_w[mol] = tf.cos(self.w[mol])
-         #     self.cos2w[mol] = tf.cos(2.0*self.w[mol])
-
-      
-          self.nhb[mol] = molecules[mol].nhb
-         #  if self.nhb[mol]>0:
-         #     self.rhb[mol]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-         #                                    name='rhb_%s' %mol)
-         #     self.frhb[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-         #                                    name='frhb_%s' %mol)
-         #     self.hbthe[mol]= tf.compat.v1.placeholder(tf.float32,shape=[self.nhb[mol],self.batch[mol]],
-         #                                    name='hbthe_%s' %mol)
-          if self.data[mol].forces is not None:
-             self.forces[mol] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[mol],self.natom[mol],3],
-                                            name='forces_%s' %mol)
+      # self.rhb,self.frhb,self.hbthe   = {},{},{}
 
   def build_graph(self):
       print('-  building graph: ')
@@ -582,8 +563,8 @@ class ReaxFF_nn(object):
           self.get_bond_energy(mol)
           self.get_atom_energy(mol)
           self.get_threebody_energy(mol)
-         #  self.get_fourbody_energy(mol)
-         #  self.get_vdw_energy(mol)
+          self.get_fourbody_energy(mol)
+          self.get_vdw_energy(mol)
          #  self.get_hb_energy(mol)
           self.get_total_energy(mol)
       self.get_loss()
@@ -598,10 +579,10 @@ class ReaxFF_nn(object):
                            self.eang[mol]  +
                            self.epen[mol]  +
                            self.etcon[mol] +
-                           # self.etor[mol]  +
-                           # self.efcon[mol] +
-                           # self.evdw[mol]  +
-                           # self.ecoul[mol] +
+                           self.etor[mol]  +
+                           self.efcon[mol] +
+                           self.evdw[mol]  +
+                           self.ecoul[mol] +
                            # self.ehb[mol]   +
                            self.eself[mol], 
                            self.zpe[mol],name='E_%s' %mol)   
@@ -614,6 +595,7 @@ class ReaxFF_nn(object):
       vrf         = tf.where(vrf+0.5<0,vrf+1.0,vrf) 
       
       self.vr[st] = tf.matmul(vrf,self.cell[st])
+      self.vrr[st]= tf.transpose(self.vr[st],[1,2,3,0])
       self.r[st]  = tf.sqrt(tf.reduce_sum(self.vr[st]*self.vr[st],axis=3) + self.safety_value) # 
       
       self.get_bondorder_uc(st)
@@ -649,8 +631,8 @@ class ReaxFF_nn(object):
   def get_bondorder_uc(self,mol):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
-      r = tf.transpose(self.r[mol],perm=(1,2,0))
-      self.rbd[mol] = tf.gather_nd(r,self.bdid[mol],
+      self.rr[mol] = tf.transpose(self.r[mol],perm=(1,2,0))
+      self.rbd[mol] = tf.gather_nd(self.rr[mol],self.bdid[mol],
                                    name='rbd_{:s}'.format(mol))
 
       for bd in self.bonds:
@@ -854,14 +836,8 @@ class ReaxFF_nn(object):
       dlp  = self.Delta[st] - val - self.Delta_lp[st]
       dlp_ = tf.expand_dims(dlp,axis=0)
       self.Dpil[st] = tf.reduce_sum(dlp_*self.Bpi[st],axis=1)
-      #if 'ovun1' in self.cons:
-      #    self.eover[mol] = 0.0
-      #else:
       self.get_eover(st,val,ovun2) 
       self.eover[st]  = tf.reduce_sum(input_tensor=self.EOV[st],axis=0,name='eover_{:s}'.format(st))
-      # if 'ovun5' in self.cons:
-      #    self.eunder[mol] = 0.0
-      # else:
       self.get_eunder(st,ovun2,ovun5) 
       self.eunder[st] = tf.reduce_sum(input_tensor=self.EUN[st],axis=0,name='eunder_{:s}'.format(st))
       self.zpe[st]    = tf.reduce_sum(input_tensor=self.eatom[st],name='zpe') + self.MolEnergy[st_]
@@ -958,12 +934,12 @@ class ReaxFF_nn(object):
          self.etcon[st]= tf.reduce_sum(self.Etcon[st],0)
 
   def get_theta(self,st,aij,ajk,aik):
-      r   = tf.transpose(self.r[st],[1,2,0])
-      Rij = tf.gather_nd(r,aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
-      Rjk = tf.gather_nd(r,ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
-      vr  = tf.transpose(self.vr[st],[1,2,3,0])
+      # r = tf.transpose(self.r[st],[1,2,0])
+      Rij = tf.gather_nd(self.rr[st],aij,name='rij_'+st)        # self.r[st][:,ai,aj]  
+      Rjk = tf.gather_nd(self.rr[st],ajk,name='rjk_'+st)        #self.r[st][:,aj,ak]  
+      # vr  = tf.transpose(self.vr[st],[1,2,3,0])
       # Rik = self.r[self.angi,self.angk]  
-      vik = tf.gather_nd(vr,aij) + tf.gather_nd(vr,ajk)
+      vik = tf.gather_nd(self.vrr[st],aij) + tf.gather_nd(self.vrr[st],ajk)
       # vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
       Rik = tf.sqrt(tf.reduce_sum(tf.square(vik),1))
 
@@ -1086,7 +1062,7 @@ class ReaxFF_nn(object):
                 delta_k   = tf.gather_nd(self.Delta_ang[st],tj,
                                          name='delta_ang_{:s}_{:s}'.format(tor,spk))
 
-                w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,ti,tj,tk,tl)
+                w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,tor,tij,tjk,tkl)
                 Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
                                        bopjk,delta_j,delta_k,
                                        w,cos_w,cos2w,
@@ -1095,10 +1071,10 @@ class ReaxFF_nn(object):
                 Etor.append(Et)
                 Efcon.append(Ef)
 
-         self.Etor[st]  = tf.concat(Etor,dim=1)
-         self.Efcon[st] = tf.concat(Efcon,dim=1)
-         self.etor[st]  = tf.reduce_sum(self.Etor[st],1)
-         self.efcon[st] = tf.reduce_sum(self.Efcon[st],1)
+         self.Etor[st]  = tf.concat(Etor,axis=0)
+         self.Efcon[st] = tf.concat(Efcon,axis=0)
+         self.etor[st]  = tf.reduce_sum(self.Etor[st],0)
+         self.efcon[st] = tf.reduce_sum(self.Efcon[st],0)
 
   def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
                         w,cos_w,cos2w,s_ijk,s_jkl):
@@ -1106,9 +1082,9 @@ class ReaxFF_nn(object):
 
       f_10    = self.f10(boij,bojk,bokl)
       f_11    = self.f11(delta_j,delta_k)
-      expv2   = torch.exp(self.p['tor1_'+tor]*torch.square(2.0-bopjk-f_11)) 
+      expv2   = tf.exp(self.p['tor1_'+tor]*tf.square(2.0-bopjk-f_11)) 
 
-      cos3w   = torch.cos(3.0*w)
+      cos3w   = tf.cos(3.0*w)
       v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
       v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
       v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
@@ -1116,6 +1092,63 @@ class ReaxFF_nn(object):
       Etor    = fijkl*f_10*s_ijk*s_jkl*(v1+v2+v3)
       return Etor,fijkl
   
+  def get_torsion_angle(self,st,tor,tij,tjk,tkl):
+      ''' compute torsion angle '''
+      rij = tf.gather_nd(self.rr[st],tij,name='r_{:s}_{:s}'.format(st,tor)) # self.r[st][:,ti,tj]
+      rjk = tf.gather_nd(self.rr[st],tjk,name='r_{:s}_{:s}'.format(st,tor))  
+      rkl = tf.gather_nd(self.rr[st],tkl,name='r_{:s}_{:s}'.format(st,tor)) # self.r[st][:,tk,tl]
+
+      
+      vrjk= tf.gather_nd(self.vrr[st],tjk,name='vr_{:s}_{:s}'.format(st,tor)) # self.vr[st][:,tj,tk]
+      vrkl= tf.gather_nd(self.vrr[st],tkl,name='vr_{:s}_{:s}'.format(st,tor))
+
+      vrjl= vrjk + vrkl
+      rjl = tf.sqrt(tf.reduce_sum(tf.square(vrjl),1))
+
+      vrij=  tf.gather_nd(self.vrr[st],tij,name='vr_{:s}_{:s}'.format(st,tor))
+      vril= vrij + vrjl
+      ril = tf.sqrt(tf.reduce_sum(tf.square(vril),1))
+
+      vrik= vrij + vrjk
+      rik = tf.sqrt(tf.reduce_sum(tf.square(vrik),1))
+      rij2= tf.square(rij)
+      rjk2= tf.square(rjk)
+      rkl2= tf.square(rkl)
+      rjl2= tf.square(rjl)
+      ril2= tf.square(ril)
+      rik2= tf.square(rik)
+      
+
+      c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
+      c2ijk = tf.square(c_ijk)
+      # tijk= tf.acos(c_ijk)
+      cijk  =  1.00000001 - c2ijk
+      s_ijk = tf.sqrt(cijk)
+
+      c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
+      c2jkl = tf.square(c_jkl)
+      cjkl  = 1.00000001  - c2jkl 
+      s_jkl = tf.sqrt(cjkl)
+
+      # c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
+      c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
+
+      c2kjl = tf.square(c_kjl)
+      ckjl  = 1.00000001 - c2kjl 
+      s_kjl = tf.sqrt(ckjl)
+
+      fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
+      fm    = rij*rjl*s_ijk*s_kjl
+
+      fm    = tf.where(tf.logical_and(fm<=0.000001,fm>=-0.000001),1.0,fm)
+      fac   = tf.where(tf.logical_and(fm<=0.000001,fm>=-0.000001),0.0,1.0)
+      cos_w = 0.5*fz*fac/fm
+      #cos_w= cos_w*ccijk*ccjkl
+      cos_w = tf.where(cos_w>0.9999999,0.9999999,cos_w)   
+      cos_w = tf.where(cos_w<-0.9999999,-0.9999999,cos_w)
+      w= tf.acos(cos_w)
+      cos2w = tf.cos(2.0*w)
+      return w,cos_w,cos2w,s_ijk,s_jkl
   
   def f10(self,boij,bojk,bokl):
       exp1 = 1.0 - tf.exp(-self.p['tor2']*boij)
@@ -1174,25 +1207,56 @@ class ReaxFF_nn(object):
       Ecoul = tf.math.divide(fv*tpv*qij,rth)
       return Evdw,Ecoul
 
-  def get_vdw_energy(self,mol):
-      Evdw,Ecoul = [],[]
-      for vb in self.bonds:
-          if self.nv[mol][vb]>0:
-             with tf.compat.v1.name_scope('vdW_%s' %vb):
-                  v_  = self.v[mol][vb]
-                  rv_ = tf.slice(self.rv[mol],[v_[0],0],[v_[1],self.batch[mol]])
-                  qij_= tf.slice(self.q[mol],[v_[0],0],[v_[1],self.batch[mol]])
-                  Evdw_,Ecoul_ = self.get_ev(vb,rv_,qij_)
-                  Evdw.append(Evdw_)
-                  Ecoul.append(Ecoul_)
-      self.Evdw[mol] = tf.concat(Evdw,0)
-      self.evdw[mol] = tf.reduce_sum(input_tensor=self.Evdw[mol],axis=0,name='evdw_%s' %mol)
+  def get_vdw_energy(self,st):
+      self.Evdw[st]   = 0.0
+      self.Ecoul[st]  = 0.0
+      nc = 0
+      # gm3 = torch.zeros_like(self.r[st])
+      # print('\n cell \n',self.cell[st].shape)
+      cell0,cell1,cell2 = tf.unstack(self.cell[st],axis=2)
+      self.cell0[st]    = tf.expand_dims(cell0,1)
+      self.cell1[st]    = tf.expand_dims(cell1,1)
+      self.cell2[st]    = tf.expand_dims(cell2,1)
 
-      # if self.optword.find('nocoul')<0:
-      self.Ecoul[mol] = tf.concat(Ecoul,0)
-      self.ecoul[mol]= tf.reduce_sum(input_tensor=self.Ecou[mol],axis=0,name='ecoul_%s' %mol)
-      # else:
-      #    self.ecoul[mol]= tf.constant(self.ecoul_[mol],dtype=tf.float32)
+      for key in ['gamma','gammaw']:
+          self.P[st][key] =0.0 
+          for sp in self.spec: 
+              self.P[st][key] = self.P[st][key] + self.p[key+'_'+sp]*self.pmask[st][sp]
+
+      for key in ['Devdw','alfa','rvdw']:
+          self.P[st][key] =0.0 
+          for bd in self.bonds:
+              self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
+
+      for i in range(-1,2):
+          for j in range(-1,2):
+              for k in range(-1,2):
+                  cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
+                  vr_  = self.vr[st] + cell
+                  # print(vr_.shape)
+                  r    = tf.sqrt(tf.reduce_sum(tf.square(vr_),3)+self.safety_value)
+                  gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
+                  gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
+                  r3   = tf.pow(r,3.0)
+                  fv_  = tf.where(tf.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
+
+                  if nc<13:
+                     fv = tf.linalg.triu(fv_,k=0)
+                  else:
+                     fv = tf.linalg.triu(fv_,k=1)
+
+                  f_13  = self.f13(st,r)
+                  tp    = self.get_tap(r)
+
+                  expvdw1 = tf.exp(0.5*self.P[st]['alfa']*(1.0-tf.math.div(f_13,2.0*self.P[st]['rvdw'])))
+                  expvdw2 = tf.square(expvdw1) 
+                  self.Evdw[st]  = self.Evdw[st] + fv*tp*self.P[st]['Devdw']*(expvdw2-2.0*expvdw1)
+                  rth            = tf.pow(r3+gm3,1.0/3.0)                                      # ecoul
+                  self.Ecoul[st] = self.Ecoul[st] + tf.math.div(fv*tp*self.q[st],rth)
+                  nc += 1
+
+      self.evdw[st]  = tf.reduce_sum(self.Evdw[st],axis=(1,2))
+      self.ecoul[st] = tf.reduce_sum(self.Ecoul[st],axis=(1,2))
 
   def get_hb_energy(self,mol):
       Ehb = []
