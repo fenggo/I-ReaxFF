@@ -10,7 +10,7 @@ from .reax_force_data import reax_force_data,Dataset
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
 from .RadiusCutOff import setRcut
-from .reax import logger,taper,DIV_IF,clip_parameters # ,set_variables
+from .reax import logger,taper,rtaper,DIV_IF,clip_parameters # ,set_variables
 from .mpnn import fmessage,fnn,set_matrix
 # tf_upgrade_v2 --infile reax.py --outfile reax_v1.py
 # tf.compat.v1.disable_v2_behavior()
@@ -380,9 +380,10 @@ class ReaxFF_nn(object):
       self.nhb                         = {}
       self.v                           = {}
       self.h                           = {}
-      self.hb_i                        = {}
-      self.hb_j                        = {}
-      self.hb_k                        = {}
+      # self.hb_i                      = {}
+      # self.hb_j                      = {}
+      # self.hb_k                      = {}
+      self.hbij,self.hbjk                = {},{}
       self.data                        = {}
       self.estruc                      = {}
       self.pmask                       = {}
@@ -407,9 +408,15 @@ class ReaxFF_nn(object):
           self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
           self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
 
-          self.hb_i[s]     = strucs[s].hb_i
-          self.hb_j[s]     = strucs[s].hb_j
-          self.hb_k[s]     = strucs[s].hb_k
+          # self.hb_i[s]   = strucs[s].hb_i
+          # self.hb_j[s]   = strucs[s].hb_j
+          # print(strucs[s].hb_i)
+          self.hbij[s]     = {}
+          self.hbjk[s]     = {}
+          for hb in strucs[s].hb_i:
+              self.hbij[s][hb] = np.concatenate([strucs[s].hb_i[hb],strucs[s].hb_j[hb]],axis=1)
+              # self.hbjk[s]   = strucs[s].hb_k
+              self.hbjk[s][hb] = np.concatenate([strucs[s].hb_j[hb],strucs[s].hb_k[hb]],axis=1)
 
           self.nbd[s]      = strucs[s].nbd
           self.na[s]       = strucs[s].na
@@ -474,13 +481,13 @@ class ReaxFF_nn(object):
           self.cell[s]  = tf.constant(np.expand_dims(self.data[s].cell,axis=1),name='cell_{:s}'.format(s))
           self.rcell[s] = tf.constant(np.expand_dims(self.data[s].rcell,axis=1),name='rcell_{:s}'.format(s))
           # self.eye[s] = tf.constant(np.expand_dims(1.0 - np.eye(self.natom[s]),axis=0),name='eye_{:s}'.format(s))
-    
+
           self.dft_energy[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s]],
                                                 name='DFT_energy_{:s}'.format(s))
 
           self.x[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
                                                     name='x_{:s}'.format(s))
-          self.q[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+          self.q[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                                    name='qij_{:s}'.format(s))
           # self.nang[mol] = molecules[mol].nang
           # self.nhb[mol]  = molecules[mol].nhb
@@ -565,7 +572,7 @@ class ReaxFF_nn(object):
           self.get_threebody_energy(mol)
           self.get_fourbody_energy(mol)
           self.get_vdw_energy(mol)
-         #  self.get_hb_energy(mol)
+          self.get_hb_energy(mol)
           self.get_total_energy(mol)
       self.get_loss()
       print('-  end of build.')
@@ -1175,8 +1182,9 @@ class ReaxFF_nn(object):
       return Efcon
 
   def f13(self,st,r):
-      # print(self.p['vdw1'].device)
-      gammaw = tf.sqrt(tf.unsqueeze(self.P[st]['gammaw'],1)*tf.unsqueeze(self.P[st]['gammaw'],2))
+      # print('\n r \n',r)
+      gammaw = tf.sqrt(tf.expand_dims(self.P[st]['gammaw'],1)*tf.expand_dims(self.P[st]['gammaw'],2))
+      # print('\n gammaw \n',gammaw)
       rr = tf.pow(r,self.p['vdw1'])+tf.pow(tf.math.divide(1.0,gammaw),self.p['vdw1'])
       f_13 = tf.pow(rr,tf.math.divide(1.0,self.p['vdw1']))  
       return f_13
@@ -1188,25 +1196,6 @@ class ReaxFF_nn(object):
            tf.math.divide(20.0,tf.pow(self.vdwcut,7.0))*tf.pow(r,7.0)
       return tp
 
-  def get_ev(self,vb,rv,qij):
-      [ai,aj] = vb.split('-')
-      gm      = tf.sqrt(self.p['gamma_'+ai]*self.p['gamma_'+aj])
-      gm3     = tf.pow(tf.math.divide(1.0,gm),3.0)
-      r3      = tf.pow(rv,3.0)
-      fv      = tf.where(rv>self.vdwcut,tf.zeros_like(rv),tf.ones_like(rv))
-
-      f_13    = self.f13(rv,ai,aj)
-      tpv     = self.get_tap(rv)
-
-      expvdw1 = tf.exp(0.5*self.p['alfa_'+vb]*(1.0-tf.math.divide(f_13,2.0*self.p['rvdw_'+vb])))
-      expvdw2 = tf.square(expvdw1) 
-      Evdw    = fv*tpv*self.p['Devdw_'+vb]*(expvdw2-2.0*expvdw1)
-
-      # if self.optword.find('nocoul')<0:
-      rth   = tf.pow(r3+gm3,1.0/3.0)
-      Ecoul = tf.math.divide(fv*tpv*qij,rth)
-      return Evdw,Ecoul
-
   def get_vdw_energy(self,st):
       self.Evdw[st]   = 0.0
       self.Ecoul[st]  = 0.0
@@ -1214,9 +1203,13 @@ class ReaxFF_nn(object):
       # gm3 = torch.zeros_like(self.r[st])
       # print('\n cell \n',self.cell[st].shape)
       cell0,cell1,cell2 = tf.unstack(self.cell[st],axis=2)
-      self.cell0[st]    = tf.expand_dims(cell0,1)
-      self.cell1[st]    = tf.expand_dims(cell1,1)
-      self.cell2[st]    = tf.expand_dims(cell2,1)
+      self.cell0[st]    = tf.transpose(tf.expand_dims(cell0,1),[1,2,3,0])
+      self.cell1[st]    = tf.transpose(tf.expand_dims(cell1,1),[1,2,3,0])
+      self.cell2[st]    = tf.transpose(tf.expand_dims(cell2,1),[1,2,3,0])
+      d1    = tf.constant(np.expand_dims(np.triu(np.ones([self.natom[st],self.natom[st]],
+                                                         dtype=np.float32),k=0),axis=2))
+      d2    = tf.constant(np.expand_dims(np.triu(np.ones([self.natom[st],self.natom[st]],
+                                                         dtype=np.float32),k=1),axis=2))
 
       for key in ['gamma','gammaw']:
           self.P[st][key] =0.0 
@@ -1232,60 +1225,71 @@ class ReaxFF_nn(object):
           for j in range(-1,2):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
-                  vr_  = self.vr[st] + cell
-                  # print(vr_.shape)
-                  r    = tf.sqrt(tf.reduce_sum(tf.square(vr_),3)+self.safety_value)
+                  vr_  = self.vrr[st] + cell
+                  r    = tf.sqrt(tf.reduce_sum(tf.square(vr_),2)+self.safety_value)
                   gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
                   gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
                   r3   = tf.pow(r,3.0)
                   fv_  = tf.where(tf.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
 
                   if nc<13:
-                     fv = tf.linalg.triu(fv_,k=0)
+                     fv = fv_*d1
                   else:
-                     fv = tf.linalg.triu(fv_,k=1)
+                     fv = fv_*d2
 
                   f_13  = self.f13(st,r)
                   tp    = self.get_tap(r)
 
-                  expvdw1 = tf.exp(0.5*self.P[st]['alfa']*(1.0-tf.math.div(f_13,2.0*self.P[st]['rvdw'])))
+                  expvdw1 = tf.exp(0.5*self.P[st]['alfa']*(1.0-tf.math.divide(f_13,2.0*self.P[st]['rvdw'])))
                   expvdw2 = tf.square(expvdw1) 
                   self.Evdw[st]  = self.Evdw[st] + fv*tp*self.P[st]['Devdw']*(expvdw2-2.0*expvdw1)
-                  rth            = tf.pow(r3+gm3,1.0/3.0)                                      # ecoul
-                  self.Ecoul[st] = self.Ecoul[st] + tf.math.div(fv*tp*self.q[st],rth)
+                  rth            = tf.pow(r3+gm3,1.0/3.0)  
+                  # print('\n q \n',self.q[st])
+                  self.Ecoul[st] = self.Ecoul[st] + tf.math.divide(fv*tp*self.q[st],rth)
                   nc += 1
 
-      self.evdw[st]  = tf.reduce_sum(self.Evdw[st],axis=(1,2))
-      self.ecoul[st] = tf.reduce_sum(self.Ecoul[st],axis=(1,2))
+      self.evdw[st]  = tf.reduce_sum(self.Evdw[st],axis=(0,1))
+      self.ecoul[st] = tf.reduce_sum(self.Ecoul[st],axis=(0,1))
+      # print('\n evdw \n',self.evdw[st])
+      # print('\n ecoul \n',self.ecoul[st])
 
-  def get_hb_energy(self,mol):
-      Ehb = []
+  def get_hb_energy(self,st):
+      self.ehb[st]    = 0.0
       for hb in self.hbs:
-          if self.nh[mol][hb]>0:
-             h_  = self.h[mol][hb]
-             with tf.compat.v1.name_scope('ehb_%s' %mol):
-                  rhb   = tf.slice(self.rhb[mol],[h_[0],0],[h_[1],self.batch[mol]])
-                  hbthe = tf.slice(self.hbthe[mol],[h_[0],0],[h_[1],self.batch[mol]])
-                  frhb  = tf.slice(self.frhb[mol],[h_[0],0],[h_[1],self.batch[mol]])
-                  Ehb_  = self.get_ehb(mol,hb,rhb,hbthe,frhb)
-                  Ehb.append(Ehb_)
-      if len(Ehb)>0:
-         self.Ehb[mol] = tf.concat(Ehb,0,name='Ehb_'+mol)
-         self.ehb[mol] = tf.reduce_sum(input_tensor=self.Ehb[mol],axis=0,name='ehb_%s' %mol)
-      else: 
-         self.ehb[mol] = 0.0 # case for no hydrogen-bonds in system
+          if self.nhb[st][hb]==0:
+             continue     
+          bo          = tf.gather_nd(self.bo0[st],self.hbij[st][hb],name='r_{:s}_{:s}'.format(st,hb))
+          fhb         = tf.gather_nd(self.fhb[st],self.hbij[st][hb],name='r_{:s}_{:s}'.format(st,hb))
+          rij         = tf.gather_nd(self.rr[st],self.hbij[st][hb],name='r_{:s}_{:s}'.format(st,hb))
 
-  def get_ehb(self,mol,hb,rhb,hbthe,frhb):
-      ''' compute hydrogen bond energy '''
-      bohb   = tf.gather_nd(self.bo0[mol],self.hij[mol][hb]) 
-      fhb_   = tf.gather_nd(self.fhb[mol],self.hij[mol][hb]) 
-      exphb1 = 1.0-tf.exp(-self.p['hb1_'+hb]*bohb)
-      sum_   = tf.math.divide(self.p['rohb_'+hb],rhb)+tf.math.divide(rhb,self.p['rohb_'+hb])-2.0
-      exphb2 = tf.exp(-self.p['hb2_'+hb]*sum_)
-      # self.sin4[hb] = tf.pow(tf.sin(self.hbthe[hb]*0.5),4.0) 
-      sin4   = tf.square(hbthe)
-      Ehb    = fhb_*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4
-      return Ehb
+          rij2        = tf.square(rij)
+          vrij        = tf.gather_nd(self.vrr[st],self.hbij[st][hb],name='vr_{:s}_{:s}'.format(st,hb)) 
+          vrjk_       = tf.gather_nd(self.vrr[st],self.hbjk[st][hb],name='vr_{:s}_{:s}'.format(st,hb)) 
+
+          for i in range(-1,2):
+              for j in range(-1,2):
+                  for k in range(-1,2):
+                      cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
+                      vrjk   = vrjk_ + cell 
+                      # print(vrjk.shape)
+                      rjk2   = tf.reduce_sum(tf.square(vrjk),axis=1)
+                      rjk    = tf.sqrt(rjk2)
+
+                      vrik   = vrij + vrjk
+                      rik2   = tf.reduce_sum(tf.square(vrik),axis=1)
+                      rik    = tf.sqrt(rik2)
+
+                      cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
+                      hbthe  = 0.5-0.5*cos_th
+                      frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
+
+                      exphb1 = 1.0-tf.exp(-self.p['hb1_'+hb]*self.BOhb)
+                      hbsum  = tf.math.divide(self.p['rohb_'+hb],rjk)+tf.math.divide(rjk,self.p['rohb_'+hb])-2.0
+                      exphb2 = tf.exp(-self.p['hb2_'+hb]*hbsum)
+
+                      sin4   = tf.square(hbthe)
+                      ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
+                      self.ehb[st] += tf.sum(ehb,1)
 
   def set_zpe(self,molecules=None):
       if self.MolEnergy_ is None:
@@ -1837,7 +1841,7 @@ class ReaxFF_nn(object):
           feed_dict[self.dft_energy[mol]] = self.data[mol].dft_energy
           # feed_dict[self.rbd[mol]] = self.data[mol].rbd
           feed_dict[self.x[mol]]     = self.data[mol].x
-          feed_dict[self.q[mol]]     = self.data[mol].q
+          feed_dict[self.q[mol]]     = np.transpose(self.data[mol].q,(1,2,0))
           # if self.optword.find('nocoul')<0:
           #    feed_dict[self.qij[mol]] = self.data[mol].qij
          #  if self.nang[mol]>0:
