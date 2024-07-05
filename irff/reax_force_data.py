@@ -34,7 +34,7 @@ def fmessage(pre,sp,x,m,layer=5):
         o.append(sigmoid(np.matmul(o[-1],m[pre+'w_'+sp][l])+m[pre+'b_'+sp][l]))
    
     o_  = sigmoid(np.matmul(o[-1],m[pre+'wo_'+sp]) + m[pre+'bo_'+sp]) 
-    out = np.squeeze(o_)                                          # output layer
+    out = np.squeeze(o_,axis=2)                                   # output layer
     return out
 
 def sigmoid(x):
