@@ -2205,12 +2205,12 @@ def clip_parameters(p_,v,clip):
            p[k] = tf.clip_by_value(v[k],-69.0*unit,199.0*unit)
         elif key == 'Devdw':
            D_up= 9.9  
-           D_lo= 0.001  
+           D_lo= 0.0  
            p[k] = tf.clip_by_value(v[k],D_lo*unit,D_up*unit)
         elif key == 'Dehb':
            p[k] = tf.clip_by_value(v[k],-3.0*unit,3.0*unit)
         elif key == 'Desi':
-           p[k] = tf.clip_by_value(v[k],60.0*unit,999.0*unit)
+           p[k] = tf.clip_by_value(v[k],0.0*unit,999.0*unit)
         elif key== 'Depi':
            p[k] = tf.clip_by_value(v[k],0.000*unit,999.0*unit)
         elif key== 'Depp':
@@ -2452,5 +2452,4 @@ def test_reax(dataset=None,batch_size=200,dft='siesta',ffield='ffield'):
 
 if __name__ == '__main__':
    test_reax()
-   
    

@@ -634,8 +634,9 @@ class ReaxFF_nn(object):
           bopp_ = tf.slice(bopp,[b_[0],0],[b_[1],self.batch[mol]])
 
           self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
-                    self.m,batch=self.batch[mol],layer=self.be_layer[1])
+                                  self.m,batch=self.batch[mol],layer=self.be_layer[1])
           self.ebd[mol][bd] = -self.p['Desi_'+bd]*self.esi[mol][bd]
+          # print(self.ebd[mol],self.p['Desi_'+bd],self.p_['Desi_'+bd])
           Ebd.append(self.ebd[mol][bd])
       self.EBD[mol] = tf.concat(Ebd,0)
 
@@ -929,7 +930,7 @@ class ReaxFF_nn(object):
                 fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang) 
 
                 delta     = tf.gather_nd(self.Delta[st],aj,
-                                         name='deltai_{:s}_{:s}'.format(ang,sp))
+                                name='deltai_{:s}_{:s}'.format(ang,sp)) - self.p['val_'+sp]
                 delta_ang = tf.gather_nd(self.Delta_ang[st],aj,
                                          name='delta_ang_{:s}_{:s}'.format(ang,sp))
                 delta_i   = tf.gather_nd(self.Delta[st],ai,
@@ -1329,8 +1330,8 @@ class ReaxFF_nn(object):
 
   def get_forces(self,st):
       ''' compute forces with autograd method '''
-      E              = tf.reduce_sum(self.E[st])
-      grad           = tf.gradients(ys=E,xs=self.x[st])
+      # E            = tf.reduce_sum(self.E[st])
+      grad           = tf.gradients(ys=self.E[st],xs=self.x[st])
       # print(grad)
       self.forces[st] = -grad[0]
 

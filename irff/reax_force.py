@@ -518,7 +518,7 @@ class ReaxFF_nn_force(nn.Module):
                 bojk      = self.bo[st][:,aj,ak]
                 fij       = self.fbot[st][:,ai,aj]
                 fjk       = self.fbot[st][:,aj,ak]
-                delta     = self.Delta[st][:,aj]
+                delta     = self.Delta[st][:,aj] - self.p['val_'+sp]
                 delta_ang = self.Delta_ang[st][:,aj]
                 delta_i   = self.Delta[st][:,ai]
                 delta_k   = self.Delta[st][:,ak]

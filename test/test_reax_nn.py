@@ -29,22 +29,23 @@ f = {}
 
 print('\n---- reax_nn ----\n')
 for s in ir.bop:
-    E,ebond,elone,eover,eunder,eang,etor,evdw,ecoul = ir.sess.run([ir.E[s],ir.ebond[s],
-                                                                   ir.elone[s],ir.eover[s],ir.eunder[s],
-                                                                   ir.eang[s],ir.etor[s],
+    E,ebond,elone,eover,eunder,eang,etor,etcon,epen,evdw,ecoul = ir.sess.run([ir.E[s],ir.ebond[s],
+                                          ir.elone[s],ir.eover[s],ir.eunder[s],
+                                          ir.eang[s],ir.etor[s],ir.etcon[s],ir.epen[s],
                                           ir.evdw[s],ir.ecoul[s]],
-                                         feed_dict=ir.feed_dict)
+                                                                   feed_dict=ir.feed_dict)
     bo = ir.sess.run(ir.bo0[s],feed_dict=ir.feed_dict)
     # print('\n bo \n',np.squeeze(bo,axis=2))
     # bop = ir.sess.run(ir.bop[s],feed_dict=ir.feed_dict)
     # print('\n bop \n',np.squeeze(bop,axis=2))
     # d= ir.sess.run(ir.Deltap[s],feed_dict=ir.feed_dict)
     # print('\n Deltap \n',np.squeeze(d,axis=1))
-    print(E,ebond,eang,etor,evdw,ecoul,etor)
+    print(E,ebond,eang,etor,evdw,ecoul,etor,etcon,epen)
 
     ir.get_forces(s)
     f = ir.sess.run(ir.forces[s],feed_dict=ir.feed_dict)
-    # print(f)
+    # E = ir.sess.run(ir.EBD[s],feed_dict=ir.feed_dict)
+    # print(E)
 
 print('\n---- irff ----\n')
 images = Trajectory('md.traj')
@@ -58,6 +59,8 @@ print(ir2.Etor)
 print(ir2.Evdw)
 print(ir2.Ecoul)
 print(ir2.Etor)
+print(ir2.Etcon)
+print(ir2.Epen)
 # print('\n bo \n',ir2.bo0)
 # print('\n bop \n',ir2.bop)
 # print('\n Deltap \n',ir2.Deltap)
