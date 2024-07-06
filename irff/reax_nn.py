@@ -14,7 +14,7 @@ from .reax import logger,taper,rtaper,DIV_IF,clip_parameters # ,set_variables
 from .mpnn import fmessage,fnn,set_matrix
 # tf_upgrade_v2 --infile reax.py --outfile reax_v1.py
 # tf.compat.v1.disable_v2_behavior()
-tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_eager_execution()
 
 def set_variables(p_,opt_term,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
     v = {}
@@ -139,9 +139,9 @@ class ReaxFF_nn(object):
                optmol=True,
                lambda_me=0.1,
                nnopt=True,
-               be_universal_nn=None,be_layer=[9,0],
-               mf_universal_nn=None,mf_layer=[9,0],
-               messages=1,MessageFunction=2,
+               be_universal_nn=None,be_layer=[3,0],
+               mf_universal_nn=None,mf_layer=[3,0],
+               messages=1,MessageFunction=3,
                bo_layer=None,
                spec=[],
                lambda_bd=100000.0,
@@ -492,8 +492,10 @@ class ReaxFF_nn(object):
           # self.nang[mol] = molecules[mol].nang
           # self.nhb[mol]  = molecules[mol].nhb
           if strucs[s].forces is not None:
-             self.forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
-                                            name='forces_{:s}'.format(s))
+             self.dft_forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
+                                            name='dftforces_{:s}'.format(s))
+          else:
+             self.dft_forces[s] = None
              
   def memory(self,molecules):
       self.frc = {}
@@ -554,8 +556,10 @@ class ReaxFF_nn(object):
       self.exphb1,self.exphb2,self.sin4,self.EHB = {},{},{},{}
       self.pc,self.BOhb,self.ehb,self.Ehb = {},{},{},{}
 
-      self.dft_energy,self.E,self.zpe,self.eatom,self.forces = {},{},{},{},{}
+      self.E,self.zpe,self.eatom = {},{},{}
+      self.forces                = {}
       self.loss,self.penalty,self.accur,self.MolEnergy = {},{},{},{}
+      self.loss_force                                  = {}
 
       self.rv,self.q = {},{}
       self.theta = {}
@@ -590,7 +594,7 @@ class ReaxFF_nn(object):
                            self.efcon[mol] +
                            self.evdw[mol]  +
                            self.ecoul[mol] +
-                           # self.ehb[mol]   +
+                           self.ehb[mol]   +
                            self.eself[mol], 
                            self.zpe[mol],name='E_%s' %mol)   
 
@@ -667,12 +671,25 @@ class ReaxFF_nn(object):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
 
-      self.bop_si[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_si,0),
+      bop_sir = tf.scatter_nd(self.bdid[mol],tf.concat(bop_si,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      self.bop_pi[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pi,0),
+      bop_sil = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_si,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      self.bop_pp[mol] = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pp,0),
+      self.bop_si[mol] = bop_sir + bop_sil
+
+
+      bop_pir = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pi,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bop_pil = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_pi,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      self.bop_pi[mol] = bop_pir + bop_pil
+
+      bop_ppr = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pp,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      bop_ppl = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_pp,0),
+                            shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
+      self.bop_pp[mol] = bop_ppr + bop_ppl
+
       self.bop[mol]    = self.bop_si[mol] + self.bop_pi[mol] + self.bop_pp[mol]
       
       self.Deltap[mol] = tf.reduce_sum(self.bop[mol],axis=1,name='Deltap')
@@ -700,7 +717,7 @@ class ReaxFF_nn(object):
           bi   = self.dilink[mol][bd]
           bj   = self.djlink[mol][bd]
 
-          Di   = tf.gather_nd(self.D[mol][t-1],bi) 
+          Di   = tf.gather_nd(self.D[mol][t-1],bi)
           Dj   = tf.gather_nd(self.D[mol][t-1],bj)
 
           h    = tf.slice(H,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_h_slice')
@@ -726,13 +743,15 @@ class ReaxFF_nn(object):
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
              Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpij,h,Dpii,Dsi_i],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
-          else:
+          elif self.MessageFunction==3:
              self.Dbi[mol][bd]  = Di - h   
              self.Dbj[mol][bd]  = Dj - h   
              Fi   = fmessage(flabel,b[0],nbd_,[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
                              batch=self.batch[mol],layer=self.mf_layer[1])
              Fj   = fmessage(flabel,b[1],nbd_,[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
                              batch=self.batch[mol],layer=self.mf_layer[1])
+          else:
+             raise RuntimeError('-  Message funcition not implicited, you can only use 1 or 3.')
           F    = Fi*Fj
           Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
 
@@ -798,7 +817,6 @@ class ReaxFF_nn(object):
 
       self.bo[mol]     = tf.nn.relu(self.bo0[mol] - self.atol)
 
-      bso              = []
       ovun             = 0.0
       for bd in self.bonds:
           if self.nbd[mol][bd]==0:
@@ -857,10 +875,10 @@ class ReaxFF_nn(object):
       self.Nlp[st]      = -self.DE[st] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[st]-self.DE[st]))
 
       self.Delta_lp[st] = Nlp - self.Nlp[st]                             # nan error
-      # Delta_lp         = tf.clip_by_value(self.Delta_lp[mol],-1.0,10.0)  # temporary solution
-      # Delta_lp           = tf.nn.relu(self.Delta_lp[st]+1) -1
+      # Delta_lp        = tf.clip_by_value(self.Delta_lp[mol],-1.0,10.0)  # temporary solution
+      # Delta_lp        = tf.nn.relu(self.Delta_lp[st]+1) -1
 
-      explp              = 1.0+tf.exp(-75.0*self.Delta_lp[st]) # -self.p['lp3']
+      explp             = 1.0+tf.exp(-75.0*self.Delta_lp[st]) # -self.p['lp3']
       self.Elone[st]    = tf.math.divide(lp2*self.Delta_lp[st],explp,
                                           name='Elone_{:s}'.format(st))
                                           
@@ -1309,9 +1327,17 @@ class ReaxFF_nn(object):
                 else:
                    self.MolEnergy[mols] = tf.constant(0.0)
 
+  def get_forces(self,st):
+      ''' compute forces with autograd method '''
+      E              = tf.reduce_sum(self.E[st])
+      grad           = tf.gradients(ys=E,xs=self.x[st])
+      # print(grad)
+      self.forces[st] = -grad[0]
+
   def get_loss(self):
       ''' return the losses of the model '''
       self.Loss = 0.0
+      self.loss_f = 0.0
       for mol in self.strcs:
           mol_ = mol.split('-')[0]
           if mol in self.weight:
@@ -1324,26 +1350,51 @@ class ReaxFF_nn(object):
           if self.losFunc   == 'n2':
              self.loss[mol] = tf.nn.l2_loss(self.E[mol]-self.dft_energy[mol],
                                  name='loss_%s' %mol)
+             if self.dft_forces[mol] is not None:
+                self.get_forces(mol) 
+                self.loss_force[mol] = tf.nn.l2_loss(self.forces[mol]-self.dft_forces[mol],
+                                 name='loss_force_%s' %mol)
+                self.loss_f     += self.loss_force[mol]*w_
+
           elif self.losFunc == 'abs':
              self.loss[mol] = tf.compat.v1.losses.absolute_difference(self.dft_energy[mol],self.E[mol])
+             if self.dft_forces[mol] is not None:
+                self.get_forces(mol) 
+                self.loss_force[mol] = tf.compat.v1.losses.absolute_difference(self.forces[mol],
+                                                                               self.dft_forces[mol],
+                                 name='loss_force_%s' %mol)
+                self.loss_f     += self.loss_force[mol]*w_
           elif self.losFunc == 'mse':
              self.loss[mol] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[mol],self.E[mol])
+             if self.dft_forces[mol] is not None:
+                self.get_forces(mol) 
+                self.loss_force[mol] = tf.compat.v1.losses.mean_squared_error(self.forces[mol],
+                                                                              self.dft_forces[mol],
+                                 name='loss_force_%s' %mol)
+                self.loss_f     += self.loss_force[mol]*w_
           elif self.losFunc == 'huber':
              self.loss[mol] = tf.compat.v1.losses.huber_loss(self.dft_energy[mol],self.E[mol],delta=self.huber_d)
-          elif self.losFunc == 'CrossEntropy':
-             y_min = tf.reduce_min(self.dft_energy[mol])
-             a_min = tf.reduce_min(self.E[mol])
-             norm  = tf.minimum(y_min,a_min) - 0.00000001
-             y     = self.dft_energy[mol]/norm
-             y_    = self.E[mol]/norm
-             self.loss[mol] =  (-1.0/self.batch[mol])*tf.reduce_sum(y*tf.math.log(y_)+(1-y)*tf.math.log(1.0-y_))
+             if self.dft_forces[mol] is not None:
+                self.get_forces(mol) 
+                self.loss_force[mol] = tf.compat.v1.losses.mean_squared_error(self.forces[mol],
+                                                                              self.dft_forces[mol],
+                                                                              delta=self.huber_d,
+                                                                        name='loss_force_%s' %mol)
+                self.loss_f    += self.loss_force[mol]*w_
+         #  elif self.losFunc == 'CrossEntropy':
+         #     y_min = tf.reduce_min(self.dft_energy[mol])
+         #     a_min = tf.reduce_min(self.E[mol])
+         #     norm  = tf.minimum(y_min,a_min) - 0.00000001
+         #     y     = self.dft_energy[mol]/norm
+         #     y_    = self.E[mol]/norm
+         #     self.loss[mol] =  (-1.0/self.batch[mol])*tf.reduce_sum(y*tf.math.log(y_)+(1-y)*tf.math.log(1.0-y_))
           else:
              raise NotImplementedError('-  This function not supported yet!')
 
           sum_edft = tf.reduce_sum(input_tensor=tf.abs(self.dft_energy[mol]-self.max_e[mol]))
           self.accur[mol] = 1.0 - tf.reduce_sum(input_tensor=tf.abs(self.E[mol]-self.dft_energy[mol]))/(sum_edft+0.00000001)
-         
-          self.Loss     += self.loss[mol]*w_
+
+          self.Loss      += self.loss[mol]*w_ + self.loss_f
           if mol.find('nomb')<0:
              self.accuracy += self.accur[mol]
           else:
@@ -1748,12 +1799,14 @@ class ReaxFF_nn(object):
 
       while totrain:
           if i==0:
-             loss,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
+             loss,loss_f,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
+                                                      self.loss_f,
                                                       self.loss_penalty,
                                                       self.ME,self.accuracy, self.accur],
                                                   feed_dict=self.feed_dict)
           else:
-             loss,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
+             loss,loss_f,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
+                                                      self.loss_f,
                                                       self.loss_penalty,
                                                       self.ME,
                                                       self.accuracy,
@@ -1778,9 +1831,9 @@ class ReaxFF_nn(object):
                 break
 
           if self.optmol:
-             los_ = loss - lpenalty - self.ME_*self.lambda_me
+             los_ = loss - lpenalty - self.ME_*self.lambda_me - loss_f
           else:
-             los_ = loss - lpenalty
+             los_ = loss - lpenalty - loss_f
           loss_ = los_ if i==0 else min(loss_,los_)
 
           if i%print_step==0:
@@ -1791,8 +1844,8 @@ class ReaxFF_nn(object):
              for key in accs:
                  acc += key+': %6.4f ' %accs[key]
 
-             self.logger.info('-  step: %d loss: %6.4f accs: %f %s spv: %6.4f me: %6.4f time: %6.4f' %(i,
-                              los_,accu,acc,lpenalty,self.ME_,elapsed_time))
+             self.logger.info('-  step: %d loss: %6.4f accs: %f %s force: %6.4f spv: %6.4f me: %6.4f time: %6.4f' %(i,
+                              los_,accu,acc,loss_f,lpenalty,self.ME_,elapsed_time))
              self.time = current
 
           if i%writelib==0 or i==step:
@@ -1842,8 +1895,8 @@ class ReaxFF_nn(object):
           # feed_dict[self.rbd[mol]] = self.data[mol].rbd
           feed_dict[self.x[mol]]     = self.data[mol].x
           feed_dict[self.q[mol]]     = np.transpose(self.data[mol].q,(1,2,0))
-          # if self.optword.find('nocoul')<0:
-          #    feed_dict[self.qij[mol]] = self.data[mol].qij
+          if self.dft_forces[mol] is not None:
+             feed_dict[self.dft_forces[mol]] = self.data[mol].forces
          #  if self.nang[mol]>0:
          #     feed_dict[self.theta[mol]] = self.data[mol].theta
 
@@ -1861,14 +1914,6 @@ class ReaxFF_nn(object):
           p_  = self.p_[k]*self.unit if key in self.punit else self.p_[k]
           feed_dict[self.var[k]] = p_
       return feed_dict
-
-  def calculate_energy(self):
-      energy = self.get_value(self.E)
-      return energy
-
-  def calculate_forces(self):
-      forces = 0.0
-      return forces
 
   def get_value(self,var):
       if self.interactive:
