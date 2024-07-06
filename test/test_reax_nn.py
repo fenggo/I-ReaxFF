@@ -69,6 +69,7 @@ for i,img in enumerate(images):
     ir2.calculate(atoms=img)
     print('--     IR     --      RForce     --     IRNP     --' )
     print(ir_.E,E[i],ir2.E)
+    print(ir_.Elone.item(),elone[i],ir2.Elone)
     print(ir_.Eover.item(),eover[i],ir2.Eover)
     print(ir_.Eunder.item(),eunder[i],ir2.Eunder)
     print(ir_.Eang.item(),eang[i],ir2.Eang)
