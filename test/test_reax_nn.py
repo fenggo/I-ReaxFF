@@ -78,8 +78,7 @@ for i,img in enumerate(images):
 print('\n----  forces  ----\n')
 ir_.calculate(atoms=images[0])
 for i in range(ir_.natom):
-    print(ir_.results['forces'][i],'----' ,ir.force[s][0][i].detach().numpy(),
-             '----',forces[i])
+    print(ir_.results['forces'][i],'----' ,f[0][i],'----',forces[i])
 
 # get_gulp_forces(images)
 # print('\n lammps: \n')
