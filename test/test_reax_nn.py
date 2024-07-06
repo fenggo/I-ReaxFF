@@ -40,7 +40,7 @@ for s in ir.bop:
     # print('\n bop \n',np.squeeze(bop,axis=2))
     # d= ir.sess.run(ir.Deltap[s],feed_dict=ir.feed_dict)
     # print('\n Deltap \n',np.squeeze(d,axis=1))
-    print(E,ebond,eang,etor,evdw,ecoul)
+    print(E,ebond,eang,etor,evdw,ecoul,etor)
 
     ir.get_forces(s)
     f = ir.sess.run(ir.forces[s],feed_dict=ir.feed_dict)
@@ -57,6 +57,7 @@ print(ir2.Eang)
 print(ir2.Etor)
 print(ir2.Evdw)
 print(ir2.Ecoul)
+print(ir2.Etor)
 # print('\n bo \n',ir2.bo0)
 # print('\n bop \n',ir2.bop)
 # print('\n Deltap \n',ir2.Deltap)
@@ -73,6 +74,7 @@ for i,img in enumerate(images):
     print(ir_.Eover.item(),eover[i],ir2.Eover)
     print(ir_.Eunder.item(),eunder[i],ir2.Eunder)
     print(ir_.Eang.item(),eang[i],ir2.Eang)
+    print(ir_.Etor.item(),etor[i],ir2.Etor)
     # print('\n IR-dpi \n',ir2.Dpil)
  
  
