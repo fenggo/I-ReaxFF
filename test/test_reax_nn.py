@@ -43,7 +43,7 @@ for s in ir.bop:
     print(E,ebond,eang,etor,evdw,ecoul)
 
     ir.get_forces(s)
-    f[s] = ir.sess.run(ir.forces[s],feed_dict=ir.feed_dict)
+    f = ir.sess.run(ir.forces[s],feed_dict=ir.feed_dict)
     # print(f)
 
 print('\n---- irff ----\n')
