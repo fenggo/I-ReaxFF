@@ -87,6 +87,4 @@ for i in range(ir_.natom):
 # forces = atoms.get_forces()
 # for f in forces:
 #     print(f)
-for i in range(ir_.natom):
-    print(ir.r[s][0][i].detach().numpy())
     
