@@ -173,7 +173,8 @@ class ReaxFF_nn(object):
       self.sample        = sample        # uniform or random
       self.opt           = opt
       self.VariablesToOpt= VariablesToOpt
-      self.cons          = cons
+      self.cons          = ['val','vale','valang','lp3','cutoff','hbtol']
+      self.cons         += cons
       self.opt_term      = {'etor':True,'eang':True,'eover':True,'eunder':True,
                             'ecoul':True,'evdw':True,'elone':True,'ehb':True}
       self.opt_term.update(opt_term)
