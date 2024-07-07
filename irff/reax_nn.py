@@ -116,7 +116,7 @@ def fvr(x):
 class ReaxFF_nn(object):
   def __init__(self,libfile='ffield',dataset={},
                dft='ase',atoms=None,
-               cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
+               cons=['val','vale','valang','valboc','lp3','cutoff','hbtol'],# 'acut''val',
                opt=None,opt_term={'etor':True,'eang':True,'eover':True,'eunder':True,
                                   'ecoul':True,'evdw':True,'elone':True,'ehb':True},
                mpopt=None,bdopt=None,mfopt=None,eaopt=[],
@@ -173,7 +173,7 @@ class ReaxFF_nn(object):
       self.sample        = sample        # uniform or random
       self.opt           = opt
       self.VariablesToOpt= VariablesToOpt
-      self.cons          = ['val','vale','valang','lp3','cutoff','hbtol']
+      self.cons          = ['val','vale','valang','valboc','lp3','cutoff']
       self.cons         += cons
       self.opt_term      = {'etor':True,'eang':True,'eover':True,'eunder':True,
                             'ecoul':True,'evdw':True,'elone':True,'ehb':True}
