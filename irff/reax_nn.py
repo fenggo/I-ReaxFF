@@ -930,11 +930,11 @@ class ReaxFF_nn(object):
                 fjk       = tf.gather_nd(self.fbot[st],ajk,name='fbojk_'+ang) 
 
                 delta     = tf.gather_nd(self.Delta[st],aj,
-                                name='deltai_{:s}_{:s}'.format(ang,sp)) - self.p['val_'+sp]
+                               name='deltaj_{:s}_{:s}'.format(ang,sp)) - self.p['val_'+sp]
                 delta_ang = tf.gather_nd(self.Delta_ang[st],aj,
                                          name='delta_ang_{:s}_{:s}'.format(ang,sp))
                 delta_i   = tf.gather_nd(self.Delta[st],ai,
-                                         name='deltaj_{:s}_{:s}'.format(ang,sp))
+                                         name='deltai_{:s}_{:s}'.format(ang,sp))
                 delta_k   = tf.gather_nd(self.Delta[st],ak,
                                          name='deltak_{:s}_{:s}'.format(ang,sp))
                 sbo       = tf.gather_nd(self.Delta_pi[st],aj,
@@ -974,6 +974,8 @@ class ReaxFF_nn(object):
       Rik2= Rik*Rik
       # print('\n Rij2 \n',Rij2)
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      cos_theta = tf.where(cos_theta>0.9999999,0.9999999,cos_theta)   
+      cos_theta = tf.where(cos_theta<-0.9999999,-0.9999999,cos_theta)
       theta     = tf.acos(cos_theta)
       return theta
  
@@ -1056,6 +1058,9 @@ class ReaxFF_nn(object):
       return Etc
 
   def get_fourbody_energy(self,st):
+      self.s_ijk[st],self.s_jkl[st]            = {},{}
+      self.cos_w[st],self.cos2w[st],self.w[st] = {},{},{}
+      self.f_10[st],self.f_11[st]              = {},{}
       if (not self.opt_term['etor'] and not self.opt_term['efcon']) or self.ntor[st]==0:
          self.etor[st] = tf.zeros([self.batch[st]])
          self.efcon[st]= tf.zeros([self.batch[st]])
@@ -1088,12 +1093,14 @@ class ReaxFF_nn(object):
                 delta_k   = tf.gather_nd(self.Delta_ang[st],tj,
                                          name='delta_ang_{:s}_{:s}'.format(tor,spk))
 
-                w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,tor,tij,tjk,tkl)
-                Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
-                                       bopjk,delta_j,delta_k,
-                                       w,cos_w,cos2w,
-                                       s_ijk,s_jkl)
-                Ef        = self.get_four_conj(tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl)
+                (self.w[st][tor],self.cos_w[st][tor],self.cos2w[st][tor],self.s_ijk[st][tor],
+                 self.s_jkl[st][tor]) = self.get_torsion_angle(st,tor,tij,tjk,tkl)
+                Et,fijkl  = self.get_etorsion(st,tor,boij,bojk,bokl,fij,fjk,fkl,
+                                              bopjk,delta_j,delta_k,
+                                              self.w[st][tor],self.cos_w[st][tor],self.cos2w[st][tor],
+                                              self.s_ijk[st][tor],self.s_jkl[st][tor])
+                Ef        = self.get_four_conj(tor,boij,bojk,bokl,self.w[st][tor],
+                                               self.s_ijk[st][tor],self.s_jkl[st][tor],fijkl)
                 Etor.append(Et)
                 Efcon.append(Ef)
 
@@ -1102,20 +1109,20 @@ class ReaxFF_nn(object):
          self.etor[st]  = tf.reduce_sum(self.Etor[st],0)
          self.efcon[st] = tf.reduce_sum(self.Efcon[st],0)
 
-  def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
+  def get_etorsion(self,st,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
                         w,cos_w,cos2w,s_ijk,s_jkl):
       fijkl   = fij*fjk*fkl
 
-      f_10    = self.f10(boij,bojk,bokl)
-      f_11    = self.f11(delta_j,delta_k)
-      expv2   = tf.exp(self.p['tor1_'+tor]*tf.square(2.0-bopjk-f_11)) 
+      self.f_10[st][tor]    = self.f10(boij,bojk,bokl)
+      self.f_11[st][tor]    = self.f11(delta_j,delta_k)
+      expv2   = tf.exp(self.p['tor1_'+tor]*tf.square(2.0-bopjk-self.f_11[st][tor])) 
 
       cos3w   = tf.cos(3.0*w)
       v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
       v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
       v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
       
-      Etor    = fijkl*f_10*s_ijk*s_jkl*(v1+v2+v3)
+      Etor    = fijkl*self.f_10[st][tor]*s_ijk*s_jkl*(v1+v2+v3)
       return Etor,fijkl
   
   def get_torsion_angle(self,st,tor,tij,tjk,tkl):
@@ -1148,26 +1155,26 @@ class ReaxFF_nn(object):
       c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
       c2ijk = tf.square(c_ijk)
       # tijk= tf.acos(c_ijk)
-      cijk  =  1.00000001 - c2ijk
-      s_ijk = tf.sqrt(cijk)
+      cijk  =  1.0 - c2ijk
+      s_ijk = tf.sqrt(tf.where(cijk<0.000000001,0.000000001,cijk))
 
       c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
       c2jkl = tf.square(c_jkl)
-      cjkl  = 1.00000001  - c2jkl 
-      s_jkl = tf.sqrt(cjkl)
+      cjkl  = 1.0  - c2jkl 
+      s_jkl = tf.sqrt(tf.where(cjkl<0.000000001,0.000000001,cjkl))
 
       # c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
       c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
 
       c2kjl = tf.square(c_kjl)
-      ckjl  = 1.00000001 - c2kjl 
-      s_kjl = tf.sqrt(ckjl)
+      ckjl  = 1.0 - c2kjl 
+      s_kjl = tf.sqrt(tf.where(ckjl<0.000000001,0.000000001,ckjl))
 
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
       fm    = rij*rjl*s_ijk*s_kjl
 
-      fm    = tf.where(tf.logical_and(fm<=0.000001,fm>=-0.000001),1.0,fm)
-      fac   = tf.where(tf.logical_and(fm<=0.000001,fm>=-0.000001),0.0,1.0)
+      fm    = tf.where(tf.logical_and(fm<=0.00001,fm>=-0.00001),1.0,fm)
+      fac   = tf.where(tf.logical_and(fm<=0.00001,fm>=-0.00001),0.0,1.0)
       cos_w = 0.5*fz*fac/fm
       #cos_w= cos_w*ccijk*ccjkl
       cos_w = tf.where(cos_w>0.9999999,0.9999999,cos_w)   
