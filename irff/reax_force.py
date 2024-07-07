@@ -554,6 +554,8 @@ class ReaxFF_nn_force(nn.Module):
       Rik2= Rik*Rik
 
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
+      cos_theta = torch.where(cos_theta>0.9999999,0.9999999,cos_theta)   
+      cos_theta = torch.where(cos_theta<-0.9999999,-0.9999999,cos_theta)
       theta     = torch.acos(cos_theta)
       return theta
 
