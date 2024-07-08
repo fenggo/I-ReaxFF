@@ -1402,12 +1402,11 @@ class ReaxFF_nn(object):
           else:
              raise NotImplementedError('-  This function not supported yet!')
 
-          sum_edft = tf.reduce_sum(input_tensor=tf.abs(self.dft_energy[mol]-self.max_e[mol]))
-          self.accur[mol] = 1.0 - tf.reduce_sum(input_tensor=tf.abs(self.E[mol]-self.dft_energy[mol]))/(sum_edft+0.00000001)
-
-          self.Loss      += self.loss[mol]*w_ + self.loss_f
-          if mol.find('nomb')<0:
-             self.accuracy += self.accur[mol]
+          sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
+          self.accur[mol] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
+          self.Loss      += self.loss[st]*w_ + self.loss_f
+          if st.find('nomb')<0:
+             self.accuracy += self.accur[st]
           else:
              self.nmol -= 1
 
