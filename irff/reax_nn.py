@@ -2113,9 +2113,6 @@ class ReaxFF_nn(object):
           for mol in self.strcs:
               if self.nbd[mol][bd]>0:       
                  b_    = self.b[mol][bd]
-                 #rbd_ = tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])        
-                 # bop_= tf.slice(self.bop[mol],[b_[0],0],[b_[1],self.batch[mol]])
-                 # print(self.bdid.shape) 
                  bdid  = self.bdid[mol][b_[0]:b_[1]]
                  bo0_  = tf.gather_nd(self.bo0[mol],bdid,
                                       name='bo0_supervize_{:s}'.format(bd)) 
