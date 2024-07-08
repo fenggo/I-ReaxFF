@@ -1365,8 +1365,6 @@ class ReaxFF_nn(object):
                 self.get_forces(st) 
                 self.loss_force[st] = tf.nn.l2_loss(self.forces[st]-self.dft_forces[st],
                                  name='loss_force_%s' %st)
-                self.loss_f     += self.loss_force[st]*w_
-
           elif self.losFunc == 'abs':
              self.loss[st] = tf.compat.v1.losses.absolute_difference(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
@@ -1374,7 +1372,6 @@ class ReaxFF_nn(object):
                 self.loss_force[st] = tf.compat.v1.losses.absolute_difference(self.forces[st],
                                                                                self.dft_forces[st],
                                  name='loss_force_%s' %st)
-                self.loss_f     += self.loss_force[st]*w_
           elif self.losFunc == 'mse':
              self.loss[st] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
@@ -1382,7 +1379,6 @@ class ReaxFF_nn(object):
                 self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
                                                                               self.dft_forces[st],
                                  name='loss_force_%s' %st)
-                self.loss_f     += self.loss_force[st]*w_
           elif self.losFunc == 'huber':
              self.loss[st] = tf.compat.v1.losses.huber_loss(self.dft_energy[st],self.E[st],delta=self.huber_d)
              if self.dft_forces[st] is not None:
@@ -1391,25 +1387,19 @@ class ReaxFF_nn(object):
                                                                               self.dft_forces[st],
                                                                               delta=self.huber_d,
                                                                         name='loss_force_%s' %st)
-                self.loss_f    += self.loss_force[st]*w_
-         #  elif self.losFunc == 'CrossEntropy':
-         #     y_min = tf.reduce_min(self.dft_energy[mol])
-         #     a_min = tf.reduce_min(self.E[mol])
-         #     norm  = tf.minimum(y_min,a_min) - 0.00000001
-         #     y     = self.dft_energy[mol]/norm
-         #     y_    = self.E[mol]/norm
-         #     self.loss[mol] =  (-1.0/self.batch[mol])*tf.reduce_sum(y*tf.math.log(y_)+(1-y)*tf.math.log(1.0-y_))
           else:
              raise NotImplementedError('-  This function not supported yet!')
 
           sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
           self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
-          self.Loss      += self.loss[st]*w_ + self.loss_f
+          self.loss_f    += self.loss_force[st]*w_
+          self.Loss      += self.loss[st]*w_ 
           if st.find('nomb')<0:
              self.accuracy += self.accur[st]
           else:
              self.nmol -= 1
 
+      self.Loss      += self.loss_f
       self.ME   = 0.0
       for mol in self.strcs:
           mol_     = mol.split('-')[0] 
