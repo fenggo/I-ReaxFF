@@ -17,12 +17,9 @@ from .dft.CheckEmol import check_emol
 from .data.prep_data import prep_data
 import tensorflow as tf
 from .md.irmd import IRMD
-from .trainer import train_reax
-#from .trainer import train_mpnn
-from .trainer import train_nn
+from .trainer import train_reax,train_mpnn,train_nn
 from .AtomDance import AtomDance,check_zmat
 from .dingtalk import send_msg
-
 
 def plot_energies(it,edft,eamp,label_dft='SIESTA',label_ml='IRFF'):
     plt.figure()                                     # test
@@ -73,7 +70,7 @@ class LearningMachine(object):
                rmin=0.88,rmax=1.33,angmax=25.0,
                CheckZmat=True,uncertainty=0.96,period=30,
                EngTole=0.05,dEtole=0.2,dEstop=2.0,
-               nn=True,vdwnn=False,
+               nn=True,vdwnn=False,trainer=1,
                bo_layer=None,mf_layer=[9,1],be_layer=[9,1],vdw_layer=None,#[6,1],
                be_universal_nn=None,bo_universal_nn=None,
                mf_universal_nn=None,vdw_universal_nn=None,
@@ -127,7 +124,6 @@ class LearningMachine(object):
       self.dt_mlmd        = dt_mlmd
       self.dt_aimd        = dt_aimd
       self.T              = T
-      # self.Tmax         = Tmax
       self.md_step        = md_step
       self.mom_step       = mom_step
       self.beta           = beta
@@ -145,10 +141,12 @@ class LearningMachine(object):
       self.mdInc          = mdInc       # MD step increase factor
       self.ffield         = ffield
       self.nn             = nn
+      self.trainer        = trainer
       self.vdwnn          = vdwnn
       self.VdwFunction    = VdwFunction
       if not self.nn:
          self.vdwnn       = False
+         self.trainer     = 0
       self.bo_layer       = bo_layer
       self.mf_layer       = mf_layer
       self.be_layer       = be_layer
@@ -190,11 +188,15 @@ class LearningMachine(object):
       # if self.freeatoms is None:
       #    self.freeatoms = [i for i in range(self.natom)]
 
-      if self.nn:
-         self.trainer = train_nn
+      if self.trainer==0:
+         self.train = train_reax
+      elif self.trainer==1:
+         self.train = train_mpnn
+      elif self.trainer==2:
+         self.train = train_nn
       else:
-         self.trainer = train_reax
-      
+         raise RuntimeError('Error: train method not implimented!')
+
       if label is None:
          aimd_ = self.aidir.split('_')
          if len(aimd_)>1:
@@ -350,7 +352,7 @@ class LearningMachine(object):
           training = True                   
           while (accu<=self.accCriteria or loss>=self.lossCriteria) and training:        
                 self.load_config()
-                loss,accu,accMax,p,zpe,tstep = self.trainer(dataset=trajs_,
+                loss,accu,accMax,p,zpe,tstep = self.train(dataset=trajs_,
                                                      ffield=self.ffield,
                                                      step=self.step,writelib=self.writelib,
                                                      batch=self.batch,
