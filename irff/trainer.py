@@ -17,7 +17,7 @@ import json as js
 # batch = 50
 
 def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=1000.0,
-          spec=[],optword='nocoul',cons=None,clip={},
+          spec=[],energy_term={'ecoul':False},cons=None,clip={},
           writelib=1000,
           nn=False,vdwnn=False,
           lambda_me=0.1,# regularize=False,
@@ -48,7 +48,7 @@ def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
                 dataset=dataset, 
                 dft='siesta',
                 spec=spec,
-                optword=optword,
+                energy_term=energy_term,
                 opt=None,clip=clip,
                 nn=nn,
                 batch_size=batch,
@@ -84,7 +84,7 @@ def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
 
 
 def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=1000.0,
-               optword='nocoul',cons=None,clip={},
+               energy_term={'ecoul':False},cons=None,clip={},
                spec=[],
                writelib=1000,nn=True,vdwnn=True,VdwFunction=1,
                bo_layer=[4,1],mf_layer=[9,2],be_layer=[6,1],vdw_layer=[6,1],
@@ -122,7 +122,7 @@ def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
               dataset=dataset, 
               dft='siesta',
               spec=spec,
-              optword=optword,clip=clip,
+              energy_term=energy_term,clip=clip,
               cons=cons,
               nn=nn,vdwnn=vdwnn,VdwFunction=VdwFunction,
               bo_layer=bo_layer,mf_layer=mf_layer,
@@ -175,7 +175,7 @@ def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
     return loss,accu,accMax,p,zpe,i
 
 def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=1000.0,
-               optword='nocoul',cons=None,clip={},
+               energy_term={'ecoul':True},cons=None,clip={},
                spec=[],
                writelib=1000,nn=True,vdwnn=True,VdwFunction=1,
                bo_layer=[4,1],mf_layer=[9,2],be_layer=[6,1],vdw_layer=[6,1],
@@ -214,7 +214,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               dataset=dataset, 
               dft='siesta',
               spec=spec,
-              #opt_term=optword,
+              energy_term=energy_term,
               clip=clip,
               cons=cons,
               bo_layer=bo_layer,mf_layer=mf_layer,

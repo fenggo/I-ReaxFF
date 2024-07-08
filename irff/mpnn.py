@@ -138,7 +138,7 @@ class MPNN(ReaxFF):
                      ], # 
                nn=True,
                optmol=True,lambda_me=0.1,
-               opt=None,optword='nocoul',eaopt=[],
+               opt=None,energy_term={'ecoul':False},eaopt=[],
                mpopt=None,bdopt=None,mfopt=None,
                VariablesToOpt=None,
                batch_size=200,sample='uniform',
@@ -237,7 +237,7 @@ class MPNN(ReaxFF):
       self.mfopt    = mfopt               # specify the element of message function to be optimized
       ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
                       data_invariant=data_invariant,rcut_inv=rcut_inv,
-                      dft=dft,atoms=atoms,cons=cons,opt=opt,optword=optword,eaopt=eaopt,
+                      dft=dft,atoms=atoms,cons=cons,opt=opt,energy_term=energy_term,eaopt=eaopt,
                       VariablesToOpt=VariablesToOpt,optmol=optmol,lambda_me=lambda_me,
                       batch_size=batch_size,sample=sample,
                       hbshort=hbshort,hblong=hblong,vdwcut=vdwcut,
@@ -978,7 +978,7 @@ class MPNN(ReaxFF):
                        self.penalty_vdw[bd] = self.penalty_vdw[bd] + pen_v
                 penalty  = tf.add(self.penalty_vdw[bd]*self.lambda_bd,penalty)
 
-      if self.optword.find('noang')<0:
+      if self.energy_term['eang']:
          if self.pi_clip:                        # regularize pi term
             for ang in self.pi_clip: 
                 if self.nang[ang]>0:
@@ -1396,7 +1396,7 @@ Example:
                       'C-C-H':[(8.0,8.8,1.61,1.8),(10.0,13,0,0.75)],
                       'H-C-H':[(8.0,8.8,1.61,1.8)]},
               weight=weight,
-              optword='nocoul',mpopt=mpopt,
+              energy_term=['ecoul':False],mpopt=mpopt,
               opt=opt,cons=cons,clip=clip,
               regularize_mf=1,regularize_be=1,regularize_bias=1,
               lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.0002,

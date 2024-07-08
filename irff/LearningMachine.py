@@ -58,7 +58,7 @@ class LearningMachine(object):
                col_frame=50,col_min_interval=3,
                mom_step=100,
                mpopt=[1,1,1,1], messages=1,
-               opt_term={'ecoul':False},cons=None,clip={},
+               energy_term={'ecoul':False},cons=None,clip={},
                T=300,# Tmax=1000,
                label=None,
                convergence=0.01,nconvergence=3,
@@ -135,7 +135,7 @@ class LearningMachine(object):
       self.MaxMDstep      = MaxMDstep
       self.MinMDstep      = MinMDstep
       self.mpopt          = mpopt
-      self.opt_term       = opt_term
+      self.energy_term       = energy_term
       self.clip           = clip
       self.messages       = messages
       self.mdInc          = mdInc       # MD step increase factor
@@ -361,7 +361,7 @@ class LearningMachine(object):
                                                      lossConvergence=self.lossCriteria,
                                                      nn=self.nn,vdwnn=self.vdwnn,
                                                      mpopt=self.mpopt,messages=self.messages,
-                                                     optword=self.optword,
+                                                     energy_term=self.energy_term,
                                                      bo_layer=self.bo_layer,
                                                      mf_layer=self.mf_layer,
                                                      be_layer=self.be_layer,
@@ -604,7 +604,7 @@ class LearningMachine(object):
       ''' run classic MD to test training results '''
       mdstep = max(int(self.md_step/5),2) if learn_method==2 else self.md_step
       zmats  = None
-      nomb = False if self.optword.find('nomb')<0 and learn_method!=4 else True
+      nomb = False if self.energy_term['manybody'] and learn_method!=4 else True
       active = True if learn_method==4 else False
       irmd = IRMD(atoms=atoms,label=self.label,Iter=Iter,initT=self.T,
                   time_step=self.dt_mlmd,totstep=mdstep,Tmax=Tmax,
@@ -774,7 +774,7 @@ if __name__ == '__main__':
                      vdw_universal_nn=None,vdwnn=True,
                      weight={# 'no2-l':20.0,
                              'others':2.0},
-                     optword='nocoul-nolone-nounder-noover', 
+                     energy_term={'ecoul':False}, 
                      writelib=1000,convergence=0.04,
                      # xcf='GGA',xca='PBE',basistype='split'
                      dft='qe')

@@ -10,92 +10,11 @@ from .reax_force_data import reax_force_data,Dataset
 from .reaxfflib import read_ffield,write_ffield,write_lib
 from .intCheck import Intelligent_Check
 from .RadiusCutOff import setRcut
-from .reax import logger,taper,rtaper,DIV_IF,clip_parameters # ,set_variables
+from .reax import logger,taper,rtaper,DIV_IF,clip_parameters,set_variables
 from .mpnn import fmessage,fnn,set_matrix
 # tf_upgrade_v2 --infile reax.py --outfile reax_v1.py
 # tf.compat.v1.disable_v2_behavior()
 # tf.compat.v1.disable_eager_execution()
-
-def set_variables(p_,opt_term,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
-    v = {}
-    for k in p_:
-        key = k.split('_')[0]
-        ktor= ['cot1','V1','V2','V3']
-
-        if not opt_term['etor']:
-           if key in ktor:
-              p_[k] = 0.0
-        if not opt_term['eang']:
-           if key in ['val1','coa1','pen1']:
-              p_[k] = 0.0
-        if not opt_term['elone']:
-           if key == 'lp2':
-              p_[k] = 0.0
-        if not opt_term['eover']:
-           if key == 'ovun1':
-              p_[k] = 0.0
-        if not opt_term['eunder']:
-           if key == 'ovun5':
-              p_[k] = 0.0
-
-        if key == 'zpe':
-            continue
-        if key != 'n.u.':
-            if key in cons or k in cons:
-               if key in punit:
-                  v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
-                  # v[k]  =  tf.Variable(np.float32(unit*p_[k]),trainable=trainable,name=k)  
-               else:
-                  v[k] = tf.constant(np.float32(p_[k]),name=k)
-                  # v[k]  = tf.Variable(np.float32(p_[k]),trainable=trainable,name=k)
-            elif key in eaopt:
-               v[k] = tf.compat.v1.placeholder(tf.float32,shape=None,name=k)
-            elif key in opt:
-               # with tf.variable_scope('Neurons'):
-               trainable=True if key in opt else False       
-               if key in punit:
-                  if key in tor_v :
-                     key_ = k.split('_')[1]
-                     k_  = key_.split('-')
-                     if k_[1]=='H' or k_[2]=='H':
-                           v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
-                     else:
-                           v[k] = tf.Variable(np.float32(unit*p_[k]),
-                                                   trainable=trainable,name=k)   
-                  elif key in ang_v:
-                     key_ = k.split('_')[1]
-                     k_   = key_.split('-')
-                     if k_[1]=='H':
-                           v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
-                     else:
-                           v[k] = tf.Variable(np.float32(unit*p_[k]),
-                                                   trainable=trainable,name=k)  
-                  else:
-                     v[k] = tf.Variable(np.float32(unit*p_[k]),
-                                             trainable=trainable,name=k)
-               elif key=='vale':
-                  if conf_vale is None:
-                     v[k] = tf.Variable(np.float32(p_[k]),
-                                             trainable=trainable,name=k)
-                  else:
-                     e = k.split('_')[0]
-                     if e in conf_vale:
-                          v[k] = v['val_'+e]
-                     else:
-                          v[k] = tf.Variable(np.float32(p_[k]),
-                                             trainable=trainable,name=k)
-               else:
-                  v[k] = tf.Variable(np.float32(p_[k]),
-                                          trainable=trainable,name=k)
-            else:
-               if key in punit:
-                  v[k] = tf.constant(np.float32(unit*p_[k]),name=k)
-               else:
-                  v[k] = tf.constant(np.float32(p_[k]),name=k)
-        else:
-            v[k] = tf.constant(p_[k])
-    v['hbtol'] = v['acut']
-    return v
 
 def find_torsion_angle(atomi,atomj,atomk,atoml,tors):
     tor1 = atomi+'-'+atomj+'-'+atomk+'-'+atoml
@@ -117,7 +36,7 @@ class ReaxFF_nn(object):
   def __init__(self,libfile='ffield',dataset={},
                dft='ase',atoms=None,
                cons=['val','vale','valang','valboc','lp3','cutoff','hbtol'],# 'acut''val',
-               opt=None,opt_term={'etor':True,'eang':True,'eover':True,'eunder':True,
+               opt=None,energy_term={'etor':True,'eang':True,'eover':True,'eunder':True,
                                   'ecoul':True,'evdw':True,'elone':True,'ehb':True},
                mpopt=None,bdopt=None,mfopt=None,eaopt=[],
                VariablesToOpt=None,
@@ -175,9 +94,9 @@ class ReaxFF_nn(object):
       self.VariablesToOpt= VariablesToOpt
       self.cons          = ['val','vale','valang','valboc','lp3','cutoff']
       self.cons         += cons
-      self.opt_term      = {'etor':True,'eang':True,'eover':True,'eunder':True,
+      self.energy_term   = {'etor':True,'eang':True,'eover':True,'eunder':True,
                             'ecoul':True,'evdw':True,'elone':True,'ehb':True}
-      self.opt_term.update(opt_term)
+      self.energy_term.update(energy_term)
       self.optmol        = optmol
       self.lambda_me     = lambda_me
       self.vdwcut        = vdwcut
@@ -908,7 +827,7 @@ class ReaxFF_nn(object):
       pboexp        = tf.exp(pbopow)
       self.Pbo[st] = tf.reduce_prod(pboexp,axis=1,name=st+'_pbo') # BO Product
 
-      if self.nang[st]==0 or (not self.opt_term['eang']):
+      if self.nang[st]==0 or (not self.energy_term['eang']):
          self.eang[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
          self.epen[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
          self.tconj[st]= tf.cast(np.zeros([self.batch[st]]),tf.float32)
@@ -1064,7 +983,7 @@ class ReaxFF_nn(object):
       self.s_ijk[st],self.s_jkl[st]            = {},{}
       self.cos_w[st],self.cos2w[st],self.w[st] = {},{},{}
       self.f_10[st],self.f_11[st]              = {},{}
-      if (not self.opt_term['etor'] and not self.opt_term['efcon']) or self.ntor[st]==0:
+      if (not self.energy_term['etor'] and not self.energy_term['efcon']) or self.ntor[st]==0:
          self.etor[st] = tf.zeros([self.batch[st]])
          self.efcon[st]= tf.zeros([self.batch[st]])
       else:
@@ -1467,28 +1386,28 @@ class ReaxFF_nn(object):
       self.lopt = ['gammaw','vdw1','rvdw','Devdw','alfa',
                    'rohb','Dehb','hb1','hb2','atomic']  
 
-      if not self.opt_term['eover']:
+      if not self.energy_term['eover']:
          cons = cons + ['ovun1' ,'ovun2','ovun3','ovun4'] #
-      if not self.opt_term['eunder']:
+      if not self.energy_term['eunder']:
          cons = cons + ['ovun5','ovun6','ovun7','ovun8'] 
       # if self.optword.find('noover')>=0 and self.optword.find('nounder')>=0:
       #    cons = cons + ['ovun2','ovun3','ovun4'] 
-      if not self.opt_term['elone']:
+      if not self.energy_term['elone']:
          cons = cons + ['lp2','lp3', 'lp1'] #
-      if not self.opt_term['evdw']:
+      if not self.energy_term['evdw']:
          cons = cons + ['gammaw','vdw1','rvdw','Devdw','alfa'] 
-      if not self.opt_term['ehb']:
+      if not self.energy_term['ehb']:
          cons = cons + ['Dehb','rohb','hb1','hb2'] #,'hbtol'
 
       self.tor_v = ['tor2','tor3','tor4','V1','V2','V3','tor1','cot1','cot2'] 
 
-      if not self.opt_term['etor']:
+      if not self.energy_term['etor']:
          cons = cons + self.tor_v
       self.ang_v = ['theta0',
                     'val1','val2','val3','val4','val5','val6','val7',
                     'pen1','pen2','pen3','pen4',
                     'coa1','coa2','coa3','coa4'] 
-      if not self.opt_term['eang']:
+      if not self.energy_term['eang']:
          cons = cons + self.ang_v
 
       if self.cons is None:
@@ -1514,19 +1433,19 @@ class ReaxFF_nn(object):
           key = k.split('_')[0]
           ktor= ['cot1','V1','V2','V3']
 
-          if not self.opt_term['etor']:
+          if not self.energy_term['etor']:
              if key in ktor:
                 self.p_[k] = 0.0
-          if not self.opt_term['elone']:
+          if not self.energy_term['elone']:
              if key in 'lp2':
                 self.p_[k] = 0.0
-          if not self.opt_term['eover']:
+          if not self.energy_term['eover']:
              if key in 'ovun1':
                 self.p_[k] = 0.0
-          if not self.opt_term['eunder']:
+          if not self.energy_term['eunder']:
              if key in 'ovun5':
                 self.p_[k] = 0.0
-          if not self.opt_term['eang']:
+          if not self.energy_term['eang']:
              if key in ['val1','coa1','pen1']:
                 self.p_[k] = 0.0
 
@@ -1565,7 +1484,7 @@ class ReaxFF_nn(object):
   def set_parameters(self,libfile=None):
       if not libfile is None:
          self.p_,zpe,spec,bonds,offd,angs,torp,hbs = read_ffield(libfile=libfile)
-      self.var = set_variables(self.p_, self.opt_term, self.cons, self.opt,self.eaopt,
+      self.var = set_variables(self.p_, self.energy_term, self.cons, self.opt,self.eaopt,
                                self.punit, self.unit, self.conf_vale,
                                self.ang_v,self.tor_v)
 

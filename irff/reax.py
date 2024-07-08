@@ -108,7 +108,7 @@ class ReaxFF(object):
                dataset={},data_invariant=[],rcut_inv={'others':1.6},
                dft='ase',atoms=None,
                cons=['val','vale','valang','vale','lp3','cutoff','hbtol'],# 'acut''val','valboc',
-               opt=None,optword='nocoul',eaopt=[],
+               opt=None,energy_term={'ecoul':False},eaopt=[],
                VariablesToOpt=None,
                nanv={'boc1':-2.0},
                batch_size=200,sample='uniform',
@@ -159,7 +159,9 @@ class ReaxFF(object):
       self.opt           = opt
       self.VariablesToOpt= VariablesToOpt
       self.cons          = cons
-      self.optword       = optword
+      self.energy_term      = {'etor':True,'eang':True,'eover':True,'eunder':True,
+                            'ecoul':True,'evdw':True,'elone':True,'ehb':True}
+      self.energy_term.update(energy_term)
       self.eaopt         = eaopt
       if eaopt:
          self.cons.extend(eaopt)
@@ -446,7 +448,7 @@ class ReaxFF(object):
           if self.nvb[bd]>0:
              self.rv[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[bd],self.batch],
                                            name='rvdw_%s' %bd)
-             if self.optword.find('nocoul')<0:
+             if self.energy_term['ecoul']:
                 self.qij[bd] = tf.compat.v1.placeholder(tf.float32,shape=[self.nvb[bd],self.batch],
                                               name='qij_%s' %bd)
           if self.nbd_inv[bd]>0:
@@ -681,10 +683,11 @@ class ReaxFF(object):
              continue
           self.Dpi[sp]   = tf.gather_nd(self.DPIL,self.atomlist[sp])
 
-          if not (self.optword.find('noover')>=0 and self.optword.find('nounder')>=0):
+          if self.energy_term['eover']:
              self.get_eover(sp,self.delta[sp],self.Dpi[sp])
              self.EOVER = self.EOV[sp] if i==0 else tf.concat((self.EOVER,self.EOV[sp]),0)
 
+          if self.energy_term['eunder']:
              self.get_eunder(sp,self.delta[sp],self.Dpi[sp])
              self.EUNDER = self.EUN[sp] if i==0 else tf.concat((self.EUNDER,self.EUN[sp]),0)
 
@@ -693,19 +696,19 @@ class ReaxFF(object):
 
       for mol in self.mols:
           mols = mol.split('-')[0] 
-          if self.optword.find('noover')>=0:
+          if not self.energy_term['elone']:
              self.elone[mol] = 0.0
           else:
              self.Elone[mol] = tf.gather_nd(self.ELONE,self.atomlink[mol])  
              self.elone[mol] = tf.reduce_sum(input_tensor=self.Elone[mol],axis=0,name='lonepairenergy')
 
-          if self.optword.find('noover')>=0:
+          if not self.energy_term['eover']:
              self.eover[mol] = 0.0
           else:
              self.Eover[mol] = tf.gather_nd(self.EOVER,self.atomlink[mol])  
              self.eover[mol] = tf.reduce_sum(input_tensor=self.Eover[mol],axis=0,name='overenergy')
           
-          if self.optword.find('noover')>=0:
+          if not self.energy_term['eunder']:
              self.eunder[mol] = 0.0
           else:
              self.Eunder[mol] = tf.gather_nd(self.EUNDER,self.atomlink[mol])  
@@ -969,7 +972,7 @@ class ReaxFF(object):
       self.ETC[ang] = self.texp0[ang]*self.texp1[ang]*self.texp2[ang]*self.texp3[ang]*self.texp4[ang]*self.fijk[ang] 
 
   def get_torsion_energy(self):
-      if self.optword.find('notor')<0:
+      if self.energy_term['etor']:
          for tor in self.tors:
              if self.ntor[tor]>0:
                 self.get_etorsion(tor)
@@ -1100,7 +1103,7 @@ class ReaxFF(object):
       self.expvdw2[vb] = tf.square(self.expvdw1[vb]) 
       self.EVDW[vb]    = fv*self.tpv[vb]*self.p['Devdw_'+vb]*(self.expvdw2[vb]-2.0*self.expvdw1[vb])
 
-      if self.optword.find('nocoul')<0:
+      if self.energy_term['ecoul']:
          self.rth[vb]  = tf.pow(r3+gm3,1.0/3.0)
          self.ECOU[vb] = tf.math.divide(fv*self.tpv[vb]*self.qij[vb],self.rth[vb])
 
@@ -1112,7 +1115,7 @@ class ReaxFF(object):
                   self.get_ev(vb,self.rv[vb])
 
       for mol in self.mols:
-          if self.optword.find('nocoul')>=0:
+          if not self.energy_term['ecoul']:
              self.ecoul[mol]= tf.constant(self.ecoul_[mol],dtype=tf.float32)
 
           with tf.compat.v1.name_scope('Evdw_'+mol):
@@ -1123,12 +1126,12 @@ class ReaxFF(object):
                        evdw_ = tf.gather_nd(self.EVDW[vb],self.vlink[mol][vb])
                        self.Evdw[mol] = evdw_ if i==0 else tf.concat((self.Evdw[mol],evdw_),0)
                        
-                       if self.optword.find('nocoul')<0:
+                       if self.energy_term['ecoul']:
                           ecou_ = tf.gather_nd(self.ECOU[vb],self.vlink[mol][vb])
                           self.Ecou[mol] = ecou_ if i==0 else tf.concat((self.Ecou[mol],ecou_),0)
                        i+=1
              self.evdw[mol] = tf.reduce_sum(input_tensor=self.Evdw[mol],axis=0,name='evdw_%s' %mol)
-             if self.optword.find('nocoul')<0:
+             if self.energy_term['ecoul']:
                 self.ecoul[mol]= tf.reduce_sum(input_tensor=self.Ecou[mol],axis=0,name='ecoul_%s' %mol)
 
   def get_hb_energy(self):
@@ -1234,28 +1237,28 @@ class ReaxFF(object):
       self.lopt = ['gammaw','vdw1','rvdw','Devdw','alfa',
                    'rohb','Dehb','hb1','hb2','atomic']  
 
-      if self.optword.find('novdw')>=0:
+      if not self.energy_term['evdw']:
          cons = cons + ['gammaw','vdw1','rvdw','Devdw','alfa'] 
-      if self.optword.find('noover')>=0:
+      if not self.energy_term['eover']:
          cons = cons + ['ovun1'] # ,'ovun2','ovun3','ovun4'
-      if self.optword.find('nounder')>=0:
+      if not self.energy_term['eunder']:
          cons = cons + ['ovun5','ovun6','ovun7','ovun8'] 
-      if self.optword.find('noover')>=0 and self.optword.find('nounder')>=0:
+      if (not self.energy_term['eover']) and (not self.energy_term['eunder']):
          cons = cons + ['ovun2','ovun3','ovun4'] 
-      if self.optword.find('nolone')>=0:
+      if not self.energy_term['elone']:
          cons = cons + ['lp2','lp3'] # 'lp1'
-      if self.optword.find('nohb')>=0:
+      if not self.energy_term['ehb']:
          cons = cons + ['Dehb','rohb','hb1','hb2'] #,'hbtol'
 
       self.tor_v = ['tor2','tor3','tor4','V1','V2','V3','tor1','cot1','cot2'] 
 
-      if self.optword.find('notor')>=0:
+      if not self.energy_term['etor']:
          cons = cons + self.tor_v
       self.ang_v = ['theta0',
                     'val1','val2','val3','val4','val5','val6','val7',
                     'pen1','pen2','pen3','pen4',
                     'coa1','coa2','coa3','coa4'] 
-      if self.optword.find('noang')>=0:
+      if not self.energy_term['eang']:
          cons = cons + self.ang_v
 
       if self.cons is None:
@@ -1282,19 +1285,19 @@ class ReaxFF(object):
           key = k.split('_')[0]
           ktor= ['cot1','V1','V2','V3']
 
-          if self.optword.find('notor')>=0:
+          if not self.energy_term['etor']:
              if key in ktor:
                 self.p_[k] = 0.0
-          if self.optword.find('nolone')>=0:
+          if not self.energy_term['elone']:
              if key in 'lp2':
                 self.p_[k] = 0.0
-          if self.optword.find('noover')>=0:
+          if not self.energy_term['eover']:
              if key in 'ovun1':
                 self.p_[k] = 0.0
-          if self.optword.find('nounder')>=0:
+          if not self.energy_term['eunder']:
              if key in 'ovun5':
                 self.p_[k] = 0.0
-          if self.optword.find('noang')>=0:
+          if not self.energy_term['eang']:
              if key in ['val1','coa1','pen1']:
                 self.p_[k] = 0.0
 
@@ -1332,7 +1335,7 @@ class ReaxFF(object):
          self.p_,zpe,spec,bonds,offd,angs,torp,hbs = read_ffield(libfile=libfile)
 
       self.p,self.var = {},{}
-      self.var = set_variables(self.p_, self.optword, self.cons, self.opt,self.eaopt,
+      self.var = set_variables(self.p_, self.energy_term, self.cons, self.opt,self.eaopt,
                              self.punit, self.unit, self.conf_vale,
                              self.ang_v,self.tor_v)
                              
@@ -1675,7 +1678,7 @@ class ReaxFF(object):
           if self.nvb[bd]>0:
              feed_dict[self.rv[bd]]  = self.lk.rv[bd]
 
-             if self.optword.find('nocoul')<0:
+             if self.energy_term['ecoul']:
                 feed_dict[self.qij[bd]] = self.lk.qij[bd]
                 # print(self.lk.vr[bd])
                 # feed_dict[self.pc[bd]]  = self.lk.pc[bd]
@@ -2062,25 +2065,25 @@ class ReaxFF(object):
 
       self.dft_energy,self.E,self.zpe,self.eatom,self.loss,self.accur = None,None,None,None,None,None
 
-def set_variables(p_,optword,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
+def set_variables(p_,energy_term,cons,opt,eaopt,punit,unit,conf_vale,ang_v,tor_v):
     v = {}
     for k in p_:
         key = k.split('_')[0]
         ktor= ['cot1','V1','V2','V3']
 
-        if optword.find('notor')>=0:
+        if not energy_term['etor']:
            if key in ktor:
               p_[k] = 0.0
-        if optword.find('noang')>=0:
+        if not energy_term['eang']:
            if key in ['val1','coa1','pen1']:
               p_[k] = 0.0
-        if optword.find('nolone')>=0:
+        if not energy_term['elone']:
            if key == 'lp2':
               p_[k] = 0.0
-        if optword.find('noover')>=0:
+        if not energy_term['eover']:
            if key == 'ovun1':
               p_[k] = 0.0
-        if optword.find('nounder')>=0:
+        if not energy_term['eunder']:
            if key == 'ovun5':
               p_[k] = 0.0
 
@@ -2312,7 +2315,7 @@ def test_reax(dataset=None,batch_size=200,dft='siesta',ffield='ffield'):
     RE,GE={},{}
     rn = ReaxFF(libfile=ffield,
                 dataset=dataset,dft=dft,
-                opt=[],optword='nocoul',
+                opt=[],energy_term={'ecoul':False},
                 batch_size=batch_size,
                 clip_op=False,
                 interactive=True,
