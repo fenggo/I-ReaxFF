@@ -1855,7 +1855,7 @@ class ReaxFF_nn(object):
              for key in accs:
                  acc += key+': %6.4f ' %accs[key]
              loss_f = loss_f/self.natoms
-             self.logger.info('-  step: %d loss: %6.4f accs: %f %s force: %6.4f spv: %6.4f me: %6.4f time: %6.4f' %(i,
+             self.logger.info('-  step: %d loss: %6.4f accs: %f %s force: %8.6f spv: %6.4f me: %6.4f time: %6.4f' %(i,
                               los_,accu,acc,loss_f,lpenalty,self.ME_,elapsed_time))
              self.time = current
 
