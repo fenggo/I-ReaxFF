@@ -43,7 +43,6 @@ parameters = ['boc1','boc2',
 
 reax = ReaxFF(libfile='ffield.json',
               dataset=dataset, 
-              optword='nocoul',
               opt=['atomic'],
               eaopt=parameters,
               clip=clip,

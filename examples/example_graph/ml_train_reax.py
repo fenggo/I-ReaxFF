@@ -25,7 +25,6 @@ clip = {'boc1':(0.0,50.0),
 
 reax = ReaxFF(libfile='ffield.json',
               dataset=dataset, 
-              optword='nocoul',
               opt=['atomic']
               clip=clip,
               batch_size=batch,

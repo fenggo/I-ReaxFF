@@ -148,7 +148,6 @@ if __name__ == '__main__':
    rn = MPNN(libfile='ffield.json',
              dataset=dataset,            
              weight=weight,
-             optword='nocoul',
              cons=cons,clip=clip,
              regularize_mf=1,regularize_be=1,regularize_bias=1,
              lambda_reg=0.001,lambda_bd=100.0,lambda_me=0.0002,lambda_pi=0.003,

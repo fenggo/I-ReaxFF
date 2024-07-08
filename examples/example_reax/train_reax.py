@@ -115,7 +115,7 @@ if __name__ == '__main__':
    ''' train ''' 
    rx = ReaxFF(libfile='ffield.json',
               dataset=dataset, 
-              optword='nocoul',
+              energy_term={'ecoul':False},
               opt=parameters,
               clip=clip,
               batch_size=batch,
