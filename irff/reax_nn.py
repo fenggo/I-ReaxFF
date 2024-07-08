@@ -294,6 +294,7 @@ class ReaxFF_nn(object):
 
   def initialize(self): 
       self.nframe      = 0
+      self.natoms      = 0  
       strucs           = {}
       self.max_e       = {}
       # self.cell        = {}
@@ -329,6 +330,7 @@ class ReaxFF_nn(object):
              strucs[st]        = data_
              self.batch[st]    = strucs[st].batch
              self.nframe      += self.batch[st]
+             self.natoms      += strucs[st].natom*self.batch[st]
              print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
              self.max_e[st]    = strucs[st].max_e
              # self.evdw_[st]  = strucs[st].evdw
@@ -1347,49 +1349,49 @@ class ReaxFF_nn(object):
       ''' return the losses of the model '''
       self.Loss = 0.0
       self.loss_f = 0.0
-      for mol in self.strcs:
-          mol_ = mol.split('-')[0]
-          if mol in self.weight:
-             w_ = self.weight[mol]
-          elif mol_ in self.weight:
-             w_ = self.weight[mol_]
+      for st in self.strcs:
+          st_ = st.split('-')[0]
+          if st in self.weight:
+             w_ = self.weight[st]
+          elif st_ in self.weight:
+             w_ = self.weight[st_]
           else:
              w_ = self.weight['others']
 
           if self.losFunc   == 'n2':
-             self.loss[mol] = tf.nn.l2_loss(self.E[mol]-self.dft_energy[mol],
-                                 name='loss_%s' %mol)
-             if self.dft_forces[mol] is not None:
-                self.get_forces(mol) 
-                self.loss_force[mol] = tf.nn.l2_loss(self.forces[mol]-self.dft_forces[mol],
-                                 name='loss_force_%s' %mol)
-                self.loss_f     += self.loss_force[mol]*w_
+             self.loss[st] = tf.nn.l2_loss(self.E[st]-self.dft_energy[st],
+                                 name='loss_%s' %st)
+             if self.dft_forces[st] is not None:
+                self.get_forces(st) 
+                self.loss_force[st] = tf.nn.l2_loss(self.forces[st]-self.dft_forces[st],
+                                 name='loss_force_%s' %st)
+                self.loss_f     += self.loss_force[st]*w_
 
           elif self.losFunc == 'abs':
-             self.loss[mol] = tf.compat.v1.losses.absolute_difference(self.dft_energy[mol],self.E[mol])
-             if self.dft_forces[mol] is not None:
-                self.get_forces(mol) 
-                self.loss_force[mol] = tf.compat.v1.losses.absolute_difference(self.forces[mol],
-                                                                               self.dft_forces[mol],
-                                 name='loss_force_%s' %mol)
-                self.loss_f     += self.loss_force[mol]*w_
+             self.loss[st] = tf.compat.v1.losses.absolute_difference(self.dft_energy[st],self.E[st])
+             if self.dft_forces[st] is not None:
+                self.get_forces(st) 
+                self.loss_force[st] = tf.compat.v1.losses.absolute_difference(self.forces[st],
+                                                                               self.dft_forces[st],
+                                 name='loss_force_%s' %st)
+                self.loss_f     += self.loss_force[st]*w_
           elif self.losFunc == 'mse':
-             self.loss[mol] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[mol],self.E[mol])
-             if self.dft_forces[mol] is not None:
-                self.get_forces(mol) 
-                self.loss_force[mol] = tf.compat.v1.losses.mean_squared_error(self.forces[mol],
-                                                                              self.dft_forces[mol],
-                                 name='loss_force_%s' %mol)
-                self.loss_f     += self.loss_force[mol]*w_
+             self.loss[st] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[st],self.E[st])
+             if self.dft_forces[st] is not None:
+                self.get_forces(st) 
+                self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
+                                                                              self.dft_forces[st],
+                                 name='loss_force_%s' %st)
+                self.loss_f     += self.loss_force[st]*w_
           elif self.losFunc == 'huber':
-             self.loss[mol] = tf.compat.v1.losses.huber_loss(self.dft_energy[mol],self.E[mol],delta=self.huber_d)
-             if self.dft_forces[mol] is not None:
-                self.get_forces(mol) 
-                self.loss_force[mol] = tf.compat.v1.losses.mean_squared_error(self.forces[mol],
-                                                                              self.dft_forces[mol],
+             self.loss[st] = tf.compat.v1.losses.huber_loss(self.dft_energy[st],self.E[st],delta=self.huber_d)
+             if self.dft_forces[st] is not None:
+                self.get_forces(st) 
+                self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
+                                                                              self.dft_forces[st],
                                                                               delta=self.huber_d,
-                                                                        name='loss_force_%s' %mol)
-                self.loss_f    += self.loss_force[mol]*w_
+                                                                        name='loss_force_%s' %st)
+                self.loss_f    += self.loss_force[st]*w_
          #  elif self.losFunc == 'CrossEntropy':
          #     y_min = tf.reduce_min(self.dft_energy[mol])
          #     a_min = tf.reduce_min(self.E[mol])
@@ -1852,7 +1854,7 @@ class ReaxFF_nn(object):
              acc = ''
              for key in accs:
                  acc += key+': %6.4f ' %accs[key]
-
+             loss_f = loss_f/self.natoms
              self.logger.info('-  step: %d loss: %6.4f accs: %f %s force: %6.4f spv: %6.4f me: %6.4f time: %6.4f' %(i,
                               los_,accu,acc,loss_f,lpenalty,self.ME_,elapsed_time))
              self.time = current
