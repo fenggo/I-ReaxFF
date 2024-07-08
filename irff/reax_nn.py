@@ -2119,9 +2119,10 @@ class ReaxFF_nn(object):
                  bdid  = self.bdid[mol][b_[0]:b_[1]]
                  bo0_  = tf.gather_nd(self.bo0[mol],bdid,
                                       name='bo0_supervize_{:s}'.format(bd)) 
-
-                 # fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
-                 # self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
+                 bop_  = tf.gather_nd(self.bop[mol],bdid,
+                                      name='bop_supervize_{:s}'.format(bd)) 
+                 fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
+                 self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
 
                  fao  = tf.where(tf.greater(self.rbd_[mol][bd],self.rcuta[bd]),1.0,0.0)  ##### r> rcuta that bo = 0.0
                  self.penalty_bo_rcut[bd] += tf.reduce_sum(bo0_*fao)
