@@ -18,7 +18,8 @@ from .data.prep_data import prep_data
 import tensorflow as tf
 from .md.irmd import IRMD
 from .trainer import train_reax
-from .trainer import train_mpnn
+#from .trainer import train_mpnn
+from .trainer import train_nn
 from .AtomDance import AtomDance,check_zmat
 from .dingtalk import send_msg
 
@@ -190,7 +191,7 @@ class LearningMachine(object):
       #    self.freeatoms = [i for i in range(self.natom)]
 
       if self.nn:
-         self.trainer = train_mpnn
+         self.trainer = train_nn
       else:
          self.trainer = train_reax
       
