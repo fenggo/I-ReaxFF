@@ -12,11 +12,9 @@ from .mpnn import MPNN
 from .dingtalk import send_msg
 import json as js
 
-
 # dataset ={'ethw':'/home/gfeng/siesta/train/case1',
 #           'ethw1':'/home/gfeng/siesta/train/case1/run_1'}
 # batch = 50
-
 
 def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=1000.0,
           spec=[],optword='nocoul',cons=None,clip={},
@@ -224,7 +222,6 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               be_universal_nn=be_universal_nn,
               bo_universal_nn=bo_universal_nn,
               mf_universal_nn=mf_universal_nn,
-              vdw_universal_nn=vdw_universal_nn,
               BOFunction=BOFunction,EnergyFunction=EnergyFunction,
               MessageFunction=MessageFunction,
               messages=messages,
