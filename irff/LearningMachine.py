@@ -58,7 +58,7 @@ class LearningMachine(object):
                col_frame=50,col_min_interval=3,
                mom_step=100,
                mpopt=[1,1,1,1], messages=1,
-               optword='nocoul',cons=None,clip={},
+               opt_term={'ecoul':False},cons=None,clip={},
                T=300,# Tmax=1000,
                label=None,
                convergence=0.01,nconvergence=3,
@@ -135,7 +135,7 @@ class LearningMachine(object):
       self.MaxMDstep      = MaxMDstep
       self.MinMDstep      = MinMDstep
       self.mpopt          = mpopt
-      self.optword        = optword
+      self.opt_term       = opt_term
       self.clip           = clip
       self.messages       = messages
       self.mdInc          = mdInc       # MD step increase factor
