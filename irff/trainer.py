@@ -219,7 +219,6 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               #opt_term=optword,
               clip=clip,
               cons=cons,
-              nn=nn,vdwnn=vdwnn,VdwFunction=VdwFunction,
               bo_layer=bo_layer,mf_layer=mf_layer,
               be_layer=be_layer,vdw_layer=vdw_layer,
               be_universal_nn=be_universal_nn,
