@@ -95,7 +95,8 @@ class ReaxFF_nn(object):
       self.cons          = ['val','vale','valang','valboc','lp3','cutoff']
       self.cons         += cons
       self.energy_term   = {'etor':True,'eang':True,'eover':True,'eunder':True,
-                            'ecoul':True,'evdw':True,'elone':True,'ehb':True}
+                            'ecoul':True,'evdw':True,'elone':True,'ehb':True,
+                            'efcon':True,'etcon':True}
       self.energy_term.update(energy_term)
       self.optmol        = optmol
       self.lambda_me     = lambda_me
