@@ -1806,7 +1806,7 @@ class ReaxFF_nn(object):
       if close_session:
          tf.compat.v1.reset_default_graph()
          self.sess.close()
-         return loss_,accu,accMax,i
+         return loss_,accu,accMax,i,zpe
 
   def feed_data(self):
       feed_dict = {}
