@@ -220,7 +220,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               mf_layer=mf_layer,be_layer=be_layer,
               be_universal_nn=be_universal_nn,
               mf_universal_nn=mf_universal_nn,
-              EnergyFunction=EnergyFunction,MessageFunction=MessageFunction,
+              MessageFunction=MessageFunction,# EnergyFunction=EnergyFunction,
               messages=messages,
               mpopt=mpopt,
               batch_size=batch,
