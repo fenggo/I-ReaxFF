@@ -1741,11 +1741,12 @@ class ReaxFF_nn(object):
           if np.isnan(loss):
              if close_session:
                 self.logger.info('NAN error encountered at step %d loss is %f.' %(i,loss/self.nframe))
+                self.logger.info('energy loss is {:f}, forces loss is {:f}.'.format(loss,loss_f))
                 loss_ = 99999999999.9 
                 self.write_lib(libfile=self.libfile,loss=loss_)
                 accu  = -1.0
                 zpe   = {}
-                to_train = False # break
+                break
              else:
                 break
 
