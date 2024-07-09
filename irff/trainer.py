@@ -223,7 +223,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               MessageFunction=MessageFunction,# EnergyFunction=EnergyFunction,
               messages=messages,
               mpopt=mpopt,
-              batch_size=batch,
+              batch=batch,
               losFunc='n2',
               regularize_be=regularize,regularize_mf=regularize,
               lambda_reg=lambda_reg,lambda_bd=lambda_bd,
