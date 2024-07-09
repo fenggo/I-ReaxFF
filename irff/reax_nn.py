@@ -831,7 +831,7 @@ class ReaxFF_nn(object):
       if self.nang[st]==0 or (not self.energy_term['eang']):
          self.eang[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
          self.epen[st] = tf.cast(np.zeros([self.batch[st]]),tf.float32)
-         self.tconj[st]= tf.cast(np.zeros([self.batch[st]]),tf.float32)
+         self.etcon[st]= tf.cast(np.zeros([self.batch[st]]),tf.float32)
       else:
          Eang  = []
          Epen  = []
