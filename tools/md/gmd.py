@@ -37,7 +37,7 @@ def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
 #     system('gulp<inp-gulp>gulp.out')
 #     xyztotraj('his.xyz')
 
-def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
         x=1,y=1,z=1,n=1,output=None,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A) 
@@ -50,6 +50,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        runword= 'opti conv qiterative prop phonons thermal num3'
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,pressure=p,
+                  gopt=t,
                   output=output,
                   lib=lib)
     print('\n-  running gulp optimize ...')
