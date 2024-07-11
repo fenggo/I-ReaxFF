@@ -663,9 +663,9 @@ class ReaxFF_nn(object):
              Dpii  = Dpi_i + Dpp_i
              Dpij  = Dpi_j + Dpp_j
             
-             Fi    = fmessage(flabel,b[0],nbd_,[Dsi_i,Dpii,h,Dpij,Dsi_j],
+             Fi    = fmessage(flabel,b[0],nbd_,[Dsi_i,Dpi_i,Dpp_i,h,Dpp_j,Dpi_j,Dsi_j],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
-             Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpij,h,Dpii,Dsi_i],
+             Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpi_j,Dpp_j,h,Dpp_i,Dpi_i,Dsi_i],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
           elif self.MessageFunction==3:
              self.Dbi[mol][bd]  = Di - h   
