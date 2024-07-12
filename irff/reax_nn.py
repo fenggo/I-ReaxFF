@@ -261,7 +261,7 @@ class ReaxFF_nn(object):
              print('-  data status of %s:' %st,data_.status)
       self.nmol = len(strucs)
       
-      self.memory(molecules=strucs)
+      self.memory()
       self.generate_data(strucs)
            
       self.set_zpe(molecules=strucs)
@@ -420,7 +420,7 @@ class ReaxFF_nn(object):
           else:
              self.dft_forces[s] = None
              
-  def memory(self,molecules):
+  def memory(self):
       self.frc = {}
       self.Bsi,self.Bpi,self.Bpp  = {},{},{}
       self.bop_si,self.bop_pi,self.bop_pp,self.bop = {},{},{},{}
