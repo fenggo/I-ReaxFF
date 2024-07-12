@@ -2184,4 +2184,8 @@ class ReaxFF_nn(object):
            for y,yp in zip(Y,Yp):
                print(y,yp,sep=',',file=fcsv)
 
-   
+  def close(self):
+      print('-  Job compeleted.')
+      # self.sess.close()
+      self.memory()
+
