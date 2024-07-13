@@ -135,7 +135,10 @@ class LearningMachine(object):
       self.MaxMDstep      = MaxMDstep
       self.MinMDstep      = MinMDstep
       self.mpopt          = mpopt
-      self.energy_term       = energy_term
+      self.energy_term   = {'etor':True,'eang':True,'eover':True,'eunder':True,
+                            'ecoul':True,'evdw':True,'elone':True,'ehb':True,
+                            'efcon':True,'etcon':True,'manybody':True}
+      self.energy_term.update(energy_term)
       self.clip           = clip
       self.messages       = messages
       self.mdInc          = mdInc       # MD step increase factor
