@@ -1716,6 +1716,7 @@ class ReaxFF_nn(object):
       libfile = self.libfile.split('.')[0]
       totrain = True
       i       = 0
+      zpe     = {}
 
       while totrain:
           if i==0:
@@ -1746,7 +1747,6 @@ class ReaxFF_nn(object):
                 loss_ = 99999999999.9 
                 self.write_lib(libfile=self.libfile,loss=loss_)
                 accu  = -1.0
-                zpe   = {}
                 break
              else:
                 break
