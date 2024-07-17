@@ -331,14 +331,11 @@ class ReaxFF_nn(object):
           self.tor_k[s]    = np.expand_dims(strucs[s].tor_k,axis=1)
           self.tor_l[s]    = np.expand_dims(strucs[s].tor_l,axis=1)
 
-          # self.hb_i[s]   = strucs[s].hb_i
-          # self.hb_j[s]   = strucs[s].hb_j
-          # print(strucs[s].hb_i)
           self.hbij[s]     = {}
           self.hbjk[s]     = {}
+          # print(strucs[s].hb_i)
           for hb in strucs[s].hb_i:
               self.hbij[s][hb] = np.concatenate([strucs[s].hb_i[hb],strucs[s].hb_j[hb]],axis=1)
-              # self.hbjk[s]   = strucs[s].hb_k
               self.hbjk[s][hb] = np.concatenate([strucs[s].hb_j[hb],strucs[s].hb_k[hb]],axis=1)
 
           self.nbd[s]      = strucs[s].nbd
@@ -552,9 +549,9 @@ class ReaxFF_nn(object):
           if nbd_==0:
              continue
           b_  = self.b[mol][bd]
-          bosi_ = tf.slice(bosi,[b_[0],0],[b_[1],self.batch[mol]])
-          bopi_ = tf.slice(bopi,[b_[0],0],[b_[1],self.batch[mol]])
-          bopp_ = tf.slice(bopp,[b_[0],0],[b_[1],self.batch[mol]])
+          bosi_ = tf.slice(bosi,[b_[0],0],[nbd_,self.batch[mol]])
+          bopi_ = tf.slice(bopi,[b_[0],0],[nbd_,self.batch[mol]])
+          bopp_ = tf.slice(bopp,[b_[0],0],[nbd_,self.batch[mol]])
 
           self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
                                   self.m,batch=self.batch[mol],layer=self.be_layer[1])
@@ -575,7 +572,9 @@ class ReaxFF_nn(object):
           if nbd_==0:
              continue
           b_  = self.b[mol][bd]
-          self.rbd_[mol][bd] = tf.slice(self.rbd[mol],[b_[0],0],[b_[1],self.batch[mol]])
+
+          self.rbd_[mol][bd] = tf.slice(self.rbd[mol],[b_[0],0],[nbd_,self.batch[mol]])
+          # print(bd,'r shape: ',self.rbd_[mol][bd].shape)
           self.frc[bd] = tf.where(tf.logical_or(tf.greater(self.rbd_[mol][bd],self.rc_bo[bd]),
                                                 tf.less_equal(self.rbd_[mol][bd],0.001)), 0.0,1.0)
 
@@ -595,7 +594,9 @@ class ReaxFF_nn(object):
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
 
-      bop_sir = tf.scatter_nd(self.bdid[mol],tf.concat(bop_si,0),
+      bosi    = tf.concat(bop_si,0)
+      # print('\n after concate \n',bosi.shape)
+      bop_sir = tf.scatter_nd(self.bdid[mol],bosi,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       bop_sil = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_si,0),
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
@@ -644,10 +645,10 @@ class ReaxFF_nn(object):
           Di   = tf.gather_nd(self.D[mol][t-1],bi)
           Dj   = tf.gather_nd(self.D[mol][t-1],bj)
 
-          h    = tf.slice(H,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_h_slice')
-          hsi  = tf.slice(Hsi,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hsi_slice')
-          hpi  = tf.slice(Hpi,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpi_slice')
-          hpp  = tf.slice(Hpp,[b_[0],0],[b_[1],self.batch[mol]],name=bd+'_hpp_slice')
+          h    = tf.slice(H,[b_[0],0],[nbd_,self.batch[mol]],name=bd+'_h_slice')
+          hsi  = tf.slice(Hsi,[b_[0],0],[nbd_,self.batch[mol]],name=bd+'_hsi_slice')
+          hpi  = tf.slice(Hpi,[b_[0],0],[nbd_,self.batch[mol]],name=bd+'_hpi_slice')
+          hpp  = tf.slice(Hpp,[b_[0],0],[nbd_,self.batch[mol]],name=bd+'_hpp_slice')
 
           b    = bd.split('-')
 

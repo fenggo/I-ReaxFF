@@ -664,15 +664,15 @@ class reax_force_data(object):
                     if self.atom_name[j]=='H' :
                        for k in range(self.natom):
                            if k!=j and self.atom_name[k]!='H':  # from prime cell
-                              hb = str(i)+'-'+str(j)+'-'+str(k)
+                              hb = self.atom_name[i]+'-'+self.atom_name[j]+'-'+self.atom_name[k]
                               if hb not in hb_i:
-                                 hb_i[hb] = [i]
-                                 hb_j[hb] = [j]
-                                 hb_k[hb] = [k]
+                                 hb_i[hb] = [[i]]
+                                 hb_j[hb] = [[j]]
+                                 hb_k[hb] = [[k]]
                               else:
-                                 hb_i[hb].append(i)
-                                 hb_j[hb].append(j)
-                                 hb_k[hb].append(k)
+                                 hb_i[hb].append([i])
+                                 hb_j[hb].append([j])
+                                 hb_k[hb].append([k])
       for hb in self.hbs:
           if hb in self.hb_i:
              self.nhb[hb] = len(self.hb_i)
