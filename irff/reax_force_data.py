@@ -455,8 +455,8 @@ class reax_force_data(object):
       djlink      = np.expand_dims(self.bond[:,1],axis=1)
       self.dilink,self.djlink = {},{}
       for bd in bond_:
-          self.dilink[bd] = dilink[self.B[bd][0]:self.B[bd][0]+self.B[bd][1]]
-          self.djlink[bd] = djlink[self.B[bd][0]:self.B[bd][0]+self.B[bd][1]]
+          self.dilink[bd] = dilink[self.B[bd][0]:self.B[bd][1]]
+          self.djlink[bd] = djlink[self.B[bd][0]:self.B[bd][1]]
 
   def compute_angle(self):
       # print(len(self.x))
