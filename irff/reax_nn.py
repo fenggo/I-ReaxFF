@@ -264,7 +264,7 @@ class ReaxFF_nn(object):
       self.memory()
       self.generate_data(strucs)
            
-      self.set_zpe(molecules=strucs)
+      self.set_zpe()
 
       self.build_graph()    
       self.feed_dict = self.feed_data()
@@ -303,10 +303,7 @@ class ReaxFF_nn(object):
       self.nhb                         = {}
       self.v                           = {}
       self.h                           = {}
-      # self.hb_i                      = {}
-      # self.hb_j                      = {}
-      # self.hb_k                      = {}
-      self.hbij,self.hbjk                = {},{}
+      self.hbij,self.hbjk              = {},{}
       self.data                        = {}
       self.estruc                      = {}
       self.pmask                       = {}
@@ -365,8 +362,8 @@ class ReaxFF_nn(object):
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.vb_i[s]     = {}
-          self.vb_j[s]     = {}
+          self.vb_i[s]     = {bd:[] for bd in self.bonds}
+          self.vb_j[s]     = {bd:[] for bd in self.bonds}
           self.natom[s]    = strucs[s].natom
          
           for i in range(self.natom[s]):
@@ -374,15 +371,9 @@ class ReaxFF_nn(object):
                   bd = self.atom_name[s][i]+'-'+self.atom_name[s][j]
                   if bd not in self.bonds:
                      bd = self.atom_name[s][j]+'-'+self.atom_name[s][i]
-                  if bd in self.vb_i[s]:
-                     self.vb_i[s][bd].append(i)
-                  else:
-                     self.vb_i[s][bd] = [i] 
-                  if bd in self.vb_j[s]:
-                     self.vb_j[s][bd].append(j)
-                  else:
-                     self.vb_j[s][bd] = [j] 
-
+                  self.vb_i[s][bd].append(i)
+                  self.vb_j[s][bd].append(j)
+   
           self.pmask[s] = {}
           for sp in self.spec:
              pmask = np.zeros([self.natom[s],1])
@@ -598,20 +589,21 @@ class ReaxFF_nn(object):
       # print('\n after concate \n',bosi.shape)
       bop_sir = tf.scatter_nd(self.bdid[mol],bosi,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bop_sil = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_si,0),
+      bop_sil = tf.scatter_nd(self.bdidr[mol],bosi,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       self.bop_si[mol] = bop_sir + bop_sil
 
-
-      bop_pir = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pi,0),
+      bopi    = tf.concat(bop_pi,0)
+      bop_pir = tf.scatter_nd(self.bdid[mol],bopi,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bop_pil = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_pi,0),
+      bop_pil = tf.scatter_nd(self.bdidr[mol],bopi,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       self.bop_pi[mol] = bop_pir + bop_pil
 
-      bop_ppr = tf.scatter_nd(self.bdid[mol],tf.concat(bop_pp,0),
+      bopp    = tf.concat(bop_pp,0)
+      bop_ppr = tf.scatter_nd(self.bdid[mol],bopp,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
-      bop_ppl = tf.scatter_nd(self.bdidr[mol],tf.concat(bop_pp,0),
+      bop_ppl = tf.scatter_nd(self.bdidr[mol],bopp,
                             shape=(self.natom[mol],self.natom[mol],self.batch[mol]))
       self.bop_pp[mol] = bop_ppr + bop_ppl
 
@@ -641,7 +633,6 @@ class ReaxFF_nn(object):
           b_   = self.b[mol][bd]
           bi   = self.dilink[mol][bd]
           bj   = self.djlink[mol][bd]
-
           Di   = tf.gather_nd(self.D[mol][t-1],bi)
           Dj   = tf.gather_nd(self.D[mol][t-1],bj)
 
@@ -1169,6 +1160,8 @@ class ReaxFF_nn(object):
       for key in ['Devdw','alfa','rvdw']:
           self.P[st][key] =0.0 
           for bd in self.bonds:
+              if len(self.vb_i[st][bd])==0:
+                 continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
 
       for i in range(-1,2):
@@ -1204,7 +1197,7 @@ class ReaxFF_nn(object):
       # print('\n ecoul \n',self.ecoul[st])
 
   def get_hb_energy(self,st):
-      self.ehb[st]    = 0.0
+      self.ehb[st]    = tf.constant(0.0)
       for hb in self.hbs:
           if self.nhb[st][hb]==0:
              continue     
@@ -1241,7 +1234,7 @@ class ReaxFF_nn(object):
                       ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
                       self.ehb[st] += tf.sum(ehb,1)
 
-  def set_zpe(self,molecules=None):
+  def set_zpe(self):
       if self.MolEnergy_ is None:
          self.MolEnergy_ = {}
 
