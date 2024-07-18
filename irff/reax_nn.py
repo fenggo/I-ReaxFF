@@ -1199,6 +1199,7 @@ class ReaxFF_nn(object):
   def get_hb_energy(self,st):
       self.ehb[st]    = tf.constant(0.0)
       for hb in self.hbs:
+          # print(hb, self.nhb[st][hb])
           if self.nhb[st][hb]==0:
              continue     
           bo          = tf.gather_nd(self.bo0[st],self.hbij[st][hb],name='r_{:s}_{:s}'.format(st,hb))
@@ -1212,12 +1213,11 @@ class ReaxFF_nn(object):
           for i in range(-1,2):
               for j in range(-1,2):
                   for k in range(-1,2):
-                      cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
+                      cell   = tf.squeeze(self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k,axis=0)
                       vrjk   = vrjk_ + cell 
-                      # print(vrjk.shape)
                       rjk2   = tf.reduce_sum(tf.square(vrjk),axis=1)
                       rjk    = tf.sqrt(rjk2)
-
+                      # print('rjk \n',rjk.shape)
                       vrik   = vrij + vrjk
                       rik2   = tf.reduce_sum(tf.square(vrik),axis=1)
                       rik    = tf.sqrt(rik2)
@@ -1226,13 +1226,13 @@ class ReaxFF_nn(object):
                       hbthe  = 0.5-0.5*cos_th
                       frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
 
-                      exphb1 = 1.0-tf.exp(-self.p['hb1_'+hb]*self.BOhb)
+                      exphb1 = 1.0-tf.exp(-self.p['hb1_'+hb]*bo)
                       hbsum  = tf.math.divide(self.p['rohb_'+hb],rjk)+tf.math.divide(rjk,self.p['rohb_'+hb])-2.0
                       exphb2 = tf.exp(-self.p['hb2_'+hb]*hbsum)
 
                       sin4   = tf.square(hbthe)
                       ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      self.ehb[st] += tf.sum(ehb,1)
+                      self.ehb[st] += tf.reduce_sum(ehb,0)
 
   def set_zpe(self):
       if self.MolEnergy_ is None:
