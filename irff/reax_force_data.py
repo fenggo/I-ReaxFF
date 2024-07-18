@@ -673,14 +673,16 @@ class reax_force_data(object):
                                  hb_i[hb].append([i])
                                  hb_j[hb].append([j])
                                  hb_k[hb].append([k])
+      self.hb_i = hb_i
+      self.hb_j = hb_j
+      self.hb_k = hb_k
+
       for hb in self.hbs:
           if hb in self.hb_i:
              self.nhb[hb] = len(self.hb_i)
           else:
              self.nhb[hb] = 0
-      self.hb_i = hb_i
-      self.hb_j = hb_j
-      self.hb_k = hb_k
+
 
   def get_charge(self):
       q,ecoul,eself,evdw = [],[],[],[]
