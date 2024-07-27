@@ -1714,21 +1714,21 @@ class ReaxFF_nn(object):
       zpe     = {}
 
       while totrain:
-          if i==0:
-             loss,loss_f,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
-                                                      self.loss_f,
-                                                      self.loss_penalty,
-                                                      self.ME,self.accuracy, self.accur],
-                                                  feed_dict=self.feed_dict)
-          else:
-             loss,loss_f,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
-                                                      self.loss_f,
-                                                      self.loss_penalty,
-                                                      self.ME,
-                                                      self.accuracy,
-                                                      self.accur,
-                                                      self.train_step],
-                                                  feed_dict=self.feed_dict)
+         #  if i==0:
+         #     loss,loss_f,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
+         #                                              self.loss_f,
+         #                                              self.loss_penalty,
+         #                                              self.ME,self.accuracy, self.accur],
+         #                                          feed_dict=self.feed_dict)
+         #  else:
+         loss,loss_f,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
+                                                self.loss_f,
+                                                self.loss_penalty,
+                                                self.ME,
+                                                self.accuracy,
+                                                self.accur,
+                                                self.train_step],
+                                             feed_dict=self.feed_dict)
           if i==0:
              accMax = accu
           else:
