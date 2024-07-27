@@ -1259,8 +1259,8 @@ class ReaxFF_nn(object):
 
   def get_loss(self):
       ''' return the losses of the model '''
-      self.Loss = 0.0
-      self.loss_f = 0.0
+      self.Loss   = tf.constant(0.0)
+      self.loss_f = tf.constant(0.0)
       for st in self.strcs:
           st_ = st.split('-')[0]
           if st in self.weight:
