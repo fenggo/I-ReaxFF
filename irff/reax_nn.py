@@ -651,10 +651,8 @@ class ReaxFF_nn(object):
              Dsi_j = tf.gather_nd(self.D_si[mol][t-1],self.djlink[mol][bd]) - hsi
              Dpi_j = tf.gather_nd(self.D_pi[mol][t-1],self.djlink[mol][bd]) - hpi
              Dpp_j = tf.gather_nd(self.D_pp[mol][t-1],self.djlink[mol][bd]) - hpp
-
-             Dpii  = Dpi_i + Dpp_i
-             Dpij  = Dpi_j + Dpp_j
-            
+             #Dpii = Dpi_i + Dpp_i
+             #Dpij = Dpi_j + Dpp_j
              Fi    = fmessage(flabel,b[0],nbd_,[Dsi_i,Dpi_i,Dpp_i,h,Dpp_j,Dpi_j,Dsi_j],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
              Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpi_j,Dpp_j,h,Dpp_i,Dpi_i,Dsi_i],
