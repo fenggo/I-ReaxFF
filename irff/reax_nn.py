@@ -1306,15 +1306,16 @@ class ReaxFF_nn(object):
 
           sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
           self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
-          self.loss_f    += self.loss_force[st]*w_
+          if st in elf.loss_force
+             self.loss_f    += self.loss_force[st]*w_
           self.Loss      += self.loss[st]*w_ 
           if st.find('nomb')<0:
              self.accuracy += self.accur[st]
           else:
              self.nmol -= 1
 
-      self.Loss      += self.loss_f
-      self.ME   = 0.0
+      self.Loss   += self.loss_f
+      self.ME      = 0.0
       for mol in self.strcs:
           mol_     = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mol_])
