@@ -1598,7 +1598,7 @@ class ReaxFF_nn(object):
           log_ = tf.math.log((self.botol/(1.0 + self.botol)))
           rr = log_/self.p['bo1_'+bd] 
          
-          self.rc_bo[bd]=self.p['rosi_'+ofd]*tf.pow(log_/self.p['bo1_'+bd],1.0/self.p['bo2_'+bd])
+          self.rc_bo[bd]=self.p['rosi_'+ofd]*tf.pow(rr,1.0/self.p['bo2_'+bd])
 
   def session(self,learning_rate=3.0-4,method='AdamOptimizer'):
       if self.ncpu is None:
