@@ -562,8 +562,7 @@ class ReaxFF_nn(object):
           nbd_ = self.nbd[mol][bd]
           if nbd_==0:
              continue
-          b_  = self.b[mol][bd]
-
+          b_                 = self.b[mol][bd]
           self.rbd_[mol][bd] = tf.slice(self.rbd[mol],[b_[0],0],[nbd_,self.batch[mol]])
           # print(bd,'r shape: ',self.rbd_[mol][bd].shape)
           self.frc[bd] = tf.where(tf.logical_or(tf.greater(self.rbd_[mol][bd],self.rc_bo[bd]),

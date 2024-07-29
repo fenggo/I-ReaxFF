@@ -2269,15 +2269,15 @@ def clip_parameters(p_,v,clip):
         #     if len(b)==1:
         #        bd = b[0] +'-' +b[0]
         #     p[k] = tf.clip_by_value(v[k],0.80*re[bd],1.2*re[bd]) # 0.95 1.2
-        elif key == 'ropi':
-           p[k] = tf.clip_by_value(v[k],0.8*p_['rosi_'+vn[1]],0.99*p_['rosi_'+vn[1]])
-        elif key == 'ropp':
-           p[k] = tf.clip_by_value(v[k],0.8*p_['ropi_'+vn[1]],0.99*p_['ropi_'+vn[1]])
+        #   elif key == 'ropi':
+        #      p[k] = tf.clip_by_value(v[k],0.8*p_['rosi_'+vn[1]],0.99*p_['rosi_'+vn[1]])
+        #   elif key == 'ropp':
+        #      p[k] = tf.clip_by_value(v[k],0.8*p_['ropi_'+vn[1]],0.99*p_['ropi_'+vn[1]])
         elif key == 'rohb':
            p[k] = tf.clip_by_value(v[k],1.5,3.6)
-        elif key == 'rvdw':
-           rvdw_ =  p_['rosi_'+vn[1]]*1.25
-           p[k] = tf.clip_by_value(v[k],rvdw_,2.5*p_['rosi_'+vn[1]])
+        #   elif key == 'rvdw':
+        #      rvdw_ =  p_['rosi_'+vn[1]]*1.25
+        #      p[k] = tf.clip_by_value(v[k],rvdw_,2.5*p_['rosi_'+vn[1]])
         elif key=='val5':
            p[k] = tf.clip_by_value(v[k],0.0,20.0)
         elif key=='val3':
