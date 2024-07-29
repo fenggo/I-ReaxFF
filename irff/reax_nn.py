@@ -1120,9 +1120,7 @@ class ReaxFF_nn(object):
       return Efcon
 
   def f13(self,st,r):
-      # print('\n r \n',r)
-      gammaw = tf.sqrt(tf.expand_dims(self.P[st]['gammaw'],1)*tf.expand_dims(self.P[st]['gammaw'],2))
-      # print('\n gammaw \n',gammaw)
+      gammaw = tf.sqrt(tf.expand_dims(self.P[st]['gammaw'],0)*tf.expand_dims(self.P[st]['gammaw'],1))
       rr = tf.pow(r,self.p['vdw1'])+tf.pow(tf.math.divide(1.0,gammaw),self.p['vdw1'])
       f_13 = tf.pow(rr,tf.math.divide(1.0,self.p['vdw1']))  
       return f_13
@@ -1135,11 +1133,9 @@ class ReaxFF_nn(object):
       return tp
 
   def get_vdw_energy(self,st):
-      self.Evdw[st]   = 0.0
-      self.Ecoul[st]  = 0.0
-      nc = 0
-      # gm3 = torch.zeros_like(self.r[st])
-      # print('\n cell \n',self.cell[st].shape)
+      self.Evdw[st]     = 0.0
+      self.Ecoul[st]    = 0.0
+      nc                = 0
       cell0,cell1,cell2 = tf.unstack(self.cell[st],axis=2)
       self.cell0[st]    = tf.transpose(tf.expand_dims(cell0,1),[1,2,3,0])
       self.cell1[st]    = tf.transpose(tf.expand_dims(cell1,1),[1,2,3,0])

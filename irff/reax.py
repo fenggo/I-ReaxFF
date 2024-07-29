@@ -2201,7 +2201,7 @@ def clip_parameters(p_,v,clip):
         elif key == 'gammaw':
            p[k] = tf.clip_by_value(v[k],0.5,16.0)
         elif key == 'vdw1':
-           p[k] = tf.clip_by_value(v[k],0.36,9.0)
+           p[k] = tf.clip_by_value(v[k],0.1,9.0)
         elif key == 'gamma':
            p[k] = tf.clip_by_value(v[k],0.001,6.0)
         elif key == 'pen1':
