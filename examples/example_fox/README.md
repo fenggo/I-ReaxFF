@@ -25,6 +25,6 @@ accs: the total accuracy of the model, the value is in range 0~1;
 fox-7/cl20-0: accuracy for this structure, the value is in range 0~1;
 pen: sum of penalty terms, such as regularize therm of parameters, bond-order should be zero at the bond cutoff;
 me: structure energy, it should be neglected;
-force: forces loss per atom, forces in unit eV/$\AA$;
+force: forces loss per atom, forces in unit eV/angstrom;
 time: time usage till last print out.
 ```
