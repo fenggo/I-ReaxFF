@@ -1,4 +1,4 @@
-## Training a machine learning model with atomic forces
+## Training machine learning model with atomic forces
 ![crystal structure and forces on atoms](fox7.png)
 ### 1. prepare data for the training
 
