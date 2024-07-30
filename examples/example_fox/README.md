@@ -1,4 +1,4 @@
-## Training a machine learning model with forces
+## Training a machine learning model with atomic forces
 ![crystal structure and forces on atoms](fox7.png)
 ### 1. prepare data for the training
 
@@ -20,10 +20,11 @@ a typical output is like follow:
 
 where
 ```shell
-loss: energy loss per atom;
+loss: energy loss per atom, energy in unit eV;
 accs: the total accuracy of the model, the value is in range 0~1;
 fox-7/cl20-0: accuracy for this structure, the value is in range 0~1;
 pen: sum of penalty terms, such as regularize therm of parameters, bond-order should be zero at the bond cutoff;
 me: structure energy, it should be neglected;
+force: forces loss per atom, forces in unit eV/\AA;
 time: time usage till last print out.
 ```
