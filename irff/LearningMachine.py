@@ -580,7 +580,7 @@ class LearningMachine(object):
             ind_   = 'Geomentry Optimization'
             system('cp {:s}.traj md.traj'.format(self.label))
             E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
-                                                 frame=tstep,select==self.automatic_sampling,
+                                                 frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
                                                  xcf=self.xcf,xca=self.xca,basistype=self.basistype,
@@ -592,7 +592,7 @@ class LearningMachine(object):
       elif learn_method>2:
          # print('-  files in this dir \n',cwd+'/'+run_dir,'\n',listdir())
          E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
-                                                 frame=tstep,select=True,
+                                                 frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
                                                  xcf=self.xcf,xca=self.xca,basistype=self.basistype,
