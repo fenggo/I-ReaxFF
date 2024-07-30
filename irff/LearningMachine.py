@@ -330,9 +330,9 @@ class LearningMachine(object):
           # atoms.set_constraint(self.fixatoms)
           # atoms.write('poscar.gen')                                    # for aimd
 
-          if learn_method<=2: 
-             dft_step = self.dft_step
-          elif Deformed>=1.0 or uncertainty_zv is not None:
+          #if learn_method==1: 
+          #   dft_step = self.dft_step
+          if Deformed>=1.0 or uncertainty_zv is not None:
              dft_step = self.dft_step
           else:
              dft_step = self.col_frame # int(mdsteps/self.col_frame)+1
