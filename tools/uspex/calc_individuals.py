@@ -69,7 +69,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
            if d>density and f<0.0:
               ids.append(i)
     else:
-        ids = ids.split()
+        ids = [int(i) for i in ids.split()]
         
     root_dir   = getcwd()
     if not exists('density.log'):
@@ -107,7 +107,7 @@ if __name__=='__main__':
    parser.add_argument('--d',default=1.95,type=float, help='the density that big than this value')
    parser.add_argument('--n',default=8,type=int, help='the number of CPU used to calculate')
    parser.add_argument('--s',default=300,type=int, help='the max number of steps used for geometry optimiztion')
-   parser.add_argument('--i',default=[],type=list, help='the list of crystal id to be calculated')
+   parser.add_argument('--i',default='',type=str, help='the list of crystal id to be calculated')
    args = parser.parse_args(sys.argv[1:])
 
    # ids = range(190,239)
