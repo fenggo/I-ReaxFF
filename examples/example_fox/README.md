@@ -28,5 +28,5 @@ force: forces loss per atom, forces in unit eV/angstrom;
 pen  : sum of penalty terms, such as regularize therm of parameters, bond-order should be zero at the bond cutoff;
 me   : structure energy, it should be neglected, no real meaning;
 time : time usage till last print out.
-fox-7/cl20-0: accuracy for this structure, the value is in range 0~1;
+fox-7/cl20-0: accuracy for every structure, the value is in range 0~1;
 ```
