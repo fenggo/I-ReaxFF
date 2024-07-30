@@ -6,13 +6,8 @@ from irff.data.ColData import ColData
 getdata = ColData()
 
 dataset = {}
-strucs = [#'cf11',
-          'cf13',
-          'fox',
-          'cl20',
-          # 'c2h6',
-          #'gp4',#'gpp' 
-          ]
+strucs = [#'fox',
+          'fox7']
 
 weight  = {'others':2.0}
 batchs  = {'others':800}
@@ -75,7 +70,6 @@ if __name__ == '__main__':
                     lambda_reg=0.003,
                     convergence=0.9999)
 
-   rn.run(learning_rate=0.0001,step=5000,writelib=1000,
-              close_session=True)
-   rn.sess.close()
+   rn.run(learning_rate=0.0001,step=5000,writelib=1000)
+    
 
