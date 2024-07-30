@@ -64,13 +64,13 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
     images = Trajectory(traj)
     if not ids:
        ids = []
-
        res = read_individuals()
-
        for i,e,d,f in res:
            if d>density and f<0.0:
               ids.append(i)
-
+    else:
+        ids = ids.split()
+        
     root_dir   = getcwd()
     if not exists('density.log'):
        with open('density.log','w') as fd:
