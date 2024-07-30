@@ -13,7 +13,7 @@ Using script 'train.py' to train the model, type the following command in the Li
 ./train.py
 ```
 
-a typical output is like follow:
+a typical output is like following:
 ```shell
 -  step: 60 loss: 0.0015 accs: 0.94 fox-7: 0.97 cl20-0: 0.91 force: 0.112 pen: 32.27 me: 8.40 time: 5.14
 -  step: 70 loss: 0.0015 accs: 0.95 fox-7: 0.97 cl20-0: 0.92 force: 0.112 pen: 32.32 me: 8.40 time: 5.17
