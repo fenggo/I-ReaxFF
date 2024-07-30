@@ -83,6 +83,7 @@ class LearningMachine(object):
                lambda_me=0.1,learning_rate=0.0001,
                writelib=5000,ffield='ffield.json',
                dft='siesta',kpts=(1,1,1),xcf='VDW',xca='DRSLL',basistype='DZP',
+               automatic_sampling=False,
                **kwargs):
       ''' max_batch: max number of batch 
               batch: batch size
@@ -103,6 +104,7 @@ class LearningMachine(object):
       self.angmax         = angmax
       self.CheckZmat      = CheckZmat
       self.uncertainty    = uncertainty
+      self.automatic_sampling = automatic_sampling
       self.period         = period
       self.convergence    = convergence
       self.cons           = cons
@@ -566,7 +568,7 @@ class LearningMachine(object):
                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
             system('cp {:s}.traj md.traj'.format(self.label))
             E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
-                                                 frame=tstep,select=True,
+                                                 frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
                                                  xcf=self.xcf,xca=self.xca,basistype=self.basistype,
@@ -578,7 +580,7 @@ class LearningMachine(object):
             ind_   = 'Geomentry Optimization'
             system('cp {:s}.traj md.traj'.format(self.label))
             E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
-                                                 frame=tstep,select=True,
+                                                 frame=tstep,select==self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
                                                  xcf=self.xcf,xca=self.xca,basistype=self.basistype,

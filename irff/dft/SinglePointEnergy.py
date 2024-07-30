@@ -30,8 +30,8 @@ def SinglePointEnergies(traj='md.traj',label='aimd',xcf='VDW',xca='DRSLL',basist
     else:
        ind_  = [i for i in range(0,tframe,colmin)]
        
-    if len(ind_)>1 and 0 in ind_ and colmin>1:
-       ind_.pop(0)
+    #  if len(ind_)>1 and 0 in ind_ and colmin>1:
+    #     ind_.pop(0)
 
     his      = TrajectoryWriter(label+'.traj',mode='w')
     energies = []
