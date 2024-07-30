@@ -1,4 +1,5 @@
 ## Training a machine learning model with forces
+<img src="fox7.png" style="width: 50%; height: auto;">
 
 ### 1. prepare data for the training
 
