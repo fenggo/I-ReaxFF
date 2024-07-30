@@ -6,4 +6,7 @@ The training data can calculate by any method, but data must in ASE trajectory f
 
 ### 2. training the machine learning model with data collected in step 1.
 
-Using script 'train.py' to train the model
+Using script 'train.py' to train the model, type the following command in the Linux shell:
+```shell
+./train.py
+```
