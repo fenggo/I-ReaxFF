@@ -2190,8 +2190,8 @@ def clip_parameters(p_,v,clip):
            p[k] = tf.clip_by_value(v[k],0.0000999,0.05)
         elif key=='cutoff':
            p[k] = tf.clip_by_value(v[k],0.009999,0.012)
-        # elif key=='ovun5':
-        #    p[k] = tf.clip_by_value(v[k],0.0,999.0*unit)
+        elif key=='ovun5':
+           p[k] = tf.clip_by_value(v[k],0.0,999.0*unit)
         elif key=='ovun1':
            p[k] = tf.clip_by_value(v[k],0.0,10.0)
         elif key in ['boc4','boc5']:
