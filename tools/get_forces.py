@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argh
-import argparse
-from irff.irff import IRFF
-from ase.io import read,write
-import numpy as np
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
-from ase.md.verlet import VelocityVerlet
-from ase.io.trajectory import Trajectory
-from ase import units
+from ase.calculators.singlepoint import SinglePointCalculator
+from ase.io.trajectory import Trajectory,TrajectoryWriter
 from irff.md.gulp import get_gulp_forces
+from irff.irff_autograd import IRFF
 
-images = Trajectory('gulp.traj')
-get_gulp_forces(images)
+images = Trajectory('md.traj')
+atoms  = get_gulp_forces(images)
+his    = TrajectoryWriter('auto_diff.traj',mode='w')
+ir_    = IRFF(atoms=images[0],libfile='ffield.json',nn=True)
+
+for img in images:
+    ir_.calculate(atoms=img)
+    forces = ir_.results['forces']
+    img.calc = SinglePointCalculator(atoms, energy=ir_.E,forces=forces)
+    his.write(atoms=img)
+
+his.close()
 
 #images = Trajectory('md.traj')
 # atoms  = images[0]
@@ -22,9 +26,8 @@ get_gulp_forces(images)
 #     print(f)
 
 # print('\n gulp: \n')
-# images = Trajectory('gulp_force.traj')
-# atoms  = images[0]
+# # images = Trajectory('gulp_force.traj')
+# # atoms  = images[0]
 # forces = atoms.get_forces()
 # for f in forces:
 #     print(f)
-
