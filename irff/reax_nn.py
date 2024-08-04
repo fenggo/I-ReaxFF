@@ -376,10 +376,10 @@ class ReaxFF_nn(object):
    
           self.pmask[s] = {}
           for sp in self.spec:
-             pmask = np.zeros([self.natom[s],1])
-             pmask[self.s[s][sp],:] = 1.0
-             self.pmask[s][sp] = tf.constant(pmask,dtype=tf.float32,
-                                             name='pmask_{:s}_{:s}'.format(s,sp))
+              pmask = np.zeros([self.natom[s],1])
+              pmask[self.s[s][sp],:] = 1.0
+              self.pmask[s][sp] = tf.constant(pmask,dtype=tf.float32,
+                                              name='pmask_{:s}_{:s}'.format(s,sp))
 
           for bd in self.bonds:
              if len(self.vb_i[s][bd])==0:
@@ -1133,8 +1133,8 @@ class ReaxFF_nn(object):
       return tp
 
   def get_vdw_energy(self,st):
-      self.Evdw[st]     = 0.0
-      self.Ecoul[st]    = 0.0
+      self.Evdw[st]     = tf.constant(0.0)
+      self.Ecoul[st]    = tf.constant(0.0)
       nc                = 0
       cell0,cell1,cell2 = tf.unstack(self.cell[st],axis=2)
       self.cell0[st]    = tf.transpose(tf.expand_dims(cell0,1),[1,2,3,0])
@@ -1166,7 +1166,7 @@ class ReaxFF_nn(object):
                   gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
                   gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
                   r3   = tf.pow(r,3.0)
-                  fv_  = tf.where(tf.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
+                  fv_  = tf.where(tf.logical_and(r>0.00001,r<=self.vdwcut),1.0,0.0)
 
                   if nc<13:
                      fv = fv_*d1
