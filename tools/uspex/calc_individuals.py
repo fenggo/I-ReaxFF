@@ -44,7 +44,7 @@ def read_individuals():
                    i = int(l[1])
                    e = float(l[3])
                    d = float(l[5])
-                   if l[6]=='N/A' and l[6]!='N/A':
+                   if l[6]=='N/A':
                      f = 99999
                    else:
                      f = float(l[6])
@@ -59,7 +59,6 @@ def read_individuals():
     k_ = max(k)
     return gene[k_]
 
-
 def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
     images = Trajectory(traj)
     if not ids:
@@ -70,7 +69,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
               ids.append(i)
     else:
         ids = [int(i) for i in ids.split()]
-        
+
     root_dir   = getcwd()
     if not exists('density.log'):
        with open('density.log','w') as fd:
@@ -85,11 +84,13 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
            mkdir(str(s))
 
         chdir(work_dir)
-        system('cp ../../Specific/*.psf ./')
+        system('cp ../*.psf ./')
         img = siesta_opt(images[s-1],ncpu=ncpu,us='F',VariableCell='true',tstep=step,
                          xcf='GGA',xca='PBE',basistype='split')
         system('mv siesta.out siesta-{:d}.out'.format(s))
-        system('mv siesta.traj md_{:d}.traj'.format(s))
+        system('mv siesta.MDE siesta-{:d}.MDE'.format(s))
+        system('mv siesta.MD_CAR siesta-{:d}.MD_CAR'.format(s))
+        system('mv siesta.traj individual_{:d}.traj'.format(s))
         system('rm siesta.* ')
         atoms = img[-1]
         masses = np.sum(atoms.get_masses())
