@@ -11,6 +11,9 @@ help_ = './plotatoms.py --g=graphene.gen'
 parser = argparse.ArgumentParser(description=help_)
 parser.add_argument('--geo',default='gulp.traj',type=str, help='geomentry file name')
 parser.add_argument('--i',default=0,type=int, help='the i_th frame in traj file')
+parser.add_argument('--r',default=1,type=int, help='repeat structure')
+# parser.add_argument('--y',default=1,type=int, help='repeat structure in y direction')
+# parser.add_argument('--z',default=1,type=int, help='repeat structure in z direction')
 parser.add_argument('--f',default=0,type=int, help='whether plot the forces')
 parser.add_argument('--b',default=1,type=int, help='whether plot the box')  
 parser.add_argument('--camera_position',default='xy',type=str, help='whether plot the box') 
@@ -18,6 +21,10 @@ args = parser.parse_args(sys.argv[1:])
 
 # ------------------- Forces from GULP --------------------
 atoms  = read(args.geo,index=-1)
+if args.r:
+   atoms  = atoms*(2,2,2)
+ 
+atom_name = atoms.get_chemical_symbols()
 if args.f:
    atoms  = get_gulp_forces([atoms]) 
 # ----------------- Forces from autograd ------------------
@@ -28,7 +35,7 @@ points = atoms.positions
 point_cloud = pv.PolyData(points)
 if args.f:
    point_cloud['vectors'] = atoms.get_forces()
-   arrows = point_cloud.glyph(orient='vectors',scale=False,factor=2.0)
+   arrows = point_cloud.glyph(orient='vectors',scale=False,factor=1.0)
 
 ## get image points according PBC conditions -------------
 
@@ -36,7 +43,7 @@ xi     = np.expand_dims(points,axis=0)
 xj     = np.expand_dims(points,axis=1)
 vr     = xj-xi
 
-cell   = atoms.get_cell()
+cell   = atoms.get_cell() 
 rcell  = np.linalg.inv(cell)
 
 xf     = np.dot(points,rcell)
@@ -64,9 +71,12 @@ bds =  [ ]
 for i in range(natom_-1):
     for j in range(i+1,natom_):
         if i>=natom and j>=natom:
-           continue
+           continue                   
         vr_ = points[j] - points[i]
         r_  = np.sqrt(np.sum(vr_*vr_))
+        if i < natom and j < natom:
+           if atom_name[i]=='H' and  atom_name[i]=='H':
+              continue
         if r_<rcut:
            bds.append([2,i,j]) 
 
@@ -95,20 +105,46 @@ bonds.points = points
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-p.add_mesh(tube,pbr=True,metallic=1/8, roughness=1/5, smooth_shading=True)
+p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
-   p.add_mesh(arrows, color='red',pbr=True, smooth_shading=True)
+   p.add_mesh(arrows, color='blue',pbr=True, smooth_shading=True)
 
 #------------------------ 画出晶胞　------------------------
+if args.r:
+   cell = cell/2.0
 if args.b:
-   vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1], 
-                        cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
-                        cell[2],cell[1]+cell[2],cell[1],[0,0,0],cell[2],cell[2]+cell[1],cell[1],
-                        cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
-                        cell[0]+cell[1],cell[0]])
-   box = pv.lines_from_points(vertices,close=True)
+   if args.r:
+      vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],             # XY平面上四个点
+         cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
+         cell[2],cell[1]+cell[2],cell[1],[0,0,0],cell[2],cell[2]+cell[1],cell[1],
+         cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
+         cell[0]+cell[1],cell[0], ## 原始晶胞8个顶点，12条边
+         2*cell[0],2*cell[0]+ cell[1],cell[0]+ cell[1],    # XY    ## X 方向延伸一个晶胞
+         cell[0]+cell[1]+cell[2], 2*cell[0]+cell[1]+cell[2],
+         2*cell[0]+2*cell[1]+cell[2],
+         2*cell[0]+2*cell[1]+2*cell[2],cell[0]+2*cell[1]+2*cell[2],2*cell[1]+2*cell[2],
+         cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],cell[0]+2*cell[2],2*cell[0]+2*cell[2],
+         2*cell[0]+cell[1]+2*cell[2],2*cell[0]+cell[1]+cell[2],
+         2*cell[0]+cell[1]+cell[2],2*cell[0]+cell[2],cell[0]+cell[2],cell[0]+2*cell[2],
+         2*cell[2],2*cell[2]+cell[1],cell[2]+cell[1],cell[2]+2*cell[1],2*cell[1],
+         cell[0]+2*cell[1],2*cell[0]+2*cell[1],2*cell[0]+cell[1],2*cell[0]+cell[1]+cell[2],
+         2*cell[0]+cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],cell[0]+2*cell[1]+2*cell[2],
+         2*cell[0]+2*cell[1]+2*cell[2],2*cell[0]+cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],
+         cell[0]+cell[1]+cell[2],cell[0]+2*cell[1]+cell[2],2*cell[0]+2*cell[1]+cell[2],
+         2*cell[0]+2*cell[1],cell[0]+2*cell[1],cell[0]+2*cell[1]+cell[2],cell[0]+2*cell[1]+2*cell[2],
+         2*cell[1]+2*cell[2],2*cell[1]+cell[2],cell[0]+2*cell[1]+cell[2],cell[0]+2*cell[1], 
+         cell[0]+cell[1],cell[0],2*cell[0],2*cell[0]+cell[2],2*cell[0]+2*cell[2],cell[0]+2*cell[2],
+         2*cell[2],cell[2],[0, 0, 0],cell[1],2*cell[1] ]) 
+      
+   else:
+      vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],           
+                           cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
+                           cell[2],cell[1]+cell[2],cell[1],[0,0,0],cell[2],cell[2]+cell[1],cell[1],
+                           cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
+                           cell[0]+cell[1],cell[0]])  # 单晶胞的所有顶点，共八个
+   box = pv.lines_from_points(vertices,close=False)
    p.add_mesh(box,line_width=8,color='dodgerblue',metallic=1/8)
 
 #p.view_vector((0,-1 , 0), (0, 1,0))
@@ -121,3 +157,4 @@ p.save_graphic('{:s}'.format(args.geo.split('.')[0]+'.svg'))
 p.show(auto_close=False)
 # p.screenshot(transparent_background=True,filename='{:s}'.format(args.geo.split('.')[0]+'.png'))
 p.close()
+
