@@ -88,7 +88,7 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.5,'H':0.2,'N':0.45,'O':0.4}
+radius = {'C':0.45,'H':0.16,'N':0.40,'O':0.36}
 # colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
 colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 # colors = {'C':'black','H':'white','N':'blue','O':'red'}
