@@ -287,7 +287,7 @@ class ReaxFF(object):
                                 batch=self.batch,
                                sample=self.sample,
                        p=self.p_,spec=self.spec,bonds=self.bonds,
-                  angs=self.angs,tors=self.torp,
+                  angs=self.angs,tors=self.tors,
                                nindex=nindex)
 
           if data_.status:

@@ -240,7 +240,7 @@ class ReaxFF_nn(object):
                                     m=self.m_,
                              mf_layer=self.mf_layer_,
                        p=self.p_,spec=self.spec,bonds=self.bonds,
-                  angs=self.angs,tors=self.torp,
+                  angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
                                screen=self.screen,
                                nindex=nindex)
