@@ -651,10 +651,10 @@ class ReaxFF_nn_force(nn.Module):
          Efcon  =    []
          for tor in self.tors:
              if self.nt[st][tor]>0:
-                ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tj        = np.squeeze(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tk        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]])
-                tl        = np.squeeze(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]])
+                ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
+                tj        = np.squeeze(self.tor_j[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
+                tk        = np.squeeze(self.tor_k[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
+                tl        = np.squeeze(self.tor_l[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
                 boij      = self.bo[st][:,ti,tj]
                 bojk      = self.bo[st][:,tj,tk]
                 bokl      = self.bo[st][:,tk,tl]
@@ -1208,7 +1208,7 @@ class ReaxFF_nn_force(nn.Module):
                                     m=self.m_,
                              mf_layer=self.mf_layer_,
                        p=self.p_,spec=self.spec,bonds=self.bonds,
-                  angs=self.angs,tors=self.tors,
+                  angs=self.angs,tors=self.torp,
                                   hbs=self.hbs,
                                screen=self.screen,
                                nindex=nindex)
