@@ -1097,7 +1097,7 @@ class ReaxFF_nn_force(nn.Module):
                       tor = spi+'-'+spj+'-'+spk+'-'+spl
                       if tor not in tors:
                          tors.append(tor)
-
+      tors_ = [tor for tor in self.torp]
       for key in p_tor:
           for tor in tors:
               if tor not in self.torp:
@@ -1109,17 +1109,22 @@ class ReaxFF_nn_force(nn.Module):
                  tor5 = 'X'+'-'+t3+'-'+t2+'-'+'X'
                  if tor1 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor1] # consistent with lammps
+                    tors_.append(tor)
                  elif tor2 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor2]
+                    tors_.append(tor)
                  elif tor3 in self.torp:
-                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor3]    
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor3]   
+                    tors_.append(tor) 
                  elif tor4 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor4]  
+                    tors_.append(tor)
                  elif tor5 in self.torp:
-                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]     
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]    
+                    tors_.append(tor) 
                  else:
                     self.p_[key+'_'+tor] = 0.0
-      return tors
+      return tors_
 
   def stack_tensor(self):
       self.x     = {}
