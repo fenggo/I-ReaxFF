@@ -1002,7 +1002,7 @@ class ReaxFF_nn(object):
                 delta_j   = tf.gather_nd(self.Delta_ang[st],tj,
                                          name='delta_ang_{:s}_{:s}'.format(tor,spj))
                  
-                delta_k   = tf.gather_nd(self.Delta_ang[st],tj,
+                delta_k   = tf.gather_nd(self.Delta_ang[st],tk,
                                          name='delta_ang_{:s}_{:s}'.format(tor,spk))
 
                 (self.w[st][tor],self.cos_w[st][tor],self.cos2w[st][tor],self.s_ijk[st][tor],
