@@ -868,11 +868,11 @@ class ReaxFF_nn_force(nn.Module):
                       cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                       vrjk   = vrjk_ + cell 
                       # print(vrjk.shape)
-                      rjk2   = torch.sum(torch.square(vrjk),axis=1)
+                      rjk2   = torch.sum(torch.square(vrjk),axis=3)
                       rjk    = torch.sqrt(rjk2)
 
                       vrik   = vrij + vrjk
-                      rik2   = torch.sum(torch.square(vrik),axis=1)
+                      rik2   = torch.sum(torch.square(vrik),axis=3)
                       rik    = torch.sqrt(rik2)
 
                       cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
@@ -885,7 +885,7 @@ class ReaxFF_nn_force(nn.Module):
 
                       sin4   = torch.square(hbthe)
                       ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      self.ehb[st] += torch.sum(ehb,1)
+                      self.ehb[st] = self.ehb[st] + torch.sum(ehb,1)
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
