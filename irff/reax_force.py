@@ -1123,7 +1123,8 @@ class ReaxFF_nn_force(nn.Module):
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]    
                     tors_.append(tor) 
                  else:
-                    self.p_[key+'_'+tor] = 0.0
+                    # self.p_[key+'_'+tor] = 0.0
+                    print('-  fourbody interaction of {:s} is not considered, since no parameter in the ffield'.format(tor))
       return tors_
 
   def stack_tensor(self):
