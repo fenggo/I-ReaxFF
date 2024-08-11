@@ -857,7 +857,7 @@ class ReaxFF_nn_force(nn.Module):
           bo          = self.bo0[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
           fhb         = self.fhb[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
 
-          rij         = self.r[:,self.hb_i[st][hb],self.hb_j[st][hb]]
+          rij         = self.r[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
           rij2        = torch.square(rij)
           vrij        = self.vr[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
           vrjk_       = self.vr[st][:,self.hb_j[st][hb],self.hb_k[st][hb]]
@@ -879,7 +879,7 @@ class ReaxFF_nn_force(nn.Module):
                       hbthe  = 0.5-0.5*cos_th
                       frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
 
-                      exphb1 = 1.0-torch.exp(-self.p['hb1_'+hb]*self.BOhb)
+                      exphb1 = 1.0-torch.exp(-self.p['hb1_'+hb]*bo)
                       hbsum  = torch.div(self.p['rohb_'+hb],rjk)+torch.div(rjk,self.p['rohb_'+hb])-2.0
                       exphb2 = torch.exp(-self.p['hb2_'+hb]*hbsum)
 
