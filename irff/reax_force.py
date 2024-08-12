@@ -171,7 +171,6 @@ class ReaxFF_nn_force(nn.Module):
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
       self.safety_value   = torch.tensor(0.00000001,device=self.device)
-      self.GPa            = 1.60217662*1.0e2
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
