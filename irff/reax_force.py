@@ -182,7 +182,7 @@ class ReaxFF_nn_force(nn.Module):
                     self.eover[st] + self.eunder[st]+ self.elone[st] +
                     self.eang[st]  + self.epen[st]  + self.etcon[st] +
                     self.etor[st]  + self.efcon[st] +
-                    self.ecoul[st] + self.evdw[st] + 
+                    self.ecoul[st] + self.evdw[st]  + 
                     self.ehb[st]   +
                     self.eself[st] + self.zpe[st]     )
       
@@ -494,7 +494,7 @@ class ReaxFF_nn_force(nn.Module):
   
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
-      PBOpow        = -torch.pow(self.bo[st]+0.0000001,8)        # original: self.BO0 
+      PBOpow        = -torch.pow(self.bo[st]+self.safety_value,8)        # original: self.BO0 
       PBOexp        =  torch.exp(PBOpow)
       self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
@@ -576,18 +576,17 @@ class ReaxFF_nn_force(nn.Module):
       Sbo   = sbo - (1.0-pbo)*(delta_ang+self.p['val8']*nlp)    
       
       ok    = torch.logical_and(torch.less_equal(Sbo,1.0),torch.greater(Sbo,0.0))
-      S1    = torch.where(ok,Sbo,torch.zeros_like(Sbo,device=self.device))    #  0< sbo < 1                  
-      Sbo1  = torch.where(ok,torch.pow(S1+0.0000001,self.p['val9']),torch.zeros_like(S1,device=self.device)) 
+      S1    = torch.where(ok,Sbo,0.0)    #  0< sbo < 1                  
+      Sbo1  = torch.where(ok,torch.pow(S1+self.safety_value,self.p['val9']),0.0) 
 
       ok    = torch.logical_and(torch.less(Sbo,2.0),torch.greater(Sbo,1.0))
-      S2    = torch.where(ok,Sbo,torch.zeros_like(Sbo,device=self.device))                     
-      F2    = torch.where(ok,torch.ones_like(S2,device=self.device),torch.zeros_like(S2,device=self.device))                                    #  1< sbo <2
+      S2    = torch.where(ok,Sbo,0.0)                     
+      F2    = torch.where(ok,1.0,0.0)                 #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      Sbo12 = torch.where(ok,2.0-torch.pow(S2,self.p['val9']),torch.zeros_like(Sbo,device=self.device))  #  1< sbo <2
-                                                                                                 #     sbo >2
-      Sbo2  = torch.where(torch.greater_equal(Sbo,2.0),
-                          torch.ones_like(Sbo,device=self.device),torch.zeros_like(Sbo,device=self.device))
+      Sbo12 = torch.where(ok,2.0-torch.pow(S2+self.safety_value,self.p['val9']),0.0)  #  1< sbo <2
+                                                                                      #     sbo >2
+      Sbo2  = torch.where(torch.greater_equal(Sbo,2.0),1.0,0.0)
 
       Sbo3   = Sbo1 + Sbo12 + 2.0*Sbo2
       theta0_ = 180.0 - self.p['theta0_'+ang]*(1.0-torch.exp(-self.p['val10']*(2.0-Sbo3)))
