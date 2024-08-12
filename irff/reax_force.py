@@ -195,7 +195,7 @@ class ReaxFF_nn_force(nn.Module):
           self.get_vdw_energy(st)
           self.get_hb_energy(st)
           self.get_total_energy(st)
-          # self.get_forces(st)
+          self.get_forces(st)
       return self.E,self.force
 
   def get_loss(self):
@@ -647,10 +647,10 @@ class ReaxFF_nn_force(nn.Module):
          self.etor[st] = torch.zeros([self.batch[st]],device=self.device)
          self.efcon[st]= torch.zeros([self.batch[st]],device=self.device)
       else:
-         #  Etor   =    []
-         #  Efcon  =    []
-         self.etor[st]  = 0.0
-         self.efcon[st] = 0.0
+         Etor   =    []
+         Efcon  =    []
+         #  self.etor[st]  = 0.0
+         #  self.efcon[st] = 0.0
          for tor in self.tors:
              if self.nt[st][tor]>0:
                 ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
@@ -676,14 +676,14 @@ class ReaxFF_nn_force(nn.Module):
                                        s_ijk,s_jkl)
                 Ef        = self.get_four_conj(tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl)
                 
-                # Etor.append(Et)
-                # Efcon.append(Ef)
-                self.etor[st] = self.etor[st]  + torch.sum(Et,1)
-                self.efcon[st]= self.efcon[st] + torch.sum(Ef,1)
-        #  self.Etor[st] = torch.cat(Etor,dim=1)
-        #  self.Efcon[st] = torch.cat(Efcon,dim=1)
-        #  self.etor[st] = torch.sum(self.Etor[st],1)
-        #  self.efcon[st]= torch.sum(self.Efcon[st],1)
+                Etor.append(Et)
+                Efcon.append(Ef)
+                # self.etor[st] = self.etor[st]  + torch.sum(Et,1)
+                # self.efcon[st]= self.efcon[st] + torch.sum(Ef,1)
+         self.Etor[st] = torch.cat(Etor,dim=1)
+         self.Efcon[st] = torch.cat(Efcon,dim=1)
+         self.etor[st] = torch.sum(self.Etor[st],1)
+         self.efcon[st]= torch.sum(self.Efcon[st],1)
 
   def get_torsion_angle(self,st,ti,tj,tk,tl):
       ''' compute torsion angle '''
@@ -994,7 +994,7 @@ class ReaxFF_nn_force(nn.Module):
       
       self.check_offd()
       self.check_hb()
-      self.tors = self.check_tors(self.p_tor)
+      self.check_tors()
       self.get_rcbo()
       
       self.p            = nn.ParameterDict()   # training parameter 
@@ -1088,44 +1088,59 @@ class ReaxFF_nn_force(nn.Module):
              torp.remove(tor3)  
       return torp 
 
-  def check_tors(self,p_tor):
-      tors = []          ### check torsion parameter
+  def check_tors(self):
+      self.tors = []          ### check torsion parameter
+      fm = open('manybody.log','w')
+      print('  The following manybody interaction are not considered, because no parameter in the ffield: ',file=fm)
+      print('---------------------------------------------------------------------------------------------',file=fm)
       for spi in self.spec:
           for spj in self.spec:
               for spk in self.spec:
+                  ang = spi+'-'+spj+'-'+spk 
+                  angr= spk+'-'+spj+'-'+spi
+                  if (ang not in self.angs) and (angr not in self.angs):
+                     print('                 three-body      {:20s} '.format(ang),file=fm)
                   for spl in self.spec:
                       tor = spi+'-'+spj+'-'+spk+'-'+spl
-                      if tor not in tors:
-                         tors.append(tor)
-      tors_ = [tor for tor in self.torp]
-      for key in p_tor:
-          for tor in tors:
-              if tor not in self.torp:
+                      torr= spl+'-'+spk+'-'+spj+'-'+spi
+                      tor1= spi+'-'+spk+'-'+spj+'-'+spl
+                      tor2= spl+'-'+spj+'-'+spk+'-'+spi
+                      tor3= 'X-'+spj+'-'+spk+'-X'
+                      tor4= 'X-'+spk+'-'+spj+'-X'
+                      if (tor in self.torp) or (torr in self.torp) or (tor1 in self.torp) \
+                           or (tor2 in self.torp) or (tor3 in self.torp) or (tor4 in self.torp):
+                         if (not tor in self.tors) and (not torr in self.tors):
+                            if tor in self.torp:
+                               self.tors.append(tor)
+                            elif torr in self.torp:
+                               self.tors.append(torr)
+                            else:
+                               self.tors.append(tor)
+                      else:
+                         print('                 four-body      {:20s} '.format(tor),file=fm)
+      
+      for key in self.p_tor:
+          for tor in self.tors:
+              if tor not in self.torp:                 # totally have six variable name share the same value
                  [t1,t2,t3,t4] = tor.split('-')
-                 tor1 =  t1+'-'+t3+'-'+t2+'-'+t4
-                 tor2 =  t4+'-'+t3+'-'+t2+'-'+t1
-                 tor3 =  t4+'-'+t2+'-'+t3+'-'+t1
+                 tor1 = t1+'-'+t3+'-'+t2+'-'+t4
+                 tor2 = t4+'-'+t3+'-'+t2+'-'+t1
+                 tor3 = t4+'-'+t2+'-'+t3+'-'+t1 
                  tor4 = 'X'+'-'+t2+'-'+t3+'-'+'X'
                  tor5 = 'X'+'-'+t3+'-'+t2+'-'+'X'
                  if tor1 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor1] # consistent with lammps
-                    tors_.append(tor)
                  elif tor2 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor2]
-                    tors_.append(tor)
                  elif tor3 in self.torp:
-                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor3]   
-                    tors_.append(tor) 
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor3]    
                  elif tor4 in self.torp:
                     self.p_[key+'_'+tor] = self.p_[key+'_'+tor4]  
-                    tors_.append(tor)
                  elif tor5 in self.torp:
-                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]    
-                    tors_.append(tor) 
-                 # else:
-                 # self.p_[key+'_'+tor] = 0.0
-                 # print('-  fourbody interaction of {:s} is not considered, since no parameter in the ffield'.format(tor))
-      return tors_
+                    self.p_[key+'_'+tor] = self.p_[key+'_'+tor5]     
+                 else:
+                    print('-  an error case for {:s},'.format(tor),self.spec,file=fm)
+      fm.close()
 
   def stack_tensor(self):
       self.x     = {}
