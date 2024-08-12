@@ -36,7 +36,8 @@ for s in ir.bop:
                                           ir2.efcon[s],
                                           ir2.evdw[s],ir2.ehb[s],
                             ir2.ecoul[s]],feed_dict=ir2.feed_dict)
-    
+ir2.get_forces(s)
+f = ir2.sess.run(ir2.forces[s],feed_dict=ir2.feed_dict)
 
 print('\n----    reax_nn    ----\n')
 Etor = ir2.sess.run(ir2.Etor[s],feed_dict=ir2.feed_dict)[0]
@@ -53,30 +54,30 @@ for i,e in enumerate(Etor):
 
 print('\n---- irff ----\n')
 images = Trajectory(traj)
-ir_ = IRFF(atoms=images[0],libfile='ffield.json',nn=True)
-# forces = images[0].get_forces()
+ir_ = IRFF_NP(atoms=images[0],libfile='ffield.json',nn=True)
+
+forces = images[0].get_forces()
 
 for i,img in enumerate(images):
     ir_.calculate(atoms=img)
     print('--     IR     --      RTC     --     RTF     --' )
     print('E      : ',ir_.E,ir.E[s][i].item(),E[i])
-    print('Eover  : ',ir_.Eover.item(),ir.eover[s][i].item(),eover[i])
-    print('Eunder : ',ir_.Eunder.item(),ir.eunder[s][i].item(),eunder[i])
-    print('Elone  : ',ir_.Elone.item(),ir.elone[s][i].item(),elone[i])
-    print('Eang   : ',ir_.Eang.item(),ir.eang[s][i].item(),eang[i])
-    print('Epen   : ',ir_.Epen.item(),ir.epen[s][i].item(),epen[i])
-    print('Etor   : ',ir_.Etor.item(),ir.etor[s][i].item(),etor[i])
-    print('Efcon  : ',ir_.Efcon.item(),ir.efcon[s][i].item(),efcon[i])
-    print('Evdw   : ',ir_.Evdw.item(),ir.evdw[s][i].item(),evdw[i])
-    print('Ehb    : ',ir_.Ehb.item(),ir.ehb[s][i].item(),ehb[i])
+    print('Eover  : ',ir_.Eover,ir.eover[s][i].item(),eover[i])
+    print('Eunder : ',ir_.Eunder,ir.eunder[s][i].item(),eunder[i])
+    print('Elone  : ',ir_.Elone,ir.elone[s][i].item(),elone[i])
+    print('Eang   : ',ir_.Eang,ir.eang[s][i].item(),eang[i])
+    print('Epen   : ',ir_.Epen,ir.epen[s][i].item(),epen[i])
+    print('Etor   : ',ir_.Etor,ir.etor[s][i].item(),etor[i])
+    print('Efcon  : ',ir_.Efcon,ir.efcon[s][i].item(),efcon[i])
+    print('Evdw   : ',ir_.Evdw,ir.evdw[s][i].item(),evdw[i])
+    print('Ehb    : ',ir_.Ehb,ir.ehb[s][i].item(),ehb[i])
     # print('\n IR-dpi \n',ir2.Dpil)
  
  
-# print('\n----  forces  ----\n')
-# ir_.calculate(atoms=images[0])
-# for i in range(ir_.natom):
-#     print(ir_.results['forces'][i],'----' ,ir.force[s][0][i].detach().numpy(),
-#              '----',forces[i])
+print('\n----  forces  ----\n')
+ir_.calculate(atoms=images[0])
+for i in range(ir_.natom):
+    print(f[0][i],'----',ir.force[s][0][i].detach().numpy(), '----',forces[i])
 
 # get_gulp_forces(images)
 # print('\n lammps: \n')
