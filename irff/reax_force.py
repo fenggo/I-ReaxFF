@@ -195,7 +195,7 @@ class ReaxFF_nn_force(nn.Module):
           self.get_vdw_energy(st)
           self.get_hb_energy(st)
           self.get_total_energy(st)
-          self.get_forces(st)
+          # self.get_forces(st)
       return self.E,self.force
 
   def get_loss(self):
@@ -494,7 +494,7 @@ class ReaxFF_nn_force(nn.Module):
   
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
-      PBOpow        = -torch.pow(self.bo[st],8)        # original: self.BO0 
+      PBOpow        = -torch.pow(self.bo[st]+0.0000001,8)        # original: self.BO0 
       PBOexp        =  torch.exp(PBOpow)
       self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
@@ -647,8 +647,10 @@ class ReaxFF_nn_force(nn.Module):
          self.etor[st] = torch.zeros([self.batch[st]],device=self.device)
          self.efcon[st]= torch.zeros([self.batch[st]],device=self.device)
       else:
-         Etor   =    []
-         Efcon  =    []
+         #  Etor   =    []
+         #  Efcon  =    []
+         self.etor[st]  = 0.0
+         self.efcon[st] = 0.0
          for tor in self.tors:
              if self.nt[st][tor]>0:
                 ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
@@ -667,24 +669,21 @@ class ReaxFF_nn_force(nn.Module):
                 delta_k   = self.Delta_ang[st][:,tk]
 
                 w,cos_w,cos2w,s_ijk,s_jkl = self.get_torsion_angle(st,ti,tj,tk,tl)
-                # w       = self.w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos_w   = self.cos_w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos2w   = self.cos2w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # cos3w   = self.cos3w[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # s_ijk   = self.s_ijk[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
-                # s_jkl   = self.s_jkl[st][:,self.t[st][tor][0]:self.t[st][tor][1]]
+                
                 Et,fijkl  = self.get_etorsion(tor,boij,bojk,bokl,fij,fjk,fkl,
                                        bopjk,delta_j,delta_k,
                                        w,cos_w,cos2w,
                                        s_ijk,s_jkl)
                 Ef        = self.get_four_conj(tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl)
-                Etor.append(Et)
-                Efcon.append(Ef)
-
-         self.Etor[st] = torch.cat(Etor,dim=1)
-         self.Efcon[st] = torch.cat(Efcon,dim=1)
-         self.etor[st] = torch.sum(self.Etor[st],1)
-         self.efcon[st]= torch.sum(self.Efcon[st],1)
+                
+                # Etor.append(Et)
+                # Efcon.append(Ef)
+                self.etor[st] = self.etor[st]  + torch.sum(Et,1)
+                self.efcon[st]= self.efcon[st] + torch.sum(Ef,1)
+        #  self.Etor[st] = torch.cat(Etor,dim=1)
+        #  self.Efcon[st] = torch.cat(Efcon,dim=1)
+        #  self.etor[st] = torch.sum(self.Etor[st],1)
+        #  self.efcon[st]= torch.sum(self.Efcon[st],1)
 
   def get_torsion_angle(self,st,ti,tj,tk,tl):
       ''' compute torsion angle '''
@@ -712,7 +711,6 @@ class ReaxFF_nn_force(nn.Module):
       ril2= torch.square(ril)
       rik2= torch.square(rik)
       
-
       c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
       c2ijk = torch.square(c_ijk)
       # tijk  = tf.acos(c_ijk)
@@ -817,18 +815,19 @@ class ReaxFF_nn_force(nn.Module):
       for key in ['Devdw','alfa','rvdw']:
           self.P[st][key] =0.0 
           for bd in self.bonds:
+              if len(self.vb_i[st][bd])==0:
+                 continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
-
+      
       for i in range(-1,2):
           for j in range(-1,2):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                   vr_  = self.vr[st] + cell
-                  # print(vr_.shape)
                   r    = torch.sqrt(torch.sum(torch.square(vr_),3)+self.safety_value)
                   gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
                   gm3  = torch.pow(torch.div(1.0,gamma),3.0)
-                  r3   = torch.pow(r,3.0)
+                  r3   = torch.pow(r+self.safety_value,3.0)
                   fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
                                                                                    torch.full_like(r,0.0))
                   if nc<13:
@@ -845,7 +844,6 @@ class ReaxFF_nn_force(nn.Module):
                   rth            = torch.pow(r3+gm3,1.0/3.0)                                      # ecoul
                   self.Ecoul[st] = self.Ecoul[st] + torch.div(fv*tp*self.q[st],rth)
                   nc += 1
-
       self.evdw[st]  = torch.sum(self.Evdw[st],dim=[1,2])
       self.ecoul[st] = torch.sum(self.Ecoul[st],dim=[1,2])
   
@@ -867,13 +865,13 @@ class ReaxFF_nn_force(nn.Module):
                   for k in range(-1,2):
                       cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                       vrjk   = vrjk_ + cell 
-                      # print(vrjk.shape)
+  
                       rjk2   = torch.sum(torch.square(vrjk),axis=3)
-                      rjk    = torch.sqrt(rjk2)
+                      rjk    = torch.sqrt(rjk2+self.safety_value)
 
                       vrik   = vrij + vrjk
                       rik2   = torch.sum(torch.square(vrik),axis=3)
-                      rik    = torch.sqrt(rik2)
+                      rik    = torch.sqrt(rik2+self.safety_value)
 
                       cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
                       hbthe  = 0.5-0.5*cos_th
@@ -882,10 +880,12 @@ class ReaxFF_nn_force(nn.Module):
                       exphb1 = 1.0-torch.exp(-self.p['hb1_'+hb]*bo)
                       hbsum  = torch.div(self.p['rohb_'+hb],rjk)+torch.div(rjk,self.p['rohb_'+hb])-2.0
                       exphb2 = torch.exp(-self.p['hb2_'+hb]*hbsum)
-
+                     
                       sin4   = torch.square(hbthe)
                       ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      self.ehb[st] = self.ehb[st] + torch.sum(ehb,1)
+                      ehb_   = torch.squeeze(torch.sum(ehb,1),1)
+                      #   print('ehb: ',ehb_)  
+                      self.ehb[st] = self.ehb[st] + ehb_
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
@@ -1149,43 +1149,29 @@ class ReaxFF_nn_force(nn.Module):
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0),
                                         device=self.device)
           self.P[st]     = {}
-          self.vb_i[st]  = {}
-          self.vb_j[st]  = {}
-
+          self.vb_i[st]  = {bd:[] for bd in self.bonds}
+          self.vb_j[st]  = {bd:[] for bd in self.bonds}
+         
           for i in range(self.natom[st]):
               for j in range(self.natom[st]):
                   bd = self.atom_name[st][i]+'-'+self.atom_name[st][j]
                   if bd not in self.bonds:
                      bd = self.atom_name[st][j]+'-'+self.atom_name[st][i]
-                  if bd in self.vb_i[st]:
-                     self.vb_i[st][bd].append(i)
-                  else:
-                     self.vb_i[st][bd] = [i] 
-                  if bd in self.vb_j[st]:
-                     self.vb_j[st][bd].append(j)
-                  else:
-                     self.vb_j[st][bd] = [j] 
-                     
-          # for key in ['gamma','gammaw']:
-          # self.P[st][key] = torch.zeros(1,self.natom[st],device=self.device)
+                  self.vb_i[st][bd].append(i)
+                  self.vb_j[st][bd].append(j)
+   
           self.pmask[st] = {}
           for sp in self.spec:
               pmask = np.zeros([1,self.natom[st]])
               pmask[:,self.s[st][sp]] = 1.0
               self.pmask[st][sp] = torch.tensor(pmask,device=self.device)
 
-          # for key in ['Devdw','alfa','rvdw']:
-          # self.pmask[st][key] = {}
           for bd in self.bonds:
-              if len(self.vb_i[st][bd])==0:
-                 continue
-              pmask = np.zeros([1,self.natom[st],self.natom[st]])
-              pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
-              self.pmask[st][bd] = torch.tensor(pmask,device=self.device)
-                #   if key not in self.P[st]:
-                #      self.P[st][key] = self.p[key+'_'+bd]*pmask_tensor
-                #   else:
-                #      self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*pmask_tensor
+             if len(self.vb_i[st][bd])==0:
+                continue
+             pmask = np.zeros([1,self.natom[st],self.natom[st]])
+             pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
+             self.pmask[st][bd] = torch.tensor(pmask,device=self.device)
 
   def get_data(self): 
       self.nframe      = 0
