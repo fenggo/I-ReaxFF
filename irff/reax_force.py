@@ -882,9 +882,7 @@ class ReaxFF_nn_force(nn.Module):
                      
                       sin4   = torch.square(hbthe)
                       ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      ehb_   = torch.squeeze(torch.sum(ehb,1),1)
-                      #   print('ehb: ',ehb_)  
-                      self.ehb[st] = self.ehb[st] + ehb_
+                      self.ehb[st] = self.ehb[st] + torch.squeeze(torch.sum(ehb,1),1)
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
