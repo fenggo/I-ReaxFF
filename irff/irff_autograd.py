@@ -647,15 +647,15 @@ class IRFF(Calculator):
       
       ok    = torch.logical_and(SBO<=1.0,SBO>0.0)
       S1    = torch.where(ok,SBO,torch.full_like(SBO,0.0+self.safety_value))         #  0< sbo < 1                  
-      SBO01 = torch.where(ok,torch.pow(S1,self.P['val9']),torch.full_like(S1,0.0)) 
+      SBO01 = torch.where(ok,torch.pow(S1,self.P['val9']),0.0) 
 
       ok    = torch.logical_and(SBO<2.0,SBO>1.0)
-      S2    = torch.where(ok,SBO,torch.full_like(SBO,0.0))                     
-      F2    = torch.where(ok,torch.full_like(S2,1.0),torch.full_like(S2,0.0))          #  1< sbo <2
+      S2    = torch.where(ok,SBO,0.0)                     
+      F2    = torch.where(ok,1.0,0.0)          #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      SBO12 = torch.where(ok,2.0-torch.pow(S2,self.P['val9']),torch.full_like(S2,0.0)) #  1< sbo <2
-      SBO2  = torch.where(SBO>2.0,torch.full_like(S2,1.0),torch.full_like(S2,0.0))                         #     sbo >2
+      SBO12 = torch.where(ok,2.0-torch.pow(S2+self.safety_value,self.P['val9']),0.0) #  1< sbo <2
+      SBO2  = torch.where(SBO>2.0,1.0,0.0)                         #     sbo >2
 
       self.SBO3  = SBO01+SBO12+2.0*SBO2
       # if self.nn:
