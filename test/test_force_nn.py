@@ -60,7 +60,7 @@ for i,img in enumerate(images):
     ir_.calculate(atoms=img)
     print('--     IR     --      RTC     --     RTF     --' )
     print('E      : ',ir_.E,ir.E[s][i].item(),E[i])
-    print('Eover  : ',ir_.Eover.item(),ir.eover[s][i].item(),ebond[i])
+    print('Eover  : ',ir_.Eover.item(),ir.eover[s][i].item(),eover[i])
     print('Eunder : ',ir_.Eunder.item(),ir.eunder[s][i].item(),eunder[i])
     print('Elone  : ',ir_.Elone.item(),ir.elone[s][i].item(),elone[i])
     print('Eang   : ',ir_.Eang.item(),ir.eang[s][i].item(),eang[i])
