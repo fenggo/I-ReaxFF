@@ -847,7 +847,9 @@ class ReaxFF_nn_force(nn.Module):
       self.ecoul[st] = torch.sum(self.Ecoul[st],dim=[1,2])
   
   def get_hb_energy(self,st):
-      self.ehb[st]    = torch.tensor(0.0,device=self.device)
+      self.ehb[st]  = torch.tensor(0.0,device=self.device)
+      self.Ehb[st]  = torch.tensor(0.0,device=self.device)
+      Ehb           = []
       for hb in self.hbs:
           if self.nhb[st][hb]==0:
              continue     
@@ -858,7 +860,7 @@ class ReaxFF_nn_force(nn.Module):
           rij2        = torch.square(rij)
           vrij        = self.vr[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
           vrjk_       = self.vr[st][:,self.hb_j[st][hb],self.hb_k[st][hb]]
-
+          ehb         = 0.0
           for i in range(-1,2):
               for j in range(-1,2):
                   for k in range(-1,2):
@@ -881,8 +883,14 @@ class ReaxFF_nn_force(nn.Module):
                       exphb2 = torch.exp(-self.p['hb2_'+hb]*hbsum)
                      
                       sin4   = torch.square(hbthe)
-                      ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      self.ehb[st] = self.ehb[st] + torch.squeeze(torch.sum(ehb,1),1)
+                      ehb    = ehb + fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
+                      # ehb_   = torch.squeeze(torch.sum(ehb,1),1)
+                      #   print('ehb: ',ehb_)  
+          Ehb.append(ehb)
+
+      if Ehb:
+         self.Ehb[st] = torch.squeeze(torch.cat(Ehb,dim=1),2)
+         self.ehb[st] = torch.sum(self.Ehb[st],1)
 
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
@@ -1413,7 +1421,7 @@ class ReaxFF_nn_force(nn.Module):
 
       self.evdw,self.Evdw               = {},{}
       self.ecoul,self.Ecoul             = {},{}
-      self.ehb                          = {}
+      self.ehb,self.Ehb                 = {},{}
 
   def run(self,step=1000):
       optimizer = torch.optim.Adam(self.parameters(), lr=0.0001 )

@@ -464,7 +464,7 @@ class ReaxFF_nn(object):
       self.Evdw,self.nvb = {},{}
       self.Ecoul,self.evdw,self.ecoul,self.tpv,self.rth = {},{},{},{},{}
 
-      self.exphb1,self.exphb2,self.sin4,self.EHB = {},{},{},{}
+      self.exphb1,self.exphb2,self.sin4 = {},{},{}
       self.pc,self.BOhb,self.ehb,self.Ehb = {},{},{},{}
 
       self.E,self.zpe,self.eatom = {},{},{}
@@ -1190,7 +1190,9 @@ class ReaxFF_nn(object):
       # print('\n ecoul \n',self.ecoul[st])
 
   def get_hb_energy(self,st):
-      self.ehb[st]    = tf.constant(0.0)
+      self.ehb[st]  = tf.constant(0.0)
+      self.Ehb[st]    = tf.constant(0.0)
+      Ehb             = []
       for hb in self.hbs:
           # print(hb, self.nhb[st][hb])
           if self.nhb[st][hb]==0:
@@ -1202,15 +1204,16 @@ class ReaxFF_nn(object):
           rij2        = tf.square(rij)
           vrij        = tf.gather_nd(self.vrr[st],self.hbij[st][hb],name='vr_{:s}_{:s}'.format(st,hb)) 
           vrjk_       = tf.gather_nd(self.vrr[st],self.hbjk[st][hb],name='vr_{:s}_{:s}'.format(st,hb)) 
-
+          ehb = 0.0
           for i in range(-1,2):
               for j in range(-1,2):
                   for k in range(-1,2):
                       cell   = tf.squeeze(self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k,axis=0)
                       vrjk   = vrjk_ + cell 
+                      
                       rjk2   = tf.reduce_sum(tf.square(vrjk),axis=1)
                       rjk    = tf.sqrt(rjk2)
-                      # print('rjk \n',rjk.shape)
+
                       vrik   = vrij + vrjk
                       rik2   = tf.reduce_sum(tf.square(vrik),axis=1)
                       rik    = tf.sqrt(rik2)
@@ -1224,8 +1227,11 @@ class ReaxFF_nn(object):
                       exphb2 = tf.exp(-self.p['hb2_'+hb]*hbsum)
 
                       sin4   = tf.square(hbthe)
-                      ehb    = fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      self.ehb[st] += tf.reduce_sum(ehb,0)
+                      ehb   += fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
+          Ehb.append(ehb)
+      if Ehb:
+         self.Ehb[st] = tf.concat(Ehb,axis=0)
+         self.ehb[st] = tf.reduce_sum(self.Ehb[st],0)
 
   def set_zpe(self):
       if self.MolEnergy_ is None:
