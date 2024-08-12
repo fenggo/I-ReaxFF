@@ -11,6 +11,9 @@ from irff.md.gulp import get_gulp_forces
 traj = 'md.traj'
 
 ir = ReaxFF_nn_force(dataset={'md':traj},
+                     MessageFunction=3,
+                     mf_layer=[9,2],
+                     be_layer=[9,1],
                      screen=True,
                      libfile='ffield.json')
 ir.forward()
@@ -19,18 +22,11 @@ ir2 = ReaxFF_nn(dataset={'md':traj},
                MessageFunction=3,
                mf_layer=[9,2],
                be_layer=[9,1],
-               screen=False,
+               screen=True,
                libfile='ffield.json')
 ir2.initialize()
 ir2.session()  
 
-print('\n---- reax_nn_force ----\n')
-for s in ir.bop:
-    print('\n evdw \n',ir.evdw[s])
-    print('\n ehb \n',ir.ehb[s])  
-    print(ir.Evdw[s].shape)
-
-print('\n---- reax_nn ----\n')
 for s in ir.bop:
     (E,ebond,elone,eover,eunder,eang,etor,etcon,epen,efcon,evdw,
                 ehb,ecoul) = ir2.sess.run([ir2.E[s],
@@ -40,6 +36,20 @@ for s in ir.bop:
                                           ir2.efcon[s],
                                           ir2.evdw[s],ir2.ehb[s],
                             ir2.ecoul[s]],feed_dict=ir2.feed_dict)
+    
+
+print('\n----    reax_nn    ----\n')
+Etor = ir2.sess.run(ir2.Etor[s],feed_dict=ir2.feed_dict)[0]
+print('\n Etor \n',Etor.shape)
+print(ir2.tors)
+ 
+print('\n---- reax_nn_force ----\n')
+print('\n Etor \n',ir.Etor[s].shape)
+print(ir.tors)
+
+Etor_ = ir.Etor[s].detach().numpy()[0]
+for i,e in enumerate(Etor):
+    print(i,e,Etor_[i])
 
 print('\n---- irff ----\n')
 images = Trajectory(traj)
