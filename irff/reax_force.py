@@ -1215,7 +1215,7 @@ class ReaxFF_nn_force(nn.Module):
       if self.dataset:
          dataset = self.dataset:
       else:
-         dataset = self.data:
+         dataset = self.data
 
       for st in dataset: 
           if self.data is None:
