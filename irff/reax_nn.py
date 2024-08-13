@@ -1964,7 +1964,7 @@ class ReaxFF_nn(object):
       return rcut,rcuta,re
 
   def get_penalty(self):
-      ''' adding some penalty term to accelerate the training '''
+      ''' adding some penalty term to pretain the physical meaning '''
       log_    = -9.21044036697651
       penalty = 0.0
       wb_p    = []
@@ -2033,23 +2033,6 @@ class ReaxFF_nn(object):
                  fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= 0.0 that e = 0.0
                  self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu(self.esi[mol][bd]*fesi))
                  
-                 if self.bo_clip:
-                     if (bd in self.bo_clip) or (bdr in self.bo_clip):
-                        bd_  = bd if bd in self.bo_clip else bdr
-                     for sbo in self.bo_clip[bd_]:
-                         r,d_i,d_j,bo_l,bo_u = sbo
-                         fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
-                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
-                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
-                                          1.0,0.0)   ##### r< r_e that bo > bore_
-                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.esi[bd])*fe))
-                                                                                          # self.bo0[bd]
-                         fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
-                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
-                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
-                                          1.0,0.0)  ##### r> r_e that bo < bore_
-                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-bo_u)*fe))
-
               if self.spv_ang:
                  self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
           

@@ -31,6 +31,29 @@ def init_bonds(p_):
            hbs.append(k[1])
     return spec,bonds,offd,angs,torp,hbs
 
+def check_tors(spec,torp):
+    tors = []   ### check torsion parameter  
+    for spi in spec:
+        for spj in spec:
+            for spk in spec:
+                for spl in spec:
+                     tor = spi+'-'+spj+'-'+spk+'-'+spl
+                     torr= spl+'-'+spk+'-'+spj+'-'+spi
+                     tor1= spi+'-'+spk+'-'+spj+'-'+spl
+                     tor2= spl+'-'+spj+'-'+spk+'-'+spi
+                     tor3= 'X-'+spj+'-'+spk+'-X'
+                     tor4= 'X-'+spk+'-'+spj+'-X'
+                     if (tor in torp) or (torr in torp) or (tor1 in torp) \
+                        or (tor2 in torp) or (tor3 in torp) or (tor4 in torp):
+                        if (not tor in tors) and (not torr in tors):
+                           if tor in torp:
+                              tors.append(tor)
+                           elif torr in torp:
+                              tors.append(torr)
+                           else:
+                              tors.append(tor)
+    return tors
+
 def value(p,key):
     fc = open('intcheck.log','a')
     fc.write('-  %s change to %f\n' %(key,p))
