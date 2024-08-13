@@ -9,6 +9,7 @@ from .reaxfflib import read_ffield,write_lib
 from .reax_force_data import reax_force_data,Dataset
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from .set_matrix_tensor import set_matrix
+from .intCheck import check_tors as check_torsion
 #from torch.autograd import Variable
 import torch
 from torch import nn
@@ -1083,6 +1084,7 @@ class ReaxFF_nn_force(nn.Module):
           elif k[0]=='val':
              self.spec.append(k[1])
       self.torp = self.checkTors(self.torp)
+      self.tors = []     
 
   def checkTors(self,torp):
       tors_ = torp
@@ -1104,35 +1106,12 @@ class ReaxFF_nn_force(nn.Module):
       return torp 
 
   def check_tors(self):
-      self.tors = []          ### check torsion parameter
+      '''  check torsion parameter  '''
       fm = open('manybody.log','w')
       print('  The following manybody interaction are not considered, because no parameter in the ffield: ',file=fm)
       print('---------------------------------------------------------------------------------------------',file=fm)
-      for spi in self.spec:
-          for spj in self.spec:
-              for spk in self.spec:
-                  ang = spi+'-'+spj+'-'+spk 
-                  angr= spk+'-'+spj+'-'+spi
-                  if (ang not in self.angs) and (angr not in self.angs):
-                     print('                 three-body      {:20s} '.format(ang),file=fm)
-                  for spl in self.spec:
-                      tor = spi+'-'+spj+'-'+spk+'-'+spl
-                      torr= spl+'-'+spk+'-'+spj+'-'+spi
-                      tor1= spi+'-'+spk+'-'+spj+'-'+spl
-                      tor2= spl+'-'+spj+'-'+spk+'-'+spi
-                      tor3= 'X-'+spj+'-'+spk+'-X'
-                      tor4= 'X-'+spk+'-'+spj+'-X'
-                      if (tor in self.torp) or (torr in self.torp) or (tor1 in self.torp) \
-                           or (tor2 in self.torp) or (tor3 in self.torp) or (tor4 in self.torp):
-                         if (not tor in self.tors) and (not torr in self.tors):
-                            if tor in self.torp:
-                               self.tors.append(tor)
-                            elif torr in self.torp:
-                               self.tors.append(torr)
-                            else:
-                               self.tors.append(tor)
-                      else:
-                         print('                 four-body      {:20s} '.format(tor),file=fm)
+      if not self.tors:
+         self.tors = check_torsion(self.spec,self.torp)
       
       for key in self.p_tor:
           for tor in self.tors:
@@ -1170,11 +1149,11 @@ class ReaxFF_nn_force(nn.Module):
       self.vb_i  = {}
       self.vb_j  = {}
       for st in self.strcs:
-          self.x[st]     = torch.tensor(self.data[st].x,requires_grad=True,
+          self.x[st]     = torch.tensor(self._data[st].x,requires_grad=True,
                                         device=self.device)
-          self.cell[st]  = torch.tensor(np.expand_dims(self.data[st].cell,axis=1),
+          self.cell[st]  = torch.tensor(np.expand_dims(self._data[st].cell,axis=1),
                                         device=self.device)
-          self.rcell[st] = torch.tensor(np.expand_dims(self.data[st].rcell,axis=1),
+          self.rcell[st] = torch.tensor(np.expand_dims(self._data[st].rcell,axis=1),
                                         device=self.device)
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0),
                                         device=self.device)
@@ -1237,6 +1216,8 @@ class ReaxFF_nn_force(nn.Module):
                                screen=self.screen)
           else:
              data_ = self.data[st]
+             if not self.tors:
+                self.tors = data_.tors
 
           if data_.status:
              self.strcs.append(st)
@@ -1284,7 +1265,7 @@ class ReaxFF_nn_force(nn.Module):
       self.hb_i                        = {}
       self.hb_j                        = {}
       self.hb_k                        = {}
-      self.data                        = {}
+      self._data                       = {}
       self.estruc                      = {}
       for s in strucs:
           s_ = s.split('-')[0]
@@ -1321,18 +1302,18 @@ class ReaxFF_nn_force(nn.Module):
               self.s[s][sp].append(i)
           self.ns[s]       = {sp:len(self.s[s][sp]) for sp in self.spec}
 
-          self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
+          self._data[s]    = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
                                      cell=strucs[s].cell,
                                      rcell=strucs[s].rcell,
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.dft_energy[s] = torch.tensor(self.data[s].dft_energy,device=self.device)
-          self.q[s]          = torch.tensor(self.data[s].q,device=self.device)
+          self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device)
+          self.q[s]          = torch.tensor(self._data[s].q,device=self.device)
           self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device)  
-          if self.data[s].forces is not  None:
-             self.dft_forces[s] = torch.tensor(self.data[s].forces,device=self.device)
+          if self._data[s].forces is not  None:
+             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device)
           else:
              self.dft_forces[s] = None
 
