@@ -1234,8 +1234,7 @@ class ReaxFF_nn_force(nn.Module):
                        p=self.p_,spec=self.spec,bonds=self.bonds,
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
-                               screen=self.screen,
-                               nindex=nindex)
+                               screen=self.screen)
           else:
              data_ = self.data[st]
 
