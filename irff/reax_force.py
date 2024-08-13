@@ -1212,11 +1212,12 @@ class ReaxFF_nn_force(nn.Module):
       self.batch       = {}
       self.eself,self.evdw_,self.ecoul_ = {},{},{}
 
-      for st in self.dataset: 
-          nindex = []
-          for key in strucs:
-              if self.dataset[key]==self.dataset[st]:
-                 nindex.extend(strucs[key].indexs)
+      if self.dataset:
+         dataset = self.dataset:
+      else:
+         dataset = self.data:
+
+      for st in dataset: 
           if self.data is None:
              data_ = reax_force_data(structure=st,
                                  traj=self.dataset[st],
