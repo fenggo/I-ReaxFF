@@ -1213,7 +1213,7 @@ class ReaxFF_nn_force(nn.Module):
       self.eself,self.evdw_,self.ecoul_ = {},{},{}
 
       if self.dataset:
-         dataset = self.dataset:
+         dataset = self.dataset
       else:
          dataset = self.data
 
