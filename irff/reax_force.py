@@ -136,6 +136,7 @@ class ReaxFF_nn_force(nn.Module):
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                screen=False,
+               tors=[],
                device='cpu'):
       super(ReaxFF_nn_force, self).__init__()
       self.dataset      = dataset 
@@ -172,6 +173,7 @@ class ReaxFF_nn_force(nn.Module):
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
       self.device       = torch.device(device)
+      self.tors         = tors
       self.set_p()
 
       self.get_data()
@@ -659,8 +661,6 @@ class ReaxFF_nn_force(nn.Module):
       else:
          Etor   =    []
          Efcon  =    []
-         #  self.etor[st]  = 0.0
-         #  self.efcon[st] = 0.0
          for tor in self.tors:
              if self.nt[st][tor]>0:
                 ti        = np.squeeze(self.tor_i[st][self.t[st][tor][0]:self.t[st][tor][1]],axis=1)
@@ -1083,8 +1083,7 @@ class ReaxFF_nn_force(nn.Module):
              self.hbs.append(k[1])
           elif k[0]=='val':
              self.spec.append(k[1])
-      self.torp = self.checkTors(self.torp)
-      self.tors = []     
+      self.torp = self.checkTors(self.torp)  
 
   def checkTors(self,torp):
       tors_ = torp
@@ -1216,8 +1215,6 @@ class ReaxFF_nn_force(nn.Module):
                                screen=self.screen)
           else:
              data_ = self.data[st]
-             if not self.tors:
-                self.tors = data_.tors
 
           if data_.status:
              self.strcs.append(st)
