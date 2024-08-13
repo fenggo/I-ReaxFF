@@ -1319,7 +1319,7 @@ class ReaxFF_nn(object):
           mol_     = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mol_])
 
-      self.loss_penalty = self.supervise()
+      self.loss_penalty = self.get_penalty()
       self.Loss        += self.loss_penalty
 
       if self.optmol:
@@ -1796,7 +1796,7 @@ class ReaxFF_nn(object):
              print('-  Convergence Occurred, job compeleted.')
              break
           i += 1
-      self.get_pentalty()
+      self.print_penalty()
       self.loss_ = loss_ if not (np.isnan(loss) or np.isinf(loss)) else 9999999.9
       if self.loss_ < 9999999.0: self.write_lib(libfile=libfile,loss=loss_)
       if close_session:
@@ -1963,7 +1963,7 @@ class ReaxFF_nn(object):
          rcut,rcuta,re = None,None,None
       return rcut,rcuta,re
 
-  def supervise(self):
+  def get_penalty(self):
       ''' adding some penalty term to accelerate the training '''
       log_    = -9.21044036697651
       penalty = 0.0
@@ -2091,7 +2091,7 @@ class ReaxFF_nn(object):
          penalty = tf.add(self.lambda_reg*self.penalty_b,penalty)
       return penalty
 
-  def get_pentalty(self):
+  def print_penalty(self):
       (penalty_bop,penalty_bo_rcut,
           penalty_bo,penalty_be_cut,
           penalty_rcut,rc_bo,

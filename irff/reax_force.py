@@ -1342,7 +1342,135 @@ class ReaxFF_nn_force(nn.Module):
                           (9,0),(9,0),1,1,
                           None,self.be_universal,self.mf_universal,None,
                           device=self.device)
+
+  def get_penalty(self):
+      ''' adding some penalty term to pretain the phyical meaning '''
+      log_    = -9.21044036697651
+      penalty = 0.0
+      wb_p    = []
+      if self.regularize_be:
+         wb_p.append('fe')
+      # if self.vdwnn and self.regularize_vdw:
+      #    wb_p.append('fv')
+      w_n     = ['wi','wo',]
+      b_n     = ['bi','bo']
+      layer   = {'fe':self.be_layer[1]}
+      if self.bo_layer is not None:
+         layer['fsi'] = layer['fpi'] = layer['fpp'] = self.bo_layer[1]
+
+      wb_message = []
+      if self.regularize_mf:
+         for t in range(1,self.messages+1):
+             wb_message.append('fm')          
+             layer['fm'] = self.mf_layer[1]  
+
+      self.penalty_bop     = {}
+      self.penalty_bo      = {}
+      self.penalty_bo_rcut = {}
+      self.penalty_be_cut  = {}
+      self.penalty_rcut    = {}
+      self.penalty_ang     = {}
+      self.penalty_w       = tf.constant(0.0)
+      self.penalty_b       = tf.constant(0.0)
       
+      for bd in self.bonds: 
+          atomi,atomj = bd.split('-') 
+          bdr = atomj + '-' + atomi
+          # log_ = tf.math.log((self.botol/(1.0 + self.botol)))
+          if self.fixrcbo:
+             rcut_si = tf.square(self.rc_bo[bd]-self.rcut[bd])
+          else:
+             rcut_si = tf.nn.relu(self.rc_bo[bd]-self.rcut[bd])
+
+          rc_bopi = self.p['ropi_'+bd]*tf.pow(log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
+          rcut_pi = tf.nn.relu(rc_bopi-self.rcut[bd])
+
+          rc_bopp = self.p['ropp_'+bd]*tf.pow(log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
+          rcut_pp = tf.nn.relu(rc_bopp-self.rcut[bd])
+
+          self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
+          penalty = tf.add(self.penalty_rcut[bd]*self.lambda_bd,penalty)
+ 
+          self.penalty_bop[bd]     = tf.constant(0.0)
+          self.penalty_be_cut[bd]  = tf.constant(0.0)
+          self.penalty_bo_rcut[bd] = tf.constant(0.0)
+          self.penalty_bo[bd]      = tf.constant(0.0)
+
+          for mol in self.strcs:
+              if self.nbd[mol][bd]>0:       
+                 b_    = self.b[mol][bd]
+                 bdid  = self.bdid[mol][b_[0]:b_[1]]
+                 bo0_  = tf.gather_nd(self.bo0[mol],bdid,
+                                      name='bo0_supervize_{:s}'.format(bd)) 
+                 bop_  = tf.gather_nd(self.bop[mol],bdid,
+                                      name='bop_supervize_{:s}'.format(bd)) 
+                 fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
+                 self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
+
+                 fao  = tf.where(tf.greater(self.rbd_[mol][bd],self.rcuta[bd]),1.0,0.0)  ##### r> rcuta that bo = 0.0
+                 self.penalty_bo_rcut[bd] += tf.reduce_sum(bo0_*fao)
+
+                 fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= 0.0 that e = 0.0
+                 self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu(self.esi[mol][bd]*fesi))
+                 
+                 if self.bo_clip:
+                     if (bd in self.bo_clip) or (bdr in self.bo_clip):
+                        bd_  = bd if bd in self.bo_clip else bdr
+                     for sbo in self.bo_clip[bd_]:
+                         r,d_i,d_j,bo_l,bo_u = sbo
+                         fe   = tf.where(tf.logical_and(tf.less_equal(self.rbd[bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
+                                          1.0,0.0)   ##### r< r_e that bo > bore_
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-self.esi[bd])*fe))
+                                                                                          # self.bo0[bd]
+                         fe   = tf.where(tf.logical_and(tf.greater_equal(self.rbd[bd],r),
+                                                         tf.logical_and(tf.greater_equal(self.Dbi[bd],d_i),
+                                                                        tf.greater_equal(self.Dbj[bd],d_j))),
+                                          1.0,0.0)  ##### r> r_e that bo < bore_
+                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.esi[bd]-bo_u)*fe))
+
+              if self.spv_ang:
+                 self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
+          
+          penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
+          penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)        
+          penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
+          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty)   
+
+          # penalize term for regularization of the neural networs
+          if self.regularize:                             # regularize to avoid overfit
+             for k in wb_p:
+                 for k_ in w_n:
+                     key     = k + k_ + '_' + bd
+                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
+                 if self.regularize_bias:
+                    for k_ in b_n:
+                        key     = k + k_ + '_' + bd
+                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
+                 for l in range(layer[k]):                                               
+                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+bd][l]))
+                     if self.regularize_bias:
+                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+bd][l]))
+
+      if self.regularize:                              # regularize
+         for sp in self.spec:
+             for k in wb_message:
+                 for k_ in w_n:
+                     key     = k + k_ + '_' + sp
+                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
+                 if self.regularize_bias:
+                    for k_ in b_n:
+                        key     = k + k_ + '_' + sp
+                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
+                 for l in range(layer[k]):                                               
+                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+sp][l]))
+                     if self.regularize_bias:
+                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+sp][l]))
+         penalty = tf.add(self.lambda_reg*self.penalty_w,penalty)
+         penalty = tf.add(self.lambda_reg*self.penalty_b,penalty)
+      return penalty
+
   def read_ffield(self,libfile):
       if libfile.endswith('.json'):
          lf                   = open(libfile,'r')
