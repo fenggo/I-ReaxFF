@@ -224,8 +224,8 @@ class ReaxFF_nn_force(nn.Module):
           if self.dft_forces[st] is not None:
              weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
              self.loss_f = self.loss_f + loss(self.force[st], self.dft_forces[st])*weight_f
-      # self.loss_penalty = self.get_penalty()
-      return self.loss_e + self.loss_f # + self.loss_penalty
+      self.loss_penalty = self.get_penalty()
+      return self.loss_e + self.loss_f + self.loss_penalty
 
   def get_forces(self,st):
       ''' compute forces with autograd method '''
@@ -906,16 +906,14 @@ class ReaxFF_nn_force(nn.Module):
          self.Ehb[st] = torch.squeeze(torch.cat(Ehb,dim=1),2)
          self.ehb[st] = torch.sum(self.Ehb[st],1)
 
-  def get_rcbo(self):
-      ''' get cut-offs for individual bond '''
-      self.rc_bo = {}
-      # botol = self.p['cutoff']*0.01
-      for bd in self.bonds:
-          b    = bd.split('-')
-          #ofd = bd if b[0]!=b[1] else b[0]
-          log_ = torch.log((self.botol/(1.0+self.botol)))
-          rr   = log_/self.p['bo1_'+bd] 
-          self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
+#   def get_rcbo(self):
+#       ''' get cut-offs for individual bond '''
+#       self.rc_bo = {}
+#       # botol = self.p['cutoff']*0.01
+#       for bd in self.bonds:
+#           b    = bd.split('-')
+#           #ofd = bd if b[0]!=b[1] else b[0]
+#           log_ = torch.log((self.botol/(1.0+self.botol)))
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
@@ -1063,7 +1061,7 @@ class ReaxFF_nn_force(nn.Module):
               grad = True if key in self.opt or key_ in self.opt else False
               self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=grad)
-      self.get_rcbo()
+      # self.get_rcbo()
       if self.nn:
          self.set_m()
 
@@ -1340,8 +1338,8 @@ class ReaxFF_nn_force(nn.Module):
 
   def get_penalty(self):
       ''' adding some penalty term to pretain the phyical meaning '''
-      log_    = -9.21044036697651
-      penalty = 0.0
+      log_    = torch.tensor(-9.21044036697651,device=self.device)
+      penalty = torch.tensor(0.0,device=self.device)
       wb_p    = []
       # if self.regularize_be:
       wb_p.append('fe')
@@ -1362,13 +1360,19 @@ class ReaxFF_nn_force(nn.Module):
       self.penalty_be_cut  = {}
       self.penalty_rcut    = {}
       self.penalty_ang     = {}
-      self.penalty_w       = 0.0
-      self.penalty_b       = 0.0
-
+      self.penalty_w       = torch.tensor(0.0,device=self.device)
+      self.penalty_b       = torch.tensor(0.0,device=self.device)
+      self.rc_bo           = {}
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
-          bdr = atomj + '-' + atomi
-          # log_ = tf.math.log((self.botol/(1.0 + self.botol)))
+          self.penalty_bop[bd]     = 0.0
+          self.penalty_be_cut[bd]  = 0.0
+          self.penalty_bo_rcut[bd] = 0.0
+          #self.penalty_bo[bd]     = 0.0
+          
+          rr   = log_/self.p['bo1_'+bd] 
+          self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
+
           if self.fixrcbo:
              rcut_si = torch.square(self.rc_bo[bd]-self.rcut[bd])
           else:
@@ -1383,10 +1387,6 @@ class ReaxFF_nn_force(nn.Module):
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
           penalty =  penalty + self.penalty_rcut[bd]*self.lambda_bd
  
-          self.penalty_bop[bd]     = 0.0
-          self.penalty_be_cut[bd]  = 0.0
-          self.penalty_bo_rcut[bd] = 0.0
-          #self.penalty_bo[bd]     = 0.0
           for st in self.strcs:
               if self.nbd[st][bd]>0:       
                  b_    = self.b[st][bd]
@@ -1609,4 +1609,3 @@ class ReaxFF_nn_force(nn.Module):
          raise RuntimeError('Error: other format is not supported yet!')
   def close(self):
       self.set_memory()
-      
