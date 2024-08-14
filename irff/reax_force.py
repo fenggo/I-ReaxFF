@@ -138,7 +138,7 @@ class ReaxFF_nn_force(nn.Module):
                nomb=False,              # this option is used when deal with metal system
                screen=False,
                tors=[],
-               device='cpu'):
+               device={'all':'cpu'}):
       super(ReaxFF_nn_force, self).__init__()
       self.dataset      = dataset 
       self.data         = data
@@ -174,7 +174,11 @@ class ReaxFF_nn_force(nn.Module):
       self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
-      self.device       = torch.device(device)
+      
+      self._device      = device
+      if 'others' not in self._device:
+         self._device['others'] = 'cpu'
+      self.device       = {}
       self.tors         = tors
       self.set_p()
 
@@ -184,7 +188,7 @@ class ReaxFF_nn_force(nn.Module):
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
-      self.safety_value   = torch.tensor(0.00000001,device=self.device)
+      self.safety_value   = torch.tensor(0.00000001,device=self.device['others'])
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -214,8 +218,8 @@ class ReaxFF_nn_force(nn.Module):
   def get_loss(self):
       ''' compute loss '''
       loss = nn.MSELoss(reduction='sum')
-      self.loss_e = torch.tensor(0.0,device=self.device)
-      self.loss_f = torch.tensor(0.0,device=self.device)
+      self.loss_e = torch.tensor(0.0,device=self.device['others'])
+      self.loss_f = torch.tensor(0.0,device=self.device['others'])
       self.loss_f.requires_grad_(True)
       self.loss_e.requires_grad_(True)
       for st in self.strcs:
@@ -253,7 +257,7 @@ class ReaxFF_nn_force(nn.Module):
       self.message_passing(st)
       self.get_final_state(st)
       
-      self.ebd[st] = torch.zeros_like(self.bosi[st],device=self.device)
+      self.ebd[st] = torch.zeros_like(self.bosi[st],device=self.device[st])
       self.esi[st] = {}
       bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -283,9 +287,9 @@ class ReaxFF_nn_force(nn.Module):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
       r = self.r[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-      self.bop_si[st] = torch.zeros_like(self.r[st],device=self.device)
-      self.bop_pi[st] = torch.zeros_like(self.r[st],device=self.device)
-      self.bop_pp[st] = torch.zeros_like(self.r[st],device=self.device)
+      self.bop_si[st] = torch.zeros_like(self.r[st],device=self.device[st])
+      self.bop_pi[st] = torch.zeros_like(self.r[st],device=self.device[st])
+      self.bop_pp[st] = torch.zeros_like(self.r[st],device=self.device[st])
       
       self.rbd[st] = {}
       for bd in self.bonds:
@@ -374,7 +378,7 @@ class ReaxFF_nn_force(nn.Module):
           bo0_ = bo0[:,b_[0]:b_[1]]
           bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0_)
       
-      bso_   = torch.zeros_like(self.bo0[st],device=self.device)
+      bso_   = torch.zeros_like(self.bo0[st],device=self.device[st])
       bso_[:,self.bdid[st][:,0],self.bdid[st][:,1]]  = torch.cat(bso,1)
       bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = torch.cat(bso,1)
 
@@ -388,9 +392,9 @@ class ReaxFF_nn_force(nn.Module):
   def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
       ''' compute bond-order according the message function'''
       flabel  = 'fm'
-      bosi = torch.zeros_like(self.r[st],device=self.device)
-      bopi = torch.zeros_like(self.r[st],device=self.device)
-      bopp = torch.zeros_like(self.r[st],device=self.device)
+      bosi = torch.zeros_like(self.r[st],device=self.device[st])
+      bopi = torch.zeros_like(self.r[st],device=self.device[st])
+      bopp = torch.zeros_like(self.r[st],device=self.device[st])
 
       bosi_ = []
       bopi_ = []
@@ -433,12 +437,12 @@ class ReaxFF_nn_force(nn.Module):
   def get_atomic_energy(self,st):
       ''' compute atomic energy of structure (st): elone, eover,eunder'''
       # st_ = st.split('-')[0]
-      self.Elone[st]     = torch.zeros_like(self.Delta[st],device=self.device)
-      self.Eover[st]     = torch.zeros_like(self.Delta[st],device=self.device)
-      self.Eunder[st]    = torch.zeros_like(self.Delta[st],device=self.device)
-      self.Nlp[st]       = torch.zeros_like(self.Delta[st],device=self.device)
-      self.Delta_ang[st] = torch.zeros_like(self.Delta[st],device=self.device)
-      Dlp                = torch.zeros_like(self.Delta[st],device=self.device)
+      self.Elone[st]     = torch.zeros_like(self.Delta[st],device=self.device[st])
+      self.Eover[st]     = torch.zeros_like(self.Delta[st],device=self.device[st])
+      self.Eunder[st]    = torch.zeros_like(self.Delta[st],device=self.device[st])
+      self.Nlp[st]       = torch.zeros_like(self.Delta[st],device=self.device[st])
+      self.Delta_ang[st] = torch.zeros_like(self.Delta[st],device=self.device[st])
+      Dlp                = torch.zeros_like(self.Delta[st],device=self.device[st])
 
       delta       = {}
       delta_pi    = {}
@@ -471,7 +475,7 @@ class ReaxFF_nn_force(nn.Module):
       self.eover[st]  = torch.sum(self.Eover[st],1)
       self.eunder[st] = torch.sum(self.Eunder[st],1)
 
-      self.eatomic[st] = torch.tensor(0.0,device=self.device)
+      self.eatomic[st] = torch.tensor(0.0,device=self.device[st])
       for sp in self.spec:
           if self.ns[st][sp]>0:
              self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
@@ -515,9 +519,9 @@ class ReaxFF_nn_force(nn.Module):
       self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
       if self.nang[st]==0:
-         self.eang[st] = torch.zeros(self.batch[st],device=self.device) 
-         self.epen[st] = torch.zeros(self.batch[st],device=self.device) 
-         self.etcon[st]= torch.zeros(self.batch[st],device=self.device) 
+         self.eang[st] = torch.zeros(self.batch[st],device=self.device[st]) 
+         self.epen[st] = torch.zeros(self.batch[st],device=self.device[st]) 
+         self.etcon[st]= torch.zeros(self.batch[st],device=self.device[st]) 
       else:
          Eang  = []
          Epen  = []
@@ -611,14 +615,14 @@ class ReaxFF_nn_force(nn.Module):
 
   def f7(self,sp,ang,boij,bojk): 
       Fboi  = torch.where(torch.greater(boij,0.0),
-                          torch.ones_like(boij,device=self.device),
-                          torch.zeros_like(boij,device=self.device))   
+                          torch.ones_like(boij,device=self.device[st]),
+                          torch.zeros_like(boij,device=self.device[st]))   
       Fbori = 1.0 - Fboi                                                                         # prevent NAN error
       expij = torch.exp(-self.p['val3_'+sp]*torch.pow(boij+Fbori,self.p['val4_'+ang])*Fboi)
 
       Fbok  = torch.where(torch.greater(bojk,0.0),
-                          torch.ones_like(bojk,device=self.device),
-                          torch.zeros_like(bojk,device=self.device))   
+                          torch.ones_like(bojk,device=self.device[st]),
+                          torch.zeros_like(bojk,device=self.device[st]))   
       Fbork = 1.0 - Fbok 
       expjk = torch.exp(-self.p['val3_'+sp]*torch.pow(bojk+Fbork,self.p['val4_'+ang])*Fbok)
       fi = 1.0 - expij
@@ -659,8 +663,8 @@ class ReaxFF_nn_force(nn.Module):
 
   def get_fourbody_energy(self,st):
       if (not self.opt_term['etor'] and not self.opt_term['efcon']) or self.ntor[st]==0:
-         self.etor[st] = torch.zeros([self.batch[st]],device=self.device)
-         self.efcon[st]= torch.zeros([self.batch[st]],device=self.device)
+         self.etor[st] = torch.zeros([self.batch[st]],device=self.device[st])
+         self.efcon[st]= torch.zeros([self.batch[st]],device=self.device[st])
       else:
          Etor   =    []
          Efcon  =    []
@@ -811,8 +815,8 @@ class ReaxFF_nn_force(nn.Module):
       return tpc
 
   def get_vdw_energy(self,st):
-      self.Evdw[st]   = torch.tensor(0.0,device=self.device)
-      self.Ecoul[st]  = torch.tensor(0.0,device=self.device)
+      self.Evdw[st]   = torch.tensor(0.0,device=self.device[st])
+      self.Ecoul[st]  = torch.tensor(0.0,device=self.device[st])
       nc = 0
       # gm3 = torch.zeros_like(self.r[st])
       # print('\n cell \n',self.cell[st].shape)
@@ -861,8 +865,8 @@ class ReaxFF_nn_force(nn.Module):
       self.ecoul[st] = torch.sum(self.Ecoul[st],dim=[1,2])
   
   def get_hb_energy(self,st):
-      self.ehb[st]  = torch.tensor(0.0,device=self.device)
-      self.Ehb[st]  = torch.tensor(0.0,device=self.device)
+      self.ehb[st]  = torch.tensor(0.0,device=self.device[st])
+      self.Ehb[st]  = torch.tensor(0.0,device=self.device[st])
       Ehb           = []
       for hb in self.hbs:
           if self.nhb[st][hb]==0:
@@ -1006,8 +1010,8 @@ class ReaxFF_nn_force(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device)
-      self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device)       # hbtol
+      self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device['others'])
+      self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['others'])       # hbtol
       
       self.check_offd()
       # self.check_hb()
@@ -1150,13 +1154,13 @@ class ReaxFF_nn_force(nn.Module):
       self.vb_j  = {}
       for st in self.strcs:
           self.x[st]     = torch.tensor(self._data[st].x,requires_grad=True,
-                                        device=self.device)
+                                        device=self.device[st])
           self.cell[st]  = torch.tensor(np.expand_dims(self._data[st].cell,axis=1),
-                                        device=self.device)
+                                        device=self.device[st])
           self.rcell[st] = torch.tensor(np.expand_dims(self._data[st].rcell,axis=1),
-                                        device=self.device)
+                                        device=self.device[st])
           self.eye[st]   = torch.tensor(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0),
-                                        device=self.device)
+                                        device=self.device[st])
           self.P[st]     = {}
           self.vb_i[st]  = {bd:[] for bd in self.bonds}
           self.vb_j[st]  = {bd:[] for bd in self.bonds}
@@ -1173,14 +1177,14 @@ class ReaxFF_nn_force(nn.Module):
           for sp in self.spec:
               pmask = np.zeros([1,self.natom[st]])
               pmask[:,self.s[st][sp]] = 1.0
-              self.pmask[st][sp] = torch.tensor(pmask,device=self.device)
+              self.pmask[st][sp] = torch.tensor(pmask,device=self.device[st])
 
           for bd in self.bonds:
              if len(self.vb_i[st][bd])==0:
                 continue
              pmask = np.zeros([1,self.natom[st],self.natom[st]])
              pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
-             self.pmask[st][bd] = torch.tensor(pmask,device=self.device)
+             self.pmask[st][bd] = torch.tensor(pmask,device=self.device[st])
 
   def get_data(self): 
       self.nframe      = 0
@@ -1227,6 +1231,15 @@ class ReaxFF_nn_force(nn.Module):
              # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
              # self.cell[st]   = strucs[st].cell
+             st_ = st.split('-')[0]
+             if 'all' in self._device:
+                 self.device[st] = torch.device(self._device['all'])
+             elif st in self._device:
+                 self.device[st] = torch.device(self._device[st])
+             elif st_ in self._device:
+                 self.device[st] = torch.device(self._device[st_])
+             else:
+                 self.device[st] = torch.device(self._device['others'])
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
@@ -1307,11 +1320,11 @@ class ReaxFF_nn_force(nn.Module):
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device)
-          self.q[s]          = torch.tensor(self._data[s].q,device=self.device)
-          self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device)  
+          self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device[st])
+          self.q[s]          = torch.tensor(self._data[s].q,device=self.device[st])
+          self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device[st])  
           if self._data[s].forces is not  None:
-             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device)
+             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device[st])
           else:
              self.dft_forces[s] = None
 
@@ -1319,11 +1332,11 @@ class ReaxFF_nn_force(nn.Module):
              self.estruc[s] = self.estruc[s_]
           else:
              if s_ in self.MolEnergy_:
-                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_],device=self.device),
+                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_],device=self.device['others']),
                                                requires_grad=True) 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
              else:
-                self.estruc[s_] = nn.Parameter(torch.tensor(0.0,device=self.device),requires_grad=True) 
+                self.estruc[s_] = nn.Parameter(torch.tensor(0.0,device=self.device['others']),requires_grad=True) 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
   
   def set_m(self):
@@ -1334,12 +1347,12 @@ class ReaxFF_nn_force(nn.Module):
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal,self.mf_universal,None,
-                          device=self.device)
+                          device=self.device['others'])
 
   def get_penalty(self):
       ''' adding some penalty term to pretain the phyical meaning '''
-      log_    = torch.tensor(-9.21044036697651,device=self.device)
-      penalty = torch.tensor(0.0,device=self.device)
+      log_    = torch.tensor(-9.21044036697651,device=self.device['others'])
+      penalty = torch.tensor(0.0,device=self.device['others'])
       wb_p    = []
       # if self.regularize_be:
       wb_p.append('fe')
@@ -1360,8 +1373,8 @@ class ReaxFF_nn_force(nn.Module):
       self.penalty_be_cut  = {}
       self.penalty_rcut    = {}
       self.penalty_ang     = {}
-      self.penalty_w       = torch.tensor(0.0,device=self.device)
-      self.penalty_b       = torch.tensor(0.0,device=self.device)
+      self.penalty_w       = torch.tensor(0.0,device=self.device['others'])
+      self.penalty_b       = torch.tensor(0.0,device=self.device['others'])
       self.rc_bo           = {}
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
@@ -1577,12 +1590,12 @@ class ReaxFF_nn_force(nn.Module):
              if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
                 for i,m in enumerate(self.m[key]):
                     # if isinstance(M, np.ndarray):
-                    if self.device.type == 'cpu':
+                    if self.device['others'].type == 'cpu':
                        self.m_[key][i] = m.detach().numpy().tolist()
                     else:
                        self.m_[key][i] = m.cpu().detach().numpy().tolist()
              else:
-                if self.device.type == 'cpu':
+                if self.device['others'].type == 'cpu':
                    self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
                 else:
                    self.m_[key] = self.m[key].cpu().detach().numpy().tolist()
