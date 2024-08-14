@@ -213,7 +213,7 @@ class ReaxFF_nn_force(nn.Module):
 
   def get_loss(self):
       ''' compute loss '''
-      loss = nn.MSELoss(reduction='sum')
+      loss = nn.L2Loss()  #nn.MSELoss(reduction='sum')
       self.loss_e = torch.tensor(0.0,device=self.device)
       self.loss_f = torch.tensor(0.0,device=self.device)
       self.loss_f.requires_grad_(True)
