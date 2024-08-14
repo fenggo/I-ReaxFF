@@ -130,9 +130,9 @@ class ReaxFF_nn_force(nn.Module):
                bdopt=None,mfopt=None,beopt=None,
                weight_force={'others':1.0},weight_energy={'others':1.0},
                lambda_bd=100000.0,
-               lambda_pi=1.0,
+               lambda_pi=0.0,
                lambda_reg=0.01,
-               lambda_ang=1.0,
+               lambda_ang=0.0,
                fixrcbo=False,
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
@@ -224,8 +224,8 @@ class ReaxFF_nn_force(nn.Module):
           if self.dft_forces[st] is not None:
              weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
              self.loss_f = self.loss_f + loss(self.force[st], self.dft_forces[st])*weight_f
-      self.loss_penalty = self.get_penalty()
-      return self.loss_e + self.loss_f + self.loss_penalty
+      # self.loss_penalty = self.get_penalty()
+      return self.loss_e + self.loss_f # + self.loss_penalty
 
   def get_forces(self,st):
       ''' compute forces with autograd method '''
@@ -240,7 +240,7 @@ class ReaxFF_nn_force(nn.Module):
       # self.force[st] = -self.x[st].grad
       # print(self.force[st])
       # print(self.force[st].shape)
-                                        
+
   def get_bond_energy(self,st):
       vr          = fvr(self.x[st])
       vrf         = torch.matmul(vr,self.rcell[st])
@@ -254,6 +254,7 @@ class ReaxFF_nn_force(nn.Module):
       self.get_final_state(st)
       
       self.ebd[st] = torch.zeros_like(self.bosi[st],device=self.device)
+      self.esi[st] = {}
       bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopp = self.bopp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -270,9 +271,9 @@ class ReaxFF_nn_force(nn.Module):
           bopi_ = bopi[:,b_[0]:b_[1]]
           bopp_ = bopp[:,b_[0]:b_[1]]
 
-          esi = fnn('fe',bd,[bosi_,bopi_,bopp_],
+          self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],
                     self.m,layer=self.be_layer[1])
-          self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*esi
+          self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
 
       # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
       self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2],keepdim=False)
@@ -1223,7 +1224,7 @@ class ReaxFF_nn_force(nn.Module):
              strucs[st]        = data_
              self.batch[st]    = strucs[st].batch
              self.nframe      += self.batch[st]
-             print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
+             # print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
              self.max_e[st]    = strucs[st].max_e
              # self.evdw_[st]  = strucs[st].evdw
              # self.ecoul_[st] = strucs[st].ecoul  
@@ -1233,7 +1234,7 @@ class ReaxFF_nn_force(nn.Module):
       self.nstrc  = len(strucs)
       self.generate_data(strucs)
       # self.memory(molecules=strucs)
-      print('-  generating dataset ...')
+      # print('-  generating dataset ...')
       return strucs
 
   def generate_data(self,strucs):
@@ -1386,21 +1387,16 @@ class ReaxFF_nn_force(nn.Module):
           self.penalty_be_cut[bd]  = 0.0
           self.penalty_bo_rcut[bd] = 0.0
           #self.penalty_bo[bd]     = 0.0
-          
-        #   b_   = self.b[st][bd]
-        #   if nbd_==0:
-        #      continue
-        #   self.rbd[st][bd] = r[:,b_[0]:b_[1]]
-        
           for st in self.strcs:
               if self.nbd[st][bd]>0:       
                  b_    = self.b[st][bd]
-                 # bdid= self.bdid[st][b_[0]:b_[1]]
-                 bo0_  = self.bo0[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-                 bop_  = self.bop[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+                 bdid  = self.bdid[st][b_[0]:b_[1]]
+
+                 bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
+                 bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
  
                  fbo  = torch.where(torch.less(self.rbd[st][bd],self.rc_bo[bd]),0.0,1.0)    # bop should be zero if r>rcut_bo
-                 print(bop_.shape,self.rbd[st][bd].shape)
+                 # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
                  self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
                  fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
@@ -1409,7 +1405,7 @@ class ReaxFF_nn_force(nn.Module):
                  fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
                  self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
                  
-              if self.spv_ang:
+              if self.lambda_ang>0.000001:
                  self.penalty_ang[st] = torch.sum(self.thet2[st]*self.fijk[st])
           
           penalty  = penalty + self.penalty_be_cut[bd]*self.lambda_bd
@@ -1422,30 +1418,27 @@ class ReaxFF_nn_force(nn.Module):
              for k in wb_p:
                  for k_ in w_n:
                      key     = k + k_ + '_' + bd
-                     self.penalty_w  += torch.sum(torch.square(self.m[key]))
-                 if self.regularize_bias:
-                    for k_ in b_n:
-                        key     = k + k_ + '_' + bd
-                        self.penalty_b  = self.penalty_b + torch.sum(torch.square(self.m[key]))
+                     self.penalty_w = self.penalty_w + torch.sum(torch.square(self.m[key]))
+                  
+                 for k_ in b_n:
+                     key     = k + k_ + '_' + bd
+                     self.penalty_b  = self.penalty_b + torch.sum(torch.square(self.m[key]))
                  for l in range(layer[k]):                                               
                      self.penalty_w = self.penalty_w + torch.sum(torch.square(self.m[k+'w_'+bd][l]))
-                     if self.regularize_bias:
-                        self.penalty_b = self.penalty_b + torch.sum(torch.square(self.m[k+'b_'+bd][l]))
+                     self.penalty_b = self.penalty_b + torch.sum(torch.square(self.m[k+'b_'+bd][l]))
 
       if self.lambda_reg>0.000001:                # regularize neural network
          for sp in self.spec:
              for k in wb_message:
                  for k_ in w_n:
                      key     = k + k_ + '_' + sp
-                     self.penalty_w  = self.penalty_w  + torch.sum(torch.square(self.m[key]))
-                 if self.regularize_bias:
-                    for k_ in b_n:
-                        key     = k + k_ + '_' + sp
-                        self.penalty_b  = self.penalty_b + torch.sum(torch.square(self.m[key]))
+                     self.penalty_w = self.penalty_w  + torch.sum(torch.square(self.m[key]))
+                 for k_ in b_n:
+                     key     = k + k_ + '_' + sp
+                     self.penalty_b = self.penalty_b + torch.sum(torch.square(self.m[key]))
                  for l in range(layer[k]):                                               
                      self.penalty_w = self.penalty_w + torch.sum(torch.square(self.m[k+'w_'+sp][l]))
-                     if self.regularize_bias:
-                        self.penalty_b += torch.sum(torch.square(self.m[k+'b_'+sp][l]))
+                     self.penalty_b = self.penalty_b + torch.sum(torch.square(self.m[k+'b_'+sp][l]))
          penalty = penalty + self.lambda_reg*self.penalty_w
          penalty = penalty + self.lambda_reg*self.penalty_b
       return penalty
@@ -1498,10 +1491,10 @@ class ReaxFF_nn_force(nn.Module):
       return self.m_,rcut,rcuta,re
   
   def set_memory(self):
-      self.r,self.vr,self.rbd = {},{},{}
-      self.E                  = {}
-      self.force              = {}
-      self.ebd,self.ebond     = {},{}
+      self.r,self.vr,self.rbd      = {},{},{}
+      self.E                       = {}
+      self.force                   = {}
+      self.esi,self.ebd,self.ebond = {},{},{}
       self.bop,self.bop_si,self.bop_pi,self.bop_pp = {},{},{},{}
       self.bo,self.bo0,self.bosi,self.bopi,self.bopp = {},{},{},{},{}
 
@@ -1614,4 +1607,6 @@ class ReaxFF_nn_force(nn.Module):
          fj.close()
       else:
          raise RuntimeError('Error: other format is not supported yet!')
-         
+  def close(self):
+      self.set_memory()
+      
