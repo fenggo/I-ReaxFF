@@ -1010,7 +1010,7 @@ class ReaxFF_nn_force(nn.Module):
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device)       # hbtol
       
       self.check_offd()
-      self.check_hb()
+      # self.check_hb()
       self.check_tors()
       
       self.p            = nn.ParameterDict()   # training parameter 
