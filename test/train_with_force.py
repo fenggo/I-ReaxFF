@@ -72,10 +72,11 @@ for eproch in range(iter_num):
             E,F  = rn()
             loss = rn.get_loss()
             optimizer.zero_grad()
-            print( "eproch: {:5d} step {:5d} loss: {:10.5f} energy: {:10.5f} force: {:10.5f} pen: {:10.5f}".format(eproch,
-                            step,loss.item(),rn.loss_e.item()/natom,rn.loss_f.item()/natom,rn.loss_penalty.item()))
+
             loss.backward(retain_graph=True)
             optimizer.step()
+        print( "eproch: {:5d} loss: {:10.5f} energy: {:10.5f} force: {:10.5f} pen: {:10.5f}".format(eproch,
+                          loss.item(),rn.loss_e.item()/natom,rn.loss_f.item()/natom,rn.loss_penalty.item()))
         rn.save_ffield('ffield.json')
         rn.close()
 
