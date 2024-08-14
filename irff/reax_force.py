@@ -178,7 +178,7 @@ class ReaxFF_nn_force(nn.Module):
       self._device      = device
       if 'others' not in self._device:
          self._device['others'] = 'cpu'
-      self.device       = {}
+      self.device       = {'others':torch.device(self._device['others'])}
       self.tors         = tors
       self.set_p()
 
