@@ -133,6 +133,7 @@ class ReaxFF_nn_force(nn.Module):
                lambda_pi=1.0,
                lambda_reg=0.01,
                lambda_ang=1.0,
+               fixrcbo=False,
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                screen=False,
@@ -152,6 +153,7 @@ class ReaxFF_nn_force(nn.Module):
       self.cons         = ['val','vale','valang','vale','valboc','lp3','gamma',
                            'cutoff','hbtol']
       self.cons.extend(cons)
+      self.fixrcbo      = fixrcbo
       self.weight_force = weight_force
       self.weight_energy= weight_energy
       self.mf_layer     = mf_layer
@@ -906,13 +908,13 @@ class ReaxFF_nn_force(nn.Module):
   def get_rcbo(self):
       ''' get cut-offs for individual bond '''
       self.rc_bo = {}
-      botol = self.p_['cutoff']*0.01
+      # botol = self.p['cutoff']*0.01
       for bd in self.bonds:
           b    = bd.split('-')
-          ofd  = bd if b[0]!=b[1] else b[0]
-          log_ = np.log((botol/(1.0+botol)))
-          rr   = log_/self.p_['bo1_'+bd] 
-          self.rc_bo[bd]=self.p_['rosi_'+ofd]*np.power(rr,1.0/self.p_['bo2_'+bd])
+          #ofd = bd if b[0]!=b[1] else b[0]
+          log_ = torch.log((self.botol/(1.0+self.botol)))
+          rr   = log_/self.p['bo1_'+bd] 
+          self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
@@ -1011,7 +1013,6 @@ class ReaxFF_nn_force(nn.Module):
       self.check_offd()
       self.check_hb()
       self.check_tors()
-      self.get_rcbo()
       
       self.p            = nn.ParameterDict()   # training parameter 
       for key in self.p_g:
@@ -1061,6 +1062,7 @@ class ReaxFF_nn_force(nn.Module):
               grad = True if key in self.opt or key_ in self.opt else False
               self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=grad)
+      self.get_rcbo()
       if self.nn:
          self.set_m()
 
@@ -1361,7 +1363,7 @@ class ReaxFF_nn_force(nn.Module):
       self.penalty_ang     = {}
       self.penalty_w       = 0.0
       self.penalty_b       = 0.0
-      
+
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
           bdr = atomj + '-' + atomi
@@ -1374,7 +1376,7 @@ class ReaxFF_nn_force(nn.Module):
           rc_bopi = self.p['ropi_'+bd]*torch.pow(log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
           rcut_pi = torch.relu(rc_bopi-self.rcut[bd])
 
-          rc_bopp = self.p['ropp_'+bd]*tf.pow(log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
+          rc_bopp = self.p['ropp_'+bd]*torch.pow(log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
           rcut_pp = torch.relu(rc_bopp-self.rcut[bd])
 
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
@@ -1383,63 +1385,69 @@ class ReaxFF_nn_force(nn.Module):
           self.penalty_bop[bd]     = 0.0
           self.penalty_be_cut[bd]  = 0.0
           self.penalty_bo_rcut[bd] = 0.0
-          self.penalty_bo[bd]      = 0.0
-
-          for mol in self.strcs:
-              if self.nbd[mol][bd]>0:       
-                 b_    = self.b[mol][bd]
-                 bdid  = self.bdid[mol][b_[0]:b_[1]]
-                 bo0_  = self.bo0[mol][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-                 bop_  = self.bop[mol][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+          #self.penalty_bo[bd]     = 0.0
+          
+        #   b_   = self.b[st][bd]
+        #   if nbd_==0:
+        #      continue
+        #   self.rbd[st][bd] = r[:,b_[0]:b_[1]]
+        
+          for st in self.strcs:
+              if self.nbd[st][bd]>0:       
+                 b_    = self.b[st][bd]
+                 # bdid= self.bdid[st][b_[0]:b_[1]]
+                 bo0_  = self.bo0[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+                 bop_  = self.bop[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
  
-                 fbo  = tf.where(tf.less(self.rbd[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
-                 self.penalty_bop[bd]  +=  tf.reduce_sum(bop_*fbo)                       #####  
+                 fbo  = torch.where(torch.less(self.rbd[st][bd],self.rc_bo[bd]),0.0,1.0)    # bop should be zero if r>rcut_bo
+                 print(bop_.shape,self.rbd[st][bd].shape)
+                 self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
-                 fao  = tf.where(tf.greater(self.rbd[mol][bd],self.rcuta[bd]),1.0,0.0)  ##### r> rcuta that bo = 0.0
-                 self.penalty_bo_rcut[bd] += tf.reduce_sum(bo0_*fao)
+                 fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
+                 self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
 
-                 fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= 0.0 that e = 0.0
-                 self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu(self.esi[mol][bd]*fesi))
+                 fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
+                 self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
                  
               if self.spv_ang:
-                 self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
+                 self.penalty_ang[st] = torch.sum(self.thet2[st]*self.fijk[st])
           
-          penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
-          penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)        
-          penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
-          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty)   
+          penalty  = penalty + self.penalty_be_cut[bd]*self.lambda_bd
+          penalty  = penalty + self.penalty_bop[bd]*self.lambda_bd      
+          penalty  = penalty + self.penalty_bo_rcut[bd]*self.lambda_bd
+          # penalty= penalty + self.penalty_bo[bd]*self.lambda_bd
 
           # penalize term for regularization of the neural networs
-          if self.regularize:                             # regularize to avoid overfit
+          if self.lambda_reg>0.000001:             # regularize to avoid overfit
              for k in wb_p:
                  for k_ in w_n:
                      key     = k + k_ + '_' + bd
-                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
+                     self.penalty_w  += torch.sum(torch.square(self.m[key]))
                  if self.regularize_bias:
                     for k_ in b_n:
                         key     = k + k_ + '_' + bd
-                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
+                        self.penalty_b  = self.penalty_b + torch.sum(torch.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+bd][l]))
+                     self.penalty_w = self.penalty_w + torch.sum(torch.square(self.m[k+'w_'+bd][l]))
                      if self.regularize_bias:
-                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+bd][l]))
+                        self.penalty_b = self.penalty_b + torch.sum(torch.square(self.m[k+'b_'+bd][l]))
 
-      if self.regularize:                              # regularize
+      if self.lambda_reg>0.000001:                # regularize neural network
          for sp in self.spec:
              for k in wb_message:
                  for k_ in w_n:
                      key     = k + k_ + '_' + sp
-                     self.penalty_w  += tf.reduce_sum(tf.square(self.m[key]))
+                     self.penalty_w  = self.penalty_w  + torch.sum(torch.square(self.m[key]))
                  if self.regularize_bias:
                     for k_ in b_n:
                         key     = k + k_ + '_' + sp
-                        self.penalty_b  += tf.reduce_sum(tf.square(self.m[key]))
+                        self.penalty_b  = self.penalty_b + torch.sum(torch.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     self.penalty_w += tf.reduce_sum(tf.square(self.m[k+'w_'+sp][l]))
+                     self.penalty_w = self.penalty_w + torch.sum(torch.square(self.m[k+'w_'+sp][l]))
                      if self.regularize_bias:
-                        self.penalty_b += tf.reduce_sum(tf.square(self.m[k+'b_'+sp][l]))
-         penalty = tf.add(self.lambda_reg*self.penalty_w,penalty)
-         penalty = tf.add(self.lambda_reg*self.penalty_b,penalty)
+                        self.penalty_b += torch.sum(torch.square(self.m[k+'b_'+sp][l]))
+         penalty = penalty + self.lambda_reg*self.penalty_w
+         penalty = penalty + self.lambda_reg*self.penalty_b
       return penalty
 
   def read_ffield(self,libfile):
