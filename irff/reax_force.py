@@ -1320,11 +1320,11 @@ class ReaxFF_nn_force(nn.Module):
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device[st])
-          self.q[s]          = torch.tensor(self._data[s].q,device=self.device[st])
-          self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device[st])  
+          self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device[s])
+          self.q[s]          = torch.tensor(self._data[s].q,device=self.device[s])
+          self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device[s])  
           if self._data[s].forces is not  None:
-             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device[st])
+             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device[s])
           else:
              self.dft_forces[s] = None
 
