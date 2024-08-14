@@ -614,15 +614,11 @@ class ReaxFF_nn_force(nn.Module):
       return theta0
 
   def f7(self,sp,ang,boij,bojk): 
-      Fboi  = torch.where(torch.greater(boij,0.0),
-                          torch.ones_like(boij,device=self.device[st]),
-                          torch.zeros_like(boij,device=self.device[st]))   
+      Fboi  = torch.where(torch.greater(boij,0.0),1.0,0.0)   
       Fbori = 1.0 - Fboi                                                                         # prevent NAN error
       expij = torch.exp(-self.p['val3_'+sp]*torch.pow(boij+Fbori,self.p['val4_'+ang])*Fboi)
 
-      Fbok  = torch.where(torch.greater(bojk,0.0),
-                          torch.ones_like(bojk,device=self.device[st]),
-                          torch.zeros_like(bojk,device=self.device[st]))   
+      Fbok  = torch.where(torch.greater(bojk,0.0),1.0,0.0)   
       Fbork = 1.0 - Fbok 
       expjk = torch.exp(-self.p['val3_'+sp]*torch.pow(bojk+Fbork,self.p['val4_'+ang])*Fbok)
       fi = 1.0 - expij
