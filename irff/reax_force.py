@@ -185,7 +185,8 @@ class ReaxFF_nn_force(nn.Module):
       self.devices = set()
       for dev in self._device:
           self.devices.add(torch.device(self._device[dev]))
-      self.device       = {'others':torch.device(self._device['others'])}
+      self.device       = {'others':torch.device(self._device['others']),
+                           'diff':torch.device(self._device['diff'])}
       self.tors         = tors
       self.set_p()
 
