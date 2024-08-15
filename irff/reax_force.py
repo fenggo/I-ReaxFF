@@ -178,6 +178,10 @@ class ReaxFF_nn_force(nn.Module):
       self._device      = device
       if 'others' not in self._device:
          self._device['others'] = 'cpu'
+      if 'diff' not in self._device:
+         if 'others' in self._device:
+            self._device['diff'] = self._device['others']
+      
       self.devices = set()
       for dev in self._device:
           self.devices.add(torch.device(self._device[dev]))
@@ -1352,7 +1356,17 @@ class ReaxFF_nn_force(nn.Module):
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal,self.mf_universal,None,
-                          device=self.device)
+                          device=self.device['diff'])
+
+      for key in self.m:
+          k = key.split('_')[0]
+          if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
+             for i,m in enumerate(self.m[key]):
+                for dev in self.devices:
+                    self.m[key][i].to(dev)   
+          else:
+             for dev in self.devices:
+                 self.m[key].to(dev)  
 
   def get_penalty(self):
       ''' adding some penalty term to pretain the phyical meaning '''
@@ -1595,12 +1609,12 @@ class ReaxFF_nn_force(nn.Module):
              if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
                 for i,m in enumerate(self.m[key]):
                     # if isinstance(M, np.ndarray):
-                    if self.device['others'].type == 'cpu':
+                    if self.device['diff'].type == 'cpu':
                        self.m_[key][i] = m.detach().numpy().tolist()
                     else:
                        self.m_[key][i] = m.cpu().detach().numpy().tolist()
              else:
-                if self.device['others'].type == 'cpu':
+                if self.device['diff'].type == 'cpu':
                    self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
                 else:
                    self.m_[key] = self.m[key].cpu().detach().numpy().tolist()
