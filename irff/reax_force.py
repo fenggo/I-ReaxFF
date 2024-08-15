@@ -180,7 +180,7 @@ class ReaxFF_nn_force(nn.Module):
          self._device['others'] = 'cpu'
       self.devices = set()
       for dev in self._device:
-          self.devices.add(torch.device(dev))
+          self.devices.add(torch.device(self._device[dev]))
       self.device       = {'others':torch.device(self._device['others'])}
       self.tors         = tors
       self.set_p()
