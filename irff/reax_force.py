@@ -1011,9 +1011,13 @@ class ReaxFF_nn_force(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device['others'])
+      self.botol        = torch.tensor(0.01*self.p_['cutoff'])
+      for dev in self.devices:
+          self.botol.to(self.devices[dev])
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['others'])       # hbtol
-      
+      for dev in self.devices:
+          self.hbtol.to(self.devices[dev])
+
       self.check_offd()
       # self.check_hb()
       self.check_tors()
