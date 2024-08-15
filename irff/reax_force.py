@@ -178,6 +178,9 @@ class ReaxFF_nn_force(nn.Module):
       self._device      = device
       if 'others' not in self._device:
          self._device['others'] = 'cpu'
+         self.devices = set()
+         for dev in self._device:
+             self.devices.add(torch.device(dev))
       self.device       = {'others':torch.device(self._device['others'])}
       self.tors         = tors
       self.set_p()
@@ -188,7 +191,9 @@ class ReaxFF_nn_force(nn.Module):
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
-      self.safety_value   = torch.tensor(0.00000001,device=self.device['others'])
+      self.safety_value   = torch.tensor(0.00000001)
+      for dev in self.devices:
+          self.safety_value.to(dev)
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
