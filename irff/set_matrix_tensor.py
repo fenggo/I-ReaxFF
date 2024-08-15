@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 
-
 def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                bo_layer,bo_layer_,BOFunction_,BOFunction,
                mf_layer,mf_layer_,MessageFunction_,MessageFunction,

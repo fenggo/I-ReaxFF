@@ -1352,7 +1352,7 @@ class ReaxFF_nn_force(nn.Module):
                           self.be_layer,self.be_layer_,1,1,
                           (9,0),(9,0),1,1,
                           None,self.be_universal,self.mf_universal,None,
-                          device=self.device['others'])
+                          device=self.device)
 
   def get_penalty(self):
       ''' adding some penalty term to pretain the phyical meaning '''
