@@ -82,7 +82,17 @@ def fmessage(pre,bd,x,m,layer=5):
     '''
     X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
     # print('\n X \n',X,X.shape)
-    o   =  []                         
+    o   =  []                        
+    # print(X.device,m[pre+'wi_'+bd].device,m[pre+'bi_'+bd].device) 
+    if X.device != m[pre+'wi_'+bd].device:
+       m[pre+'wi_'+bd] = m[pre+'wi_'+bd].to(X.device)
+       m[pre+'bi_'+bd] = m[pre+'bi_'+bd].to(X.device)
+       m[pre+'wo_'+bd] = m[pre+'wo_'+bd].to(X.device)
+       m[pre+'bo_'+bd] = m[pre+'bo_'+bd].to(X.device)
+       for l in range(layer):
+           m[pre+'w_'+bd][l] = m[pre+'w_'+bd][l].to(X.device)
+           m[pre+'b_'+bd][l] = m[pre+'b_'+bd][l].to(X.device)
+
     o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
     # print('\n ai \n',o[-1])
     for l in range(layer):                                                   # hidden layer      
@@ -99,6 +109,16 @@ def fnn(pre,bd,x,m,layer=5):
     X   = torch.unsqueeze(torch.stack(x,dim=2),dim=2)
     #                                 #        Wi:  (3,8) 
     o   =  []                         #        Wh:  (8,8)
+
+    if X.device != m[pre+'wi_'+bd].device:
+       m[pre+'wi_'+bd] = m[pre+'wi_'+bd].to(X.device)
+       m[pre+'bi_'+bd] = m[pre+'bi_'+bd].to(X.device)
+       m[pre+'wo_'+bd] = m[pre+'wo_'+bd].to(X.device)
+       m[pre+'bo_'+bd] = m[pre+'bo_'+bd].to(X.device)
+       for l in range(layer):
+           m[pre+'w_'+bd][l] = m[pre+'w_'+bd][l].to(X.device)
+           m[pre+'b_'+bd][l] = m[pre+'b_'+bd][l].to(X.device)
+
     o.append(torch.sigmoid(torch.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
 
     for l in range(layer):                                     # hidden layer      
@@ -205,6 +225,9 @@ class ReaxFF_nn_force(nn.Module):
 
   def get_total_energy(self,st):
       ''' compute the total energy of moecule '''
+      if self.zpe[st].device != self.device[st]:
+         self.zpe[st] = self.zpe[st].to(self.device[st])
+
       self.E[st] = (self.ebond[st] + 
                     self.eover[st] + self.eunder[st]+ self.elone[st] +
                     self.eang[st]  + self.epen[st]  + self.etcon[st] +
@@ -1016,12 +1039,8 @@ class ReaxFF_nn_force(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device['diff'])
-      # for dev in self.devices:
-      #    self.botol.to(dev)
-      self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['diff'])       # hbtol
-      # for dev in self.devices:
-      #     self.hbtol.to(dev)
+      self.botol        = 0.01*self.p_['cutoff'] 
+      self.hbtol        = self.p_['hbtol'] # torch.tensor(self.p_['hbtol'],device=self.device['diff']) 
       self.check_offd()
       # self.check_hb()
       self.check_tors()
@@ -1426,8 +1445,10 @@ class ReaxFF_nn_force(nn.Module):
 
                  bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
                  bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
- 
-                 fbo  = torch.where(torch.less(self.rbd[st][bd],self.rc_bo[bd]),0.0,1.0)    # bop should be zero if r>rcut_bo
+
+                 if self.rc_bo[bd].device!=self.rbd[st][bd].device:
+                    rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
+                 fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
                  # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
                  self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
