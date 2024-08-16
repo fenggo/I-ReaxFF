@@ -300,8 +300,6 @@ class ReaxFF_nn_force(nn.Module):
       self.bop_si[st] = torch.zeros_like(self.r[st],device=self.device[st])
       self.bop_pi[st] = torch.zeros_like(self.r[st],device=self.device[st])
       self.bop_pp[st] = torch.zeros_like(self.r[st],device=self.device[st])
-
-      botol = self.botol.clone()
       
       self.rbd[st] = {}
       for bd in self.bonds:
@@ -312,7 +310,7 @@ class ReaxFF_nn_force(nn.Module):
           self.rbd[st][bd] = r[:,b_[0]:b_[1]]
           bodiv1 = torch.div(self.rbd[st][bd],self.p['rosi_'+bd])
           bopow1 = torch.pow(bodiv1,self.p['bo2_'+bd])
-          eterm1 = (1.0+botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1)) 
+          eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1)) 
 
           bodiv2 = torch.div(self.rbd[st][bd],self.p['ropi_'+bd])
           bopow2 = torch.pow(bodiv2,self.p['bo4_'+bd])
@@ -322,9 +320,9 @@ class ReaxFF_nn_force(nn.Module):
           bopow3 = torch.pow(bodiv3,self.p['bo6_'+bd])
           eterm3 = torch.exp(torch.mul(self.p['bo5_'+bd],bopow3))
 
-          bop_si.append(taper(eterm1,rmin=botol,rmax=2.0*botol)*(eterm1-botol)) # consist with GULP
-          bop_pi.append(taper(eterm2,rmin=botol,rmax=2.0*botol)*eterm2)
-          bop_pp.append(taper(eterm3,rmin=botol,rmax=2.0*botol)*eterm3)
+          bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
+          bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
+          bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
       bosi_ = torch.cat(bop_si,dim=1)
       bopi_ = torch.cat(bop_pi,dim=1)
@@ -1022,9 +1020,8 @@ class ReaxFF_nn_force(nn.Module):
       # for dev in self.devices:
       #    self.botol.to(dev)
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['diff'])       # hbtol
-      for dev in self.devices:
-          self.hbtol.to(dev)
-
+      # for dev in self.devices:
+      #     self.hbtol.to(dev)
       self.check_offd()
       # self.check_hb()
       self.check_tors()
