@@ -196,9 +196,9 @@ class ReaxFF_nn_force(nn.Module):
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
-      self.safety_value   = torch.tensor(0.00000001)
-      for dev in self.devices:
-          self.safety_value.to(dev)
+      self.safety_value   = torch.tensor(0.00000001,device=self.device['diff'])
+      # for dev in self.devices:
+      #     self.safety_value.to(dev)
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -1016,12 +1016,12 @@ class ReaxFF_nn_force(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      self.botol        = torch.tensor(0.01*self.p_['cutoff'])
-      for dev in self.devices:
-          self.botol.to(dev)
-      self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['others'])       # hbtol
-      for dev in self.devices:
-          self.hbtol.to(dev)
+      self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device['diff'])
+      # for dev in self.devices:
+      #     self.botol.to(dev)
+      self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['diff'])       # hbtol
+      # for dev in self.devices:
+      #     self.hbtol.to(dev)
 
       self.check_offd()
       # self.check_hb()
@@ -1359,15 +1359,15 @@ class ReaxFF_nn_force(nn.Module):
                           None,self.be_universal,self.mf_universal,None,
                           device=self.device['diff'])
 
-      for key in self.m:
-          k = key.split('_')[0]
-          if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
-             for i,m in enumerate(self.m[key]):
-                for dev in self.devices:
-                    self.m[key][i].to(dev)   
-          else:
-             for dev in self.devices:
-                 self.m[key].to(dev)  
+    #   for key in self.m:
+    #       k = key.split('_')[0]
+    #       if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
+    #          for i,m in enumerate(self.m[key]):
+    #             for dev in self.devices:
+    #                 self.m[key][i].to(dev)   
+    #       else:
+    #          for dev in self.devices:
+    #              self.m[key].to(dev)  
 
   def get_penalty(self):
       ''' adding some penalty term to pretain the phyical meaning '''
