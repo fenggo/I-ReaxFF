@@ -228,8 +228,8 @@ class ReaxFF_nn_force(nn.Module):
   def get_loss(self):
       ''' compute loss '''
       loss = nn.MSELoss(reduction='sum')
-      self.loss_e = torch.tensor(0.0,device=self.device['others'])
-      self.loss_f = torch.tensor(0.0,device=self.device['others'])
+      self.loss_e = torch.tensor(0.0,device=self.device['diff'])
+      self.loss_f = torch.tensor(0.0,device=self.device['diff'])
       self.loss_f.requires_grad_(True)
       self.loss_e.requires_grad_(True)
       for st in self.strcs:
@@ -1017,11 +1017,11 @@ class ReaxFF_nn_force(nn.Module):
                 self.opt.append(key)
 
       self.botol        = torch.tensor(0.01*self.p_['cutoff'],device=self.device['diff'])
-      # for dev in self.devices:
-      #     self.botol.to(dev)
+      for dev in self.devices:
+          self.botol.to(dev)
       self.hbtol        = torch.tensor(self.p_['hbtol'],device=self.device['diff'])       # hbtol
-      # for dev in self.devices:
-      #     self.hbtol.to(dev)
+      for dev in self.devices:
+          self.hbtol.to(dev)
 
       self.check_offd()
       # self.check_hb()
