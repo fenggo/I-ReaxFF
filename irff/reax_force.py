@@ -196,9 +196,9 @@ class ReaxFF_nn_force(nn.Module):
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
-      self.safety_value   = torch.tensor(0.00000001,device=self.device['diff'])
-      for dev in self.devices:
-          self.safety_value.to(dev)
+      # self.safety_value   = torch.tensor(0.00000001,device=self.device['diff'])
+      # for dev in self.devices:
+      #     self.safety_value.to(dev)
       self.set_memory()
       # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
       # self.Qe= qeq(p=self.p,atoms=self.atoms)
@@ -261,7 +261,7 @@ class ReaxFF_nn_force(nn.Module):
       vrf         = torch.where(vrf-0.5>0,vrf-1.0,vrf)
       vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
       self.vr[st] = torch.matmul(vrf,self.cell[st])
-      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) + self.safety_value) # 
+      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) + 0.00000001) # 
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
@@ -524,7 +524,7 @@ class ReaxFF_nn_force(nn.Module):
   
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
-      PBOpow        = -torch.pow(self.bo[st]+self.safety_value,8)        # original: self.BO0 
+      PBOpow        = -torch.pow(self.bo[st]+0.00000001,8)        # original: self.BO0 
       PBOexp        =  torch.exp(PBOpow)
       self.Pbo[st]  =  torch.prod(PBOexp,2)     # BO Product
 
@@ -607,14 +607,14 @@ class ReaxFF_nn_force(nn.Module):
       
       ok    = torch.logical_and(torch.less_equal(Sbo,1.0),torch.greater(Sbo,0.0))
       S1    = torch.where(ok,Sbo,0.0)    #  0< sbo < 1                  
-      Sbo1  = torch.where(ok,torch.pow(S1+self.safety_value,self.p['val9']),0.0) 
+      Sbo1  = torch.where(ok,torch.pow(S1+0.00000001,self.p['val9']),0.0) 
 
       ok    = torch.logical_and(torch.less(Sbo,2.0),torch.greater(Sbo,1.0))
       S2    = torch.where(ok,Sbo,0.0)                     
       F2    = torch.where(ok,1.0,0.0)                 #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      Sbo12 = torch.where(ok,2.0-torch.pow(S2+self.safety_value,self.p['val9']),0.0)  #  1< sbo <2
+      Sbo12 = torch.where(ok,2.0-torch.pow(S2+0.00000001,self.p['val9']),0.0)  #  1< sbo <2
                                                                                       #     sbo >2
       Sbo2  = torch.where(torch.greater_equal(Sbo,2.0),1.0,0.0)
 
@@ -847,10 +847,10 @@ class ReaxFF_nn_force(nn.Module):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                   vr_  = self.vr[st] + cell
-                  r    = torch.sqrt(torch.sum(torch.square(vr_),3)+self.safety_value)
+                  r    = torch.sqrt(torch.sum(torch.square(vr_),3)+0.00000001)
                   gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
                   gm3  = torch.pow(torch.div(1.0,gamma),3.0)
-                  r3   = torch.pow(r+self.safety_value,3.0)
+                  r3   = torch.pow(r+0.00000001,3.0)
                   fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
                                                                                    torch.full_like(r,0.0))
                   if nc<13:
@@ -892,11 +892,11 @@ class ReaxFF_nn_force(nn.Module):
                       vrjk   = vrjk_ + cell 
   
                       rjk2   = torch.sum(torch.square(vrjk),axis=3)
-                      rjk    = torch.sqrt(rjk2+self.safety_value)
+                      rjk    = torch.sqrt(rjk2+0.00000001)
 
                       vrik   = vrij + vrjk
                       rik2   = torch.sum(torch.square(vrik),axis=3)
-                      rik    = torch.sqrt(rik2+self.safety_value)
+                      rik    = torch.sqrt(rik2+0.00000001)
 
                       cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
                       hbthe  = 0.5-0.5*cos_th
