@@ -1448,6 +1448,9 @@ class ReaxFF_nn_force(nn.Module):
 
                  if self.rc_bo[bd].device!=self.rbd[st][bd].device:
                     rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
+                 else:
+                    rc_bo = self.rc_bo[bd]
+
                  fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
                  # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
                  self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
