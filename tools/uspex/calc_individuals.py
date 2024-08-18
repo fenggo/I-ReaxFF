@@ -93,6 +93,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
         system('mv siesta.traj individual_{:d}.traj'.format(s))
         system('rm siesta.* ')
         atoms = img[-1]
+        atoms.write('POSCAR.{:d}'.format(s))
         masses = np.sum(atoms.get_masses())
         volume = atoms.get_volume()
         density = masses/volume/0.602214129
