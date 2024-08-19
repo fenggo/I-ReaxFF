@@ -20,10 +20,10 @@ class ColData(object):
       running     = True
 
       traj        = self.label+'.traj'
-      if isfile(traj):
-         data_dir[self.label] = traj
-      else:
-         while running:
+      # if isfile(traj):
+      #   data_dir[self.label] = traj
+      # else:
+      while running:
             run_dir = 'aimd_'+self.label+'/'+self.label+'-'+str(i)
             if exists(run_dir):
                 i += increase
