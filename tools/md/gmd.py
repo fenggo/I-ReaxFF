@@ -98,9 +98,9 @@ def sheng(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
-       system('gulp<inp-sheng>gulp.out')
+       system('gulp<inp-sheng>sheng.out')
     else:
-       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+       system('mpirun -n {:d} gulp<inp-sheng>sheng.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False)
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
