@@ -80,7 +80,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
 
 def sheng(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,t=0.00001,output='shengbte',lib='reaxff_nn'):
-    A = read(gen,index=i)*(x,y,z)
+    A = read(gen,index=i)
     # A = press_mol(A)
 
     if l==1 or p>0.0000001:
@@ -89,7 +89,8 @@ def sheng(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        runword='opti conv qiterative'
     if output=='shengbte':
        runword= 'opti conv qiterative prop phonons thermal num3'
-    write_gulp_in(A,runword=runword,
+    write_gulp_in(A,inp='inp-sheng',
+                  runword=runword,
                   T=T,maxcyc=step,pressure=p,
                   output=output,
                   gopt=t,
