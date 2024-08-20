@@ -78,6 +78,31 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
     atoms.write('POSCAR.unitcell')
     # return atoms
 
+def sheng(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,t=0.00001,output='shengbte',lib='reaxff_nn'):
+    A = read(gen,index=i)*(x,y,z)
+    # A = press_mol(A)
+
+    if l==1 or p>0.0000001:
+       runword= 'opti conp qiterative stre atomic_stress'
+    elif l==0:
+       runword='opti conv qiterative'
+    if output=='shengbte':
+       runword= 'opti conv qiterative prop phonons thermal num3'
+    write_gulp_in(A,runword=runword,
+                  T=T,maxcyc=step,pressure=p,
+                  output=output,
+                  gopt=t,
+                  supercell='zyx {:d} {:d} {:d}'.format(x,y,z),
+                  lib=lib)
+    print('\n-  running gulp optimize ...')
+    if n==1:
+       system('gulp<inp-sheng>gulp.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+    # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False)
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+
 def traj(inp='inp-gulp',c=0):
     #xyztotraj('his.xyz',inp=inp,mode='w',traj='md.traj',scale=False)
     arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
@@ -112,6 +137,6 @@ if __name__ == '__main__':
 
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,nvt,plot,traj,w])
+   argh.add_commands(parser, [opt,nvt,plot,traj,w,sheng])
    argh.dispatch(parser)
 
