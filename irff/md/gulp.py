@@ -32,6 +32,7 @@ dump 100 restart.grs;
 '''
 
 def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
+                  inp='inp-gulp',
                   time_step=0.1,
                   tot_step=10.0,
                   maxcyc=2000,
@@ -41,7 +42,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
     ''' runword = keyword in gulp input
         can be 'md conv' 'md conp' 'opti conp'
         qite = iterative solve charges, norx = no charges '''
-    finp = open('inp-gulp', 'w')
+    finp = open(inp, 'w')
     rw = runword.split()
     print(runword, file=finp)
     print('#', file=finp)
@@ -98,6 +99,10 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
 
     if output is not None:
        print('output {:s}'.format(output), file=finp)
+
+    if 'supercell' in kwargs:
+       print('supercell             {:s} '.format(kwargs['supercell']),file=finp)
+
     if rw[0] == 'md':
         print('output movie xyz his.xyz', file=finp)
     else:
