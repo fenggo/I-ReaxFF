@@ -1966,7 +1966,7 @@ class ReaxFF_nn(object):
   def get_penalty(self):
       ''' adding some penalty term to pretain the physical meaning '''
       log_    = -9.21044036697651
-      penalty = 0.0
+      penalty = tf.constant(0.0)
       wb_p    = []
       if self.regularize_be:
          wb_p.append('fe')
