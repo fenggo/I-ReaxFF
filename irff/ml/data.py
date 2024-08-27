@@ -60,7 +60,7 @@ class DataFrame:
 
 
 def read_csv(columns,fcsv):
-    dat = np.loadtxt('data.csv', delimiter=',', skiprows=1) 
+    dat = np.loadtxt(fcsv, delimiter=',', skiprows=1) 
     df  = DataFrame(columns,dat)
     return df
 
