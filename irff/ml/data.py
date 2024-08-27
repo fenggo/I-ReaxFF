@@ -27,7 +27,7 @@ class DataFrame:
       self.columns = columns
       self.entry   = dat
       self.shape   = self.entry.shape
-      self.par_dic = {col:i+1 for i,col in enumerate(columns)}
+      self.par_dic = {col:i for i,col in enumerate(columns)}
 
   def append(self,new_row):
       new = [self.entry.shape[0]]
@@ -35,6 +35,7 @@ class DataFrame:
           if not col:
              continue
           new.append(new_row[col])
+      
       new = np.array([new])
       self.entry = np.concatenate((self.entry, new), axis=0)
       # return self.entry
@@ -46,7 +47,7 @@ class DataFrame:
       else:
          return self.entry[i,self.par_dic[key]]
 
-  def set_value(self,i,j,v):
+  def set_value(self,i,key,v):
       self.entry[i,self.par_dic[key]] = v
 
   def save(self,fcsv):

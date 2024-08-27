@@ -41,7 +41,8 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
        # init_ffield_csv(fcsv,parameters=parameters)
        scale_  = []                                                 # 创建初始参数分布
        for col in columns:
-           if col=='':  continue
+           if not col:  
+              continue
            key = col.split('_')[0]
            if key!='score':
               if key in scale:
