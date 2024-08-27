@@ -1746,9 +1746,9 @@ class ReaxFF_nn(object):
                 break
 
           if self.optmol:
-             los_ = loss - lpenalty - self.ME_*self.lambda_me - loss_f
+             los_ = loss - lpenalty - self.ME_*self.lambda_me  # - loss_f
           else:
-             los_ = loss - lpenalty - loss_f
+             los_ = loss - lpenalty                            # - loss_f
           loss_ = los_ if i==0 else min(loss_,los_)
 
           if i%print_step==0:
