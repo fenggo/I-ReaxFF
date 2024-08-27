@@ -65,6 +65,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 print(-99999999999.9,file=f)                         # 得分<-999，需要重新评估
     else:
        if n_clusters>1:
+          columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w')    
           d   = read_csv(columns,fcsv)
           # columns        = d.columns
           for c in columns:                                ### Check Data
@@ -86,7 +87,6 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               if l not in clusters:
                  clusters[l] = i
               
-          columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w') 
           with open(fcsv,'a') as f:
              for i in clusters:
                  i_ = clusters[i]
