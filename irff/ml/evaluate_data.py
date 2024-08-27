@@ -36,10 +36,10 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
              evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
-    columns = parameters
+    columns = None
     if not isfile(fcsv):
        # init_ffield_csv(fcsv,parameters=parameters)
-       pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
+       columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
        
        scale_  = []                                                 # 创建初始参数分布
        for col in pna:
