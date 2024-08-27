@@ -32,6 +32,8 @@ class DataFrame:
   def append(self,new_row):
       new = [self.entry.shape[0]]
       for col in self.columns:
+          if not col:
+             continue
           new.append(new_row[col])
       new = np.array([new])
       self.entry = np.concatenate((self.entry, new), axis=0)
