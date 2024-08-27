@@ -3,6 +3,8 @@
 import sys
 import argh
 import argparse
+import numpy as np
+import csv
 from ase.io import read
 from ase.io.trajectory import Trajectory
 from irff.irff_np import IRFF_NP
@@ -19,6 +21,48 @@ from irff.molecule import Molecules,moltoatoms
 # 0.3680...
 # gpr.predict(X[:2,:], return_std=True)
 
+
+class DataFrame:
+  def __init__(self,columns,dat):
+      self.columns = columns
+      self.entry   = dat
+      self.shape   = self.entry.shape
+      self.par_dic = {col:i+1 for i,col in enumerate(columns)}
+
+  def append(self,new_row):
+      new = [self.entry.shape[0]]
+      for col in self.columns:
+          new.append(new_row[col])
+      new = np.array([new])
+      self.entry = np.concatenate((self.entry, new), axis=0)
+      # return self.entry
+      self.shape = self.entry.shape
+
+  def loc(self,i,key=None):
+      if key is None:
+         return self.entry[i]
+      else:
+         return self.entry[i,self.par_dic[key]]
+
+  def set_value(self,i,j,v):
+      self.entry[i,self.par_dic[key]] = v
+
+  def save(self,fcsv):
+      ''' save data to csv '''
+      fcsv = open(fcsv,'w')
+      csv_write = csv.writer(fcsv)
+      csv_write.writerow(self.columns)
+     
+      for i,d_ in enumerate(self.entry):
+          d_[0] = i
+          csv_write.writerow(d_)
+      fcsv.close()
+
+
+def read_csv(columns,fcsv):
+    dat = np.loadtxt('data.csv', delimiter=',', skiprows=1) 
+    df  = DataFrame(columns,dat)
+    return df
 
 def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
              message_function=2,ffield='ffield.json'):

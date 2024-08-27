@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from .ffield import ffield_to_csv,update_ffield #,get_csv_data
 from ..data.ColData import ColData
+from .data import read_csv
 from ..reax import ReaxFF 
 
 
@@ -35,6 +36,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
              evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
+    columns = parameters
     if not isfile(fcsv):
        # init_ffield_csv(fcsv,parameters=parameters)
        pna,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
@@ -64,8 +66,8 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 print(-99999999999.9,file=f)                         # 得分<-999，需要重新评估
     else:
        if n_clusters>1:
-          d   = pd.read_csv(fcsv)
-          columns        = d.columns
+          d   = read_csv(columns,fcsv)
+          # columns        = d.columns
           for c in columns:                                ### Check Data
               col_ = c.split()
               if len(col_)>0:
@@ -95,8 +97,8 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                      print(x_,end=',',file=f)
                  print(-99999999999.9,file=f)
                  
-    d              = pd.read_csv(fcsv)
-    columns        = d.columns
+    d              = read_csv(columns,fcsv)
+    # columns      = d.columns
 
     for c in columns:                                                ### Check Data
         col_ = c.split()
@@ -105,7 +107,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
            if col == 'Unnamed:':
               d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
 
-    columns = d.columns
+    # columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
        if not model is None:                                         ### evaluate the score of current ffield
           model.update(p=None,reset_emol=True)
@@ -129,13 +131,14 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  if item != 'score':
                     new_row[item]= float('{:.6f}'.format(p_[item]))  ## 参数有所变化，重新更新值
           new_row['score'] = [-loss]    
-          new_row = pd.DataFrame(new_row)
-          d = pd.concat([new_row,d],ignore_index=True)               ## 评估当前ffield得分，并加入到数据集中
+          # new_row = pd.DataFrame(new_row)
+          # d = concat([new_row,d],ignore_index=True)               ## 评估当前ffield得分，并加入到数据集中
+          d.append(new_row)
 
     d_row,d_column = d.shape
     for j in range(d_row):
-        p=d.loc[j]
-        if d.loc[j, 'score'] <= to_evaluate:
+        p=d.loc(j)
+        if d.loc(j, 'score') <= to_evaluate:
            if not model is None: 
               # print(p,'\n')
               model.update(p=p,reset_emol=True)
@@ -157,10 +160,13 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               for item in columns:                                ## 对所有列遍历
                   if item:
                      if item != 'score':
-                        d.loc[j, item]= float('{:.6f}'.format(p_[item]))         ## 参数有所变化，重新更新值  
+                        # d.loc(j, item)= float('{:.6f}'.format(p_[item]))         ## 参数有所变化，重新更新值 
+                        d.set_value(j,item,float('{:.6f}'.format(p_[item]))) 
                         # print('parameter: {:s} {:f}'.format(item,p_[item]))
-           d.loc[j, 'score'] = -loss
-        d.to_csv(fcsv)
+           # d.loc(j, 'score') = -loss
+           d.set_value(j,'score',-loss)
+
+        d.save(fcsv)
     # model.close()
     return d
 

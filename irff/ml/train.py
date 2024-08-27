@@ -212,7 +212,8 @@ def train(step=5000,print_step=100,writelib=500,
 
            if irow!=0 or ratio<end_search_ratio:
               if irow<0:
-                 d = pd.concat([new_row,d],ignore_index=True)
+                 # d = pd.concat([new_row,d],ignore_index=True)
+                 d.append(new_row)
               else:
                  d.loc[irow, 'score']  = score
               keep_best  = 0
