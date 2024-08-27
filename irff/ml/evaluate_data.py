@@ -36,10 +36,9 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
              evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
+    columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
     if not isfile(fcsv):
        # init_ffield_csv(fcsv,parameters=parameters)
-       columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
-       
        scale_  = []                                                 # 创建初始参数分布
        for col in columns:
            if col=='':  continue
@@ -64,8 +63,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                     print(x_,end=',',file=f)
                 print(-99999999999.9,file=f)                         # 得分<-999，需要重新评估
     else:
-       if n_clusters>1:
-          columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters,mode='w')    
+       if n_clusters>1:  
           d   = read_csv(columns,fcsv)
           # columns        = d.columns
           for c in columns:                                ### Check Data
@@ -98,7 +96,6 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  
     d              = read_csv(columns,fcsv)
     # columns      = d.columns
-
     for c in columns:                                                ### Check Data
         col_ = c.split()
         if len(col_)>0:
