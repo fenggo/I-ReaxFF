@@ -1314,7 +1314,7 @@ class ReaxFF_nn(object):
              self.nmol -= 1
 
       self.Loss   += self.loss_f
-      self.ME      = 0.0
+      self.ME      = tf.constant(0.0)
       for mol in self.strcs:
           mol_     = mol.split('-')[0] 
           self.ME += tf.square(self.MolEnergy[mol_])
