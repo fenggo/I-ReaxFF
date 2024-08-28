@@ -54,7 +54,6 @@ def train(step=5000,print_step=100,writelib=500,
     Y       = d.values[:, -1]
     columns = d.columns
     new_row = {}
-    zrow    = d.values[0]
 
     scale_  = []
     for col in columns:
@@ -98,7 +97,6 @@ def train(step=5000,print_step=100,writelib=500,
         #                 n_clusters=1,parameters=parameters)
         #    d.sort_values(axis=0,by='score',ascending=False,inplace=True)
         size_ = d.shape[0]
-        zrow  = d.index[0]
         sizepop = int(size_pop/2)
         if size_ > sizepop:
            size_ = sizepop
@@ -143,7 +141,7 @@ def train(step=5000,print_step=100,writelib=500,
 
            best_x,best_y = de.run(logfile=galog)                     ###   PSO GMM
            print('  The guessed score of best candidate: {:f} '.format(float(-best_y)),file=galog) 
-           print('  The score of last best             : {:f} '.format(d.loc[zrow, 'score']),file=galog) 
+           print('  The score of last best             : {:f} '.format(d.loc(0, 'score'),file=galog) 
            print('\n  The parameter vector: ',file=galog)
            for i_,x_ in enumerate(best_x):
                if i_%3==0:
@@ -227,7 +225,7 @@ def train(step=5000,print_step=100,writelib=500,
                  d.set_value(irow, 'score',score)  
               keep_best  = 0
            else:
-              d.set_value(zrow, 'score',score)  
+              d.set_value(0, 'score',score)  
               keep_best += 1
 
            print('  The score after evaluate: {:f}\n'.format(score),file=galog)
@@ -236,7 +234,7 @@ def train(step=5000,print_step=100,writelib=500,
         nrow = d.shape[0]
         if nrow>max_data_size:
            nrow = d.index[nrow-1]
-           sc = d.loc[nrow, 'score']  
+           sc = d.loc(0, 'score')  
            d.drop(nrow,axis=0,inplace=True) 
            print('row index {:d} in data: {:f} has been deleted beacuse maxium datasize reached'.format(nrow-1,
                  sc),file=galog)
