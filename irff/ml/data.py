@@ -55,7 +55,7 @@ class DataFrame:
 
   def sort_values(self):
       score = self.values[:,-1]
-      ind   = np.argsort(-score)
+      ind   = np.argsort(score)
       self.values = self.values[ind]
 
   def drop(self,i=-1):
