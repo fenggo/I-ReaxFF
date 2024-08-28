@@ -233,10 +233,10 @@ def train(step=5000,print_step=100,writelib=500,
 
         nrow = d.shape[0]
         if nrow>max_data_size:
-           nrow = d.index[nrow-1]
+           # nrow = d.index[nrow-1]
            sc = d.loc(0, 'score')  
-           d.drop(nrow,axis=0,inplace=True) 
-           print('row index {:d} in data: {:f} has been deleted beacuse maxium datasize reached'.format(nrow-1,
+           d.drop() 
+           print('row index {:d} in data: {:f} has been deleted beacuse maxium datasize reached'.format(nrow,
                  sc),file=galog)
             
         print('  Saving the data to {:s} ...'.format(fcsv),file=galog)

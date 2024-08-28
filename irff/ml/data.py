@@ -58,8 +58,9 @@ class DataFrame:
       ind   = np.argsort(-score)
       self.values = self.values[ind]
 
-#   def drop(self,i):
-#       self.values[i,self.par_dic[key]] = v
+  def drop(self,i=-1):
+      ''' drop the last row '''
+      self.values = np.delete(self.values,i,axis=0)
 
   def save(self,fcsv):
       ''' save data to csv '''
