@@ -2,13 +2,21 @@ from os import popen
 import time
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-import pandas as pd
+# import pandas as pd
 from .evolution import Evolution
 from .ffield import update_ffield
 from .evaluate_data import evaluate
 # from ..data.ColData import ColData
 # from ..reax import ReaxFF
 
+def row_to_array(columns,new_row):
+    new = [-1]
+    for col in self.columns:
+        if not col:
+           continue
+        new.append(new_row[col])
+      # print(new)
+      new = np.array([new])
 
 def train(step=5000,print_step=100,writelib=500,
              evaluate_step=100,
@@ -49,7 +57,7 @@ def train(step=5000,print_step=100,writelib=500,
 
     scale_  = []
     for col in columns:
-        new_row[col] = [d.loc[zrow, col]]
+        new_row[col] = d.loc(0, col)
         key = col.split('_')[0]
         if key!='score':
            if key in scale:
@@ -58,7 +66,7 @@ def train(step=5000,print_step=100,writelib=500,
               scale_.append(0.001)
 
     scale_  = np.array(scale_)
-    new_row = pd.DataFrame(new_row)
+    #new_row= pd.DataFrame(new_row)
 
     ### 训练机器学习模型  ### MLP RF GMM
     ml_model = RandomForestRegressor(n_estimators=100,max_depth=10,oob_score=True).fit(X,Y)
@@ -94,8 +102,8 @@ def train(step=5000,print_step=100,writelib=500,
         if size_ > sizepop:
            size_ = sizepop
         X_ = d.values[:size_, : -1]
-        X   = d.values[:, : -1]
-        Y   = d.values[:, -1]
+        X  = d.values[:, : -1]
+        Y  = d.values[:, -1]
 
         ml_model.fit(X,Y)
         score_ = ml_model.score(X,Y) 
@@ -148,9 +156,9 @@ def train(step=5000,print_step=100,writelib=500,
            while keep_ and cycle<10:
                for i,key in enumerate(columns):
                    if key != 'score':
-                      if abs(new_row.loc[0,key] - best_x[i])>=0.000001:
+                      if abs(new_row[key] - best_x[i])>=0.000001:
                          keep_ = False
-                         print('                {:16s} {:9.6f} -> {:9.6f}'.format(key,new_row.loc[0,key],best_x[i]),file=galog)
+                         print('                {:16s} {:9.6f} -> {:9.6f}'.format(key,new_row[key],best_x[i]),file=galog)
                if keep_: 
                   # print(' The parameter vector keep best, a random parameter set is chosen ...',file=galog)
                   print(' The parameter vector keep best, a second best parameter set is chosen ...',file=galog)
@@ -166,26 +174,26 @@ def train(step=5000,print_step=100,writelib=500,
         if do_gen:
            for i,key in enumerate(columns):
                if key != 'score':
-                  new_row.loc[0,key] = best_x[i]
+                  new_row[key] = best_x[i]
 
         if not potential is None:                                  #### 两种引入方式 potential or trainer
            # potential.initialize()
            # potential.session(learning_rate=0.0001, method='AdamOptimizer') 
-           potential.update(p=new_row.loc[0],reset_emol=True)      ### --------------------------------
+           potential.update(p=new_row,reset_emol=True)      ### --------------------------------
            potential.get_zpe()
-           potential.update(p=new_row.loc[0],reset_emol=False) 
+           potential.update(p=new_row,reset_emol=False) 
            potential.run(learning_rate=1.0e-4,step=step,print_step=print_step,
                           writelib=writelib,close_session=False)
            p_      = potential.p_ 
            score   = -potential.loss_ if 'atomic' not in parameters else -potential.ME_
         elif not trainer is None:
-           update_ffield(new_row.loc[0],'ffield.json')    #### update parameters
+           update_ffield(new_row,'ffield.json')    #### update parameters
            loss,p_ = trainer(step=step,print_step=print_step)
            score   = -loss
         else:
            raise RuntimeError('-  At least one of potential or trainer function is defind!')
         
-        ratio = score/d.loc[zrow, 'score']
+        ratio = score/d.loc(0, 'score')
         print('\n  The current ratio of the evolution algrithm: {:9.7f}'.format(ratio),file=galog)
         if ratio<0.999999:
            popen('cp ffield.json ffield_best.json')
@@ -195,14 +203,14 @@ def train(step=5000,print_step=100,writelib=500,
            for i,key in enumerate(columns):
                if key:
                   if key != 'score':
-                     new_row.loc[0,key] = p_[key]       
-           new_row.loc[0,'score'] = score 
+                     new_row[key] = p_[key]       
+           new_row['score'] = score 
         else:
            print('\n  Error: the score of current parameter vector is NaN, the search is end.',file=galog)
            break
 
         if len(new_row.loc[0])>1:
-           x_   = new_row.loc[0].values[:-1]
+           x_   = row_to_array(columns,new_row) # new_row.loc[0].values[:-1]
            irow = -1
            for i,x in enumerate(X):
                # print('x_: \n',x_,file=galog)

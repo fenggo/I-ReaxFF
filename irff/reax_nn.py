@@ -1796,10 +1796,11 @@ class ReaxFF_nn(object):
              print('-  Convergence Occurred, job compeleted.')
              break
           i += 1
-      self.print_penalty()
+      
       self.loss_ = loss_ if not (np.isnan(loss) or np.isinf(loss)) else 9999999.9
       if self.loss_ < 9999999.0: self.write_lib(libfile=libfile,loss=loss_)
       if close_session:
+         self.print_penalty()
          tf.compat.v1.reset_default_graph()
          self.sess.close()
          return loss_,accu,accMax,i,zpe
