@@ -243,7 +243,7 @@ def train(step=5000,print_step=100,writelib=500,
            print('\n  The current parameter vector keep best for iterations, the search is end.',file=galog)
            break
            
-        d.to_csv(fcsv)
+        d.d.save(fcsv)
         if it_>= max_ml_iter:
            print('\n  The maximum iterations have reached, the search is end.',file=galog)
         galog.close()
