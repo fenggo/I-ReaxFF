@@ -50,7 +50,7 @@ def train(step=5000,print_step=100,writelib=500,
                  n_clusters=n_clusters,parameters=parameters)
     d.sort_values()
 
-    X       = d.values[:, : -1]
+    X       = d.values[1:, : -1]
     Y       = d.values[:, -1]
     columns = d.columns
     new_row = {}
@@ -100,8 +100,8 @@ def train(step=5000,print_step=100,writelib=500,
         sizepop = int(size_pop/2)
         if size_ > sizepop:
            size_ = sizepop
-        X_ = d.values[:size_, : -1]
-        X  = d.values[:, : -1]
+        X_ = d.values[1:size_, : -1]
+        X  = d.values[1:, : -1]
         Y  = d.values[:, -1]
 
         ml_model.fit(X,Y)
@@ -146,7 +146,7 @@ def train(step=5000,print_step=100,writelib=500,
            for i_,x_ in enumerate(best_x):
                if i_%3==0:
                   print('\n--------------------------------------------------------------------------------------',file=galog)
-               cn = columns[i_]
+               cn = columns[i_+1]
                best_x[i_] = x_ = float('{:.6f}'.format(x_))
                print('{:16s} {:9.6f} |'.format(cn,x_),end=' ',file=galog)
            print('\n--------------------------------------------------------------------------------------',file=galog)
@@ -154,10 +154,10 @@ def train(step=5000,print_step=100,writelib=500,
            cycle = 0 
            while keep_ and cycle<10:
                for i,key in enumerate(columns):
-                   if key != 'score':
-                      if abs(new_row[key] - best_x[i])>=0.000001:
+                   if key and key != 'score':
+                      if abs(new_row[key] - best_x[i-1])>=0.000001:
                          keep_ = False
-                         print('                {:16s} {:9.6f} -> {:9.6f}'.format(key,new_row[key],best_x[i]),file=galog)
+                         print('                {:16s} {:9.6f} -> {:9.6f}'.format(key,new_row[key],best_x[i-1]),file=galog)
                if keep_: 
                   # print(' The parameter vector keep best, a random parameter set is chosen ...',file=galog)
                   print(' The parameter vector keep best, a second best parameter set is chosen ...',file=galog)
@@ -172,8 +172,8 @@ def train(step=5000,print_step=100,writelib=500,
         # print('\n  The time usage of genetic recommendation: {:f}'.format(gentic_end_time-gentic_start_time),file=galog)
         if do_gen:
            for i,key in enumerate(columns):
-               if key != 'score':
-                  new_row[key] = best_x[i]
+               if key and key != 'score':
+                  new_row[key] = best_x[i-1]
 
         if not potential is None:                                  #### 两种引入方式 potential or trainer
            # potential.initialize()
@@ -243,7 +243,7 @@ def train(step=5000,print_step=100,writelib=500,
            print('\n  The current parameter vector keep best for iterations, the search is end.',file=galog)
            break
            
-        d.d.save(fcsv)
+        d.save(fcsv)
         if it_>= max_ml_iter:
            print('\n  The maximum iterations have reached, the search is end.',file=galog)
         galog.close()
