@@ -25,33 +25,36 @@ from irff.molecule import Molecules,moltoatoms
 class DataFrame:
   def __init__(self,columns,dat):
       self.columns = columns
-      self.entry   = dat
-      self.shape   = self.entry.shape
+      if len(dat.shape)==1:
+         self.values = np.expand_dims(dat,axis=0)
+      else:
+         self.values   = dat
+      self.shape   = self.values.shape
       self.par_dic = {col:i for i,col in enumerate(columns)}
 
   def append(self,new_row):
-      new = [self.entry.shape[0]]
+      new = [self.values.shape[0]]
       for col in self.columns:
           if not col:
              continue
           new.append(new_row[col])
       # print(new)
       new = np.array([new])
-      self.entry = np.concatenate((self.entry, new), axis=0)
-      # return self.entry
-      self.shape = self.entry.shape
+      self.values = np.concatenate((self.values, new), axis=0)
+      # return self.values
+      self.shape = self.values.shape
 
   def loc(self,i,key=None):
       if key is None:
-         return self.entry[i]
+         return self.values[i]
       else:
-         return self.entry[i,self.par_dic[key]]
+         return self.values[i,self.par_dic[key]]
 
   def set_value(self,i,key,v):
-      self.entry[i,self.par_dic[key]] = v
+      self.values[i,self.par_dic[key]] = v
 
 #   def drop(self,i):
-#       self.entry[i,self.par_dic[key]] = v
+#       self.values[i,self.par_dic[key]] = v
 
   def save(self,fcsv):
       ''' save data to csv '''
@@ -59,7 +62,7 @@ class DataFrame:
       csv_write = csv.writer(fcsv)
       csv_write.writerow(self.columns)
      
-      for i,d_ in enumerate(self.entry):
+      for i,d_ in enumerate(self.values):
           d_[0] = i
           csv_write.writerow(d_)
       fcsv.close()
