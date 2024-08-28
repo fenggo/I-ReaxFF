@@ -35,7 +35,7 @@ class DataFrame:
           if not col:
              continue
           new.append(new_row[col])
-      
+      print(new)
       new = np.array([new])
       self.entry = np.concatenate((self.entry, new), axis=0)
       # return self.entry
@@ -49,6 +49,9 @@ class DataFrame:
 
   def set_value(self,i,key,v):
       self.entry[i,self.par_dic[key]] = v
+
+#   def drop(self,i):
+#       self.entry[i,self.par_dic[key]] = v
 
   def save(self,fcsv):
       ''' save data to csv '''

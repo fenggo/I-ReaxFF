@@ -41,11 +41,11 @@ def train(step=5000,print_step=100,writelib=500,
                  n_clusters=n_clusters,parameters=parameters)
     d.sort_values(axis=0,by='score',ascending=False,inplace=True)
 
-    X       = d.values[:, : -1]
-    Y       = d.values[:, -1]
+    X       = d.entry[:, : -1]
+    Y       = d.entry[:, -1]
     columns = d.columns
     new_row = {}
-    zrow    = d.index[0]
+    zrow    = d.entry[0]
 
     scale_  = []
     for col in columns:

@@ -71,8 +71,8 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               col_ = c.split()
               if len(col_)>0:
                  col = col_[0]
-                 if col == 'Unnamed:':
-                    d.drop(c,axis=1,inplace=True)          ### Delete Unnamed column
+                 # if col == 'Unnamed:':
+                 #   d.drop(c)          ### Delete Unnamed column
           X   = d.values[:,:-1]
           #Y  = d.values[:, -1]
           random.seed()
@@ -101,8 +101,8 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
         col_ = c.split()
         if len(col_)>0:
            col = col_[0]
-           if col == 'Unnamed:':
-              d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
+           # if col == 'Unnamed:':
+           #   d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
 
     # columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
