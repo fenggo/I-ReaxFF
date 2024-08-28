@@ -35,7 +35,7 @@ class DataFrame:
           if not col:
              continue
           new.append(new_row[col])
-      print(new)
+      # print(new)
       new = np.array([new])
       self.entry = np.concatenate((self.entry, new), axis=0)
       # return self.entry

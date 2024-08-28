@@ -127,7 +127,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               if item:
                  if item != 'score':
                     new_row[item]= float('{:.6f}'.format(p_[item]))  ## 参数有所变化，重新更新值
-          new_row['score'] = [-loss]    
+          new_row['score'] = -loss    
           # new_row = pd.DataFrame(new_row)
           # d = concat([new_row,d],ignore_index=True)               ## 评估当前ffield得分，并加入到数据集中
           d.append(new_row)
