@@ -82,7 +82,11 @@ def train(step=5000,print_step=100,writelib=500,
          print('-          Machine Learning Parameter optimization             -',file=galog)
          print('----------------------------------------------------------------\n',file=galog)
          print('  Initial parameter vector: ',file=galog)
-         print(new_row,file=galog)
+         for i,key in enumerate(columns):
+             if i!=0:
+                if i_%3==0:
+                   print(' ',file=galog)
+                print('{:16s} = {:9.6f}'.format(key,new_row[key]),end=' ',file=galog)
 
     it_       = 0
     score     = scoreConvergence - 0.1
@@ -126,7 +130,7 @@ def train(step=5000,print_step=100,writelib=500,
         for i_,x_ in enumerate(feature_importances):
             if i_%3==0:
                print(' ',file=galog)
-            print('{:16s} {:9.6f} |'.format(columns[i_],x_),end=' ',file=galog)
+            print('{:16s} {:9.6f} |'.format(columns[i_+1],x_),end=' ',file=galog)
         print('\n ',file=galog)
 
         ## PSO DE GMM
