@@ -215,10 +215,10 @@ def train(step=5000,print_step=100,writelib=500,
                  # d = pd.concat([new_row,d],ignore_index=True)
                  d.append(new_row)
               else:
-                 d.set_value(irow, 'score')  = score
+                 d.set_value(irow, 'score') 
               keep_best  = 0
            else:
-              d.set_value(zrow, 'score')  = score
+              d.set_value(zrow, 'score')  
               keep_best += 1
 
            print('  The score after evaluate: {:f}\n'.format(score),file=galog)
