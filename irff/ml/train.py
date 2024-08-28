@@ -208,28 +208,27 @@ def train(step=5000,print_step=100,writelib=500,
            print('\n  Error: the score of current parameter vector is NaN, the search is end.',file=galog)
            break
 
-        if len(new_row.loc[0])>1:
-           x_   = row_to_array(columns,new_row) # new_row.loc[0].values[:-1]
-           irow = -1
-           for i,x in enumerate(X):
-               # print('x_: \n',x_,file=galog)
-               # print('x: \n',x,file=galog)
-               if np.array_equal(x_,x):
-                  irow = i
+        x_   = row_to_array(columns,new_row) # new_row.loc[0].values[:-1]
+        irow = -1
+        for i,x in enumerate(X):
+            # print('x_: \n',x_,file=galog)
+            # print('x: \n',x,file=galog)
+            if np.array_equal(x_,x):
+               irow = i
 
-           if irow!=0 or ratio<end_search_ratio:
-              if irow<0:
-                 # d = pd.concat([new_row,d],ignore_index=True)
-                 d.append(new_row)
-              else:
-                 d.set_value(irow, 'score',score)  
-              keep_best  = 0
+        if irow!=0 or ratio<end_search_ratio:
+           if irow<0:
+              # d = pd.concat([new_row,d],ignore_index=True)
+              d.append(new_row)
            else:
-              d.set_value(0, 'score',score)  
-              keep_best += 1
+              d.set_value(irow, 'score',score)  
+           keep_best  = 0
+        else:
+           d.set_value(0, 'score',score)  
+           keep_best += 1
 
-           print('  The score after evaluate: {:f}\n'.format(score),file=galog)
-           d.sort_values()
+        print('  The score after evaluate: {:f}\n'.format(score),file=galog)
+        d.sort_values()
 
         nrow = d.shape[0]
         if nrow>max_data_size:
