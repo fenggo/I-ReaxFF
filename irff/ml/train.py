@@ -11,7 +11,7 @@ from .evaluate_data import evaluate
 
 def row_to_array(columns,new_row):
     new = [-1]
-    for col in self.columns:
+    for col in columns:
         if not col:
            continue
         new.append(new_row[col])
