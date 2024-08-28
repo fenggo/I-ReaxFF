@@ -141,7 +141,7 @@ def train(step=5000,print_step=100,writelib=500,
 
            best_x,best_y = de.run(logfile=galog)                     ###   PSO GMM
            print('  The guessed score of best candidate: {:f} '.format(float(-best_y)),file=galog) 
-           print('  The score of last best             : {:f} '.format(d.loc(0, 'score'),file=galog) 
+           print('  The score of last best             : {:f} '.format(d.loc(0, 'score')),file=galog) 
            print('\n  The parameter vector: ',file=galog)
            for i_,x_ in enumerate(best_x):
                if i_%3==0:
