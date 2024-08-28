@@ -15,8 +15,9 @@ def row_to_array(columns,new_row):
         if not col:
            continue
         new.append(new_row[col])
-      # print(new)
-      new = np.array([new])
+    # print(new)
+    new = np.array(new)
+    return new
 
 def train(step=5000,print_step=100,writelib=500,
              evaluate_step=100,
