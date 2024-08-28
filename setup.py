@@ -9,6 +9,8 @@ install with commond
   "python setup.py build_ext --inplace"
   "python setup install --user"
 or with command
+*  version 1.7.1 
+  Remove of dependence of pandas.
 
 *  version 1.7.0 
   Force learning with TensorFlow.
@@ -24,7 +26,7 @@ or with command
 '''
 
 
-__version__ = '1.7.0'
+__version__ = '1.7.1'
 install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko','argh','scikit-learn','cython']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
