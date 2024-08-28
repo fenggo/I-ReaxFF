@@ -53,6 +53,11 @@ class DataFrame:
   def set_value(self,i,key,v):
       self.values[i,self.par_dic[key]] = v
 
+  def sort_values(self):
+      score = self.values[:,-1]
+      ind   = np.argsort(-score)
+      self.values = self.values[ind]
+
 #   def drop(self,i):
 #       self.values[i,self.par_dic[key]] = v
 
