@@ -100,8 +100,8 @@ def train(step=5000,print_step=100,writelib=500,
         sizepop = int(size_pop/2)
         if size_ > sizepop:
            size_ = sizepop
-        X_ = d.values[size_, 1:-1]
-        X  = d.values[1:, 1:-1]
+        X_ = d.values[:size_, 1:-1]
+        X  = d.values[:, 1:-1]
         Y  = d.values[:, -1]
 
         ml_model.fit(X,Y)
