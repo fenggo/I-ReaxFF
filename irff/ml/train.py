@@ -59,7 +59,7 @@ def train(step=5000,print_step=100,writelib=500,
     for col in columns:
         new_row[col] = d.loc(0, col)
         key = col.split('_')[0]
-        if key!='score':
+        if key and key!='score':
            if key in scale:
               scale_.append(scale[key])
            else:

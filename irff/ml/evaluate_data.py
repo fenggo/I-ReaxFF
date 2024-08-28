@@ -134,8 +134,9 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
 
     d_row,d_column = d.shape
     for j in range(d_row):
-        p=d.loc(j)
-        if d.loc(j, 'score') <= to_evaluate:
+        row = d.loc(j)
+        p={col:row[i] for i,col in enumerate(columns)}
+        if p['score'] <= to_evaluate:
            if not model is None: 
               # print(p,'\n')
               model.update(p=p,reset_emol=True)
