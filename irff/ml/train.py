@@ -220,14 +220,14 @@ def train(step=5000,print_step=100,writelib=500,
             if np.array_equal(x_,x):
                irow = i
 
-        print('---------------   Iteration: {:6d} ----------------'.format(it_))
-        print('--',end='')
+        print('--------------   Iteration: {:6d} ---------------'.format(it_))
+        print('--',end=' ')
         for iv,v in enumerate(x):
             if iv!=0 and iv%4==0:
                print('--')
-               print('--',end='')
+               print('--',end=' ')
             print('{:9.6f} '.format(v),end=' ')
-        print('\n---------------------------------------------------')
+        print('\n-------------------------------------------------')
 
         if irow!=0 or ratio<end_search_ratio:
            if irow<0:
