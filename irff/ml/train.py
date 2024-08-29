@@ -86,7 +86,7 @@ def train(step=5000,print_step=100,writelib=500,
              if i!=0:
                 if i%3==0:
                    print(' ',file=galog)
-                print('{:16s} = {:9.6f}'.format(key,new_row[key]),end=' ',file=galog)
+                print('{:16s} = {:9.6f} | '.format(key,new_row[key]),end=' ',file=galog)
 
     it_       = 0
     score     = scoreConvergence - 0.1
