@@ -73,12 +73,12 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  col = col_[0]
                  # if col == 'Unnamed:':
                  #   d.drop(c)          ### Delete Unnamed column
-          X   = d.values[:,:-1]
+          X   = d.values[:,1:-1]
           #Y  = d.values[:, -1]
           random.seed()
           len_ = X.shape[0]
           n_   = n_clusters if len_>n_clusters else len_
-          kmeans = KMeans(n_clusters=n_, random_state=random.randint(0,10)).fit(X)
+          kmeans = KMeans(n_clusters=n_, n_init='auto',random_state=random.randint(0,10)).fit(X)
           #print(kmeans.labels_)
           #print(kmeans.cluster_centers_)
           clusters = {}            # 取第一次出现的元素为核心，前面的元素分值高，排序好的数据
