@@ -227,7 +227,7 @@ def train(step=5000,print_step=100,writelib=500,
                print('--')
                print('--',end=' ')
             print('{:9.6f} '.format(v),end=' ')
-        print('\n------------------------------------------------')
+        print('\n-------------------------------------------------')
 
         if irow!=0 or ratio<end_search_ratio:
            if irow<0:
