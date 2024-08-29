@@ -220,6 +220,13 @@ def train(step=5000,print_step=100,writelib=500,
             if np.array_equal(x_,x):
                irow = i
 
+        print('------------   Iteration: {:6d} -------------'.format(it_))
+        print('--',end='')
+        for v in x:
+            print('{:9.6f} '.format(v),end=' ')
+        print('--')
+        print('---------------------------------------------\n')
+
         if irow!=0 or ratio<end_search_ratio:
            if irow<0:
               # d = pd.concat([new_row,d],ignore_index=True)
