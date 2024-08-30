@@ -57,9 +57,11 @@ class DataFrame:
       # return self.values
       self.shape = self.values.shape
 
-  def loc(self,i,key=None):
-      if key is None:
+  def loc(self,i=None,key=None):
+      if i is not None and key is None:
          return self.values[i]
+      elif i is None and key is not None:
+         return self.values[:,self.par_dic[key]]
       else:
          return self.values[i,self.par_dic[key]]
 
