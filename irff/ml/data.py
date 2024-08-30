@@ -23,14 +23,27 @@ from irff.molecule import Molecules,moltoatoms
 
 
 class DataFrame:
-  def __init__(self,columns,dat):
+  def __init__(self,columns=None,dat=None):
       self.columns = columns
-      if len(dat.shape)==1:
-         self.values = np.expand_dims(dat,axis=0)
+      if dat is not None:
+         if len(dat.shape)==1:
+            self.values = np.expand_dims(dat,axis=0)
+         else:
+            self.values   = dat
+         self.shape   = self.values.shape
+         self.par_dic = {col:i for i,col in enumerate(columns)}
       else:
-         self.values   = dat
-      self.shape   = self.values.shape
-      self.par_dic = {col:i for i,col in enumerate(columns)}
+         self.values = None
+
+  def read_csv(self,fcsv,columns=None):
+      self.values = np.loadtxt(fcsv, delimiter=',', skiprows=1) 
+      if len(self.values.shape)==1:
+         self.values = np.expand_dims(self.values,axis=0)
+      if columns is None:
+         with open(fcsv,'r') as f:
+              line = f.readline()
+              columns = line.split(',')
+      self.columns = columns
 
   def append(self,new_row):
       new = [self.values.shape[0]]
