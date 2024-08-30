@@ -81,7 +81,7 @@ def train(step=5000,print_step=100,writelib=500,
          print('----------------------------------------------------------------',file=galog)
          print('-          Machine Learning Parameter optimization             -',file=galog)
          print('----------------------------------------------------------------\n',file=galog)
-         print('  Initial parameter vector: ',file=galog)
+         print('--  Initial parameter vector:   ',end='',file=galog)
          for i,key in enumerate(columns):
              if i!=0:
                 if i%3==0:
@@ -167,8 +167,8 @@ def train(step=5000,print_step=100,writelib=500,
                   print(' The parameter vector keep best, a second best parameter set is chosen ...',file=galog)
                   # i = np.random.choice(de.size_pop)
                   cycle += 1
-                  best_x = de.X[de.global_best_index[cycle]]
-                  best_y = de.Y[de.global_best_index[cycle]]
+                  best_x = de.generation_best_X[de.global_best_index[cycle]]
+                  best_y = de.generation_best_Y[de.global_best_index[cycle]]
         else:
            print('  The score of current parameters set looks good, need not do the genetic step.',file=galog)
         print('--------------------------------------------------------------------------------------',file=galog)
@@ -220,7 +220,8 @@ def train(step=5000,print_step=100,writelib=500,
             if np.array_equal(x_,x):
                irow = i
 
-        print('--------------   Iteration: {:5d} ---------------'.format(it_))
+        print('-------------------------------------------------'.format(it_))
+        print('-- Iteration: {:5d}'.format(it_))
         print('--',end=' ')
         for iv,v in enumerate(x):
             if iv!=0 and iv%4==0:
