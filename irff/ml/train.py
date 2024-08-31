@@ -214,6 +214,7 @@ def train(step=5000,print_step=100,writelib=500,
             # print('x: \n',x,file=galog)
             if np.array_equal(x_,x):
                irow = i
+               break
 
         print('-------------------------------------------------'.format(it_))
         print('-- Iteration: {:5d}'.format(it_))
