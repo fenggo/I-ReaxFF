@@ -9,7 +9,6 @@ from ..data.ColData import ColData
 from .data import read_csv
 from ..reax import ReaxFF 
 
-
 def init_ffield_csv(fcsv,parameters=['boc1','boc2','boc3','boc4','boc5',
                     'rosi','ropi','ropp','Desi','Depi','Depp',
                     'be1','be2','bo1','bo2','bo3','bo4','bo5','bo6',
@@ -36,8 +35,9 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
              evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
+    create = True if not isfile(fcsv) else False
     columns,row = ffield_to_csv(ffield='ffield.json',fcsv=fcsv,parameters=parameters) 
-    if not isfile(fcsv):
+    if create:
        # init_ffield_csv(fcsv,parameters=parameters)
        scale_  = []                                                 # 创建初始参数分布
        for col in columns:
@@ -111,18 +111,16 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
        else:
           raise RuntimeError('-  At least one of potential or trainer function is defind!')
 
-       if np.isnan(loss) or np.isinf(loss) or loss>99999999999.0:
-          loss = 99999999999.9
-       else:
-          new_row = {}
-          for item in columns:                                       ## 对所有列遍历
-              if item:
-                 if item != 'score':
-                    new_row[item]= float('{:.6f}'.format(p_[item]))  ## 参数有所变化，重新更新值
-          new_row['score'] = -loss    
-          # new_row = pd.DataFrame(new_row)
-          # d = concat([new_row,d],ignore_index=True)               ## 评估当前ffield得分，并加入到数据集中
-          d.append(new_row)
+       # if np.isnan(loss) or np.isinf(loss) or loss>99999999999.0:
+       #    loss = 99999999999.9
+       # else:
+       #    new_row = {}
+       #    for item in columns:                                       ## 对所有列遍历
+       #        if item:
+       #           if item != 'score':
+       #              new_row[item]= float('{:.6f}'.format(p_[item]))  ## 参数有所变化，重新更新值
+       #    new_row['score'] = -loss    
+       #    d.append(new_row)
 
     d_row,d_column = d.shape
     for j in range(d_row):

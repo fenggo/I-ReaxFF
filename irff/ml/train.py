@@ -151,7 +151,7 @@ def train(step=5000,print_step=100,writelib=500,
            print('\n--------------------------------------------------------------------------------------',file=galog)
            keep_ = True if step==0 else False
            cycle = 0 
-           while keep_ and cycle<10:
+           while keep_ and len(de.generation_best_Y):
                for i,key in enumerate(columns):
                    if key and key != 'score':
                       if abs(new_row[key] - best_x[i-1])>=0.000001:
