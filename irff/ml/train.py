@@ -37,7 +37,7 @@ def train(step=5000,print_step=100,writelib=500,
             end_search_nan=False,
                GAThreshold=0.5):
     ''' Using machine learing model to assis the training of ReaxFF'''
-    scoreConvergence = 0.0 if relative_score  else - lossConvergence
+    scoreConvergence = - lossConvergence
 
     d = evaluate(model=potential,trainer=trainer,
                  fcsv=fcsv,to_evaluate=to_evaluate,relative_score=True,
