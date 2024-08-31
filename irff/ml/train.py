@@ -10,13 +10,8 @@ from .evaluate_data import evaluate
 # from ..reax import ReaxFF
 
 def row_to_array(columns,new_row):
-    new = [-1]
-    for col in columns:
-        if col and col!='score':
-           new.append(new_row[col])
-        new.append(new_row[col])
     # print(new)
-    new = np.array(new)
+    new = np.array([new_row[col] for col in columns if col and col!='score'])
     return new
 
 def train(step=5000,print_step=100,writelib=500,
