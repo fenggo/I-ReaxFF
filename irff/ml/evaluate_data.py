@@ -107,7 +107,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
 
           loss = model.loss_ if 'atomic' not in parameters else model.ME_
           if relative_score:
-             score = model.loss_ - model.loss_zero
+             score =  model.loss_zero - model.loss_ 
           else:
              score = -loss
           p_      = model.p_ 
@@ -142,7 +142,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                         writelib=writelib,close_session=False)
               loss = model.loss_ if 'atomic' not in parameters else model.ME_
               if relative_score:
-                 score = model.loss_ - model.loss_zero
+                 score =  model.loss_zero - model.loss_ 
               else:
                  score = -loss
               p_   = model.p_

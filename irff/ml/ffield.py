@@ -49,10 +49,10 @@ def ffield_to_csv(ffield='ffield.json',parameters=None,keys=None,fcsv='ffield.cs
     with open(ffield,'r') as lf:
          j  = js.load(lf)
          p_ = j['p']
-         try:
-            score = j['score']
-         except:
-            score = -1000
+         # try:
+         #    score = j['score']
+         # except:
+         score = -1000
          # m_ = j['m']
          # bo_layer = j['bo_layer']
     spec,bonds,offd,angs,torp,hbs = init_bonds(p_)

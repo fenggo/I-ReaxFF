@@ -187,7 +187,7 @@ def train(step=5000,print_step=100,writelib=500,
            if 'atomic' not in parameters and not relative_score: 
               score   = -potential.loss_ 
            elif 'atomic' not in parameters and relative_score: 
-              score   =  potential.loss_  + d.loc(0,'score')#  potential.loss_zero
+              score   =  potential.loss_zero - potential.loss_  + # d.loc(0,'score')
            else:
               score   = -potential.ME_
         elif not trainer is None:
