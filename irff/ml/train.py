@@ -196,7 +196,7 @@ def train(step=5000,print_step=100,writelib=500,
         else:
            raise RuntimeError('-  At least one of potential or trainer function is defind!')
         
-        ratio = score/d.loc(0, 'score')
+        ratio = d.loc(0, 'score')/score if relative_score else score/d.loc(0, 'score')
         print('\n  The current ratio of the evolution algrithm: {:9.7f}'.format(ratio),file=galog)
         if ratio<0.999999:
            popen('cp ffield.json ffield_best.json')
