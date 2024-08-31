@@ -93,7 +93,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  print(i+1,end=',',file=f)
                  for x_ in x:
                      print(x_,end=',',file=f)
-                 print(-99999999999.9,file=f)
+                 print(-100000,file=f)
                  
     d = read_csv(columns,fcsv)
     # columns = d.columns
