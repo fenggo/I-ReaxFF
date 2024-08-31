@@ -37,7 +37,7 @@ def train(step=5000,print_step=100,writelib=500,
             end_search_nan=False,
                GAThreshold=0.5):
     ''' Using machine learing model to assis the training of ReaxFF'''
-    scoreConvergence = if relative_score 0 else - lossConvergence
+    scoreConvergence = if relative_score 0.0 else - lossConvergence
 
     d = evaluate(model=potential,trainer=trainer,
                  fcsv=fcsv,to_evaluate=to_evaluate,relative_score=True,
@@ -187,7 +187,7 @@ def train(step=5000,print_step=100,writelib=500,
            if 'atomic' not in parameters and not relative_score: 
               score   = -potential.loss_ 
            elif 'atomic' not in parameters and relative_score: 
-              score   =  potential.loss_  - potential.loss_zero
+              score   =  potential.loss_  + d.loc(0,'score')#  potential.loss_zero
            else:
               score   = -potential.ME_
         elif not trainer is None:
