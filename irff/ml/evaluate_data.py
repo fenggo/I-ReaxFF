@@ -95,15 +95,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                      print(x_,end=',',file=f)
                  print(-99999999999.9,file=f)
                  
-    d              = read_csv(columns,fcsv)
-    # columns      = d.columns
-    for c in columns:                                                ### Check Data
-        col_ = c.split()
-        if len(col_)>0:
-           col = col_[0]
-           # if col == 'Unnamed:':
-           #   d.drop(c,axis=1,inplace=True)                          ### Delete Unnamed column
-
+    d = read_csv(columns,fcsv)
     # columns = d.columns
     if evaluate_ffield:                                              ### whether evaluate the current ffield
        if not model is None:                                         ### evaluate the score of current ffield
