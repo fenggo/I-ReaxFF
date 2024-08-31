@@ -183,13 +183,12 @@ def train(step=5000,print_step=100,writelib=500,
            potential.update(p=new_row,reset_emol=False) 
            potential.run(learning_rate=1.0e-4,step=step,print_step=print_step,
                           writelib=writelib,close_session=False)
-           p_      = potential.p_ 
-           if 'atomic' not in parameters and not relative_score: 
-              score   = -potential.loss_ 
-           elif 'atomic' not in parameters and relative_score: 
-              score   =  potential.loss_zero - potential.loss_  # +  d.loc(0,'score')
+           p_       = potential.p_ 
+           loss     = potential.loss_ if 'atomic' not in parameters else potential.ME_
+           if relative_score:
+              score =  potential.loss_zero - potential.loss_ 
            else:
-              score   = -potential.ME_
+              score = -loss
         elif not trainer is None:
            update_ffield(new_row,'ffield.json')    #### update parameters
            loss,p_ = trainer(step=step,print_step=print_step)
@@ -243,7 +242,7 @@ def train(step=5000,print_step=100,writelib=500,
            d.set_value(0, 'score',score)  
            keep_best += 1
 
-        print('  The score after evaluate: {:f}\n'.format(score),file=galog)
+        print('  The loss after evaluate: {:f}\n'.format(loss),file=galog)
         d.sort_values()
 
         nrow = d.shape[0]
