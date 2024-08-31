@@ -32,7 +32,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                     'lp1','lp2','coa2','coa3','coa4','pen2','pen3','pen4',
                     'tor2','tor3','tor4','cot2',
                     'rvdw','gammaw','Devdw','alfa','vdw1'],
-             evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,
+             evaluate_ffield=True,scale=1.0,pop=20,n_clusters=1,relative_score=True,
              step=1000,print_step=100,writelib=500):
     ''' evaluate the score of the parameter set in csv file '''
     create = True if not isfile(fcsv) else False
@@ -104,10 +104,16 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
           model.update(p=None,reset_emol=False)
           model.run(learning_rate=1.0e-4,step=step,print_step=print_step,
                     writelib=writelib,close_session=False)
-          loss    = model.loss_ if 'atomic' not in parameters else model.ME_
+
+          loss = model.loss_ if 'atomic' not in parameters else model.ME_
+          if relative_score:
+             score = model.loss_ - model.loss_zero
+          else:
+             score = -loss
           p_      = model.p_ 
        elif not trainer is None:
           loss,p_ = trainer(step=step,print_step=print_step)
+          score   = -loss
        else:
           raise RuntimeError('-  At least one of potential or trainer function is defind!')
 
@@ -135,10 +141,15 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
               model.run(learning_rate=1.0e-4,step=step,print_step=print_step,
                         writelib=writelib,close_session=False)
               loss = model.loss_ if 'atomic' not in parameters else model.ME_
+              if relative_score:
+                 score = model.loss_ - model.loss_zero
+              else:
+                 score = -loss
               p_   = model.p_
            elif not trainer is None:
               update_ffield(p,'ffield.json')   #### update parameters
               loss,p_ = trainer(step=step,print_step=print_step)
+              score   = -loss
            else:
               raise RuntimeError('-  At least one of potential or trainer function is defind!')
 
@@ -152,7 +163,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                         d.set_value(j,item,float('{:.6f}'.format(p_[item]))) 
                         # print('parameter: {:s} {:f}'.format(item,p_[item]))
            # d.loc(j, 'score') = -loss
-           d.set_value(j,'score',-loss)
+           d.set_value(j,'score',score)
 
         d.save(fcsv)
     # model.close()

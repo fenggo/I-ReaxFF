@@ -1618,7 +1618,12 @@ class ReaxFF(object):
              los_ = loss - lpenalty - self.ME_*self.lambda_me
           else:
              los_ = loss - lpenalty
-          loss_ = los_ if i==0 else min(loss_,los_)
+             
+          if i==0: 
+             loss_          = los_ 
+             self.loss_zero = los_
+          else: 
+             loss_ = min(loss_,los_)
 
           if i%print_step==0:
              current = time.time()

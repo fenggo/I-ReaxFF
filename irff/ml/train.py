@@ -18,6 +18,7 @@ def train(step=5000,print_step=100,writelib=500,
              evaluate_step=100,
                       fcsv='ffield.csv',
                to_evaluate=-998,
+            relative_score=True,
            evaluate_ffield=True,
            lossConvergence=30.0,
                max_ml_iter=2000,
@@ -36,10 +37,10 @@ def train(step=5000,print_step=100,writelib=500,
             end_search_nan=False,
                GAThreshold=0.5):
     ''' Using machine learing model to assis the training of ReaxFF'''
-    scoreConvergence = - lossConvergence
+    scoreConvergence = if relative_score 0 else - lossConvergence
 
     d = evaluate(model=potential,trainer=trainer,
-                 fcsv=fcsv,to_evaluate=to_evaluate,
+                 fcsv=fcsv,to_evaluate=to_evaluate,relative_score=True,
                  step=evaluate_step,print_step=print_step,writelib=writelib,
                  evaluate_ffield=evaluate_ffield,pop=init_pop,scale=scale,
                  n_clusters=n_clusters,parameters=parameters)
@@ -65,7 +66,7 @@ def train(step=5000,print_step=100,writelib=500,
 
     ### 训练机器学习模型  ### MLP RF GMM
     ml_model = RandomForestRegressor(n_estimators=100,max_depth=10,oob_score=True).fit(X,Y)
-    score    = ml_model.score(X,Y)      # cross_val_score(rfr,x,y,cv=10).mean()
+    score_   = ml_model.score(X,Y)      # cross_val_score(rfr,x,y,cv=10).mean()
 
     def func(x):                        ## 用于遗传算法评估的函数
         # x = np.expand_dims(x,axis=0)
@@ -183,7 +184,12 @@ def train(step=5000,print_step=100,writelib=500,
            potential.run(learning_rate=1.0e-4,step=step,print_step=print_step,
                           writelib=writelib,close_session=False)
            p_      = potential.p_ 
-           score   = -potential.loss_ if 'atomic' not in parameters else -potential.ME_
+           if 'atomic' not in parameters and not relative_score: 
+              score   = -potential.loss_ 
+           elif 'atomic' not in parameters and relative_score: 
+              score   =  potential.loss_  - potential.loss_zero
+           else:
+              score   = -potential.ME_
         elif not trainer is None:
            update_ffield(new_row,'ffield.json')    #### update parameters
            loss,p_ = trainer(step=step,print_step=print_step)
