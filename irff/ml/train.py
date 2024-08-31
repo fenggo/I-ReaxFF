@@ -88,6 +88,7 @@ def train(step=5000,print_step=100,writelib=500,
     score     = scoreConvergence - 0.1
     do_gen    = True
     keep_best = 0
+    loss_lowest = None
     while score<scoreConvergence and it_< max_ml_iter:
         # if step>0 and it_>0:
         #    d = evaluate(model=potential,trainer=trainer,
@@ -186,7 +187,14 @@ def train(step=5000,print_step=100,writelib=500,
            p_       = potential.p_ 
            loss     = potential.loss_ if 'atomic' not in parameters else potential.ME_
            if relative_score:
-              score =  potential.loss_zero - potential.loss_ 
+              if loss_lowest is None:
+                 score = potential.loss_zero - potential.loss_ 
+                 loss_lowest = potential.loss_
+              else:
+                 score = loss_lowest - potential.loss_ 
+
+                 if potential.loss_<loss_lowest:
+                    loss_lowest = potential.loss_
            else:
               score = -loss
         elif not trainer is None:
