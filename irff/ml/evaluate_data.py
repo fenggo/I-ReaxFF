@@ -62,7 +62,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                 print(i+1,end=',',file=f)
                 for x_ in x:
                     print(x_,end=',',file=f)
-                print(-99999999999.9,file=f)                         # 得分<-999，需要重新评估
+                print(-100000.0,file=f)                         # 得分<-999，需要重新评估
     else:
        if n_clusters>1:  
           d   = read_csv(columns,fcsv)
@@ -97,6 +97,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                  
     d = read_csv(columns,fcsv)
     # columns = d.columns
+
     if evaluate_ffield:                                              ### whether evaluate the current ffield
        if not model is None:                                         ### evaluate the score of current ffield
           model.update(p=None,reset_emol=True)
@@ -106,6 +107,7 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                     writelib=writelib,close_session=False)
 
           loss = model.loss_ if 'atomic' not in parameters else model.ME_
+          loss_lowest = loss
           if relative_score:
              score =  model.loss_zero - model.loss_ 
           else:
@@ -142,7 +144,9 @@ def evaluate(model=None,trainer=None,fcsv='ffield_bo.csv',to_evaluate=-9999.0,
                         writelib=writelib,close_session=False)
               loss = model.loss_ if 'atomic' not in parameters else model.ME_
               if relative_score:
-                 score =  model.loss_zero - model.loss_ 
+                 score =  loss_lowest - model.loss_
+                 if model.loss_<loss_lowest:
+                    loss_lowest = model.loss_
               else:
                  score = -loss
               p_   = model.p_
