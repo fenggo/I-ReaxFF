@@ -208,7 +208,7 @@ def train(step=5000,print_step=100,writelib=500,
         print('\n  The current ratio of the evolution algrithm: {:9.7f}'.format(ratio),file=galog)
         if ratio<0.999999:
            popen('cp ffield.json ffield_best.json')
-        do_gen = False if ratio< (1.0-GAThreshold) else True
+        do_gen = False if ratio< (1.0-GAThreshold) and ratio>0.0 else True
 
         if not end_search_nan or score>-99999999999.0: 
            for i,key in enumerate(columns):
