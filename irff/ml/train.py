@@ -250,7 +250,7 @@ def train(step=5000,print_step=100,writelib=500,
            d.set_value(0, 'score',score)  
            keep_best += 1
 
-        print('  The loss after evaluate: {:f}\n'.format(loss),file=galog)
+        print('  The score after evaluate: {:f}\n'.format(score),file=galog)
         d.sort_values()
 
         nrow = d.shape[0]
