@@ -240,7 +240,7 @@ def train(step=5000,print_step=100,writelib=500,
         print('\n-- score: {:.5f}'.format(score))
         print('\n-------------------------------------------------')
 
-        if irow!=0 or ratio<end_search_ratio:
+        if irow!=0 or (ratio<end_search_ratio and ratio>0):
            if irow<0:
               # d = pd.concat([new_row,d],ignore_index=True)
               d.append(new_row)
