@@ -1673,7 +1673,12 @@ class ReaxFF_nn(object):
                 elif key in self.ea_var:
                    self.feed_dict[self.var[key]] = p_
                    self.ea_var[key]              = p[key]
-      
+                   if k in self.p_offd:
+                      b = k_[1].split('-')
+                      if len(b)==1:
+                         self.feed_dict[self.var[key+'-'+b[0]]] = p_
+                         self.ea_var[key+'-'+b[0]]              = p[key]
+                      
       for mol in self.strcs:
           mol_ = mol.split('-')[0]
           if reset_emol: self.MolEnergy_[mol_] = 0.0

@@ -206,8 +206,12 @@ def train(step=5000,print_step=100,writelib=500,
         
         ratio = d.loc(0, 'score')/score if relative_score else score/d.loc(0, 'score')
         print('\n  The current ratio of the evolution algrithm: {:9.7f}'.format(ratio),file=galog)
-        if ratio<0.999999:
-           popen('cp ffield.json ffield_best.json')
+        if relative_score:
+           if score>0.0:
+              popen('cp ffield.json ffield_best.json')
+        else:
+           if ratio<0.999999:
+              popen('cp ffield.json ffield_best.json')
         do_gen = False if ratio< (1.0-GAThreshold) and ratio>0.0 else True
 
         if not end_search_nan or score>-99999999999.0: 
