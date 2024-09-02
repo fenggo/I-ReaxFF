@@ -267,7 +267,7 @@ def train(step=5000,print_step=100,writelib=500,
                  sc),file=galog)
             
         print('  Saving the data to {:s} ...'.format(fcsv),file=galog)
-        if keep_best>4 and ratio>=end_search_ratio:
+        if keep_best>4 and (not relative_score) and ratio>=end_search_ratio:
            print('\n  The current parameter vector keep best for iterations, the search is end.',file=galog)
            break
            
