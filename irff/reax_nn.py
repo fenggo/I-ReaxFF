@@ -142,8 +142,6 @@ class ReaxFF_nn(object):
       self.MessageFunction = MessageFunction
       self.spv_ang       = spv_ang
       self.bo_clip       = bo_clip
-      self.vlo           = vlo
-      self.vup           = vup
       self.bo_layer      = bo_layer
       self.weight        = weight
       self.spec          = spec
