@@ -46,13 +46,16 @@ class Dataset(object):
   '''Data set to feed the ReaxFF-nn computaional graph'''
   def __init__(self,dft_energy=None,
                x=None,cell=None,rcell=None,
-               forces=None,
+               forces=None,bosi=None,bopi=None,bopp=None,
                rbd=None,rv=None,qij=None,
                theta=None,s_ijk=None,s_jkl=None,
                w=None,cos_w=None,cos2w=None,cos3w=None,
                rhb=None,frhb=None,hbthe=None,q=None):
       self.dft_energy = dft_energy
       self.forces     = forces
+      self.bosi       = bosi
+      self.bopi       = bopi
+      self.bopp       = bopp
       self.x          = x
       self.cell       = cell
       self.rcell      = rcell

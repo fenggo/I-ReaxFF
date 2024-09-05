@@ -47,7 +47,6 @@ class ReaxFF_nn(object):
                # hbtol=0.001,
                bore={'others':0.0},
                weight={'others':1.0},
-               spv_vdw=False,vlo={'others':[(0.0,0.0)]},vup={'others':[(10.0,0.0)]},
                bo_clip=None,                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
                ro_scale=0.1,
@@ -63,6 +62,7 @@ class ReaxFF_nn(object):
                messages=1,MessageFunction=3,
                bo_layer=None,
                spec=[],
+               lambda_bo=100.0,
                lambda_bd=100000.0,
                lambda_pi=1.0,
                lambda_reg=0.01,
@@ -70,6 +70,7 @@ class ReaxFF_nn(object):
                regularize_be=True,
                regularize_mf=True,
                regularize_bias=False,
+               bo_learn=tuple(),  
                spv_ang=False,
                fixrcbo=False,
                to_train=True,
@@ -127,16 +128,18 @@ class ReaxFF_nn(object):
          self.regularize = True
       else:
          self.regularize = False
+      self.bo_learn      = bo_learn
       self.lambda_reg    = lambda_reg
       self.lambda_pi     = lambda_pi
       self.lambda_ang    = lambda_ang
+      self.lambda_bo     = lambda_bo
+      self.lambda_bd     = lambda_bd
       self.mf_layer      = mf_layer
       self.be_layer      = be_layer
       self.be_universal_nn = be_universal_nn
       self.mf_universal_nn = mf_universal_nn
       self.messages        = messages
       self.MessageFunction = MessageFunction
-      self.spv_vdw       = spv_vdw
       self.spv_ang       = spv_ang
       self.bo_clip       = bo_clip
       self.vlo           = vlo
@@ -149,7 +152,7 @@ class ReaxFF_nn(object):
       self.to_train      = to_train
       self.maxstep       = maxstep
       self.emse          = emse
-      #self.optMethod     = optMethod
+      #self.optMethod    = optMethod
       self.convergence   = convergence
       self.lossConvergence = lossConvergence
       self.losFunc       = losFunc
@@ -176,7 +179,6 @@ class ReaxFF_nn(object):
 
       self.torp          = self.checkTors(self.torp)
       
-      self.lambda_bd     = lambda_bd
       self.logger        = logger('training.log')
       self.initialized   = False
       self.sess_build    = False
@@ -277,6 +279,9 @@ class ReaxFF_nn(object):
       print('-  generating dataset ...')
       self.dft_energy                  = {}
       self.dft_forces                  = {}
+      self.dft_bosi                    = {}
+      self.dft_bopi                    = {}
+      self.dft_bopp                    = {}
       self.q                           = {}
       self.bdid                        = {}
       self.bdidr                       = {}
@@ -357,6 +362,9 @@ class ReaxFF_nn(object):
 
           self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
+                                     bosi=strucs[s].bosi,
+                                     bopi=strucs[s].bopi,
+                                     bopp=strucs[s].bopp,
                                      cell=np.float32(strucs[s].cell),
                                      rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
@@ -402,11 +410,20 @@ class ReaxFF_nn(object):
                                                    name='qij_{:s}'.format(s))
           # self.nang[mol] = molecules[mol].nang
           # self.nhb[mol]  = molecules[mol].nhb
-          if strucs[s].forces is not None:
+          if s in self.bo_learn :
+             self.dft_forces[s] = None
+             self.dft_bosi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+                                            name='dftbosi_{:s}'.format(s))
+             self.dft_bopi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+                                            name='dftbopi_{:s}'.format(s))
+             self.dft_bopp[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+                                            name='dftbopp_{:s}'.format(s))                                  
+          elif strucs[s].forces is not None:
              self.dft_forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
                                             name='dftforces_{:s}'.format(s))
+             self.dft_bosi[s] = self.dft_bopi[s] = self.dft_bopp[s] = None
           else:
-             self.dft_forces[s] = None
+             self.dft_bosi[s] = self.dft_bopi[s] = self.dft_bopp[s] = self.dft_forces[s] = None
              
   def memory(self):
       self.frc = {}
@@ -470,7 +487,7 @@ class ReaxFF_nn(object):
       self.E,self.zpe,self.eatom = {},{},{}
       self.forces                = {}
       self.loss,self.penalty,self.accur,self.MolEnergy = {},{},{},{}
-      self.loss_force                                  = {}
+      self.loss_force,self.loss_bo                     = {},{}
 
       self.rv,self.q = {},{}
       self.theta = {}
@@ -1262,6 +1279,7 @@ class ReaxFF_nn(object):
       ''' return the losses of the model '''
       self.Loss   = tf.constant(0.0)
       self.loss_f = tf.constant(0.0)
+      self.loss_bo= tf.constant(0.0)
       for st in self.strcs:
           st_ = st.split('-')[0]
           if st in self.weight:
@@ -1278,6 +1296,13 @@ class ReaxFF_nn(object):
                 self.get_forces(st) 
                 self.loss_force[st] = tf.nn.l2_loss(self.forces[st]-self.dft_forces[st],
                                  name='loss_force_%s' %st)
+             elif self.dft_bosi[st] is not None:
+                self.loss_bosi[st]  = tf.nn.l2_loss(self.bosi[st]-self.dft_bosi[st],
+                                                    name='loss_bosi_%s' %st)
+                self.loss_bopi[st]  = tf.nn.l2_loss(self.bopi[st]-self.dft_bopi[st],
+                                                    name='loss_bopi_%s' %st)
+                self.loss_bopp[st]  = tf.nn.l2_loss(self.bopp[st]-self.dft_bopp[st],
+                                                    name='loss_bopp_%s' %st)
           elif self.losFunc == 'abs':
              self.loss[st] = tf.compat.v1.losses.absolute_difference(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
@@ -1285,21 +1310,41 @@ class ReaxFF_nn(object):
                 self.loss_force[st] = tf.compat.v1.losses.absolute_difference(self.forces[st],
                                                                                self.dft_forces[st],
                                  name='loss_force_%s' %st)
+             elif self.dft_bosi[st] is not None:
+                self.loss_bosi[st]  = tf.compat.v1.losses.absolute_difference(self.bosi[st],
+                                                   self.dft_bosi[st],name='loss_bosi_%s' %st)
+                self.loss_bopi[st]  = tf.compat.v1.losses.absolute_difference(self.bopi[st],
+                                                   self.dft_bopi[st],name='loss_bopi_%s' %st)
+                self.loss_bopp[st]  = tf.compat.v1.losses.absolute_difference(self.bopp[st],
+                                                   self.dft_bopp[st],name='loss_bopp_%s' %st)
           elif self.losFunc == 'mse':
              self.loss[st] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
                 self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
-                                                                              self.dft_forces[st],
-                                 name='loss_force_%s' %st)
+                                                 self.dft_forces[st],name='loss_force_%s' %st)
+             elif self.dft_bosi[st] is not None:
+                self.loss_bosi[st]  = tf.compat.v1.losses.mean_squared_error(self.bosi[st],
+                                                 self.dft_bosi[st], name='loss_bosi_%s' %st)
+                self.loss_bopi[st]  = tf.compat.v1.losses.mean_squared_error(self.bopi[st],
+                                                 self.dft_bopi[st], name='loss_bopi_%s' %st)
+                self.loss_bopp[st]  = tf.compat.v1.losses.mean_squared_error(self.bopp[st],
+                                                 self.dft_bopp[st], name='loss_bopp_%s' %st)
           elif self.losFunc == 'huber':
              self.loss[st] = tf.compat.v1.losses.huber_loss(self.dft_energy[st],self.E[st],delta=self.huber_d)
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
-                self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
+                self.loss_force[st] = tf.compat.v1.losses.huber_loss(self.forces[st],
                                                                               self.dft_forces[st],
                                                                               delta=self.huber_d,
                                                                         name='loss_force_%s' %st)
+             elif self.dft_bosi[st] is not None:
+                self.loss_bosi[st]  = tf.compat.v1.losses.huber_loss(self.bosi[st],self.dft_bosi[st], 
+                                                           delta=self.huber_d,name='loss_bosi_%s' %st)
+                self.loss_bopi[st]  = tf.compat.v1.losses.huber_loss(self.bopi[st],self.dft_bopi[st], 
+                                                           delta=self.huber_d,name='loss_bopi_%s' %st)
+                self.loss_bopp[st]  = tf.compat.v1.losses.huber_loss(self.bopp[st],self.dft_bopp[st], 
+                                                           delta=self.huber_d,name='loss_bopp_%s' %st)
           else:
              raise NotImplementedError('-  This function not supported yet!')
 
@@ -1307,13 +1352,17 @@ class ReaxFF_nn(object):
           self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
           if st in self.loss_force:
              self.loss_f    += self.loss_force[st]*w_
+          elif st in self.loss_bosi:
+             self.loss_bo   += self.loss_bosi[st]*self.lambda_bo
+             self.loss_bo   += self.loss_bopi[st]*self.lambda_bo
+             self.loss_bo   += self.loss_bopp[st]*self.lambda_bo
           self.Loss      += self.loss[st]*w_ 
           if st.find('nomb')<0:
              self.accuracy += self.accur[st]
           else:
              self.nmol -= 1
 
-      self.Loss   += self.loss_f
+      self.Loss   += self.loss_f + self.loss_bo
       self.ME      = tf.constant(0.0)
       for mol in self.strcs:
           mol_     = mol.split('-')[0] 
@@ -1719,14 +1768,16 @@ class ReaxFF_nn(object):
 
       while totrain:
           if step==0:
-             loss,loss_f,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
+             loss,loss_f,loss_bo,lpenalty,self.ME_,accu,accs   = self.sess.run([self.Loss,
                                                        self.loss_f,
+                                                       self.loss_bo,
                                                        self.loss_penalty,
                                                        self.ME,self.accuracy, self.accur],
                                                    feed_dict=self.feed_dict)
           else:
-             loss,loss_f,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
+             loss,loss_f,loss_bo,lpenalty,self.ME_,accu,accs,_ = self.sess.run([self.Loss,
                                                 self.loss_f,
+                                                self.loss_bo,
                                                 self.loss_penalty,
                                                 self.ME,
                                                 self.accuracy,
@@ -1770,8 +1821,8 @@ class ReaxFF_nn(object):
                  acc += key+': %6.4f ' %accs[key]
              loss_f = loss_f/self.natoms
              loss_e = los_/self.natoms
-             self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f pen: %6.4f me: %6.4f time: %6.4f' %(i,
-                              loss_e,accu,acc,loss_f,lpenalty,self.ME_,elapsed_time))
+             self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f bo: %8.6f pen: %6.4f me: %6.4f time: %6.4f' %(i,
+                              loss_e,accu,acc,loss_f,loss_bo,lpenalty,self.ME_,elapsed_time))
              self.time = current
 
           if i%writelib==0 or i==step:
@@ -1824,6 +1875,10 @@ class ReaxFF_nn(object):
           feed_dict[self.q[mol]]     = np.transpose(self.data[mol].q,(1,2,0))
           if self.dft_forces[mol] is not None:
              feed_dict[self.dft_forces[mol]] = self.data[mol].forces
+          if self.dft_bosi[mol] is not None:
+             feed_dict[self.dft_bosi[mol]] = self.data[mol].bosi
+             feed_dict[self.dft_bopi[mol]] = self.data[mol].bopi
+             feed_dict[self.dft_bopp[mol]] = self.data[mol].bopp
          #  if self.nang[mol]>0:
          #     feed_dict[self.theta[mol]] = self.data[mol].theta
 
