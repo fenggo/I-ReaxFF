@@ -183,8 +183,8 @@ class reax_force_data(object):
       self.get_table()
       self.get_bonds(self.R)
      
-      if self.screen: 
-         self.compute_bondorder()
+      # if self.screen: 
+      self.compute_bondorder()
       
       if self.structure.find('nomb')>=0:
          self.nhb  = {}
@@ -287,9 +287,9 @@ class reax_force_data(object):
       self.Deltap = np.sum(self.bop,axis=2)
 
   def get_bondorder(self):
-      bosi = np.zeros([self.batch,self.natom,self.natom])
-      bopi = np.zeros([self.batch,self.natom,self.natom])
-      bopp = np.zeros([self.batch,self.natom,self.natom])
+      self.bosi = np.zeros([self.batch,self.natom,self.natom])
+      self.bopi = np.zeros([self.batch,self.natom,self.natom])
+      self.bopp = np.zeros([self.batch,self.natom,self.natom])
 
       I    = np.expand_dims(1.0 - np.eye(self.natom),axis=0)
                                          
@@ -332,12 +332,12 @@ class reax_force_data(object):
           Fpi   = F[:,:,1]
           Fpp   = F[:,:,2]
 
-          bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
-          bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
-          bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
+          self.bosi[:,bi,bj] = self.bosi[:,bj,bi] = hsi*Fsi
+          self.bopi[:,bi,bj] = self.bopi[:,bj,bi] = hpi*Fpi
+          self.bopp[:,bi,bj] = self.bopp[:,bj,bi] = hpp*Fpp
       
       atol      = self.p['acut']*0.95
-      self.bo   = bosi+bopi+bopp
+      self.bo   = self.bosi+self.bopi+self.bopp
       self.fbo  = taper(self.bo,rmin=atol,rmax=2.0*atol) 
       # print('\n- fbo -\n',self.fbo)
       # print('\n-  bo -\n',self.bo)
