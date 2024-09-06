@@ -485,6 +485,7 @@ class ReaxFF_nn(object):
       self.forces                = {}
       self.loss,self.penalty,self.accur,self.MolEnergy = {},{},{},{}
       self.loss_force,self.loss_bo                     = {},{}
+      self.loss_bosi,self.loss_bopi,self.loss_bopi     = {},{},{}
 
       self.rv,self.q = {},{}
       self.theta = {}
