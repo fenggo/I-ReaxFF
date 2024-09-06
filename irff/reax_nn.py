@@ -2214,6 +2214,9 @@ class ReaxFF_nn(object):
       Y,Yp = [],[]
       
       for mol in self.strcs:
+          mol_ = mol.split('-')[0]
+          if mol_ in self.bo_keep or mol in self.bo_keep:
+             continue
           maxe = self.max_e[mol]
           x  = np.linspace(0,self.batch[mol],self.batch[mol])
           plt.figure()
