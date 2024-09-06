@@ -100,12 +100,12 @@ class reax_force_data(object):
       self.hblong    = hblong
       stru = self.structure.split('-')[0]
       if isfile('ffield_{:s}.json'.format(self.structure)):
-         with open(self.libfile,'r') as lf:
+         with open('ffield_{:s}.json'.format(self.structure),'r') as lf:
               j = js.load(lf)
          self.p      = j['p']
          self.m      = j['m']
       elif isfile('ffield_{:s}.json'.format(stru)):
-         with open(self.libfile,'r') as lf:
+         with open('ffield_{:s}.json'.format(stru),'r') as lf:
               j = js.load(lf)
          self.p      = j['p']
          self.m      = j['m']
