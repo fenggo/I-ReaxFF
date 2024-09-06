@@ -1,5 +1,6 @@
-import numpy as np
 from os import system, getcwd, chdir,listdir
+from os.path import isfile
+import numpy as np
 from ase import Atoms
 from ase.io.trajectory import Trajectory
 from .md.gulp import write_gulp_in,get_reaxff_q
@@ -97,8 +98,20 @@ class reax_force_data(object):
       self.vdwcut    = vdwcut
       self.hbshort   = hbshort
       self.hblong    = hblong
-      self.p         = p
-      self.m         = m
+      stru = self.structure.split('-')[0]
+      if isfile('ffield_{:s}.json'.format(self.structure)):
+         with open(self.libfile,'r') as lf:
+              j = js.load(lf)
+         self.p      = j['p']
+         self.m      = j['m']
+      elif isfile('ffield_{:s}.json'.format(stru)):
+         with open(self.libfile,'r') as lf:
+              j = js.load(lf)
+         self.p      = j['p']
+         self.m      = j['m']
+      else:
+         self.p      = p
+         self.m      = m
       self.spec      = spec
       self.bonds     = bonds
       self.angs      = angs
