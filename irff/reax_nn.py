@@ -70,7 +70,7 @@ class ReaxFF_nn(object):
                regularize_be=True,
                regularize_mf=True,
                regularize_bias=False,
-               bo_learn=tuple(),  
+               bo_keep=tuple(),  
                spv_ang=False,
                fixrcbo=False,
                to_train=True,
@@ -128,7 +128,7 @@ class ReaxFF_nn(object):
          self.regularize = True
       else:
          self.regularize = False
-      self.bo_learn      = bo_learn
+      self.bo_keep       = bo_keep
       self.lambda_reg    = lambda_reg
       self.lambda_pi     = lambda_pi
       self.lambda_ang    = lambda_ang
@@ -408,7 +408,7 @@ class ReaxFF_nn(object):
                                                    name='qij_{:s}'.format(s))
           # self.nang[mol] = molecules[mol].nang
           # self.nhb[mol]  = molecules[mol].nhb
-          if s_ in self.bo_learn or s in self.bo_learn:
+          if s_ in self.bo_keep or s in self.bo_keep:
              self.dft_forces[s] = None
              self.dft_bosi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbosi_{:s}'.format(s))
