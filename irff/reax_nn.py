@@ -360,9 +360,9 @@ class ReaxFF_nn(object):
 
           self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
-                                     bosi=strucs[s].bosi,#.transpose(1,2,0),
-                                     bopi=strucs[s].bopi,#.transpose(1,2,0),
-                                     bopp=strucs[s].bopp,#.transpose(1,2,0),
+                                     bosi=strucs[s].bosi.transpose(1,2,0),
+                                     bopi=strucs[s].bopi.transpose(1,2,0),
+                                     bopp=strucs[s].bopp.transpose(1,2,0),
                                      cell=np.float32(strucs[s].cell),
                                      rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
@@ -410,11 +410,11 @@ class ReaxFF_nn(object):
           # self.nhb[mol]  = molecules[mol].nhb
           if s in self.bo_learn :
              self.dft_forces[s] = None
-             self.dft_bosi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+             self.dft_bosi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbosi_{:s}'.format(s))
-             self.dft_bopi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+             self.dft_bopi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbopi_{:s}'.format(s))
-             self.dft_bopp[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],self.natom[s]],
+             self.dft_bopp[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbopp_{:s}'.format(s))                                  
           elif strucs[s].forces is not None:
              self.dft_forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
