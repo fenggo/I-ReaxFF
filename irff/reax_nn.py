@@ -408,7 +408,7 @@ class ReaxFF_nn(object):
                                                    name='qij_{:s}'.format(s))
           # self.nang[mol] = molecules[mol].nang
           # self.nhb[mol]  = molecules[mol].nhb
-          if s in self.bo_learn :
+          if s_ in self.bo_learn or s in self.bo_learn:
              self.dft_forces[s] = None
              self.dft_bosi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbosi_{:s}'.format(s))
