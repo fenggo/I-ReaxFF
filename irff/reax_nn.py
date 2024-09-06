@@ -427,8 +427,7 @@ class ReaxFF_nn(object):
       self.frc = {}
       self.Bsi,self.Bpi,self.Bpp  = {},{},{}
       self.bop_si,self.bop_pi,self.bop_pp,self.bop = {},{},{},{}
-      self.bosi,self.bosi_pen = {},{}
-      self.bopi,self.bopp,self.bo0,self.bo,self.bso = {},{},{},{},{}
+      self.bosi,self.bopi,self.bopp,self.bo0,self.bo,self.bso = {},{},{},{},{},{}
 
       self.Deltap,self.Delta,self.Bp = {},{},{}
       self.delta,self.Di,self.Dj,self.Di_boc,self.Dj_boc={},{},{},{},{}
