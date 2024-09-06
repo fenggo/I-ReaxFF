@@ -360,9 +360,9 @@ class ReaxFF_nn(object):
 
           self.data[s]     = Dataset(dft_energy=strucs[s].energy_dft,
                                      x=strucs[s].x,
-                                     bosi=strucs[s].bosi,
-                                     bopi=strucs[s].bopi,
-                                     bopp=strucs[s].bopp,
+                                     bosi=strucs[s].bosi.transpose(1,2,0),
+                                     bopi=strucs[s].bopi.transpose(1,2,0),
+                                     bopp=strucs[s].bopp.transpose(1,2,0),
                                      cell=np.float32(strucs[s].cell),
                                      rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
