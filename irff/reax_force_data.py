@@ -1,5 +1,6 @@
 from os import system, getcwd, chdir,listdir
 from os.path import isfile
+import json as js
 import numpy as np
 from ase import Atoms
 from ase.io.trajectory import Trajectory
