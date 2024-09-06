@@ -1371,9 +1371,12 @@ class ReaxFF_nn(object):
                                                            delta=self.huber_d,name='loss_bopp_%s' %st)
           else:
              raise NotImplementedError('-  This function not supported yet!')
-
-          sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
-          self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
+          
+          if st_ in self.bo_keep or st in self.bo_keep:
+             self.accur[st] = 1.0 
+          else:
+             sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
+             self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
           if st in self.loss_force:
              self.loss_f    += self.loss_force[st]*w_
           elif st in self.loss_bosi:
