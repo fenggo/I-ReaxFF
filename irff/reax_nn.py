@@ -1373,7 +1373,8 @@ class ReaxFF_nn(object):
              raise NotImplementedError('-  This function not supported yet!')
           
           if st_ in self.bo_keep or st in self.bo_keep:
-             self.accur[st] = tf.constant(1.0) 
+             self.loss_bosi[st] = self.loss_bosi[st] + self.loss_bopi[st] + self.loss_bopp[st]
+             self.accur[st] = 1.0 - self.loss_bosi[st]/3.0
           else:
              sum_edft = tf.reduce_sum(tf.abs(self.dft_energy[st]-self.max_e[st]))
              self.accur[st] = 1.0 - tf.reduce_sum(tf.abs(self.E[st]-self.dft_energy[st]))/(sum_edft+0.00000001)
@@ -1381,8 +1382,8 @@ class ReaxFF_nn(object):
              self.loss_f    += self.loss_force[st]*w_
           elif st in self.loss_bosi:
              self.loss_bo   += self.loss_bosi[st]*self.lambda_bo
-             self.loss_bo   += self.loss_bopi[st]*self.lambda_bo
-             self.loss_bo   += self.loss_bopp[st]*self.lambda_bo
+             #self.loss_bo   += self.loss_bopi[st]*self.lambda_bo
+             #self.loss_bo   += self.loss_bopp[st]*self.lambda_bo
           self.Loss      += self.loss[st]*w_ 
           if st.find('nomb')<0:
              self.accuracy += self.accur[st]
