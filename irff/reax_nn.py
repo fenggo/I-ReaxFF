@@ -497,13 +497,27 @@ class ReaxFF_nn(object):
       self.accuracy   = tf.constant(0.0,name='accuracy')
       self.accuracies = {}
       for mol in self.strcs:
+          mol_ = mol.split('-')[0]
           self.get_bond_energy(mol)
-          self.get_atom_energy(mol)
-          self.get_threebody_energy(mol)
-          self.get_fourbody_energy(mol)
-          self.get_vdw_energy(mol)
-          self.get_hb_energy(mol)
-          self.get_total_energy(mol)
+          if (mol_ in self.bo_keep) or (mol in self.bo_keep):
+             self.eover[mol] = tf.constant(0.0)
+             self.eunder[mol]= tf.constant(0.0)
+             self.elone[mol] = tf.constant(0.0)
+             self.eang[mol]  = tf.constant(0.0)
+             self.epen[mol]  = tf.constant(0.0)
+             self.etcon[mol] = tf.constant(0.0)
+             self.etor[mol]  = tf.constant(0.0)
+             self.efcon[mol] = tf.constant(0.0)
+             self.evdw[mol]  = tf.constant(0.0)
+             self.ecoul[mol] = tf.constant(0.0)
+             self.ehb[mol]   = tf.constant(0.0)
+          else:
+             self.get_atom_energy(mol)
+             self.get_threebody_energy(mol)
+             self.get_fourbody_energy(mol)
+             self.get_vdw_energy(mol)
+             self.get_hb_energy(mol)
+             self.get_total_energy(mol)
       self.get_loss()
       print('-  end of build.')
 
@@ -1288,7 +1302,10 @@ class ReaxFF_nn(object):
              w_ = self.weight['others']
 
           if self.losFunc   == 'n2':
-             self.loss[st] = tf.nn.l2_loss(self.E[st]-self.dft_energy[st],
+             if st_ in self.bo_keep or st in self.bo_keep:
+                self.loss[st] = tf.constant(0.0)
+             else:
+                self.loss[st] = tf.nn.l2_loss(self.E[st]-self.dft_energy[st],
                                  name='loss_%s' %st)
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
@@ -1302,7 +1319,10 @@ class ReaxFF_nn(object):
                 self.loss_bopp[st]  = tf.nn.l2_loss(self.bopp[st]-self.dft_bopp[st],
                                                     name='loss_bopp_%s' %st)
           elif self.losFunc == 'abs':
-             self.loss[st] = tf.compat.v1.losses.absolute_difference(self.dft_energy[st],self.E[st])
+             if st_ in self.bo_keep or st in self.bo_keep:
+                self.loss[st] = tf.constant(0.0)
+             else:
+                self.loss[st] = tf.compat.v1.losses.absolute_difference(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
                 self.loss_force[st] = tf.compat.v1.losses.absolute_difference(self.forces[st],
@@ -1316,7 +1336,10 @@ class ReaxFF_nn(object):
                 self.loss_bopp[st]  = tf.compat.v1.losses.absolute_difference(self.bopp[st],
                                                    self.dft_bopp[st],name='loss_bopp_%s' %st)
           elif self.losFunc == 'mse':
-             self.loss[st] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[st],self.E[st])
+             if st_ in self.bo_keep or st in self.bo_keep:
+                self.loss[st] = tf.constant(0.0)
+             else:
+                self.loss[st] = tf.compat.v1.losses.mean_squared_error(self.dft_energy[st],self.E[st])
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
                 self.loss_force[st] = tf.compat.v1.losses.mean_squared_error(self.forces[st],
@@ -1329,7 +1352,10 @@ class ReaxFF_nn(object):
                 self.loss_bopp[st]  = tf.compat.v1.losses.mean_squared_error(self.bopp[st],
                                                  self.dft_bopp[st], name='loss_bopp_%s' %st)
           elif self.losFunc == 'huber':
-             self.loss[st] = tf.compat.v1.losses.huber_loss(self.dft_energy[st],self.E[st],delta=self.huber_d)
+             if st_ in self.bo_keep or st in self.bo_keep:
+                self.loss[st] = tf.constant(0.0)
+             else:
+                self.loss[st] = tf.compat.v1.losses.huber_loss(self.dft_energy[st],self.E[st],delta=self.huber_d)
              if self.dft_forces[st] is not None:
                 self.get_forces(st) 
                 self.loss_force[st] = tf.compat.v1.losses.huber_loss(self.forces[st],
