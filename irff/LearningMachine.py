@@ -536,9 +536,9 @@ class LearningMachine(object):
       chdir(cwd+'/'+run_dir)
       
       if self.dft=='siesta':
-         system('cp ../../*.psf ./')
+         system('cp ../../pseudo/*.psf ./')
       elif self.dft=='qe':
-         system('cp ../../*.UPF ./')
+         system('cp ../../pseudo/*.UPF ./')
       system('cp ../../ffield.json ./')     # prepare files
       system('cp ../../md.traj ./')
       
