@@ -264,7 +264,8 @@ def write_siesta_in(Atoms,infdf='in.fdf',
        print('PAO.BasisType    split',file=fdf)
        print('%block PAO.Basis',file=fdf)
        for spec in species:
-           assert spec in basis
+           if spec not in basis:
+              continue
            for l in basis[spec]:
                print(l,file=fdf)
        print('%endblock PAO.Basis',file=fdf)
