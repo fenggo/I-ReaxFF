@@ -1793,6 +1793,7 @@ class ReaxFF_nn(object):
       totrain = True
       i       = 0
       zpe     = {}
+      self.loss_zero = 0.0
 
       while totrain:
           if step==0:
