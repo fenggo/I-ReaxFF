@@ -7,6 +7,9 @@ import json as js
 from irff.reaxfflib import read_ffield #,write_lib
 
 
+par_recommnd = {'Desi':480.0,'Depi':0.0,'Depp':0.0,
+                }
+
 def init_bonds(p_):
     spec,bonds,offd,angs,torp,hbs = [],[],[],[],[],[]
     for key in p_:
@@ -115,10 +118,8 @@ def add_elements(element,ffield='ffield'):
             if k in p_:
                j['p'][k] = p_[k] 
             else:
-               if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[0]]>0.0: 
-                  j['p'][k] = sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
-               else:
-                  j['p'][k] = -1.0 
+               if key in par_recommnd:
+                  j['p'][k] = par_recommnd[key] 
                   
     #print(offd_new)
     for bd in offd_new:
