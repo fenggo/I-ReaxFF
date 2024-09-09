@@ -131,8 +131,8 @@ def add_elements(element,ffield='ffield'):
             if k in p_:
                j['p'][k] = p_[k]
             else:
-               if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[0]]>0.0: 
-                  print(p_[key+'_'+b[0]],p_[key+'_'+b[1]])
+               if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[1]]>0.0: 
+                  # print(p_[key+'_'+b[0]],p_[key+'_'+b[1]])
                   j['p'][k] = np.sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
                else:
                   j['p'][k] = -1.0 
