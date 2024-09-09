@@ -3,6 +3,7 @@ from absl import app
 from absl import flags
 import argh
 import argparse
+import numpy as np
 import json as js
 from irff.reaxfflib import read_ffield #,write_lib
 
@@ -131,7 +132,7 @@ def add_elements(element,ffield='ffield'):
                j['p'][k] = p_[k]
             else:
                if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[0]]>0.0: 
-                  j['p'][k] = sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
+                  j['p'][k] = np.sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
                else:
                   j['p'][k] = -1.0 
 
