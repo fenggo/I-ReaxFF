@@ -8,6 +8,7 @@ from ase.io.trajectory import TrajectoryWriter
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.units import Ry
 from ase import Atoms
+from ase.data import atomic_numbers
 # from .dingtalk import send_msg
 import numpy as np
 '''  tools used by siesta '''
@@ -105,7 +106,7 @@ def xv2xyz():
     fxv = open('siesta.XV','r')
     fxyz= open('siesta.xyz','w')
 
-    elements = {'6':'C','1':'H','7':'N','8':'O','26':'Fe'}
+    # elements = {'6':'C','1':'H','7':'N','8':'O','26':'Fe','14':'Si'}
 
     for line in fxv.readlines():
         if len(line.split()) == 1:
@@ -115,7 +116,7 @@ def xv2xyz():
             x = float(line.split()[2])*0.53
             y = float(line.split()[3])*0.53
             z = float(line.split()[4])*0.53
-            print(elements[line.split()[1]],x,y,z,file=fxyz)
+            print(atomic_numbers[int(line.split()[1])],x,y,z,file=fxyz)
 
 def single_point(atoms,id=0,xcf='VDW',xca='DRSLL',basistype='DZP',
                  val={'C':4.0,'H':1.0,'O':6.0,'N':5.0,'F':7.0,'Al':3.0},
