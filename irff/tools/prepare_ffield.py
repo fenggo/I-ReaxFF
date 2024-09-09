@@ -96,27 +96,43 @@ def add_elements(element,ffield='ffield'):
         elif bd_ in bonds_: 
            bonds_new.add(bd_)
         else:
-           print('Error: {:s} or {:s} not found in ffield!'.format(bd,bd_))
+           print('Warning: {:s} or {:s} not found in ffield!'.format(bd,bd_))
+           bonds_new.add(bd)
 
         if bd in offd_: 
            offd_new.add(bd)
         elif bd_ in bonds_: 
            offd_new.add(bd_)
         else:
-           print('Error: {:s} or {:s} not found in ffield!'.format(bd,bd_)) 
+           print('Warning: {:s} or {:s} not found in ffield!'.format(bd,bd_)) 
+           offd_new.add(bd)
         bonds_new.add(e +'-' + e)
 
     for bd in bonds_new:
+        b = bd.split('-')
         for key in pbond:
             k = key+'_'+bd
-            j['p'][k] = p_[k] 
-
+            if k in p_:
+               j['p'][k] = p_[k] 
+            else:
+               if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[0]]>0.0: 
+                  j['p'][k] = sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
+               else:
+                  j['p'][k] = -1.0 
+                  
     #print(offd_new)
     for bd in offd_new:
+        b = bd.split('-')
         for key in pofd:
             k = key+'_'+bd
             #print(k)
-            j['p'][k] = p_[k] 
+            if k in p_:
+               j['p'][k] = p_[k]
+            else:
+               if p_[key+'_'+b[0]]>0.0 and p_[key+'_'+b[0]]>0.0: 
+                  j['p'][k] = sqrt(p_[key+'_'+b[0]]*p_[key+'_'+b[1]])
+               else:
+                  j['p'][k] = -1.0 
 
     angs_new = set()
     for sp1 in sp_all:
@@ -151,10 +167,10 @@ def add_elements(element,ffield='ffield'):
             for sp3 in sp_all:
                 for sp4 in sp_all:
                     if element in [sp1,sp2,sp3,sp4]:
-                       tor  = sp1 + '-' +sp2 + '-' +sp3 +'-'+sp4
-                       tor_ = sp4 +'-'+sp3 + '-' +sp2 + '-' +sp1
-                       torx = 'X' + '-' +sp2 + '-' +sp3 +'-'+'X'
-                       torx_= 'X' + '-' +sp3 + '-' +sp2 +'-'+'X'
+                       tor  = sp1 + '-' +sp2 + '-' +sp3 + '-' + sp4
+                       tor_ = sp4 + '-' +sp3 + '-' +sp2 + '-' + sp1
+                       torx = 'X' + '-' +sp2 + '-' +sp3 + '-' + 'X'
+                       torx_= 'X' + '-' +sp3 + '-' +sp2 + '-' + 'X'
                        if tor in tors_:
                           tors_new.add(tor)
                        elif tor_ in tors_:
@@ -205,5 +221,5 @@ def add_elements(element,ffield='ffield'):
 
 
 if __name__ == "__main__":
-  # app.run(select_elements)
-  select_elements(['O','H'])
+   # app.run(select_elements)
+   select_elements(['O','H'])
