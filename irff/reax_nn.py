@@ -817,10 +817,9 @@ class ReaxFF_nn(object):
       self.Nlp[st]      = -self.DE[st] + tf.exp(-self.p['lp1']*4.0*tf.square(1.0+self.Delta_e[st]-self.DE[st]))
 
       self.Delta_lp[st] = Nlp - self.Nlp[st]                             # nan error
-      # Delta_lp        = tf.clip_by_value(self.Delta_lp[mol],-1.0,10.0)  # temporary solution
-      # Delta_lp        = tf.nn.relu(self.Delta_lp[st]+1) -1
-
-      explp             = 1.0+tf.exp(-75.0*self.Delta_lp[st]) # -self.p['lp3']
+      Delta_lp          = tf.clip_by_value(self.Delta_lp[st],-1.0,10.0)  # temporary solution
+      Delta_lp          = tf.nn.relu(self.Delta_lp[st]+1) -1
+      explp             = 1.0+tf.exp(-75.0*Delta_lp) # -self.p['lp3']
       self.Elone[st]    = tf.math.divide(lp2*self.Delta_lp[st],explp,
                                           name='Elone_{:s}'.format(st))
                                           
