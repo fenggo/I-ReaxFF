@@ -96,8 +96,7 @@ class ReaxFF_nn(object):
       self.cons          = ['val','vale','valang','valboc','lp3','cutoff']
       self.cons         += cons
       self.energy_term   = {'etor':True,'eang':True,'eover':True,'eunder':True,
-                            'ecoul':True,'evdw':True,'elone':True,'ehb':True,
-                            'efcon':True,'etcon':True}
+                            'ecoul':True,'evdw':True,'elone':True,'ehb':True}
       self.energy_term.update(energy_term)
       self.optmol        = optmol
       self.lambda_me     = lambda_me
@@ -1001,7 +1000,7 @@ class ReaxFF_nn(object):
       self.s_ijk[st],self.s_jkl[st]            = {},{}
       self.cos_w[st],self.cos2w[st],self.w[st] = {},{},{}
       self.f_10[st],self.f_11[st]              = {},{}
-      if (not self.energy_term['etor'] and not self.energy_term['efcon']) or self.ntor[st]==0:
+      if (not self.energy_term['etor']) or self.ntor[st]==0:
          self.etor[st] = tf.zeros([self.batch[st]])
          self.efcon[st]= tf.zeros([self.batch[st]])
       else:
