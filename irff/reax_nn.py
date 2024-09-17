@@ -59,7 +59,8 @@ class ReaxFF_nn(object):
                nnopt=True,
                be_universal_nn=None,be_layer=[3,0],
                mf_universal_nn=None,mf_layer=[3,0],
-               messages=1,MessageFunction=3,
+               messages=1,
+               MessageFunction=3,EnergyFunction=3,
                bo_layer=None,
                spec=[],
                lambda_bo=100.0,
@@ -115,7 +116,9 @@ class ReaxFF_nn(object):
       self.nnopt         = nnopt
       self.mfopt         = mfopt         # specify the element of message function to be optimized
       if mpopt is None:
-         self.mpopt      = [True,True,True,True]
+         mf = False if MessageFunction == 0 else True
+         be = False if EnergyFunction  == 0 else True
+         self.mpopt      = (False,mf,be,False)
       else:
          self.mpopt      = mpopt
       self.bdopt         = bdopt
@@ -139,6 +142,7 @@ class ReaxFF_nn(object):
       self.mf_universal_nn = mf_universal_nn
       self.messages        = messages
       self.MessageFunction = MessageFunction
+      self.EnergyFunction  = EnergyFunction 
       self.spv_ang       = spv_ang
       self.bo_clip       = bo_clip
       self.bo_layer      = bo_layer
@@ -572,11 +576,23 @@ class ReaxFF_nn(object):
           bopi_ = tf.slice(bopi,[b_[0],0],[nbd_,self.batch[mol]])
           bopp_ = tf.slice(bopp,[b_[0],0],[nbd_,self.batch[mol]])
 
-          self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
+          if self.EnergyFunction==0:
+             FBO  = tf.where(tf.greater(bosi_,0.0),1.0,0.0)
+             FBOR = 1.0 - FBO
+             powb = tf.pow(bosi_+FBOR,self.p['be2_'+bd])
+             expb = tf.exp(tf.multiply(self.p['be1_'+bd],1.0-powb))
+
+             sieng = self.p['Desi_'+bd]*bosi_*expb*FBO 
+             pieng = tf.multiply(self.p['Depi_'+bd],bopi_)
+             ppeng = tf.multiply(self.p['Depp_'+bd],bopp_) 
+             self.esi[mol][bd]  = sieng + pieng + ppeng
+             Ebd.append(self.ebd[mol][bd])
+          else:
+             self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
                                   self.m,batch=self.batch[mol],layer=self.be_layer[1])
-          self.ebd[mol][bd] = -self.p['Desi_'+bd]*self.esi[mol][bd]
-          # print(self.ebd[mol],self.p['Desi_'+bd],self.p_['Desi_'+bd])
-          Ebd.append(self.ebd[mol][bd])
+             self.ebd[mol][bd] = -self.p['Desi_'+bd]*self.esi[mol][bd]
+             # print(self.ebd[mol],self.p['Desi_'+bd],self.p_['Desi_'+bd])
+             Ebd.append(self.ebd[mol][bd])
       self.EBD[mol] = tf.concat(Ebd,0)
 
   def get_bondorder_uc(self,mol):
@@ -2063,7 +2079,7 @@ class ReaxFF_nn(object):
          j = {'p':self.p_,'m':self.m_,
               'score':score,
               'BOFunction':0,#self.BOFunction,
-              'EnergyFunction':1,# self.EnergyFunction,
+              'EnergyFunction': self.EnergyFunction,
               'MessageFunction': self.MessageFunction, 
               'VdwFunction':1,#self.VdwFunction,
               'messages':self.messages,
@@ -2094,8 +2110,8 @@ class ReaxFF_nn(object):
          self.p_  = j['p']
          self.m_  = j['m']
          # self.BOFunction_      = j['BOFunction']
-         # self.EnergyFunction_  = j['EnergyFunction'] 
-         self.MessageFunction_ = j['MessageFunction']
+         self.EnergyFunction_    = j['EnergyFunction'] 
+         self.MessageFunction_   = j['MessageFunction']
          # self.VdwFunction_     = j['VdwFunction']
          self.MolEnergy_         = j['MolEnergy']
          # self.bo_layer_        = j['bo_layer']
