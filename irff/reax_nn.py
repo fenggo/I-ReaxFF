@@ -671,11 +671,11 @@ class ReaxFF_nn(object):
           b    = bd.split('-')
 
           if self.MessageFunction==0:
-             self.f1(bd,b[0],b[1],Di,Dj)
-             self.f45(bd,b[0],b[1],Di,Dj)
+             f_1     = self.f1(bd,b[0],b[1],Di,Dj)
+             f_4,f_5 = self.f45(bd,b[0],b[1],h,Di,Dj)
 
-             Fi            = self.f_1[bd]*self.f_4[bd]
-             Fj            = self.f_1[bd]*self.f_5[bd]
+             Fi      = f_1*f_4
+             Fj      = f_1*f_5
           elif self.MessageFunction==1:
              Dsi_i = tf.gather_nd(self.D_si[mol][t-1],self.dilink[mol][bd]) - hsi
              Dpi_i = tf.gather_nd(self.D_pi[mol][t-1],self.dilink[mol][bd]) - hpi
@@ -700,11 +700,15 @@ class ReaxFF_nn(object):
           else:
              raise RuntimeError('-  Message funcition not implicited, you can only use 1 or 3.')
           F    = Fi*Fj
-          Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
-
-          bosi_.append(hsi*Fsi)
-          bopi_.append(hpi*Fpi)
-          bopp_.append(hpp*Fpp)
+          if self.MessageFunction==0:
+             bosi_.append(hsi*F)
+             bopi_.append(hpi*F)
+             bopp_.append(hpp*F)
+          else:
+             Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
+             bosi_.append(hsi*Fsi)
+             bopi_.append(hpi*Fpi)
+             bopp_.append(hpp*Fpp)
 
       self.Bsi[mol] = tf.concat(bosi_,0)
       bosir = tf.scatter_nd(self.bdid[mol],self.Bsi[mol],
@@ -778,49 +782,53 @@ class ReaxFF_nn(object):
       self.So[mol]       = tf.reduce_sum(self.bso[mol],axis=1,name='sumover_bso')  
       self.fbot[mol]     = taper(self.bo0[mol],rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb[mol]      = taper(self.bo0[mol],rmin=self.hbtol,rmax=2.0*self.hbtol) 
-      
+
   def f1(self,bd,atomi,atomj,Di,Dj):
       Div = Di - self.p['val_'+atomi] # replace val in f1 with valp, 
       Djv = Dj - self.p['val_'+atomj] # different from published ReaxFF model
-      self.f2(bd,Div,Djv)
-      self.f3(bd,Div,Djv)
-      self.f_1[bd] = 0.5*(tf.math.divide(self.p['val_'+atomi]+self.f_2[bd],
-                              self.p['val_'+atomi]+self.f_2[bd]+self.f_3[bd]) + 
-                          tf.math.divide(self.p['val_'+atomj]+self.f_2[bd],
-                              self.p['val_'+atomj]+self.f_2[bd]+self.f_3[bd]))
+      f_2 = self.f2(bd,Div,Djv)
+      f_3 = self.f3(bd,Div,Djv)
+      f_1 = 0.5*(tf.math.divide(self.p['val_'+atomi] + f_2,
+                              self.p['val_'+atomi]  +f_2 + f_3) + 
+                          tf.math.divide(self.p['val_'+atomj] + f_2,
+                              self.p['val_'+atomj] + f_2 + f_3))
+      return f_1
 
   def f2(self,bd,Di,Dj):
-      self.dexpf2[bd]  = tf.exp(-self.p['boc1']*Di)
-      self.dexpf2t[bd] = tf.exp(-self.p['boc1']*Dj)
-      self.f_2[bd]     = tf.add(self.dexpf2[bd],self.dexpf2t[bd])
+      dexpf2  = tf.exp(-self.p['boc1']*Di)
+      dexpf2t = tf.exp(-self.p['boc1']*Dj)
+      f_2     = tf.add(dexpf2,dexpf2t)
+      return f_2
 
   def f3(self,bd,Di,Dj):
-      self.dexpf3[bd] = tf.exp(-self.p['boc2']*Di)
-      self.dexpf3t[bd]= tf.exp(-self.p['boc2']*Dj)
+      dexpf3 = tf.exp(-self.p['boc2']*Di)
+      dexpf3t= tf.exp(-self.p['boc2']*Dj)
 
-      delta_exp       = self.dexpf3[bd]+self.dexpf3t[bd]
+      delta_exp       = dexpf3+dexpf3t
       dexp            = 0.5*delta_exp 
 
-      self.f3log[bd] = tf.math.log(dexp)
-      self.f_3[bd]   = tf.math.divide(-1.0,self.p['boc2'])*self.f3log[bd]
+      f3log = tf.math.log(dexp)
+      f_3   = tf.math.divide(-1.0,self.p['boc2'])*f3log
+      return f_3
 
-  def f45(self,bd,atomi,atomj,Di,Dj):
-      self.Di_boc[bd] = Di - self.p['valboc_'+atomi] # + self.p['val_'+atomi]
-      self.Dj_boc[bd] = Dj - self.p['valboc_'+atomj] # + self.p['val_'+atomj]
+  def f45(self,bd,atomi,atomj,bop,Di,Dj):
+      Di_boc = Di - self.p['valboc_'+atomi] # + self.p['val_'+atomi]
+      Dj_boc = Dj - self.p['valboc_'+atomj] # + self.p['val_'+atomj]
       
       # boc3 boc4 boc5 must positive
       boc3 = tf.sqrt(self.p['boc3_'+atomi]*self.p['boc3_'+atomj])
       boc4 = tf.sqrt(self.p['boc4_'+atomi]*self.p['boc4_'+atomj])
       boc5 = tf.sqrt(self.p['boc5_'+atomi]*self.p['boc5_'+atomj])
       
-      self.df4[bd] = boc4*tf.square(self.bop[bd])-self.Di_boc[bd]
-      self.f4r[bd] = tf.exp(-boc3*(self.df4[bd])+boc5)
+      df4 = boc4*tf.square(bop)-Di_boc
+      f4r = tf.exp(-boc3*(df4)+boc5)
 
-      self.df5[bd] = boc4*tf.square(self.bop[bd])-self.Dj_boc[bd]
-      self.f5r[bd] = tf.exp(-boc3*(self.df5[bd])+boc5)
+      df5 = boc4*tf.square(bop)-Dj_boc
+      f5r = tf.exp(-boc3*(df5)+boc5)
 
-      self.f_4[bd] = tf.math.divide(1.0,1.0+self.f4r[bd])
-      self.f_5[bd] = tf.math.divide(1.0,1.0+self.f5r[bd])
+      f_4 = tf.math.divide(1.0,1.0+f4r)
+      f_5 = tf.math.divide(1.0,1.0+f5r)
+      return f_4,f_5
 
   def get_atom_energy(self,st):
       ''' atomic energy of structure: st '''
