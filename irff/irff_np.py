@@ -336,7 +336,15 @@ class IRFF_NP(object):
           Di        = np.expand_dims(self.D[t-1],axis=0)*self.eye
           Dj        = np.expand_dims(self.D[t-1],axis=1)*self.eye
 
-          if self.MessageFunction==1:
+          if self.MessageFunction==0:
+             self.f1()
+             self.f45()
+             F          = self.f_1 * self.f_1 * self.f_4 * self.f_5
+             self.F.append(F)
+             self.Hsi.append(self.Hsi[t-1]*F)
+             self.Hpi.append(self.Hpi[t-1]*F)
+             self.Hpp.append(self.Hpp[t-1]*F)
+          elif self.MessageFunction==1:
              Dsi_i = np.expand_dims(self.D_si[t-1],axis=0)*self.eye - self.Hsi[t-1]
              Dsi_j = np.expand_dims(self.D_si[t-1],axis=1)*self.eye - self.Hsi[t-1]
 
