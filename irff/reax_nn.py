@@ -585,7 +585,7 @@ class ReaxFF_nn(object):
              sieng = self.p['Desi_'+bd]*bosi_*expb*FBO 
              pieng = tf.multiply(self.p['Depi_'+bd],bopi_)
              ppeng = tf.multiply(self.p['Depp_'+bd],bopp_) 
-             self.esi[mol][bd]  = sieng + pieng + ppeng
+             self.ebd[mol][bd]  = - sieng - pieng - ppeng
              Ebd.append(self.ebd[mol][bd])
           else:
              self.esi[mol][bd] = fnn('fe',bd, self.nbd[mol][bd],[bosi_,bopi_,bopp_],
