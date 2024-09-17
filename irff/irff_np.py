@@ -454,7 +454,6 @@ class IRFF_NP(object):
          self.powb  = np.power(self.bosi+self.safety_value,self.P['be2'])
          self.expb  = np.exp(np.multiply(self.P['be1'],1.0-self.powb))
          self.sieng = self.P['Desi']*self.bosi*self.expb 
-
          self.pieng = np.multiply(self.P['Depi'],self.bopi)
          self.ppeng = np.multiply(self.P['Depp'],self.bopp)
          self.esi   = self.sieng + self.pieng + self.ppeng
