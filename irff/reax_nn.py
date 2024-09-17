@@ -60,7 +60,7 @@ class ReaxFF_nn(object):
                be_universal_nn=None,be_layer=[3,0],
                mf_universal_nn=None,mf_layer=[3,0],
                messages=1,
-               MessageFunction=3,EnergyFunction=3,
+               MessageFunction=3,EnergyFunction=1,
                bo_layer=None,
                spec=[],
                lambda_bo=100.0,
