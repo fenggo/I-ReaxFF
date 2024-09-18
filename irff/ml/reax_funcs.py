@@ -66,6 +66,19 @@ def f45(boc3i,boc3j,boc4i,boc4j,boc5i,boc5j,valboci,valbocj,Di,Dj,bop):
     f_5 = np.divide(1.0,1.0+f5r)
     return f_4,f_5
 
+def get_bond_energy(p,bd,bond_data):
+    ''' compute bond-energy '''
+    bsi  = bond_data[:,0]
+    bpi  = bond_data[:,1]
+    bpp  = bond_data[:,2]
+    
+    powb = np.power(bsi,p['be2_'+bd])
+    expb = np.exp(p['be1_'+bd],(1.0-powb))
+    e_si = -p['Desi_'+bd]*bsi*expb
+    e_pi = -p['Depi_'+bd]*bpi
+    e_pp = -p['Depp_'+bd]*bpp
+    return e_si+e_pi+e_pp
+
 def fit(step=1000,obj='BO'):
     unit = 4.3364432032e-2
     Desi = 424.95
