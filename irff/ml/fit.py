@@ -36,6 +36,7 @@ class Linear_be(object):
 
         self.E,self.B = {},{}
         for bd in self.bonds:
+            self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd],name='Desi_'+bd)
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
             self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
             self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
@@ -81,7 +82,7 @@ class Linear_be(object):
             else:
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
 
-            self.E_pred[bd] = ao
+            self.E_pred[bd] = ao*self.De[bd]
             # loss+= tf.reduce_sum(tf.square(self.E[bd]-e_pred))
             loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
         return loss
