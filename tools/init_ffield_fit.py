@@ -28,7 +28,7 @@ def get_bond_energy(p,bd,bond_data):
     e_si = p['Desi_'+bd]*bsi*expb*unit
     e_pi = p['Depi_'+bd]*bpi*unit
     e_pp = p['Depp_'+bd]*bpp*unit
-    e    = (e_si+e_pi+e_pp)/(p['Desi_'+bd]*unit)
+    e    =  e_si + e_pi + e_pp # /(p['Desi_'+bd]*unit)
     return e
 
 

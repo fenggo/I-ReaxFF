@@ -121,6 +121,7 @@ class Linear_be(object):
             self.j['m']['febi_'+bd] = self.sess.run(self.m['febi_'+bd]).tolist()
             self.j['m']['fewo_'+bd] = self.sess.run(self.m['fewo_'+bd]).tolist()
             self.j['m']['febo_'+bd] = self.sess.run(self.m['febo_'+bd]).tolist()
+            self.j['p']['Desi_'+bd] = self.sess.run(self.De['Desi_'+bd])
 
             for i in range(self.be_layer[1]):
                 self.j['m']['few_'+bd][i] = self.sess.run(self.m['few_'+bd][i]).tolist()
