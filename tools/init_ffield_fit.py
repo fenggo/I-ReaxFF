@@ -33,7 +33,7 @@ def get_bond_energy(p,bd,bond_data):
 
 
 def fit(step=1000,obj='BO'):
-    with open('ffield.json','r') as lf:
+    with open('ffieldData.json','r') as lf:
          j  = js.load(lf)
          p = j['p']
     dataset = {'al60-0': 'data/al64-0.traj',
