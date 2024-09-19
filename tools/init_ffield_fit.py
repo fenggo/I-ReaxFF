@@ -28,7 +28,7 @@ def get_bond_energy(p,bd,bond_data):
     e_si = p['Desi_'+bd]*bsi*expb*unit
     e_pi = p['Depi_'+bd]*bpi*unit
     e_pp = p['Depp_'+bd]*bpp*unit
-    e    =  e_si + e_pi + e_pp # /(p['Desi_'+bd]*unit)
+    e    = (e_si+e_pi+e_pp) # /(p['Desi_'+bd]*unit)
     return e
 
 
@@ -36,25 +36,28 @@ def fit(step=1000,obj='BO'):
     with open('ffieldData.json','r') as lf:
          j  = js.load(lf)
          p = j['p']
-    dataset = {'al60-0': 'data/al64-0.traj',
-               'al60-1': 'data/al64-1.traj',
-               'AlO-0': 'data/AlO-0.traj',
-               'AlO-1': 'data/AlO-1.traj', 
-               }
-    trajdata = ColData()
 
-    strucs = [ ]
-    batchs = {'others':50}
+    dataset = { }
+
+    trajdata = ColData()
+    strucs = ['n29',
+          #'si64',
+          #'si3n4',
+          'si4h12',
+          'si2h6',
+          ]
+    batchs = {'others':500}
 
     for mol in strucs:
         b = batchs[mol] if mol in batchs else batchs['others']
         trajs = trajdata(label=mol,batch=b)
         dataset.update(trajs)
 
-    bonds = ['Al-Al','O-Al']
-    D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffield.json')
+    bonds = ['H-H','H-Si','Si-Si','N-N'] 
+    D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
+
     E_ = {}
-    B_ = {}
+    # B_ = {}
     for bd in B:
         bp     = np.array(Bp[bd])
         e      = np.array(E[bd])
@@ -62,8 +65,9 @@ def fit(step=1000,obj='BO'):
         # bo     = bp[:,1]
         B_     = np.array(B[bd])
         E_[bd] = get_bond_energy(p,bd,B_)
+      
 
-    train(Bp,D,B_,E_,bonds=bonds,step=step,fitobj=obj)
+    train(Bp,D,B,E_,bonds=bonds,step=step,fitobj=obj)
 
    
 if __name__ == '__main__':
@@ -74,6 +78,4 @@ if __name__ == '__main__':
    args = parser.parse_args(sys.argv[1:])
    
    fit(step=args.step,obj=args.o)
-
-
 
