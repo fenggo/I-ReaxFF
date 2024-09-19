@@ -32,6 +32,7 @@ class Linear_be(object):
         self.spec,bonds_,offd,angs,torp,hbs = init_bonds(self.j['p'])
         self.bonds = bonds_ if bonds is None else bonds 
         self.m = {}
+        self.De= {}
         hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
         self.be_layer = self.j['be_layer'] if be_layer is None else be_layer
 
