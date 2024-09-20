@@ -563,25 +563,25 @@ class MPNN(ReaxFF):
          self.esi[bd] = fnn('fe',bd, self.nbd[bd],[self.bosi[bd],self.bopi[bd],self.bopp[bd]],
                              self.m,batch=self.batch,layer=self.be_layer[1])
          self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
-      elif self.EnergyFunction==2:
-         self.esi[bd] = fnn('fe',bd, self.nbd[bd],[-self.bosi[bd],-self.bopi[bd],-self.bopp[bd]],
-                             self.m,batch=self.batch,layer=self.be_layer[1])
-         self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
-      elif self.EnergyFunction==3:
-         self.esi[bd] = fnn('fe',bd, self.nbd[bd],[self.bosi[bd],self.bopi[bd],self.bopp[bd]],
-                            self.m,batch=self.batch,layer=self.be_layer[1])
-         self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]*self.bo0[bd]
-      elif self.EnergyFunction==4:
-         Di      = tf.gather_nd(self.Delta,self.dilink[bd])
-         Dj      = tf.gather_nd(self.Delta,self.djlink[bd])
-         Dbi = Di-self.bo0[bd]
-         Dbj = Dj-self.bo0[bd]
-         Fi  = fnn('fe',bd,self.nbd[bd],[Dbi,Dbj,self.bo0[bd]],
-                    self.m,batch=self.batch,layer=self.be_layer[1])
-         Fj  = fnn('fe',bd,self.nbd[bd],[Dbj,Dbi,self.bo0[bd]],
-                    self.m,batch=self.batch,layer=self.be_layer[1])
-         self.esi[bd] = Fi*Fj # *self.bo0[bd]
-         self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
+      # elif self.EnergyFunction==2:
+      #    self.esi[bd] = fnn('fe',bd, self.nbd[bd],[-self.bosi[bd],-self.bopi[bd],-self.bopp[bd]],
+      #                        self.m,batch=self.batch,layer=self.be_layer[1])
+      #    self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
+      # elif self.EnergyFunction==3:
+      #    self.esi[bd] = fnn('fe',bd, self.nbd[bd],[self.bosi[bd],self.bopi[bd],self.bopp[bd]],
+      #                       self.m,batch=self.batch,layer=self.be_layer[1])
+      #    self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]*self.bo0[bd]
+      # elif self.EnergyFunction==4:
+      #    Di      = tf.gather_nd(self.Delta,self.dilink[bd])
+      #    Dj      = tf.gather_nd(self.Delta,self.djlink[bd])
+      #    Dbi = Di-self.bo0[bd]
+      #    Dbj = Dj-self.bo0[bd]
+      #    Fi  = fnn('fe',bd,self.nbd[bd],[Dbi,Dbj,self.bo0[bd]],
+      #               self.m,batch=self.batch,layer=self.be_layer[1])
+      #    Fj  = fnn('fe',bd,self.nbd[bd],[Dbj,Dbi,self.bo0[bd]],
+      #               self.m,batch=self.batch,layer=self.be_layer[1])
+      #    self.esi[bd] = Fi*Fj # *self.bo0[bd]
+      #    self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
       # elif self.EnergyFunction==5:
       #    r_        = self.rbd[bd]/self.p['rosi_'+bd]
       #    mors_exp1 = tf.exp(self.p['be2_'+bd]*(1.0-r_))
@@ -593,12 +593,12 @@ class MPNN(ReaxFF):
       #    emorse     = 2.0*mors_exp1 - mors_exp2 + mors_exp20 - 2.0*mors_exp10
       #    self.esi[bd] = tf.nn.relu(emorse)
       #    self.EBD[bd] = -self.p['Desi_'+bd]*self.esi[bd]
-      elif self.EnergyFunction==5:
-         self.sieng[bd] = tf.multiply(self.p['Desi_'+bd],self.bosi[bd])
-         self.pieng[bd] = tf.multiply(self.p['Depi_'+bd],self.bopi[bd])
-         self.ppeng[bd] = tf.multiply(self.p['Depp_'+bd],self.bopp[bd]) 
-         self.esi[bd]   = self.sieng[bd] + self.pieng[bd] - self.ppeng[bd]
-         self.EBD[bd]   = -self.esi[bd]
+      # elif self.EnergyFunction==5:
+      #    self.sieng[bd] = tf.multiply(self.p['Desi_'+bd],self.bosi[bd])
+      #    self.pieng[bd] = tf.multiply(self.p['Depi_'+bd],self.bopi[bd])
+      #    self.ppeng[bd] = tf.multiply(self.p['Depp_'+bd],self.bopp[bd]) 
+      #    self.esi[bd]   = self.sieng[bd] + self.pieng[bd] - self.ppeng[bd]
+      #    self.EBD[bd]   = -self.esi[bd]
       else:
          raise NotImplementedError('-  This method is not implimented!')
 
@@ -1284,8 +1284,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
                   vlist=bonds,nnopt=mpopt[0],bias=-1.0)
 
     ############ set weight and bias for message neural network ###################
-    if MessageFunction_==0 or (mf_layer==mf_layer_ and  EnergyFunction==EnergyFunction_
-        and MessageFunction_==MessageFunction):
+    if MessageFunction_==0 or (mf_layer==mf_layer_ and MessageFunction_==MessageFunction):
         reuse_m = True  
     else:
         reuse_m = False
@@ -1310,7 +1309,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
                             layer=mf_layer,nnopt=mpopt[t],bias=b) 
 
     ############ set weight and bias for energy neural network ###################
-    if EnergyFunction==EnergyFunction_ and be_layer==be_layer_:
+    if be_layer==be_layer_:
         reuse_m = True  
     else:
         reuse_m = False 
