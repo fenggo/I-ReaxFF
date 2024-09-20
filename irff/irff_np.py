@@ -451,8 +451,9 @@ class IRFF_NP(object):
       Dbj        = self.Dj - self.bo0
 
       if self.EnergyFunction==0:
-         self.powb  = np.power(self.bosi+self.safety_value,self.P['be2'])
-         self.expb  = np.exp(np.multiply(self.P['be1'],1.0-self.powb))
+         fc         = np.where(self.bosi<0.000001,1.0,0.0)
+         self.powb  = np.power(self.bosi+fc,self.P['be2'])
+         self.expb  = np.exp(np.multiply(self.P['be1'],1.0-self.powb))*(1-fc)
          self.sieng = self.P['Desi']*self.bosi*self.expb 
          self.pieng = np.multiply(self.P['Depi'],self.bopi)
          self.ppeng = np.multiply(self.P['Depp'],self.bopp)
