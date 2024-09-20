@@ -1921,8 +1921,12 @@ class ReaxFF_nn(object):
                  acc += key+': %6.4f ' %accs[key]
              loss_f = loss_f/self.natoms
              loss_e = los_/self.natoms
-             self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f bo: %.4f pen: %.4f me: %.4f time: %.4f' %(i,
+             if self.bo_keep:
+                self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f bo: %.4f pen: %.4f me: %.4f time: %.4f' %(i,
                               loss_e,accu,acc,loss_f,loss_bo,lpenalty,self.ME_,elapsed_time))
+             else:
+                self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f pen: %.4f me: %.4f time: %.4f' %(i,
+                              loss_e,accu,acc,loss_f,lpenalty,self.ME_,elapsed_time))
              self.time = current
 
           if i%writelib==0 or i==step:
