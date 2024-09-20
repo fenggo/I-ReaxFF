@@ -260,10 +260,7 @@ class IRFF(Calculator):
           self.rc_bo[bd]=self.p['rosi_'+ofd]*np.power(log_/self.p['bo1_'+bd],1.0/self.p['bo2_'+bd])
   
   def get_bondorder_uc(self):
-      if self.nn:
-         self.frc = 1.0
-      else:
-         self.frc = torch.where(torch.logical_and(self.r<self.rcbo_tensor,self.r>0.0001),1.0,0.0)
+      self.frc    = torch.where(torch.logical_and(self.r<self.rcbo_tensor,self.r>0.0001),1.0,0.0)
       self.bodiv1 = torch.div(self.r,self.P['rosi'])
       self.bopow1 = torch.pow(self.bodiv1,self.P['bo2'])
       self.eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.P['bo1'],self.bopow1))*self.frc # consist with GULP
