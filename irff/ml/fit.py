@@ -38,8 +38,8 @@ class Linear_be(object):
 
         self.E,self.B = {},{}
         for bd in self.bonds:
-            # self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
-            self.De[bd]        = tf.constant(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
+            self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
+            # self.De[bd]      = tf.constant(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
             self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
             self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
