@@ -119,6 +119,7 @@ class Linear_be(object):
         return feed_dict
 
     def save(self):
+        self.j['EnergyFunction'] = 1
         for bd in self.bonds:
             self.j['m']['fewi_'+bd] = self.sess.run(self.m['fewi_'+bd]).tolist()
             self.j['m']['febi_'+bd] = self.sess.run(self.m['febi_'+bd]).tolist()
