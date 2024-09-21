@@ -40,7 +40,7 @@ class Linear_be(object):
         self.E,self.B = {},{}
         for bd in self.bonds:
             self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
-            self.De_[bd]       = tf.clip_by_value(self.De[bd],0.0,999*self.unit)
+            # self.De_[bd]       = tf.clip_by_value(self.De[bd],0.0,999*self.unit)
             # self.De[bd]      = tf.constant(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
             self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
             self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
@@ -87,7 +87,7 @@ class Linear_be(object):
             else:
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
 
-            self.E_pred[bd] = ao*self.De_[bd]
+            self.E_pred[bd] = ao*self.De[bd]
             # loss+= tf.reduce_sum(tf.square(self.E[bd]-e_pred))
             loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
         return loss
@@ -127,7 +127,7 @@ class Linear_be(object):
             self.j['m']['febi_'+bd] = self.sess.run(self.m['febi_'+bd]).tolist()
             self.j['m']['fewo_'+bd] = self.sess.run(self.m['fewo_'+bd]).tolist()
             self.j['m']['febo_'+bd] = self.sess.run(self.m['febo_'+bd]).tolist()
-            self.j['p']['Desi_'+bd] = self.sess.run(self.De_[bd])/self.unit
+            self.j['p']['Desi_'+bd] = self.sess.run(self.De[bd])/self.unit
 
             for i in range(self.be_layer[1]):
                 self.j['m']['few_'+bd][i] = self.sess.run(self.m['few_'+bd][i]).tolist()
