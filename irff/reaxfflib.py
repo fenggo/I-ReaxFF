@@ -488,7 +488,7 @@ def write_lib(p,spec,bonds,offd,angs,tors,hbs,
     print('reaxFFqcutoff        {:12.8f}'.format(coulcutoff),file=glib)
     print('#',file=glib)
     print('# Bond order threshold - check anglemin as this is cutof2 given in control file',file=glib)
-    print('reaxFFtol        {:12.8f}  {:8.8f} {:8.8f}'.format(p['cutoff']*0.01,p['acut']),file=glib)
+    print('reaxFFtol        {:12.8f}  {:8.8f} '.format(p['cutoff']*0.01,p['acut']),file=glib)
     print('#',file=glib)
     print('# Species independent parameters ',file=glib)
     print('#',file=glib)
