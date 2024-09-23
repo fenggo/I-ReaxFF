@@ -12,24 +12,9 @@ import numpy as np
 from irff.data.ColData import ColData
 from irff.ml.data import get_data,get_bond_data # ,get_md_data
 from irff.ml.fit import train
+from irff.ml.reax_funcs import get_bond_energy
 tf.compat.v1.disable_eager_execution()
 
-
-def get_bond_energy(p,bd,bond_data):
-    ''' compute bond-energy '''
-    unit = 4.3364432032e-2
-    bsi  = bond_data[:,0]
-    bpi  = bond_data[:,1]
-    bpp  = bond_data[:,2]
-    
-    powb = np.power(np.where(bsi>0.00000001,bsi,0.00000001),p['be2_'+bd])
-    expb = np.exp(p['be1_'+bd],(1.0-powb))
-    #print(p['Desi_'+bd])
-    e_si = p['Desi_'+bd]*bsi*expb*unit
-    e_pi = p['Depi_'+bd]*bpi*unit
-    e_pp = p['Depp_'+bd]*bpp*unit
-    e    = (e_si+e_pi+e_pp) # /(p['Desi_'+bd]*unit)
-    return e
 
 
 def fit(step=1000,obj='BO'):
