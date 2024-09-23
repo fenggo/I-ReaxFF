@@ -98,7 +98,7 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
              message_function=2,ffield='ffield.json'):
     D, Y = {}, {}
     R, Bp,B = {}, {}, {}
-
+ 
     for bd in bonds:
         D[bd] = []
         Y[bd] = []
@@ -112,14 +112,14 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
         ir = IRFF_NP(atoms=images[0],
                      libfile=ffield,
                      nn=True, vdwnn=False)
-
+                     
         for i, atoms in enumerate(images):
             energy = atoms.get_potential_energy()
             ir.calculate_Delta(atoms)
 
             for ii in range(ir.natom-1):
                 for jj in range(ii+1, ir.natom):
-                    if ir.bop[ii][jj] > 0.0 or ir.bo0[ii][jj] > 0.0:
+                    if ir.r[ii][jj] < ir.r_cut[ii][jj]:
                         bd = ir.atom_name[ii] + '-' + ir.atom_name[jj]
                         bdr = ir.atom_name[jj] + '-' + ir.atom_name[ii]
 
