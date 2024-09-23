@@ -38,7 +38,7 @@ class ReaxFF_nn(object):
                cons=['val','vale','valang','valboc','lp3','cutoff','hbtol'],# 'acut''val',
                opt=None,energy_term={'etor':True,'eang':True,'eover':True,'eunder':True,
                                   'ecoul':True,'evdw':True,'elone':True,'ehb':True},
-               mpopt=None,bdopt=None,mfopt=None,eaopt=[],
+               nnopt=(0,1,1,0),bdopt=None,mfopt=None,eaopt=[],
                VariablesToOpt=None,
                batch=200,sample='uniform',
                hbshort=6.75,hblong=7.5,
@@ -56,7 +56,6 @@ class ReaxFF_nn(object):
                resetDeadNeuron=False,
                optmol=True,
                lambda_me=0.1,
-               nnopt=True,
                be_universal_nn=None,be_layer=[3,0],
                mf_universal_nn=None,mf_layer=[3,0],
                messages=1,
@@ -115,12 +114,11 @@ class ReaxFF_nn(object):
       self.hblong        = hblong
       self.nnopt         = nnopt
       self.mfopt         = mfopt         # specify the element of message function to be optimized
-      if mpopt is None:
-         mf = False if MessageFunction == 0 else True
-         be = False if EnergyFunction  == 0 else True
-         self.mpopt      = (False,mf,be,False)
-      else:
-         self.mpopt      = mpopt
+
+      
+      self.nnopt[1] = 0 if MessageFunction == 0 else 1
+      self.nnopt[2] = 0 if EnergyFunction  == 0 else 1
+     
       self.bdopt         = bdopt
       self.eaopt         = eaopt
       self.regularize_be = regularize_be
@@ -1618,7 +1616,7 @@ class ReaxFF_nn(object):
       self.checkp()
       self.get_rcbo()
       self.m = set_matrix(self.m_,self.spec,self.bonds,
-                          self.mfopt,self.mpopt,self.bdopt,self.messages,
+                          self.mfopt,self.nnopt,self.bdopt,self.messages,
                           (6,0),(6,0),0,0,
                           self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                           self.be_layer,self.be_layer_,1,1,
@@ -1652,7 +1650,7 @@ class ReaxFF_nn(object):
       self.checkp()
       self.get_rcbo()
       self.m = set_matrix(self.m_,self.spec,self.bonds,
-                          self.mfopt,self.mpopt,self.bdopt,self.messages,
+                          self.mfopt,self.nnopt,self.bdopt,self.messages,
                           (6,0),(6,0),0,0,
                           self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                           self.be_layer,self.be_layer_,1,1,
