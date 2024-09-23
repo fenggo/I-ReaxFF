@@ -72,12 +72,14 @@ def get_bond_energy(p,bd,bond_data):
     bpi  = bond_data[:,1]
     bpp  = bond_data[:,2]
     
-    powb = np.power(bsi,p['be2_'+bd])
-    expb = np.exp(p['be1_'+bd],(1.0-powb))
-    e_si = -p['Desi_'+bd]*bsi*expb
-    e_pi = -p['Depi_'+bd]*bpi
-    e_pp = -p['Depp_'+bd]*bpp
-    return e_si+e_pi+e_pp
+    powb = np.power(np.where(bsi>0.00000001,bsi,0.00000001),p['be2_'+bd])
+    expb = np.exp(p['be1_'+bd]*(1.0-powb))
+    #print(p['Desi_'+bd])
+    e_si = p['Desi_'+bd]*bsi*expb*unit
+    e_pi = p['Depi_'+bd]*bpi*unit
+    e_pp = p['Depp_'+bd]*bpp*unit
+    e    = (e_si+e_pi+e_pp) # /(p['Desi_'+bd]*unit)
+    return e
 
 def fit(step=1000,obj='BO'):
     unit = 4.3364432032e-2
