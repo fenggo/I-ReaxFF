@@ -66,7 +66,7 @@ def f45(boc3i,boc3j,boc4i,boc4j,boc5i,boc5j,valboci,valbocj,Di,Dj,bop):
     f_5 = np.divide(1.0,1.0+f5r)
     return f_4,f_5
 
-def get_bond_energy(p,bd,bond_data):
+def reax_bond_energy(p,bd,bond_data):
     ''' compute bond-energy '''
     bsi  = bond_data[:,0]
     bpi  = bond_data[:,1]
