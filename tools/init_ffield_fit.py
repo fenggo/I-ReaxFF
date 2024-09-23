@@ -12,7 +12,7 @@ import numpy as np
 from irff.data.ColData import ColData
 from irff.ml.data import get_data,get_bond_data # ,get_md_data
 from irff.ml.fit import train
-from irff.ml.reax_funcs import get_bond_energy
+from irff.ml.reax_funcs import reax_bond_energy
 tf.compat.v1.disable_eager_execution()
 
 
