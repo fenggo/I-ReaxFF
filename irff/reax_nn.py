@@ -38,7 +38,7 @@ class ReaxFF_nn(object):
                cons=['val','vale','valang','valboc','lp3','cutoff','hbtol'],# 'acut''val',
                opt=None,energy_term={'etor':True,'eang':True,'eover':True,'eunder':True,
                                   'ecoul':True,'evdw':True,'elone':True,'ehb':True},
-               nnopt=(0,1,1,0),bdopt=None,mfopt=None,eaopt=[],
+               nnopt=[0,1,1,0],bdopt=None,mfopt=None,eaopt=[],
                VariablesToOpt=None,
                batch=200,sample='uniform',
                hbshort=6.75,hblong=7.5,
