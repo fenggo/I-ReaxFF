@@ -19,7 +19,7 @@ def ffieldtolib():
     m_ = j['m']
     vdw_layer = j['vdw_layer']
     mf_layer  = j['mf_layer']
-    be_layer  = j['be_layer']
+    be_layer  = j['be_layer'] if j['EnergyFunction']!=0 else (0,0)
     lf.close()
 
     spec,bonds,offd,angs,torp,hbs = init_bonds(p_)
