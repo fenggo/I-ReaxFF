@@ -702,53 +702,54 @@ def write_lib(p,spec,bonds,offd,angs,tors,hbs,
                       print('{:20.16f}'.format(m['fmb_'+sp][l][j]),end=' ',file=glib)
                   print(' ',file=glib)
 
-       print('#',file=glib)
-       print('# Nerual network weight and bias for Bond-Energy',file=glib)
-       print('#',file=glib)
-       print('belayer {:d} {:d}'.format(be_layer[0],be_layer[1]),file=glib)
-       print(' ',file=glib)
-       print('reaxff2_enn wi',file=glib)
-       nin  = 3
-       nout = 1
-       for bd in bonds:
-           b = bd.split('-') 
-           print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
-           for i in range(nin):
-               if i!=0:
-                  print('               ',end=' ',file=glib)
-               for j in range(be_layer[0]):
-                   print('{:20.16f}'.format(m['fewi_'+bd][i][j]),end=' ',file=glib)
-               print(' ',file=glib)
+       if be_layer[0]>0:
+            print('#',file=glib)
+            print('# Nerual network weight and bias for Bond-Energy',file=glib)
+            print('#',file=glib)
+            print('belayer {:d} {:d}'.format(be_layer[0],be_layer[1]),file=glib)
+            print(' ',file=glib)
+            print('reaxff2_enn wi',file=glib)
+            nin  = 3
+            nout = 1
+            for bd in bonds:
+                b = bd.split('-') 
+                print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
+                for i in range(nin):
+                    if i!=0:
+                        print('               ',end=' ',file=glib)
+                    for j in range(be_layer[0]):
+                        print('{:20.16f}'.format(m['fewi_'+bd][i][j]),end=' ',file=glib)
+                    print(' ',file=glib)
 
-       print('reaxff2_enn bi',file=glib)
-       for bd in bonds:
-           b = bd.split('-') 
-           print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
-           for j in range(be_layer[0]):
-               print('{:20.16f}'.format(m['febi_'+bd][j]),end=' ',file=glib)
-           print(' ',file=glib)
+            print('reaxff2_enn bi',file=glib)
+            for bd in bonds:
+                b = bd.split('-') 
+                print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
+                for j in range(be_layer[0]):
+                    print('{:20.16f}'.format(m['febi_'+bd][j]),end=' ',file=glib)
+                print(' ',file=glib)
 
-       print('reaxff2_enn wo',file=glib)
-       for bd in bonds:
-           b = bd.split('-') 
-           print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
-           for i in range(be_layer[0]):
-               if i!=0 and nout>1:
-                  print('               ',end=' ',file=glib)
-               for j in range(nout):
-                   print('{:20.16f}'.format(m['fewo_'+bd][i][j]),end=' ',file=glib)
-               if nout>1:
-                  print(' ',file=glib)
-           if nout==1:
-              print(' ',file=glib) 
+            print('reaxff2_enn wo',file=glib)
+            for bd in bonds:
+                b = bd.split('-') 
+                print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
+                for i in range(be_layer[0]):
+                    if i!=0 and nout>1:
+                        print('               ',end=' ',file=glib)
+                    for j in range(nout):
+                        print('{:20.16f}'.format(m['fewo_'+bd][i][j]),end=' ',file=glib)
+                    if nout>1:
+                        print(' ',file=glib)
+                if nout==1:
+                    print(' ',file=glib) 
 
-       print('reaxff2_enn bo',file=glib)
-       for bd in bonds:
-           b = bd.split('-') 
-           print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
-           for j in range(nout):
-               print('{:20.16f}'.format(m['febo_'+bd][j]),end=' ',file=glib)
-           print(' ',file=glib)
+            print('reaxff2_enn bo',file=glib)
+            for bd in bonds:
+                b = bd.split('-') 
+                print('{:2s} core {:2s} core'.format(b[0],b[1]),end=' ',file=glib) 
+                for j in range(nout):
+                    print('{:20.16f}'.format(m['febo_'+bd][j]),end=' ',file=glib)
+                print(' ',file=glib)
 
        if be_layer[1]>0:
           print('reaxff2_enn wh',file=glib)
