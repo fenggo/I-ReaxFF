@@ -42,10 +42,14 @@ class Linear_be(object):
             self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
             # self.De_[bd]     = tf.clip_by_value(self.De[bd],0.0,999*self.unit)
             # self.De[bd]      = tf.constant(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
-            self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
-            self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
-            self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
-            self.m['febo_'+bd] = tf.Variable(self.j['m']['febo_'+bd],name='febo_'+bd)
+            # self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
+            # self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
+            # self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
+            # self.m['febo_'+bd] = tf.Variable(self.j['m']['febo_'+bd],name='febo_'+bd)
+            self.m['fewi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewi_'+bd].shape,stddev=0.1),name='fewi_'+bd)
+            self.m['febi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febi_'+bd].shape,stddev=0.1),name='febi_'+bd)
+            self.m['fewo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewo_'+bd].shape,stddev=0.1),name='fewo_'+bd)
+            self.m['febo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febo_'+bd].shape,stddev=0.1),name='febo_'+bd)
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
@@ -53,14 +57,15 @@ class Linear_be(object):
                 # b = np.array(self.j['m']['few_'+bd][i])
                 # m,n = w.shape
                 # print('hidden layer:',i,m,n)
+                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['few_'+bd][0].shape,stddev=0.1),
+                                         name='fewh_'+bd))
+                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['feb_'+bd][0].shape,stddev=0.1),
+                                         name='febh_'+bd))
                 if i+1 > self.j['be_layer'][1]:
-                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][-1],name='fewh_'+bd))
-                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][-1],name='febh_'+bd))
                    self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][-1])
                    self.j['m']['feb_'+bd].append(self.j['m']['feb_'+bd][-1])
-                else:
-                   self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
-                   self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
+
+
         if hidelayer > self.j['be_layer'][1]:
            self.j['be_layer'][1] = hidelayer
         for bd in self.bonds:
