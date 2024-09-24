@@ -279,13 +279,13 @@ class Linear_bo(object):
 
 
 def train(Bp,D,B,E,convergence=0.000001,
-          learning_rate=0.01,layer=None,
+          learning_rate=0.01,layer=None,random_init=0,
           step=5000,fitobj='BO',bonds=None):
     # neural network layers
     if fitobj == 'BO':
        model = Linear_bo(Bp,D,B,E,bonds=bonds,mf_layer=layer)
     elif fitobj == 'BE':
-       model = Linear_be(Bp,D,B,E,bonds=bonds,be_layer=layer)
+       model = Linear_be(Bp,D,B,E,bonds=bonds,be_layer=layer,random_init=random_init)
 
     model.run(step=step,convergence=convergence,learning_rate=learning_rate)
 
