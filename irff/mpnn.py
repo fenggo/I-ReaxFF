@@ -139,7 +139,7 @@ class MPNN(ReaxFF):
                nn=True,
                optmol=True,lambda_me=0.1,
                opt=None,energy_term={'ecoul':False},eaopt=[],
-               mpopt=None,bdopt=None,mfopt=None,
+               nnopt=[0,1,1,0],bdopt=None,mfopt=None,
                VariablesToOpt=None,
                batch_size=200,sample='uniform',
                hbshort=6.75,hblong=7.5,
@@ -229,10 +229,8 @@ class MPNN(ReaxFF):
       self.be_universal_nn   = be_universal_nn
       self.mf_universal_nn   = mf_universal_nn
       self.vdw_universal_nn  = vdw_universal_nn
-      if mpopt is None:
-         self.mpopt = [True,True,True,True]
-      else:
-         self.mpopt = mpopt
+      self.nnopt             = nnopt
+
       self.bdopt    = bdopt
       self.mfopt    = mfopt               # specify the element of message function to be optimized
       ReaxFF.__init__(self,libfile=libfile,dataset=dataset,
@@ -783,7 +781,7 @@ class MPNN(ReaxFF):
 
   def set_m(self):
       self.m = set_matrix(self.m_,self.spec,self.bonds,
-                        self.mfopt,self.mpopt,self.bdopt,self.messages,
+                        self.mfopt,self.nnopt,self.bdopt,self.messages,
                         self.bo_layer,self.bo_layer_,self.BOFunction_,self.BOFunction,
                         self.mf_layer,self.mf_layer_,self.MessageFunction_,self.MessageFunction,
                         self.be_layer,self.be_layer_,self.EnergyFunction_,self.EnergyFunction,

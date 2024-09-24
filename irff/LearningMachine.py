@@ -57,7 +57,7 @@ class LearningMachine(object):
                step=20000,md_step=20,MaxMDstep=200,MinMDstep=50,
                col_frame=50,col_min_interval=3,
                mom_step=100,
-               mpopt=[1,1,1,1], messages=1,
+               nnopt=[1,1,1,1], messages=1,
                energy_term={'ecoul':False},cons=None,clip={},
                T=300,# Tmax=1000,
                label=None,
@@ -136,7 +136,7 @@ class LearningMachine(object):
       self.dEstop         = dEstop
       self.MaxMDstep      = MaxMDstep
       self.MinMDstep      = MinMDstep
-      self.mpopt          = mpopt
+      self.nnopt          = nnopt
       self.energy_term   = {'etor':True,'eang':True,'eover':True,'eunder':True,
                             'ecoul':True,'evdw':True,'elone':True,'ehb':True,
                             'efcon':True,'etcon':True,'manybody':True}
@@ -365,7 +365,7 @@ class LearningMachine(object):
                                                      cons=self.cons,clip=self.clip,
                                                      lossConvergence=self.lossCriteria,
                                                      nn=self.nn,vdwnn=self.vdwnn,
-                                                     mpopt=self.mpopt,messages=self.messages,
+                                                     nnopt=self.nnopt,messages=self.messages,
                                                      energy_term=self.energy_term,
                                                      bo_layer=self.bo_layer,
                                                      mf_layer=self.mf_layer,
