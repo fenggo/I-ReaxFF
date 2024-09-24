@@ -936,9 +936,9 @@ class MPNN(ReaxFF):
 
                 penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
 
-             if self.EnergyFunction != 3: # or self.EnergyFunction == 4 or self.EnergyFunction == 2:
+             if self.EnergyFunction != 0: # or self.EnergyFunction == 4 or self.EnergyFunction == 2:
                 fesi = tf.where(tf.less_equal(self.bo0[bd],self.botol),1.0,0.0) ##### bo <= 0.0 that e = 0.0
-                self.penalty_be_cut[bd]  = tf.reduce_sum(tf.nn.relu(self.esi[bd]*fesi))
+                self.penalty_be_cut[bd]  = tf.reduce_sum(tf.nn.relu((self.esi[bd]-self.bo0[bd])*fesi))
                 penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
 
              # penalize term for regularization of the neural networs
