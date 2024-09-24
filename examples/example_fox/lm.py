@@ -24,7 +24,7 @@ lm = LearningMachine(config='cf13.gen',
                      weight=weight,
                      #pi_clip=pi_clip,
                      #be_clip=be_clip,
-                     optword='nocoul',cons=cons,clip=clip, 
+                     cons=cons,clip=clip, 
                      writelib=1000,convergence=0.000001,
                      trainer=2,
                      dft='siesta',xcf='GGA',xca='PBE',basistype='split')
