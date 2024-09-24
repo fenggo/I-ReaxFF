@@ -36,6 +36,7 @@ class Linear_be(object):
         self.De_= {}
         hidelayer  = self.j['be_layer'][1] if be_layer is None else be_layer[1]
         self.be_layer = self.j['be_layer'] if be_layer is None else be_layer
+        l = self.be_layer
 
         self.E,self.B = {},{}
         for bd in self.bonds:
