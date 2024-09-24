@@ -22,7 +22,7 @@ def resolve():
 
 
 class Linear_be(tf.keras.Model):
-    def __init__(self,bonds=None,level=1):
+    def __init__(self,bonds=None):
         super().__init__()
         with open('ffield.json','r') as lf:
             self.j = js.load(lf)
@@ -30,40 +30,20 @@ class Linear_be(tf.keras.Model):
         self.bonds = bonds_ if bonds is None else bonds 
         self.m = {}
         hidelayer  = self.j['be_layer'][1]
-        self.level = level
         for bd in self.bonds:
-            self.m['fewi_'+bd] = tf.Variable(self.j['m']['fewi_'+bd],name='fewi_'+bd)
-            self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
-            self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
-            self.m['febo_'+bd] = tf.Variable(self.j['m']['febo_'+bd],name='febo_'+bd)
+            self.m['fewi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewi_'+bd].shape,stddev=0.1),name='fewi_'+bd)
+            self.m['febi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febi_'+bd].shape,stddev=0.1),name='febi_'+bd)
+            self.m['fewo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewo_'+bd].shape,stddev=0.1),name='fewo_'+bd)
+            self.m['febo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febo_'+bd].shape,stddev=0.1),name='febo_'+bd)
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
-                self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
-                self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
-
-        if self.level==2:
-            for sp in self.spec:
-                self.m['fmwi_'+sp] = self.j['m']['fmwi_'+sp]
-                self.m['fmbi_'+sp] = self.j['m']['fmbi_'+sp]
-                self.m['fmwo_'+sp] = self.j['m']['fmwo_'+sp]
-                self.m['fmbo_'+sp] = self.j['m']['fmbo_'+sp]
-                self.m['fmw_'+sp]  = []
-                self.m['fmb_'+sp]  = []
-                for i in range(self.j['mf_layer'][1]):
-                    self.m['fmw_'+sp].append(self.j['m']['fmw_'+sp][i])
-                    self.m['fmb_'+sp].append(self.j['m']['fmb_'+sp][i])
-        elif self.level==3:
-            for sp in self.spec:
-                self.m['fmwi_'+sp] = tf.Variable(self.j['m']['fmwi_'+sp],name='fmwi_'+sp)
-                self.m['fmbi_'+sp] = tf.Variable(self.j['m']['fmbi_'+sp],name='fmbi_'+sp)
-                self.m['fmwo_'+sp] = tf.Variable(self.j['m']['fmwo_'+sp],name='fmwo_'+sp)
-                self.m['fmbo_'+sp] = tf.Variable(self.j['m']['fmbo_'+sp],name='fmbo_'+sp)
-                self.m['fmw_'+sp]  = []
-                self.m['fmb_'+sp]  = []
-                for i in range(self.j['mf_layer'][1]):
-                    self.m['fmw_'+sp].append(tf.Variable(self.j['m']['fmw_'+sp][i],name='fmwh_'+sp))
-                    self.m['fmb_'+sp].append(tf.Variable(self.j['m']['fmb_'+sp][i],name='fmbh_'+sp))
+                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['few_'+bd][0].shape,stddev=0.1),
+                                         name='fewh_'+bd))
+                # self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][i],name='fewh_'+bd))
+                # self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][i],name='febh_'+bd))
+                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['feb_'+bd][0].shape,stddev=0.1),
+                                         name='febh_'+bd))
 
     def call(self,Bp,D,B,E):
         # compute F
@@ -102,17 +82,6 @@ class Linear_be(tf.keras.Model):
         return loss
 
     def save(self):
-        if self.level>2:
-           for sp in self.spec:
-                self.j['m']['fmwi_'+sp] = self.m['fmwi_'+sp].numpy().tolist()
-                self.j['m']['fmbi_'+sp] = self.m['fmbi_'+sp].numpy().tolist()
-                self.j['m']['fmwo_'+sp] = self.m['fmwo_'+sp].numpy().tolist()
-                self.j['m']['fmbo_'+sp] = self.m['fmbo_'+sp].numpy().tolist()
-
-                for i in range(self.j['mf_layer'][1]):
-                    self.j['m']['fmw_'+sp][i] = self.m['fmw_'+sp][i].numpy().tolist()
-                    self.j['m']['fmb_'+sp][i] = self.m['fmb_'+sp][i].numpy().tolist()
-
         for bd in self.bonds:
             self.j['m']['fewi_'+bd] = self.m['fewi_'+bd].numpy().tolist()
             self.j['m']['febi_'+bd] = self.m['febi_'+bd].numpy().tolist()
