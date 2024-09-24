@@ -2201,7 +2201,7 @@ class ReaxFF_nn(object):
 
                  fesi = tf.where(tf.less_equal(bo0_,self.botol),1.0,0.0)                 ##### bo <= bocut that e = 0.0
                  if self.EnergyFunction!=0:
-                    self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu((bo0_*self.p['Desi_'+bd]-self.esi[mol][bd])*fesi))
+                    self.penalty_be_cut[bd]  += tf.reduce_sum(tf.nn.relu((self.esi[mol][bd]-bo0_)*fesi))
                  
                  
               if self.spv_ang:
