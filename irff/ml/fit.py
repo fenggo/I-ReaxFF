@@ -60,7 +60,6 @@ class Linear_be(object):
                 # b = np.array(self.j['m']['few_'+bd][i])
                 # m,n = w.shape
                 # print('hidden layer:',i,m,n)
-
                 if i+1 > self.j['be_layer'][1]:
                    self.m['few_'+bd].append(tf.Variable(self.j['m']['few_'+bd][-1],name='fewh_'+bd))
                    self.m['feb_'+bd].append(tf.Variable(self.j['m']['feb_'+bd][-1],name='febh_'+bd))
