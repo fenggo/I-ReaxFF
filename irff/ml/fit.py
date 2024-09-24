@@ -46,10 +46,10 @@ class Linear_be(object):
             # self.m['febi_'+bd] = tf.Variable(self.j['m']['febi_'+bd],name='febi_'+bd)
             # self.m['fewo_'+bd] = tf.Variable(self.j['m']['fewo_'+bd],name='fewo_'+bd)
             # self.m['febo_'+bd] = tf.Variable(self.j['m']['febo_'+bd],name='febo_'+bd)
-            self.m['fewi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewi_'+bd].shape,stddev=0.1),name='fewi_'+bd)
-            self.m['febi_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febi_'+bd].shape,stddev=0.1),name='febi_'+bd)
-            self.m['fewo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['fewo_'+bd].shape,stddev=0.1),name='fewo_'+bd)
-            self.m['febo_'+bd] = tf.Variable(tf.random.normal(self.j['m']['febo_'+bd].shape,stddev=0.1),name='febo_'+bd)
+            self.m['fewi_'+bd] = tf.Variable(tf.random.normal([3,l[0]],stddev=0.1),name='fewi_'+bd)
+            self.m['febi_'+bd] = tf.Variable(tf.random.normal([l[0]],stddev=0.1),name='febi_'+bd)
+            self.m['fewo_'+bd] = tf.Variable(tf.random.normal([l[0],1],stddev=0.1),name='fewo_'+bd)
+            self.m['febo_'+bd] = tf.Variable(tf.random.normal([1],stddev=0.1),name='febo_'+bd)
             self.m['few_'+bd]  = []
             self.m['feb_'+bd]  = []
             for i in range(hidelayer):
@@ -57,9 +57,9 @@ class Linear_be(object):
                 # b = np.array(self.j['m']['few_'+bd][i])
                 # m,n = w.shape
                 # print('hidden layer:',i,m,n)
-                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['few_'+bd][0].shape,stddev=0.1),
+                self.m['few_'+bd].append(tf.Variable(tf.random.normal([l[0],l[0]],stddev=0.1),
                                          name='fewh_'+bd))
-                self.m['few_'+bd].append(tf.Variable(tf.random.normal(self.j['m']['feb_'+bd][0].shape,stddev=0.1),
+                self.m['feb_'+bd].append(tf.Variable(tf.random.normal([l[0]],stddev=0.1),
                                          name='febh_'+bd))
                 if i+1 > self.j['be_layer'][1]:
                    self.j['m']['few_'+bd].append(self.j['m']['few_'+bd][-1])
