@@ -39,7 +39,7 @@ class Linear_be(object):
         l = self.be_layer
 
         self.E,self.B = {},{}
-        for bd in self.bonds:
+        for bd in B:
             self.De[bd]        = tf.Variable(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
             # self.De_[bd]     = tf.clip_by_value(self.De[bd],0.0,999*self.unit)
             # self.De[bd]      = tf.constant(self.j['p']['Desi_'+bd]*self.unit,name='Desi_'+bd)
