@@ -78,7 +78,7 @@ class Linear_be(object):
 
         if hidelayer > self.j['be_layer'][1]:
            self.j['be_layer'][1] = hidelayer
-        for bd in self.bonds:
+        for bd in self.De:
             self.E[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,1],name='E_%s' %bd)
             self.B[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='B_%s' %bd)
             #print('define the placeholder for the model ...')
@@ -89,7 +89,7 @@ class Linear_be(object):
         #print('build graph ...')
         loss = 0.0
         self.E_pred = {}
-        for bd in self.bonds:
+        for bd in self.De:
             ai   = tf.sigmoid(tf.matmul(self.B[bd],self.m['fewi_'+bd])  + self.m['febi_'+bd])
             if self.be_layer[1]>0:
                for i in range(self.be_layer[1]):
@@ -137,7 +137,7 @@ class Linear_be(object):
 
     def save(self):
         self.j['EnergyFunction'] = 1
-        for bd in self.bonds:
+        for bd in self.De:
             self.j['m']['fewi_'+bd] = self.sess.run(self.m['fewi_'+bd]).tolist()
             self.j['m']['febi_'+bd] = self.sess.run(self.m['febi_'+bd]).tolist()
             self.j['m']['fewo_'+bd] = self.sess.run(self.m['fewo_'+bd]).tolist()
