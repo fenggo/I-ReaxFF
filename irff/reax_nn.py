@@ -440,12 +440,18 @@ class ReaxFF_nn(object):
       self.powb,self.expb,self.ebond = {},{},{}
 
       self.esi   = {}
+      self.bsi   = {}
+      self.bpi   = {}
+      self.bpp   = {}
       self.ebd   = {}
       self.rbd   = {}
       self.rbd_  = {}
       self.Dbi   = {}
       self.Dbj   = {}
       for st in self.strcs:
+          self.bsi[st]   = {}
+          self.bpi[st]   = {}
+          self.bpp[st]   = {}
           self.esi[st]   = {}
           self.ebd[st]   = {}
           self.rbd_[st]  = {}
@@ -716,14 +722,17 @@ class ReaxFF_nn(object):
              raise RuntimeError('-  Message funcition not implicited, you can only use 1 or 3.')
           F    = Fi*Fj
           if self.MessageFunction==0:
-             bosi_.append(hsi*F)
-             bopi_.append(hpi*F)
-             bopp_.append(hpp*F)
+             self.bsi[mol][bd] = hsi*F
+             self.bpi[mol][bd] = hpi*F
+             self.bpp[mol][bd] = hpp*F
           else:
              Fsi,Fpi,Fpp = tf.unstack(F,axis=2)
-             bosi_.append(hsi*Fsi)
-             bopi_.append(hpi*Fpi)
-             bopp_.append(hpp*Fpp)
+             self.bsi[mol][bd] = hsi*Fsi
+             self.bpi[mol][bd] = hpi*Fpi
+             self.bpp[mol][bd] = hpp*Fpp
+          bosi_.append(self.bsi[mol][bd])
+          bopi_.append(self.bpi[mol][bd])
+          bopp_.append(self.bpp[mol][bd])
 
       self.Bsi[mol] = tf.concat(bosi_,0)
       bosir = tf.scatter_nd(self.bdid[mol],self.Bsi[mol],
