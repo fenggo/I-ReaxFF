@@ -82,6 +82,7 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
     b1 = np.random.uniform(0.0,0.4,(10000,3))
     b2 = np.random.uniform(0.0,0.1,(10000,3))
     b3 = np.random.normal(loc=[0.1,0.05,0.03],scale=[0.05,0.05,0.05],size=[10000,3])
+    b3 = np.where(b3>0.0,b3,0.0)
 
     for bd in B:
         bp     = np.array(Bp[bd])
