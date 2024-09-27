@@ -61,10 +61,6 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
         b = batchs[mol] if mol in batchs else batchs['others']
         trajs = trajdata(label=mol,batch=b)
         dataset.update(trajs)
-    dataset['md-si4h12'] = 'md-si4h12.traj'
-    dataset['mdsi64'] = 'md-si64.traj'
-    dataset['mdsi64-1'] = 'md-si64-1.traj'
-    dataset['md-si3n4'] = 'md-si3n4.traj'
     
     if test:
        D,Bp,B,R,E = get_data(dataset={'md':'md.traj'},bonds=bonds,ffield='ffieldData.json')
@@ -72,20 +68,31 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
        for bd in E:
            E1_ = E[bd]
            E2_ = E2[bd]
-           print('\n ------ ',bd,' ------ \n')
+           if not E[bd]:
+              continue
+           bmax= np.max(B[bd])
+           print('\n ------ max bo ------ \n',bmax)
            for i,e in enumerate(E1_):
-               print(E1_[i],E2_[i]*p['Desi_{:s}'.format(bd)]*unit)
+               print('B({:.8f} {:.8f} {:.8f})'.format(B[bd][i][0],B[bd][i][1],B[bd][i][2]),
+                     'E: ',E1_[i],E2_[i]*p['Desi_{:s}'.format(bd)]*unit)
     else:
        D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
 
-
     E_ = {}
-    # B_ = {}
+    b1 = np.random.uniform(0.0,0.4,(10000,3))
+    b2 = np.random.uniform(0.0,0.1,(10000,3))
+    b3 = np.random.normal(loc=[0.1,0.05,0.03],scale=[0.05,0.05,0.05],size=[10000,3])
+
     for bd in B:
         bp     = np.array(Bp[bd])
         e      = np.array(E[bd])
         B[bd].append([0.0,0.0,0.0])
+        B[bd].extend(b1.tolist())
+        B[bd].extend(b2.tolist())
+        B[bd].extend(b3.tolist())
         B_     = np.array(B[bd])
+        bmax   = np.max(B_)
+        print('\n ------ max bo ------ \n',bmax)
         E_[bd] = reax_bond_energy(p,bd,B_)
         # for i,e_ in enumerate(e):
         #     print(e_,E_[bd][i],B_[i])
@@ -107,4 +114,6 @@ if __name__ == '__main__':
    args = parser.parse_args(sys.argv[1:])
    
    fit(step=args.step,obj=args.o,random_init=args.r,learning_rate=args.l,test=args.t)
+
+
 
