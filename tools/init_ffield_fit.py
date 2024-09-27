@@ -47,6 +47,8 @@ def gaussian(x=[0.0,0.0,0.0]):
 
 def generate_bo(bmax=[0.0,0.0,0.0]):
     b = []
+    b_ = np.random.normal(loc=bmax,scale=[0.01,0.01,0.01],size=[1000,3])
+    b.extend(np.where(b_>0.0,b_,0.0).tolist()) 
     if bmax[0]<0.2:
        bmax[0] = 0.2 
     
