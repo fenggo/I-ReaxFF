@@ -82,10 +82,10 @@ class Linear_be(object):
             self.E[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,1],name='E_%s' %bd)
             self.B[bd] = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='B_%s' %bd)
             #print('define the placeholder for the model ...')
-        self.loss = self.build_graph()     
+        self.loss = self.forward()     
         self.feed_dict = self.feed_data(Bp,D,B,E)
 
-    def build_graph(self):
+    def forward(self):
         #print('build graph ...')
         loss = 0.0
         self.E_pred = {}
@@ -192,10 +192,10 @@ class Linear_bo(object):
             self.B[bd]   = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='B_%s' %bd)
             self.Bp[bd]  = tf.compat.v1.placeholder(tf.float32,shape=[None,3],name='Bp_%s' %bd)
             #print('define the placeholder for the model ...')
-        self.loss = self.build_graph()     
+        self.loss = self.forward()     
         self.feed_dict = self.feed_data(Bp,D,B,E)
 
-    def build_graph(self):
+    def forward(self):
         #print('build graph ...')
         loss = 0.0
         for bd in self.bonds:
