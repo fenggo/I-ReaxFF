@@ -39,6 +39,24 @@ def init_bonds(p_):
         elif k[0]=='rohb':
            hbs.append(k[1])
     return spec,bonds,offd,angs,torp,hbs
+
+def gaussian(x=[0.0,0.0,0.0]):
+    b_ = np.random.normal(loc=x,scale=[0.002,0.002,0.002],size=[10,3])
+    b  = np.where(b_>0.0,b_,0.0).tolist()
+    return b
+
+def generate_bo(bmax=[0.0,0.0,0.0]):
+    b = []
+    if bmax[0]<0.2:
+       bmax[0] = 0.2 
+    
+    center = [[i*bmax[0]/100,i*bmax[1]/100,i*bmax[2]/100] for i in range(100)]
+    for i in range(100):
+         b_ = np.random.normal(loc=center[i],scale=[0.02,0.02,0.02],size=[1000,3])
+         # print(b_.shape)
+         b.extend(np.where(b_>0.0,b_,0.0).tolist()) 
+    return b
+    
 def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
     unit = 4.3364432032e-2
     with open('ffieldData.json','r') as lf:
@@ -79,26 +97,20 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
        D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
 
     E_ = {}
-    b1 = np.random.uniform(0.0,0.4,(10000,3))
-    b2 = np.random.uniform(0.0,0.1,(10000,3))
-    b3 = np.random.normal(loc=[0.1,0.05,0.03],scale=[0.05,0.05,0.05],size=[10000,3])
-    b3 = np.where(b3>0.0,b3,0.0)
+    
+    for bd in E:
+        if E[bd]:
+           bmax   = np.max(B[bd],axis=0)
+        else:
+           bmax   = [0.2,0.2,0.2]
+        print('\n ------ max bo of {:s} ------ \n'.format(bd),bmax)
+        
+        b = generate_bo(bmax)
+        B[bd].extend(b)
 
-    for bd in B:
-        bp     = np.array(Bp[bd])
-        e      = np.array(E[bd])
-        B[bd].append([0.0,0.0,0.0])
-        B[bd].extend(b1.tolist())
-        B[bd].extend(b2.tolist())
-        B[bd].extend(b3.tolist())
         B_     = np.array(B[bd])
-        bmax   = np.max(B_)
-        print('\n ------ max bo ------ \n',bmax)
         E_[bd] = reax_bond_energy(p,bd,B_)
-        # for i,e_ in enumerate(e):
-        #     print(e_,E_[bd][i],B_[i])
-        # print(np.max(e),p['Desi_'+bd]*unit)
-      
+
     if not test:
        train(Bp,D,B,E_,bonds=bonds,step=step,fitobj=obj,learning_rate=learning_rate,
              layer=(9,1),random_init=random_init)
