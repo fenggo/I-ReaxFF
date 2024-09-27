@@ -45,7 +45,6 @@ class ReaxFF_nn(object):
                vdwcut=10.0,
                atol=0.001,
                # hbtol=0.001,
-               bore={'others':0.0},
                weight={'others':1.0},
                bo_clip=None,                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
@@ -71,6 +70,7 @@ class ReaxFF_nn(object):
                regularize_mf=True,
                regularize_bias=False,
                bo_keep=tuple(),  
+               reax_be=False,
                spv_ang=False,
                fixrcbo=False,
                to_train=True,
@@ -143,6 +143,7 @@ class ReaxFF_nn(object):
       self.EnergyFunction  = EnergyFunction 
       self.spv_ang       = spv_ang
       self.bo_clip       = bo_clip
+      self.reax_be       = reax_be
       self.bo_layer      = bo_layer
       self.weight        = weight
       self.spec          = spec
@@ -157,7 +158,7 @@ class ReaxFF_nn(object):
       self.losFunc       = losFunc
       self.huber_d       = huber_d
       self.ncpu          = ncpu
-      self.bore          = bore
+      # self.bore          = bore
       #self.atol         = atol     # angle bond-order tolerence
       #self.hbtol        = hbtol    # hydrogen-bond bond-order tolerence
       self.fixrcbo       = fixrcbo
@@ -2139,6 +2140,12 @@ class ReaxFF_nn(object):
           self.hbs) = read_ffield(libfile=self.libfile,zpe=True)
          self.MolEnergy_ = {}
          rcut,rcuta,re = None,None,None
+      if exists('ffieldData.json'):
+         with open('ffieldData.json','r') as lf:
+              j = js.load(lf)
+         self.pd  = j['p']
+      else:
+         self.pd  = self.p_
       return rcut,rcuta,re
 
   def get_penalty(self):
@@ -2166,6 +2173,7 @@ class ReaxFF_nn(object):
       self.penalty_bo      = {}
       self.penalty_bo_rcut = {}
       self.penalty_be_cut  = {}
+      self.penalty_be      = {}
       self.penalty_rcut    = {}
       self.penalty_ang     = {}
       self.penalty_w       = tf.constant(0.0)
@@ -2193,6 +2201,7 @@ class ReaxFF_nn(object):
           self.penalty_be_cut[bd]  = tf.constant(0.0)
           self.penalty_bo_rcut[bd] = tf.constant(0.0)
           self.penalty_bo[bd]      = tf.constant(0.0)
+          self.penalty_be[bd]      = tf.constant(0.0)
 
           for mol in self.strcs:
               if self.nbd[mol][bd]>0:       
@@ -2200,6 +2209,25 @@ class ReaxFF_nn(object):
                  bdid  = self.bdid[mol][b_[0]:b_[1]]
                  bo0_  = tf.gather_nd(self.bo0[mol],bdid,
                                       name='bo0_supervize_{:s}'.format(bd)) 
+
+                 if self.reax_be:
+                    bsi   = tf.gather_nd(self.bosi[mol],bdid,
+                                          name='bosi_supervize_{:s}'.format(bd)) 
+                    bpi   = tf.gather_nd(self.bopi[mol],bdid,
+                                          name='bopi_supervize_{:s}'.format(bd)) 
+                    bpp   = tf.gather_nd(self.bopp[mol],bdid,
+                                          name='bopp_supervize_{:s}'.format(bd)) 
+                    FBO  = tf.where(tf.greater(bsi,0.0),1.0,0.0)
+                    FBOR = 1.0 - FBO
+                    powb = tf.pow(bsi+FBOR,self.pd['be2_'+bd])
+                    expb = tf.exp(tf.multiply(self.pd['be1_'+bd],1.0-powb))
+
+                    sieng = self.pd['Desi_'+bd]*bsi*expb*FBO 
+                    pieng = tf.multiply(self.pd['Depi_'+bd],bpi)
+                    ppeng = tf.multiply(self.pd['Depp_'+bd],bpp) 
+                    ebd   = -sieng-pieng-ppeng
+                    self.penalty_be[bd] += tf.nn.l2_loss(ebd-self.ebd[st][bd],name='reax_be_%s' %st)
+
                  bop_  = tf.gather_nd(self.bop[mol],bdid,
                                       name='bop_supervize_{:s}'.format(bd)) 
                  fbo  = tf.where(tf.less(self.rbd_[mol][bd],self.rc_bo[bd]),0.0,1.0)     # bop should be zero if r>rcut_bo
@@ -2219,7 +2247,9 @@ class ReaxFF_nn(object):
           penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
           penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)        
           penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
-          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty)   
+          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
+          if self.reax_be:
+             penalty  = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty)  
 
           # penalize term for regularization of the neural networs
           if self.regularize:                             # regularize to avoid overfit
