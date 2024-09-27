@@ -2222,9 +2222,9 @@ class ReaxFF_nn(object):
                     powb = tf.pow(bsi+FBOR,self.pd['be2_'+bd])
                     expb = tf.exp(tf.multiply(self.pd['be1_'+bd],1.0-powb))
 
-                    sieng = self.pd['Desi_'+bd]*bsi*expb*FBO 
-                    pieng = tf.multiply(self.pd['Depi_'+bd],bpi)
-                    ppeng = tf.multiply(self.pd['Depp_'+bd],bpp) 
+                    sieng = self.pd['Desi_'+bd]*self.unit*bsi*expb*FBO 
+                    pieng = tf.multiply(self.pd['Depi_'+bd]*self.unit,bpi)
+                    ppeng = tf.multiply(self.pd['Depp_'+bd]*self.unit,bpp) 
                     ebd   = -sieng-pieng-ppeng
                     self.penalty_be[bd] += tf.nn.l2_loss(ebd-self.ebd[mol][bd],name='reax_be_{:s}'.format(mol))
 
