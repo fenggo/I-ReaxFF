@@ -39,7 +39,8 @@ def init_bonds(p_):
         elif k[0]=='rohb':
            hbs.append(k[1])
     return spec,bonds,offd,angs,torp,hbs
-def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01):
+def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
+    unit = 4.3364432032e-2
     with open('ffieldData.json','r') as lf:
          j  = js.load(lf)
          p = j['p']
@@ -60,26 +61,23 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01):
         b = batchs[mol] if mol in batchs else batchs['others']
         trajs = trajdata(label=mol,batch=b)
         dataset.update(trajs)
-
-    bonds = ['H-H','H-Si','Si-Si','N-N','N-Si'] 
-    D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
+    dataset['md-si4h12'] = 'md-si4h12.traj'
+    dataset['mdsi64'] = 'md-si64.traj'
+    dataset['mdsi64-1'] = 'md-si64-1.traj'
+    dataset['md-si3n4'] = 'md-si3n4.traj'
     
-    # for st in dataset:
-    #     data_ = reax_force_data(structure=st,
-    #                             traj=dataset[st],
-    #                             vdwcut=10.0,
-    #                             rcut=j['rcut'],
-    #                             rcuta=j['rcutBond'],
-    #                             hbshort=6.75,
-    #                             hblong=7.5,
-    #                             batch=1000,
-    #                             variable_batch=True,
-    #                             m=m,
-    #                             mf_layer=j['mf_layer'],
-    #                             p=p,spec=spec,bonds=bonds,
-    #                             angs=angs,tors=torp,
-    #                             hbs=hbs,
-    #                             screen=False)
+    if test:
+       D,Bp,B,R,E = get_data(dataset={'md':'md.traj'},bonds=bonds,ffield='ffieldData.json')
+       D2,Bp2,B2,R2,E2 = get_data(dataset={'md':'md.traj'},bonds=bonds,ffield='ffield.json')
+       for bd in E:
+           E1_ = E[bd]
+           E2_ = E2[bd]
+           print('\n ------ ',bd,' ------ \n')
+           for i,e in enumerate(E1_):
+               print(E1_[i],E2_[i]*p['Desi_{:s}'.format(bd)]*unit)
+    else:
+       D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
+
 
     E_ = {}
     # B_ = {}
@@ -93,9 +91,9 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01):
         #     print(e_,E_[bd][i],B_[i])
         # print(np.max(e),p['Desi_'+bd]*unit)
       
-
-    train(Bp,D,B,E_,bonds=bonds,step=step,fitobj=obj,learning_rate=learning_rate,
-          layer=(9,1),random_init=random_init)
+    if not test:
+       train(Bp,D,B,E_,bonds=bonds,step=step,fitobj=obj,learning_rate=learning_rate,
+             layer=(9,1),random_init=random_init)
 
    
 if __name__ == '__main__':
@@ -103,11 +101,10 @@ if __name__ == '__main__':
    parser = argparse.ArgumentParser(description=help_)
    parser.add_argument('--step',default=10000,type=int, help='training steps')
    parser.add_argument('--r',default=0,type=int, help='whether random init')
+   parser.add_argument('--t',default=0,type=int, help='whether test result')
    parser.add_argument('--l',default=0.01,type=float, help='learning rate')
    parser.add_argument('--o',default='BE',type=str, help='fit object BE or BO')
    args = parser.parse_args(sys.argv[1:])
    
-   fit(step=args.step,obj=args.o,random_init=args.r,learning_rate=args.l)
-
-
+   fit(step=args.step,obj=args.o,random_init=args.r,learning_rate=args.l,test=args.t)
 
