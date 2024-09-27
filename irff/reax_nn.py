@@ -2226,7 +2226,7 @@ class ReaxFF_nn(object):
                     pieng = tf.multiply(self.pd['Depi_'+bd],bpi)
                     ppeng = tf.multiply(self.pd['Depp_'+bd],bpp) 
                     ebd   = -sieng-pieng-ppeng
-                    self.penalty_be[bd] += tf.nn.l2_loss(ebd-self.ebd[mol][bd],name='reax_be_%s' %st)
+                    self.penalty_be[bd] += tf.nn.l2_loss(ebd-self.ebd[mol][bd],name='reax_be_{:s}'.format(mol))
 
                  bop_  = tf.gather_nd(self.bop[mol],bdid,
                                       name='bop_supervize_{:s}'.format(bd)) 
