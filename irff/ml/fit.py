@@ -131,6 +131,12 @@ class Linear_be(object):
                self.save()
                break
 
+        # E,E_pred = self.sess.run([self.E,self.E_pred],feed_dict=self.feed_dict)
+        # for bd in E:
+        #     print('\n bond: {:s} \n'.format(bd))
+        #     for e,e_pred in zip(E[bd],E_pred[bd]):
+        #         print('e: ',e,'e_pred: ',e_pred)
+
     def feed_data(self,Bp,D,B,E):
         feed_dict = {}
         for bd in B:
