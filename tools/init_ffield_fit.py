@@ -49,9 +49,14 @@ def generate_bo(bmax=[0.0,0.0,0.0]):
     b = []
     b_ = np.random.normal(loc=bmax,scale=[0.01,0.01,0.01],size=[1000,3])
     b.extend(np.where(b_>0.0,b_,0.0).tolist()) 
-    if bmax[0]<0.2:
-       bmax[0] = 0.2 
     
+    if bmax[0]<0.1:
+       bmax[0] = 0.1 
+    if bmax[1]<0.02:
+       bmax[1] = 0.02 
+    if bmax[2]<0.02:
+       bmax[2] = 0.02 
+          
     center = [[i*bmax[0]/100,i*bmax[1]/100,i*bmax[2]/100] for i in range(100)]
     for i in range(100):
          b_ = np.random.normal(loc=center[i],scale=[0.02,0.02,0.02],size=[1000,3])
@@ -65,15 +70,16 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
          j  = js.load(lf)
          p = j['p']
          m = j['m']
+
     spec,bonds,offd,angs,torp,hbs = init_bonds(p)
     dataset = { }
 
     trajdata = ColData()
     strucs = ['n29',
               'si64',
-              'si3n4',
-              'si4h12',
-              'si2h6',
+               'si3n4',
+               'si4h12',
+               'si2h6',
               ]
     batchs = {'others':500}
 
@@ -94,7 +100,7 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
            print('\n ------ max bo ------ \n',bmax)
            for i,e in enumerate(E1_):
                print('B({:.8f} {:.8f} {:.8f})'.format(B[bd][i][0],B[bd][i][1],B[bd][i][2]),
-                     'E: ',E1_[i],E2_[i]*p['Desi_{:s}'.format(bd)]*unit)
+                     'E: ',E1_[i],E2_[i])
     else:
        D,Bp,B,R,E = get_data(dataset=dataset,bonds=bonds,ffield='ffieldData.json')
 
@@ -104,12 +110,13 @@ def fit(step=1000,obj='BO',random_init=0,learning_rate=0.01,test=0):
         if E[bd]:
            bmax   = np.max(B[bd],axis=0)
         else:
-           bmax   = [0.2,0.2,0.2]
+           bmax   = [0.1,0.02,0.02]
         print('\n ------ max bo of {:s} ------ \n'.format(bd),bmax)
         
         b = generate_bo(bmax)
         B[bd].extend(b)
-
+        if not B[bd]:
+           continue
         B_     = np.array(B[bd])
         E_[bd] = reax_bond_energy(p,bd,B_)
 
@@ -129,6 +136,3 @@ if __name__ == '__main__':
    args = parser.parse_args(sys.argv[1:])
    
    fit(step=args.step,obj=args.o,random_init=args.r,learning_rate=args.l,test=args.t)
-
-
-

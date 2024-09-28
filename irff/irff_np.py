@@ -456,17 +456,17 @@ class IRFF_NP(object):
          self.esi   = self.sieng + self.pieng + self.ppeng
       elif self.EnergyFunction==1: 
          esi      = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])
-         self.esi = esi*np.where(self.bo0<0.0000001,0.0,1.0)
+         self.esi = self.P['Desi']*esi*np.where(self.bo0<0.0000001,0.0,1.0)
       elif self.EnergyFunction==2:
          self.esi = self.f_nn('fe',[-self.bosi,-self.bopi,-self.bopp],layer=self.be_layer[1]) 
-         self.esi = self.esi*np.where(self.bo0<0.0000001,0.0,1.0)
+         self.esi = self.P['Desi']*self.esi*np.where(self.bo0<0.0000001,0.0,1.0)
       elif self.EnergyFunction==3: 
          e_ = self.f_nn('fe',[self.bosi,self.bopi,self.bopp],layer=self.be_layer[1])  
-         self.esi = self.bo0*e_
+         self.esi = self.P['Desi']*self.bo0*e_
       elif self.EnergyFunction==4:
          Fi = self.f_nn('fe',[Dbj,Dbi,self.bo0],layer=self.be_layer[1])
          Fj = np.transpose(Fi,[1,0])
-         self.esi = Fi*Fj*self.bo0
+         self.esi = self.P['Desi']*Fi*Fj*self.bo0
       # elif self.EnergyFunction==5:
       #    r_        = self.bodiv1
       #    mors_exp1 = np.exp(self.P['be2']*(1.0-r_))
@@ -506,13 +506,7 @@ class IRFF_NP(object):
       self.so    = np.sum(self.P['ovun1']*self.P['Desi']*self.bo0,axis=1)  
       self.fbo   = taper(self.bo0,rmin=self.atol,rmax=2.0*self.atol) 
       self.fhb   = taper(self.bo0,rmin=self.hbtol,rmax=2.0*self.hbtol) 
-
-      if self.EnergyFunction>=1: # or self.EnergyFunction==2 or self.EnergyFunction==3:
-         self.ebond = - self.P['Desi']*self.esi
-      else:
-         #if self.nn:
-         self.ebond = - self.esi
-         #else:
+      self.ebond = - self.esi
       self.Ebond = 0.5*np.sum(self.ebond)
       return self.Ebond
 
