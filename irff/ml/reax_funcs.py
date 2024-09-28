@@ -69,6 +69,9 @@ def f45(boc3i,boc3j,boc4i,boc4j,boc5i,boc5j,valboci,valbocj,Di,Dj,bop):
 def reax_bond_energy(p,bd,bond_data):
     ''' compute bond-energy '''
     unit = 4.3364432032e-2
+    s = bond_data.shape
+    if len(s)==1:
+        bond_data = np.expand_dims(bond_data,0)
     bsi  = bond_data[:,0]
     bpi  = bond_data[:,1]
     bpp  = bond_data[:,2]
