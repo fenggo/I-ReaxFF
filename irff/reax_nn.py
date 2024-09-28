@@ -2195,7 +2195,7 @@ class ReaxFF_nn(object):
           rcut_pp = tf.nn.relu(rc_bopp-self.rcut[bd])
 
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
-          penalty = tf.add(self.penalty_rcut[bd]*self.lambda_bd,penalty)
+          penalty = tf.add(self.penalty_rcut[bd]*self.lambda_bo,penalty)
  
           self.penalty_bop[bd]     = tf.constant(0.0)
           self.penalty_be_cut[bd]  = tf.constant(0.0)
@@ -2245,9 +2245,9 @@ class ReaxFF_nn(object):
                  self.penalty_ang[mol] = tf.reduce_sum(self.thet2[mol]*self.fijk[mol])
           
           penalty  = tf.add(self.penalty_be_cut[bd]*self.lambda_bd,penalty)
-          penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bd,penalty)        
-          penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bd,penalty)
-          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bd,penalty) 
+          penalty  = tf.add(self.penalty_bop[bd]*self.lambda_bo,penalty)        
+          penalty  = tf.add(self.penalty_bo_rcut[bd]*self.lambda_bo,penalty)
+          penalty  = tf.add(self.penalty_bo[bd]*self.lambda_bo,penalty) 
           if self.reax_be:
              penalty  = tf.add(self.penalty_be[bd]*self.lambda_bd,penalty)  
 
