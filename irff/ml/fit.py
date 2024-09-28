@@ -141,7 +141,7 @@ class Linear_be(object):
 
     def feed_data(self,Bp,D,B,E):
         feed_dict = {}
-        for bd in B:
+        for bd in self.De:
             feed_dict[self.B[bd]] = np.array(B[bd]).astype(np.float32)
             feed_dict[self.E[bd]] = np.expand_dims(E[bd],axis=1).astype(np.float32)
         return feed_dict
