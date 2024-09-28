@@ -103,8 +103,11 @@ class Linear_be(object):
                ao = tf.sigmoid(tf.matmul(ai,self.m['fewo_'+bd]) + self.m['febo_'+bd])
 
             self.E_pred[bd] = ao*self.De[bd]
-            loss+= tf.reduce_sum(tf.square(self.E[bd]-self.E_pred[bd]))
+            loss+= tf.reduce_sum(tf.abs(self.E[bd]-self.E_pred[bd]))
             # loss  += tf.nn.l2_loss(self.E[bd]-self.E_pred[bd])
+            # loss+= tf.reduce_sum(tf.square(self.E[bd]-self.E_pred[bd]))
+            # loss+= tf.compat.v1.losses.absolute_difference(self.E[bd],self.E_pred[bd])
+            # loss+= tf.compat.v1.losses.mean_squared_error(self.E[bd],self.E_pred[bd])
         return loss
 
     def session(self,learning_rate=3.0e-4,method='AdamOptimizer'):
