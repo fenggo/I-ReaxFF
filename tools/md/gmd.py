@@ -30,7 +30,7 @@ def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,t=0.00001,lib='reaxff_nn'):
     A = read(gen,index=i)
     # A = press_mol(A)
-    runword= 'opti conv qiterative prop phonons thermal num3'
+    runword= 'grad conv qiterative prop phonons thermal num3'
     write_gulp_in(A,inp='inp-phonon',
                   runword=runword,
                   T=T,maxcyc=step,pressure=p,
