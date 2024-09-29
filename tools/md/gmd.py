@@ -25,20 +25,27 @@ def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     else:
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
-    # arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-# def npt(T=350,time_step=0.1,tot_step=10.0):
-#     A = read('packed.gen')
-#     write_gulp_in(A,runword='md conp qiterative',
-#                   T=T,
-#                   time_step=time_step,
-#                   tot_step=tot_step,
-#                   lib='reax')
-#     system('gulp<inp-gulp>gulp.out')
-#     xyztotraj('his.xyz')
+def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,t=0.00001,lib='reaxff_nn'):
+    A = read(gen,index=i)
+    # A = press_mol(A)
+    runword= 'opti conv qiterative prop phonons thermal num3'
+    write_gulp_in(A,inp='inp-phonon',
+                  runword=runword,
+                  T=T,maxcyc=step,pressure=p,
+                  gopt=t,
+                  supercell='zyx {:d} {:d} {:d}'.format(x,y,z),
+                  lib=lib)
+    print('\n-  running gulp phonon calculation ...')
+    if n==1:
+       system('gulp<inp-phonon>phonon.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n))
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
-        x=1,y=1,z=1,n=1,output=None,lib='reaxff_nn'):
+def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,t=0.00001,output=None,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A) 
 
@@ -50,8 +57,8 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
        runword= 'opti conv qiterative prop phonons thermal num3'
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,pressure=p,
-                  gopt=t,
                   output=output,
+                  gopt=t,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
@@ -78,7 +85,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,t=0.00001,
     atoms.write('POSCAR.unitcell')
     # return atoms
 
-def sheng(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+def sheng(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,t=0.00001,output='shengbte',lib='reaxff_nn'):
     A = read(gen,index=i)
     # A = press_mol(A)
@@ -138,6 +145,6 @@ if __name__ == '__main__':
 
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,nvt,plot,traj,w,sheng])
+   argh.add_commands(parser, [opt,nvt,plot,traj,w,sheng,phonon])
    argh.dispatch(parser)
 
