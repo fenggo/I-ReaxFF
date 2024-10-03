@@ -127,7 +127,6 @@ class ReaxFF(object):
                optmol=True,
                lambda_me=0.1,
                nn=False,
-               nnopt=True,
                vdwnn=False,
                VdwFunction=0,
                bo_layer=[8,4],
@@ -178,7 +177,6 @@ class ReaxFF(object):
       self.hbshort       = hbshort
       self.hblong        = hblong
       self.nn            = nn
-      self.nnopt         = nnopt
       self.vdwnn         = vdwnn
       self.VdwFunction   = VdwFunction if vdwnn else 0
       self.spv_vdw       = spv_vdw
