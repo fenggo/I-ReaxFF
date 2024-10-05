@@ -37,10 +37,10 @@ for i in [0.95,0.96,0.97,0.98,1.0,1.05,1.1,1.15,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,
 
     opt(gen='POSCAR',step=100,l=0,t=0.0000001,n=16, x=1,y=1,z=8)
     phonon(gen='POSCAR.unitcell',T=300,step=300,t=0.0000001,n=16, x=1,y=1,z=22)
-    system('cp phonon.out phonon_{:d}.out'.format(i))
+    system('cp phonon.out phonon_{:f}.out'.format(i))
 
     k = get_kappa('phonon.out')
-    with open('af_cnt_{:f}.txt'.format(i),'a') as f:
+    with open('af_cnt.txt','a') as f:
          print(i,k,file=f)
 
     
