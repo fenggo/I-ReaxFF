@@ -378,21 +378,21 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     his.close()
     return A
 
-def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
-        x=1,y=1,z=1,n=1,lib='reaxff_nn',output=None):
+def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,t=0.00001,output=None,lib='reaxff_nn'):
     A = read(gen,index=i)*(x,y,z)
     # A = press_mol(A) 
 
     if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
-    elif l==2:
+    elif l==0:
        runword='opti conv qiterative'
-    else: 
-       runword='opti conv qiterative'
-
+    if output=='shengbte':
+       runword= 'opti conv qiterative prop phonons thermal num3'
     write_gulp_in(A,runword=runword,
                   T=T,maxcyc=step,pressure=p,
                   output=output,
+                  gopt=t,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
@@ -416,7 +416,7 @@ def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
    
-       atoms.write('POSCAR.unitcell')
+    atoms.write('POSCAR.unitcell')
 
 def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
         keyword='md qiterative conv', movieFrequency=10,
