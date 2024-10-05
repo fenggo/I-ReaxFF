@@ -378,34 +378,45 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     his.close()
     return A
 
-def opt(atoms=None,T=350,gen='siesta.traj',step=200,i=-1,l=0,
-        pressure=0.0,
-        lib='reaxff_nn',ncpu=1):
-    if atoms is None:
-       atoms = read(gen,index=i)
-    if l==0:
-       runword='opti conv qiterative'
-    elif l==1:
+def opt(T=350,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,lib='reaxff_nn',output=None):
+    A = read(gen,index=i)*(x,y,z)
+    # A = press_mol(A) 
+
+    if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
+    elif l==2:
+       runword='opti conv qiterative'
+    else: 
+       runword='opti conv qiterative'
 
-    write_gulp_in(atoms,runword=runword,
-                  T=T,maxcyc=step,pressure=pressure,
+    write_gulp_in(A,runword=runword,
+                  T=T,maxcyc=step,pressure=p,
+                  output=output,
                   lib=lib)
-    # print('\n-  running gulp optimize ...')
-    if ncpu > 1:
-        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu))
+    print('\n-  running gulp optimize ...')
+    if n==1:
+       system('gulp<inp-gulp>gulp.out')
     else:
-        system('gulp<inp-gulp>gulp.out')
-
-    atoms = read('gulp.cif')
-    e = 0.0
-    with open('gulp.out','r') as fo:
-         for line in fo:
-             if line.find('Final energy')>=0:
-                e = float(line.split()[3])
-             elif line.find('Final enthalpy')>=0:
-                e = float(line.split()[3])
-    return e,atoms
+       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+    # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    if x>1 or y>1 or z>1:
+       ncell     = x*y*z
+       natoms    = int(len(atoms)/ncell)
+       species   = atoms.get_chemical_symbols()
+       positions = atoms.get_positions()
+       # forces  = atoms.get_forces()
+       cell      = atoms.get_cell()
+       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
+       u         = np.linalg.inv(cell)
+       pos_      = np.dot(positions[0:natoms], u)
+       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
+       pos       = np.dot(posf, cell)
+       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+                         cell=cell,pbc=[True,True,True])
+   
+       atoms.write('POSCAR.unitcell')
 
 def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
         keyword='md qiterative conv', movieFrequency=10,
@@ -425,7 +436,24 @@ def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
         system('gulp<inp-gulp>gulp.out')
     xyztotraj('his.xyz',mode=mode,traj='md.traj',scale=False)
 
-
+def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,t=0.00001,lib='reaxff_nn'):
+    A = read(gen,index=i)
+    # A = press_mol(A)
+    runword= 'grad conv qiterative prop phonons thermal num3'
+    write_gulp_in(A,inp='inp-phonon',
+                  runword=runword,
+                  T=T,maxcyc=step,pressure=p,
+                  gopt=t,
+                  supercell='zyx {:d} {:d} {:d}'.format(x,y,z),
+                  lib=lib)
+    print('\n-  running gulp phonon calculation ...')
+    if n==1:
+       system('gulp<inp-phonon>phonon.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n))
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    
 def npt(T=350, time_step=0.1, tot_step=10.0, ncpu=1):
     A = read('packed.gen')
     write_gulp_in(A, runword='md conp qiterative',
