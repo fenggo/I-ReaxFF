@@ -2,12 +2,8 @@
 from irff.reaxfflib import read_ffield,write_lib,write_lib
 from irff.qeq import qeq
 from ase.io import read
-import argh
-import argparse
 import json as js
 from os import environ,system
-import csv
-import pandas as pd
 from os.path import isfile
 
 
