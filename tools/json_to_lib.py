@@ -7,7 +7,6 @@ from os import environ,system
 from os.path import isfile
 
 
-
 def ffieldtolib():
     lf = open('ffield.json','r')
     j = js.load(lf)
