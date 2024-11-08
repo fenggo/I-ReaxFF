@@ -33,6 +33,12 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        pair_coeff = ['* * pace c_ace.yace C','* * table d2_short.table D2 9.0']
        units      = "metal"
        atom_style = 'atomic'
+    elif model == 'airebo':
+       pair_style = 'airebo 3.0 1 1'  
+       lib        = 'CH.airebo'
+       pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
+       units      = "metal"
+       atom_style = 'atomic'
     elif model == 'reaxff':
        pair_style = 'reaxff control checkqeq yes'   # without lg set lgvdw no
        pair_coeff = '* * {:s} {:s}'.format(lib,sp)
