@@ -1,8 +1,6 @@
 ''' data preparation for a GaussianProcessRegressor
 '''
 import sys
-import argh
-import argparse
 import numpy as np
 import csv
 from ase.io import read
