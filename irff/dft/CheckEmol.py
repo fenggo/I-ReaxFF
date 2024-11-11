@@ -7,8 +7,6 @@ from os import system, getcwd, chdir,listdir
 from os.path import isfile # exists
 from irff.irff_np import IRFF_NP
 from irff.AtomDance import AtomDance
-import argh
-import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from ase import Atoms
