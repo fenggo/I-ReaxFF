@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argh
-import argparse
+# import argh
+# import argparse
 from ..irff import IRFF
 from ..AtomDance import get_zmat_variable,get_zmat_angle,get_zmatrix,check_zmat
 from ase.io import read,write
@@ -342,10 +342,10 @@ class IRMD(object):
       self.atoms = None
 
 
-if __name__ == '__main__':
-   ''' use commond like ./irmd.py md --T=2800 to run it'''
-   parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [md])
-   argh.dispatch(parser)
+# if __name__ == '__main__':
+#    ''' use commond like ./irmd.py md --T=2800 to run it'''
+#    parser = argparse.ArgumentParser()
+#    argh.add_commands(parser, [md])
+#    argh.dispatch(parser)
 
    
