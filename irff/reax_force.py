@@ -245,7 +245,8 @@ class ReaxFF_nn_force(nn.Module):
           self.get_vdw_energy(st)
           self.get_hb_energy(st)
           self.get_total_energy(st)
-          self.get_forces(st)
+          if self.weight_force[st]!=0:
+             self.get_forces(st)
       return self.E,self.force
 
   def get_loss(self):
@@ -1268,6 +1269,8 @@ class ReaxFF_nn_force(nn.Module):
                  self.device[st] = torch.device(self._device[st_])
              else:
                  self.device[st] = torch.device(self._device['others'])
+             if st not in self.weight_force:
+                self.weight_force[st] = 0
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
@@ -1351,10 +1354,10 @@ class ReaxFF_nn_force(nn.Module):
           self.dft_energy[s] = torch.tensor(self._data[s].dft_energy,device=self.device[s])
           self.q[s]          = torch.tensor(self._data[s].q,device=self.device[s])
           self.eself[s]      = torch.tensor(strucs[s].eself,device=self.device[s])  
-          if self._data[s].forces is not  None:
-             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device[s])
-          else:
+          if self._data[s].forces is None or self.weight_force[s]==0:
              self.dft_forces[s] = None
+          else:
+             self.dft_forces[s] = torch.tensor(self._data[s].forces,device=self.device[s])
 
           if s_ in self.estruc:
              self.estruc[s] = self.estruc[s_]
