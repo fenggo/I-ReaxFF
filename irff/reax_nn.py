@@ -371,7 +371,8 @@ class ReaxFF_nn(object):
                                      rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
-
+          if s not in self.weight_force:
+             self.weight_force[s] = 0.0 
           self.vb_i[s]     = {bd:[] for bd in self.bonds}
           self.vb_j[s]     = {bd:[] for bd in self.bonds}
           self.natom[s]    = strucs[s].natom
@@ -419,8 +420,8 @@ class ReaxFF_nn(object):
              self.dft_bopi[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbopi_{:s}'.format(s))
              self.dft_bopp[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
-                                            name='dftbopp_{:s}'.format(s))                                  
-          elif strucs[s].forces is not None:
+                                            name='dftbopp_{:s}'.format(s))                                    
+          elif (strucs[s].forces is not None) and self.weight_force[s]>0.0:
              self.dft_forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
                                             name='dftforces_{:s}'.format(s))
              self.dft_bosi[s] = self.dft_bopi[s] = self.dft_bopp[s] = None
