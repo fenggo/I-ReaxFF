@@ -46,6 +46,7 @@ class ReaxFF_nn(object):
                atol=0.001,
                # hbtol=0.001,
                weight={'others':1.0},
+               weight_force={'others':1.0},
                bo_clip=None,                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
                ro_scale=0.1,
@@ -146,6 +147,7 @@ class ReaxFF_nn(object):
       self.reax_be       = reax_be
       self.bo_layer      = bo_layer
       self.weight        = weight
+      self.weight_force  = weight_force
       self.spec          = spec
       self.time          = time.time()
       self.interactive   = interactive
