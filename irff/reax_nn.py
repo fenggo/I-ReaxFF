@@ -1938,7 +1938,7 @@ class ReaxFF_nn(object):
              acc = ''
              for key in accs:
                  acc += key+': %6.4f ' %accs[key]
-             loss_f = loss_f/self.natoms
+             loss_f = loss_f/self.natoms_f if self.natoms_f!=0 else loss_f
              loss_e = los_/self.natoms
              if self.bo_keep:
                 self.logger.info('-  step: %d loss: %9.7f accs: %f %s force: %8.6f bo: %.4f pen: %.4f me: %.4f time: %.4f' %(i,
