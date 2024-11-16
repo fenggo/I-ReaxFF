@@ -219,6 +219,7 @@ class ReaxFF_nn(object):
   def initialize(self): 
       self.nframe      = 0
       self.natoms      = 0  
+      self.natoms_f    = 0  
       strucs           = {}
       self.max_e       = {}
       # self.cell        = {}
@@ -255,6 +256,13 @@ class ReaxFF_nn(object):
              self.batch[st]    = strucs[st].batch
              self.nframe      += self.batch[st]
              self.natoms      += strucs[st].natom*self.batch[st]
+
+             if st not in self.weight_force:
+                self.weight_force[st] = 0.0 
+
+             if self.weight_force[st]>0:
+                self.natoms_f    += strucs[st].natom*self.batch[st]
+                
              print('-  max energy of %s: %f.' %(st,strucs[st].max_e))
              self.max_e[st]    = strucs[st].max_e
              # self.evdw_[st]  = strucs[st].evdw
@@ -371,8 +379,7 @@ class ReaxFF_nn(object):
                                      rcell=np.float32(strucs[s].rcell),
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
-          if s not in self.weight_force:
-             self.weight_force[s] = 0.0 
+
           self.vb_i[s]     = {bd:[] for bd in self.bonds}
           self.vb_j[s]     = {bd:[] for bd in self.bonds}
           self.natom[s]    = strucs[s].natom
