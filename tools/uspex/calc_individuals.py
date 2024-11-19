@@ -90,7 +90,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
         system('mv siesta.out siesta-{:d}.out'.format(s))
         system('mv siesta.MDE siesta-{:d}.MDE'.format(s))
         system('mv siesta.MD_CAR siesta-{:d}.MD_CAR'.format(s))
-        system('mv siesta.traj individual_{:d}.traj'.format(s))
+        system('mv siesta.traj id_{:d}.traj'.format(s))
         system('rm siesta.* ')
         atoms = img[-1]
         atoms.write('POSCAR.{:d}'.format(s))
