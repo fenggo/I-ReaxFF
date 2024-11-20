@@ -6,6 +6,7 @@ import pyvista as pv
 from ase.io import read
 from irff.md.gulp import get_gulp_forces
 from irff.irff import IRFF
+from irff.molecule import press_mol
 
 help_ = './plotatoms.py --g=graphene.gen'
 parser = argparse.ArgumentParser(description=help_)
@@ -20,8 +21,9 @@ parser.add_argument('--camera_position',default='xy',type=str, help='whether plo
 args = parser.parse_args(sys.argv[1:])
 
 # ------------------- Forces from GULP --------------------
-x = y = z = 2
 atoms  = read(args.geo,index=-1)
+atoms  = press_mol(atoms)
+x = y = z =2
 if args.r:
    atoms  = atoms*(x,y,z)
  
@@ -90,7 +92,7 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.5,'H':0.2,'N':0.45,'O':0.4}
+radius = {'C':0.45,'H':0.16,'N':0.40,'O':0.36}
 # colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
 colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 # colors = {'C':'black','H':'white','N':'blue','O':'red'}
@@ -99,11 +101,11 @@ colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 for i,atom in enumerate(atoms):
     sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
     if i>= natom_u:
-       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.4,
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=1.0,
                metallic=1/8, roughness=1/5)
     else:
-       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, 
-               metallic=1/8, roughness=1/5)  
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=1.0,
+                  metallic=1/8, roughness=1/5)  
 
 #----------------------- 画出原子键　-----------------------
 bonds = pv.PolyData()
@@ -112,7 +114,7 @@ bonds.points = points
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5,opacity=0.6, smooth_shading=True)
+p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=0.9,smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
@@ -120,33 +122,11 @@ if args.f:
 
 #------------------------ 画出晶胞　------------------------
 if args.r:
-   cell = cell/2.0
+   cell[0] = cell[0]/x
+   cell[1] = cell[1]/y
+   cell[z] = cell[2]/z
 if args.b:
-   if args.r:
-      vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],             # XY平面上四个点
-         cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
-         cell[2],cell[1]+cell[2],cell[1],[0,0,0],cell[2],cell[2]+cell[1],cell[1],
-         cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
-         cell[0]+cell[1],cell[0], ## 原始晶胞8个顶点，12条边
-         2*cell[0],2*cell[0]+ cell[1],cell[0]+ cell[1],    # XY    ## X 方向延伸一个晶胞
-         cell[0]+cell[1]+cell[2], 2*cell[0]+cell[1]+cell[2],
-         2*cell[0]+2*cell[1]+cell[2],
-         2*cell[0]+2*cell[1]+2*cell[2],cell[0]+2*cell[1]+2*cell[2],2*cell[1]+2*cell[2],
-         cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],cell[0]+2*cell[2],2*cell[0]+2*cell[2],
-         2*cell[0]+cell[1]+2*cell[2],2*cell[0]+cell[1]+cell[2],
-         2*cell[0]+cell[1]+cell[2],2*cell[0]+cell[2],cell[0]+cell[2],cell[0]+2*cell[2],
-         2*cell[2],2*cell[2]+cell[1],cell[2]+cell[1],cell[2]+2*cell[1],2*cell[1],
-         cell[0]+2*cell[1],2*cell[0]+2*cell[1],2*cell[0]+cell[1],2*cell[0]+cell[1]+cell[2],
-         2*cell[0]+cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],cell[0]+2*cell[1]+2*cell[2],
-         2*cell[0]+2*cell[1]+2*cell[2],2*cell[0]+cell[1]+2*cell[2],cell[0]+cell[1]+2*cell[2],
-         cell[0]+cell[1]+cell[2],cell[0]+2*cell[1]+cell[2],2*cell[0]+2*cell[1]+cell[2],
-         2*cell[0]+2*cell[1],cell[0]+2*cell[1],cell[0]+2*cell[1]+cell[2],cell[0]+2*cell[1]+2*cell[2],
-         2*cell[1]+2*cell[2],2*cell[1]+cell[2],cell[0]+2*cell[1]+cell[2],cell[0]+2*cell[1], 
-         cell[0]+cell[1],cell[0],2*cell[0],2*cell[0]+cell[2],2*cell[0]+2*cell[2],cell[0]+2*cell[2],
-         2*cell[2],cell[2],[0, 0, 0],cell[1],2*cell[1] ]) 
-      
-   else:
-      vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],           
+   vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],           
                            cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
                            cell[2],cell[1]+cell[2],cell[1],[0,0,0],cell[2],cell[2]+cell[1],cell[1],
                            cell[1]+cell[0],cell[0],cell[2]+cell[0],cell[2]+cell[0]+cell[1],
