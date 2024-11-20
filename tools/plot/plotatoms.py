@@ -20,9 +20,10 @@ parser.add_argument('--camera_position',default='xy',type=str, help='whether plo
 args = parser.parse_args(sys.argv[1:])
 
 # ------------------- Forces from GULP --------------------
+x = y = z = 2
 atoms  = read(args.geo,index=-1)
 if args.r:
-   atoms  = atoms*(2,2,2)
+   atoms  = atoms*(x,y,z)
  
 atom_name = atoms.get_chemical_symbols()
 if args.f:
@@ -31,6 +32,7 @@ if args.f:
 #atoms.calc = IRFF(atoms=atoms, libfile='ffield.json',nn=True)
 #forces = atoms.get_forces()
 natom  = len(atoms)
+natom_u= int(natom/(x*y*z))
 points = atoms.positions
 point_cloud = pv.PolyData(points)
 if args.f:
@@ -88,15 +90,20 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.45,'H':0.16,'N':0.40,'O':0.36}
+radius = {'C':0.5,'H':0.2,'N':0.45,'O':0.4}
 # colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
 colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 # colors = {'C':'black','H':'white','N':'blue','O':'red'}
 #bond_radius = {'C':0.15,'H':0.05,'N':0.15,'O':0.15}
 #------------------------ 画出原子　------------------------
-for atom in atoms:
+for i,atom in enumerate(atoms):
     sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
-    p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, metallic=1/8, roughness=1/5)
+    if i>= natom_u:
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.4,
+               metallic=1/8, roughness=1/5)
+    else:
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.4,
+               metallic=1/8, roughness=1/5)  
 
 #----------------------- 画出原子键　-----------------------
 bonds = pv.PolyData()
@@ -105,7 +112,7 @@ bonds.points = points
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, smooth_shading=True)
+p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5,opacity=0.6, smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
