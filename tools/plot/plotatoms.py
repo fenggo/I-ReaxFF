@@ -102,7 +102,7 @@ for i,atom in enumerate(atoms):
        p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.4,
                metallic=1/8, roughness=1/5)
     else:
-       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.4,
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, 
                metallic=1/8, roughness=1/5)  
 
 #----------------------- 画出原子键　-----------------------
