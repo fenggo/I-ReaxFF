@@ -71,7 +71,8 @@ for i in range(natom-1):               # 增加与影像原子成键的端点
 points = np.array(points)
 natom_ = len(points)
 #------------------------ 计算成键 -------------------------
-bds =  [ ]
+bds  =  [ ]
+bds_ =  [ ]
 for i in range(natom_-1):
     for j in range(i+1,natom_):
         if i>=natom and j>=natom:
@@ -79,10 +80,13 @@ for i in range(natom_-1):
         vr_ = points[j] - points[i]
         r_  = np.sqrt(np.sum(vr_*vr_))
         if i < natom and j < natom:
-           if atom_name[i]=='H' and  atom_name[i]=='H':
+           if atom_name[i]=='H' and  atom_name[j]=='H':
               continue
         if r_<rcut:
-           bds.append([2,i,j]) 
+           if i < natom_u and j < natom_u:
+              bds.append([2,i,j]) 
+           else:
+              bds_.append([2,i,j]) 
 
 #------------------------ 设置ploter ----------------------
 #pv.global_theme.colorbar_horizontal.width = 0.2
@@ -100,11 +104,11 @@ colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 #------------------------ 画出原子　------------------------
 for i,atom in enumerate(atoms):
     sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
-    if i>= natom_u:
+    if i< natom_u:
        p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=1.0,
                metallic=1/8, roughness=1/5)
     else:
-       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=1.0,
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.1,
                   metallic=1/8, roughness=1/5)  
 
 #----------------------- 画出原子键　-----------------------
@@ -114,7 +118,16 @@ bonds.points = points
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=0.9,smooth_shading=True)
+p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=1.0,smooth_shading=True)
+
+if bds_:
+   bonds = pv.PolyData()
+   bonds.points = points
+
+   bonds.lines = bds_
+   tube = bonds.tube(radius=0.12)
+   # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
+   p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=0.1,smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
