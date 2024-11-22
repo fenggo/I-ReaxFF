@@ -17,6 +17,7 @@ parser.add_argument('--r',default=1,type=int, help='repeat structure')
 # parser.add_argument('--z',default=1,type=int, help='repeat structure in z direction')
 parser.add_argument('--f',default=0,type=int, help='whether plot the forces')
 parser.add_argument('--b',default=1,type=int, help='whether plot the box')  
+parser.add_argument('--o',default=0,type=int, help='plot atoms out of the box with opacity')  
 parser.add_argument('--camera_position',default='xy',type=str, help='whether plot the box') 
 args = parser.parse_args(sys.argv[1:])
 
@@ -96,19 +97,21 @@ p.set_background('white')
 #p.set_scale(xscale=4, yscale=4, zscale=4, reset_camera=True)
 p.show_axes()
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.45,'H':0.16,'N':0.40,'O':0.36}
+radius = {'C':0.40,'H':0.16,'N':0.33,'O':0.30}
 # colors = {'C':'grey','H':'whitesmoke','N':'blue','O':'red'}
 colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 # colors = {'C':'black','H':'white','N':'blue','O':'red'}
 #bond_radius = {'C':0.15,'H':0.05,'N':0.15,'O':0.15}
 #------------------------ 画出原子　------------------------
+opac = 0.2 if args.o else 1 
+
 for i,atom in enumerate(atoms):
     sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
     if i< natom_u:
        p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=1.0,
                metallic=1/8, roughness=1/5)
     else:
-       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=0.1,
+       p.add_mesh(sphere, color=colors[atom.symbol], pbr=True, opacity=opac,
                   metallic=1/8, roughness=1/5)  
 
 #----------------------- 画出原子键　-----------------------
@@ -125,9 +128,9 @@ if bds_:
    bonds.points = points
 
    bonds.lines = bds_
-   tube = bonds.tube(radius=0.12)
+   tube = bonds.tube(radius=0.1)
    # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-   p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=0.1,smooth_shading=True)
+   p.add_mesh(tube,pbr=True,metallic=3/4, roughness=2/5, opacity=opac,smooth_shading=True)
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
