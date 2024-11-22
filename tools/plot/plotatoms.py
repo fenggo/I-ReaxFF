@@ -140,7 +140,7 @@ if args.f:
 if args.r:
    cell[0] = cell[0]/x
    cell[1] = cell[1]/y
-   cell[z] = cell[2]/z
+   cell[2] = cell[2]/z
 if args.b:
    vertices = np.array([[0, 0, 0], cell[0], cell[0] + cell[1], cell[1],           
                            cell[1]+cell[2], cell[0]+cell[1]+cell[2], cell[0]+cell[2],
