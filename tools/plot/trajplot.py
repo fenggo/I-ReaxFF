@@ -1,13 +1,13 @@
 #!/usr/bin/env python
+import sys
 import argparse
+import matplotlib.pyplot as plt
+import numpy as np
 from ase.io import read,write
 from ase.io.trajectory import Trajectory
 from ase import Atoms
-import matplotlib.pyplot as plt
-import numpy as np
 from irff.irff_np import IRFF_NP
-import sys
-import argparse
+from irff.deb.compare_energies import deb_gulp_energy
 
 
 def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
@@ -20,24 +20,27 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     id_            = []
     atoms = images[0]
     ir = IRFF_NP(atoms=atoms,
-              libfile=ffield,
-              nn=nn)
+                 libfile=ffield,
+                 nn=nn)
 
     ir.calculate(atoms)
     masses = np.sum(atoms.get_masses())
-
+	# ###### compare energies with GULP
+    (e_,ebond_,eunder_,eover_,elone_,eang_,etcon_,epen_,
+        etor_,efcon_,evdw_,ehb_,ecoul_) = deb_gulp_energy(images, ffield='reaxff_nn')
     for i_,atoms in enumerate(images):
         step.append(i_)
         e.append(atoms.get_potential_energy())
         ir.calculate(atoms)
-        ei.append(ir.E)
+        # ei.append(ir.E)
+        ei.append(e_[i_])
         r.append(ir.r[i][j])
         id_.append(i_)
         
         volume = atoms.get_volume()
         density = masses/volume/0.602214129
         d.append(density)
-    
+   
     e_max = np.mean(e)
     e = np.array(e) - e_max
     e_max = np.mean(ei)
@@ -57,13 +60,13 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # ax.spines['left'].set_position(('data',0))
     # ax.spines['bottom'].set_position(('data', 0))
 
-    plt.plot(d,e,alpha=0.8,
-             linestyle='-',marker='s',markerfacecolor='none',
+    plt.plot(d,e,alpha=0.8,   # d: density;  id_: id
+             linestyle='-',linewidth=2,marker='s',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='r',markersize=10,
              color='red',label=r'$DFT$ ($SIESTA$)')
 
     plt.plot(d,ei,alpha=0.8,
-             linestyle='-',marker='o',markerfacecolor='none',
+             linestyle='-',linewidth=2,marker='o',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='b',markersize=10,
              color='k',label=r'$ReaxFF-nn$')
 
