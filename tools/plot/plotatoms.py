@@ -22,7 +22,7 @@ parser.add_argument('--camera_position',default='xy',type=str, help='whether plo
 args = parser.parse_args(sys.argv[1:])
 
 # ------------------- Forces from GULP --------------------
-atoms  = read(args.geo,index=-1)
+atoms  = read(args.geo,index=args.i)
 atoms  = press_mol(atoms)
 x = y = z =2
 if args.r:
