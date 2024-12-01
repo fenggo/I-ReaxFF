@@ -417,6 +417,7 @@ def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                          cell=cell,pbc=[True,True,True])
    
     atoms.write('POSCAR.unitcell')
+    return atoms
 
 def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
         keyword='md qiterative conv', movieFrequency=10,
