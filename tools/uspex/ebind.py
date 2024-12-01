@@ -13,8 +13,7 @@ from irff.molecule import Molecules,enlarge # SuperCell,moltoatoms
 #from irff.md.lammps import writeLammpsData
 from irff.irff_np import IRFF_NP
 from irff.molecule import press_mol
-from irff.md.gulp import write_gulp_in,get_reax_energy
-
+from irff.md.gulp import write_gulp_in,get_reax_energy,opt
 ''' scale the crystal box, while keep the molecule structure unchanged
 '''
 
@@ -27,8 +26,11 @@ lf = open('ffield.json','r')
 j = js.load(lf)
 lf.close()
 
-A = read(args.g,index=args.i)
-A = press_mol(A)
+# A = read(args.g,index=args.i)
+# A = press_mol(A)
+A = opt(gen=args.g,i=args.i,step=1000,l=1,lib='reaxff_nn',n=1)
+# A = read('POSCAR.unitcell')
+
 x = A.get_positions()
 m = np.min(x,axis=0)
 x_ = x - m
@@ -39,13 +41,15 @@ A.set_positions(x_)
 m_  = Molecules(A,rcut={"H-O":1.22,"H-N":1.22,"H-C":1.22,"O-O":1.4,"others": 1.68},check=True)
 nmol = len(m_)
 
+
+
 ir = IRFF_NP(atoms=A,
              libfile='ffield.json',
              nn=True)
 
 print('\nnumber of molecules:',nmol)
 
-ff = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.5,3.0,3.5,4.0]
+ff = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9 ,2.0,2.5,3.0,3.5,4.0] #,1.9 ,2.0,2.5,3.0,3.5,4.0
 # ff = [3]
 cell = A.get_cell()
 e  = []
