@@ -187,7 +187,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                spv_be=False,belo={},beup={},
                spv_vdw=False,vlo={},vup={},
                lambda_me=0.1,lambda_bd=1000.0,
-               weight={'others':10.0},
+               weight={'others':10.0},weight_force={'others':1.0},
                pi_clip=False,
                lambda_reg=0.0001, # regularize=True,
                learning_rate=1.0e-4,
@@ -227,7 +227,8 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               losFunc='n2',
               regularize_be=regularize,regularize_mf=regularize,
               lambda_reg=lambda_reg,lambda_bd=lambda_bd,
-              weight=weight,lambda_me=lambda_me,
+              lambda_me=lambda_me,
+              weight=weight,weight_force=weight_force,
               convergence=convergence,
               lossConvergence=lossConvergence) # Loss Functon can be n2,abs,mse,huber
 

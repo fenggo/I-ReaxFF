@@ -78,7 +78,7 @@ class LearningMachine(object):
                be_clip=False,bo_clip=False,
                spv_vdw=False,vup={},vlo={},
                pi_clip=False,# lambda_ang=0.02,
-               weight={'others':2.0},
+               weight={'others':2.0},weight_force={'others':2.0},
                lambda_bd=10000.0,lambda_reg=0.0001, # regularize=True,
                lambda_me=0.1,learning_rate=0.0001,
                writelib=5000,ffield='ffield.json',
@@ -168,6 +168,7 @@ class LearningMachine(object):
       self.pi_clip        = pi_clip
       self.lambda_me      = lambda_me
       self.weight         = weight
+      self.weight_force   = weight_force
       self.lambda_bd      = lambda_bd
       # self.regularize   = regularize
       self.lambda_reg     = lambda_reg
@@ -383,7 +384,8 @@ class LearningMachine(object):
                                                      be_clip=self.be_clip,
                                                      bo_clip=self.bo_clip,pi_clip=self.pi_clip,
                                                      spv_vdw=self.spv_vdw,vlo=self.vlo,vup=self.vup,
-                                                     lambda_me=self.lambda_me,weight=self.weight,
+                                                     weight=self.weight,weight_force=self.weight_force,
+                                                     lambda_me=self.lambda_me,
                                                      lambda_reg=self.lambda_reg,
                                                      lambda_bd=self.lambda_bd,
                                                      learning_rate=self.learning_rate)
