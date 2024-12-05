@@ -38,6 +38,16 @@ def opt(ncpu=8,T=2500,us='F',gen='poscar.gen',l=0,i=-1,step=200):
     vc = 'true' if l else 'false'
     siesta_opt(A,ncpu=ncpu,us=us,VariableCell=vc,tstep=step,
                xcf='GGA',xca='PBE',basistype='split')
+               # xcf='VDW',xca='DRSLL',basistype='split')
+    s  = gen.split('.')[0]
+    if s == 'POSCAR':
+       s = gen.split('.')[-1]
+
+    system('mv siesta.out siesta-{:s}.out'.format(s))
+    system('mv siesta.traj id_{:s}.traj'.format(s))
+    system('rm siesta.* ')
+    system('rm fdf-* ')
+    system('rm INPUT_TMP.*')
 
 def traj():
     cwd = getcwd()
