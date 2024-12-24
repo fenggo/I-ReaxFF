@@ -355,7 +355,7 @@ class LearningMachine(object):
           accu = -1000.0                                               # acc >= accMin
           tIter= 1   
           loss = self.lossCriteria+0.1      
-          training = True                   
+          training = True if self.maxiter>0 else False                 
           while (accu<=self.accCriteria or loss>=self.lossCriteria) and training:        
                 self.load_config()
                 loss,accu,accMax,p,zpe,tstep = self.train(dataset=trajs_,
