@@ -14,6 +14,8 @@ def collect(traj='md.traj',start=0,end=36,o=None,frames='',interval=1):
        newt = o
     # system('cp '+traj +' ' + traj_)
     images = Trajectory(traj)
+    if end > len(images):
+       end = len(images)
     his    = TrajectoryWriter(newt,mode='w')
     if frames:
        frames = [int(i) for i in frames.split()]
