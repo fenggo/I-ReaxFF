@@ -30,6 +30,7 @@ def plot_indiv(findi='Individuals'):
     id_g      = {}
     dens_g    = {}
     ent_g     = {}
+    op_g      = {}
 
     with open(findi) as f:
          for line in f.readlines():
@@ -58,50 +59,41 @@ def plot_indiv(findi='Individuals'):
                       id_g[g].append(i)
                       dens_g[g].append(d)
                       ent_g[g].append(e)
+                      op_g[g].append(l[2])
                    else:
                       gene[g]    = [d]
                       id_g[g]    = [i]
                       dens_g[g]  = [d]
                       ent_g[g]   = [e]
-
-                   id_.append(i)
-                   dens.append(d)
-                      
-                   # enthalpy.append(float(l[3]))
+                      op_g[g]    = [l[2]]
          st.close()
     
-    i_ = 0
-    ng = len(gene)
-    print(ng)
-
-    for i in range(1,len(gene)+1):
-        #enthalpy.append(min(gene[str(i)]))
-        md = max(gene[str(i)])
-        for j in gene[str(i)]:
-            i_ +=1
-            if j>=md:
-              density.append(j)
-              ids.append(i_)
-        # ids.append(i)
-        
+    ng      = str(len(gene))
+    ops     = {}
+    density = {}
+    enthalpy= {}
+    for i,op in enumerate(op_g[ng]):
+        if op not in density:
+           density[op]  = [dens_g[ng][i]]
+           enthalpy[op] = [ent_g[ng][i]]
+        else:
+           density[op].append(dens_g[ng][i])
+           enthalpy[op].append(ent_g[ng][i])
 
     plt.figure()
-    plt.ylabel(r'$Enthalpy$ ($eV$)')
-    plt.xlabel(r'$Density$ ($g/cm^3$)')
+    plt.ylabel(r'$Enthalpy$ ($eV$)',fontdict={'size':10})
+    plt.xlabel(r'$Density$ ($g/cm^3$)',fontdict={'size':10})
 
-    # plt.plot(ids,density,alpha=0.8,
-    #          linestyle='-',lw=2,
-    #          marker='*',markerfacecolor='none',
-    #          markeredgewidth=1,markeredgecolor='r',markersize=15,
-    #          color='r',
-    #          label=r'$max$ $denstiy$ $of$ $generation$',
-    #          )
-    ng_ = str(ng)
-    plt.scatter(dens_g[ng_],ent_g[ng_],alpha=0.4,
-             marker='o',color='none',
-             edgecolor='b',s=20,
-             label=r'$denstiy$ $of$ $generated$ $crystals$',
-             )
+    markers = {'Heredity':'o','keptBest':'s','softmutate':'^',
+               'Rotate':'v','Permutate':'p','Random':'8'}
+    colors  = {'Heredity':'#1d9bf7','keptBest':'#c65861','softmutate':'#ffa725',
+               'Rotate':'#be588d','Permutate':'#35a153','Random':'#f26a11'}
+    for op in density:
+        plt.scatter(density[op],np.array(enthalpy[op])+90,alpha=0.9,
+                marker=markers[op],color=colors[op],
+                edgecolor=colors[op],s=25,
+                label=op,
+                )
     
     plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
     plt.savefig('individuals.pdf',transparent=True) 
