@@ -1,15 +1,9 @@
 #!/usr/bin/env python
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from sklearn import datasets
 from sklearn.mixture import GaussianMixture
-from sklearn.model_selection import StratifiedKFold
-from sklearn.cluster import KMeans
-from ase.io import read,write
-from ase.io.trajectory import Trajectory
-from ase import Atoms
-import numpy as np
-from irff.irff_np import IRFF_NP
+from sklearn import svm
 
 
 class Stack():
@@ -24,9 +18,11 @@ class Stack():
     
     def close(self):
         self.entry = None
+
 #colors = ["navy", "turquoise", "darkorange"]
 colors  = ['#1d9bf7','#c65861','#ffa725','#be588d','#35a153','#f26a11'] #,'#444577'
 n_classes = 6
+
 def make_ellipses(gmm, ax):
     for n, color in enumerate(colors):
         if gmm.covariance_type == "full":
@@ -48,6 +44,7 @@ def make_ellipses(gmm, ax):
         ell = mpl.patches.Ellipse(
             gmm.means_[n, :2], 1.5*v[0], v[1], angle=180 + angle, color=color
         )
+        ell.set_linestyle('dashed')
         ell.set_clip_box(ax.bbox)
         ell.set_alpha(0.5)
         ax.add_artist(ell)
@@ -80,7 +77,7 @@ def plot_indiv(findi='Individuals'):
                    e = float(l[3]) + 90
                    d = float(l[5])
                    s = l[6]
-                   if s=='N/A' or s=='100000.000':
+                   if s=='N/A' or float(s)>=0:
                       continue
                    if g in gene:  
                       gene[g].append(d)
@@ -137,8 +134,11 @@ def plot_indiv(findi='Individuals'):
 
     # Train the other parameters using the EM algorithm.
     gmm.fit(X)
+    cla = gmm.predict(X)
+    # X_,cla_ = gmm.sample(1000)
+    # ax.scatter(X_[:,0],X_[:,1],alpha=0.9,color='k',s=1)
     make_ellipses(gmm, ax)
-    cla     = gmm.predict(X)
+    
     classes = {i:[] for i in range(n_classes)}
     for i,c in enumerate(cla):
         classes[c].append(id_g[ng][i])
@@ -146,7 +146,7 @@ def plot_indiv(findi='Individuals'):
     for i in range(n_classes):
         print('\n- {:d} -\n'.format(i),classes[i])
     
-    #ax.set_xlim(1.4,2.0)
+    # ax.set_xlim(1.4,2.0)
     # plt.xticks(())
     # plt.yticks(())
     plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
