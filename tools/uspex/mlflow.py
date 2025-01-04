@@ -50,5 +50,5 @@ masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
 
-# if density <= args.d:
-#    run_gulp(n=args.n,inp='input')
+if density <= args.d:
+   run_gulp(n=args.n,inp='input')
