@@ -1973,10 +1973,13 @@ class ReaxFF_nn(object):
 
           if accu>=self.convergence and loss_<=self.lossConvergence:
              self.accu = accu
-             E,dfte,zpe = self.sess.run([self.E,self.dft_energy,self.zpe],
+             E,dfte,forces,dft_forces,zpe = self.sess.run([self.E,self.dft_energy,
+                                                           self.forces,self.dft_forces,
+                                                           self.zpe],
                                         feed_dict=self.feed_dict)
-             self.plot_result(None,E,dfte)
+             self.plot_result(None,E,dfte,forces,dft_forces)
              self.write_lib(libfile=libfile,loss=loss_)
+             self.sess.close()
              print('-  Convergence Occurred, job compeleted.')
              break
           i += 1
@@ -2335,7 +2338,7 @@ class ReaxFF_nn(object):
       #     print('Max Angle Energy of {:s} {:f}'.format(mol,max(eang[mol])))
           
 
-  def plot_result(self,step,E,dfte):
+  def plot_result(self,step,E,dfte,forces,dft_forces):
       if not exists('results'):
          makedirs('results')
       Y,Yp = [],[]
