@@ -20,8 +20,10 @@ class Stack():
         self.entry = None
 
 #colors = ["navy", "turquoise", "darkorange"]
-colors  = ['#1d9bf7','#c65861','#ffa725','#be588d','#35a153','#f26a11'] #,'#444577'
-n_classes = 6
+# colors  = ['#1d9bf7','#c65861','#ffa725','#be588d','#35a153','#f26a11'] #,'#444577'
+colors  = ['#0ddbf5','#1d9bf7','#fcff07','#303cf9','#ffbd15','#fe5357',
+           '#0ddbf5','#1d9bf7','#fcff07','#303cf9','#ffbd15','#fe5357'] #,'#444577'
+n_classes = 12
 
 def make_ellipses(gmm, ax):
     for n, color in enumerate(colors):
@@ -124,9 +126,12 @@ def plot_indiv(findi='Individuals'):
     for op in density:
         mk = markers[op]
         ax.scatter(density[op],enthalpy[op],alpha=0.9,
-                    marker=mk,color=colors_dic[op],
+                    marker=mk,color='none',# colors_dic[op],
                     edgecolor=colors_dic[op],s=30,
                     label=op)
+    for i,t in enumerate(id_g[ng]):
+        d,e = dens_g[ng][i]
+        plt.text(d,e,'{:d}'.format(t),ha='center',fontsize=3)
     # cov_type = ["spherical", "diag", "tied", "full"]
     gmm = GaussianMixture(n_components=n_classes, 
                           covariance_type='full', max_iter=20, 
