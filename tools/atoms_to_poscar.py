@@ -13,6 +13,10 @@ args = parser.parse_args(sys.argv[1:])
 atoms = read(args.gen,index=args.i)
 structure = AseAtomsAdaptor.get_structure(atoms)
 
+cell = atoms.get_cell()
+angles = cell.angles()
+lengths = cell.lengths()
+
 structure.to(filename="POSCAR")
 
 with open('POSCAR','r') as f:
@@ -20,11 +24,15 @@ with open('POSCAR','r') as f:
 
 with open('POSCAR','w') as f:
      card = False
-     for line in lines:
+     for i,line in enumerate(lines):
          if line.find('direct')>=0:
             card = True
          if card and line.find('direct')<0:
             print(line[:-3],file=f)
+         elif i==0:
+            print('EA {:.6f} {:.6f} {:.6f} {:.3f} {:.3f} {:.3f} Sym.group: 1'.format(lengths[0],
+                       lengths[1],lengths[2],
+                       angles[0],angles[1],angles[2]),file=f)
          else:
             print(line[:-1],file=f)
             
