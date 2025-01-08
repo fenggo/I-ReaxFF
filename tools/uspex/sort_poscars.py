@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 with open('POSCARS','r') as f:
      lines = f.readlines()
 
@@ -16,3 +15,4 @@ with open('POSCARS','w') as f:
             print(l[0],l[1],l[2],file=f)
          else:
             print(line.rstrip(),file=f)
+            
