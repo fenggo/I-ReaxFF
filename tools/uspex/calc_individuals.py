@@ -92,6 +92,9 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
         system('mv siesta.MD_CAR siesta-{:d}.MD_CAR'.format(s))
         system('mv siesta.traj id_{:d}.traj'.format(s))
         system('rm siesta.* ')
+        system('rm *.xml ')
+        system('rm INPUT_TMP.* ')
+        system('rm fdf-* ')
         atoms = img[-1]
         atoms.write('POSCAR.{:d}'.format(s))
         masses = np.sum(atoms.get_masses())
