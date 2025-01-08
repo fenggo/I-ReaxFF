@@ -15,4 +15,4 @@ with open('POSCARS','w') as f:
 		    l = line.split()
             print(l[0],l[1],l[2],file=f)
          else:
-            print(line[:-1],file=f)
+            print(line.rstrip(),file=f)
