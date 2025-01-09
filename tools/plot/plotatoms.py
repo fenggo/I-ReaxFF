@@ -35,12 +35,12 @@ if args.f:
 #atoms.calc = IRFF(atoms=atoms, libfile='ffield.json',nn=True)
 #forces = atoms.get_forces()
 natom  = len(atoms)
-natom_u= int(natom/(x*y*z))
+natom_u= int(natom/(x*y*z)) if args.r else natom
 points = atoms.positions
 point_cloud = pv.PolyData(points)
 if args.f:
    point_cloud['vectors'] = atoms.get_forces()
-   arrows = point_cloud.glyph(orient='vectors',scale=False,factor=1.0)
+   arrows = point_cloud.glyph(orient='vectors',scale=False,factor=1.65)
 
 ## get image points according PBC conditions -------------
 
@@ -80,6 +80,7 @@ for i in range(natom_-1):
            continue                   
         vr_ = points[j] - points[i]
         r_  = np.sqrt(np.sum(vr_*vr_))
+        # print(r_)
         if i < natom and j < natom:
            if atom_name[i]=='H' and  atom_name[j]=='H':
               continue
@@ -118,6 +119,7 @@ for i,atom in enumerate(atoms):
 bonds = pv.PolyData()
 bonds.points = points
 
+# print(bds)
 bonds.lines = bds
 tube = bonds.tube(radius=0.12)
 # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
@@ -134,7 +136,7 @@ if bds_:
 
 #------------------------ 画出力矢量　----------------------
 if args.f:
-   p.add_mesh(arrows, color='blue',pbr=True, smooth_shading=True)
+   p.add_mesh(arrows, color='red',pbr=True, smooth_shading=True)
 
 #------------------------ 画出晶胞　------------------------
 if args.r:
@@ -150,14 +152,16 @@ if args.b:
    box = pv.lines_from_points(vertices,close=False)
    p.add_mesh(box,line_width=8,color='dodgerblue',metallic=1/8)
 
-#p.view_vector((0,-1 , 0), (0, 1,0))
-#p.view_vector((0,0 , -1), (0, 0,1))
+# p.view_vector((0,1,0))
+# p.view_vector((0,0 , -1), (0, 0,1))
+# p.camera_position = [-1, 1, 0.5]
+
 p.camera_position = args.camera_position
-p.camera.zoom(2.0) 
+p.camera.zoom(1.6) 
 
 # img_again = p.screenshot()
 p.save_graphic('{:s}'.format(args.geo.split('.')[0]+'.svg'))
-p.show(auto_close=False)
-# p.screenshot(transparent_background=True,filename='{:s}'.format(args.geo.split('.')[0]+'.png'))
+# p.show(interactive=True, auto_close=False)
+p.screenshot(transparent_background=True,filename='{:s}'.format(args.geo.split('.')[0]+'.png'))
 p.close()
 
