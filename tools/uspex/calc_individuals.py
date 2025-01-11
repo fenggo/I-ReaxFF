@@ -100,11 +100,12 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
         masses = np.sum(atoms.get_masses())
         volume = atoms.get_volume()
         density = masses/volume/0.602214129
+        energy  = atoms.get_potential_energy()
         
         chdir(root_dir)
 
         with open('density.log','a') as fd:
-             print('{:5d} {:10.6f}'.format(s,density),file=fd)
+             print('{:5d} {:10.6f} {:10.8f}'.format(s,density,energy),file=fd)
 
 
 if __name__=='__main__': 
