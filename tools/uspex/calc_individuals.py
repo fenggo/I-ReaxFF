@@ -73,7 +73,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
     root_dir   = getcwd()
     if not exists('density.log'):
        with open('density.log','w') as fd:
-            print('# Crystal_id Density',file=fd)
+            print('# Crystal_id Density Energy',file=fd)
          
     for s in ids:
         work_dir = root_dir+'/'+str(s)
