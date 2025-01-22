@@ -36,7 +36,7 @@ if __name__ == '__main__':
    help_  = 'Run with commond: ./coltraj.py --t=md.traj --s=0 --e=50 --o=out.traj'
    parser = argparse.ArgumentParser(description=help_)
    parser.add_argument('--start',default=0,type=int, help='the start frame')
-   parser.add_argument('--end',default=1,type=int, help='the end frame')
+   parser.add_argument('--end',default=1000,type=int, help='the end frame')
    parser.add_argument('--i',default=1,type=int, help='collect interval')
    parser.add_argument('--f',default='',type=str, help='frames to collect')
    parser.add_argument('--traj',default='md.traj',type=str, help='trajectory file name')
