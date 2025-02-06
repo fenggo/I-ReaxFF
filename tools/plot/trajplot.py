@@ -16,7 +16,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     step,e,ei      = [],[],[]
     r              = []
     d              = []
-    v              = []
+    # v            = []
     id_            = []
     atoms = images[0]
     ir = IRFF_NP(atoms=atoms,
@@ -40,7 +40,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         volume = atoms.get_volume()
         density = masses/volume/0.602214129
         d.append(density)
-   
+    
     e_max = np.mean(e)
     e = np.array(e) - e_max
     e_max = np.mean(ei)
@@ -50,7 +50,13 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     plt.ylabel(r'$Energy$ ($eV$)',fontdict={"fontsize":16})
     # plt.xlabel(r'$Crystal$ $ID$')
     # plt.xlabel(r'$Distance$ ($\AA$)',fontdict={"fontsize":16})
-    plt.xlabel(r'$Density$ ($g/cm^3$)',fontdict={"fontsize":16})
+    if args.x==0:
+       lab = '$Density$ ($g/cm^3$)'
+    elif args.x==1:
+       lab = '$Crystal$ $ID$'
+    elif args.x==2:
+       lab = '$Distance$ ($\AA$)'
+    plt.xlabel(r'{:s}'.format(lab),fontdict={"fontsize":16})
     # plt.xlim(0,i)
     # plt.ylim(0,np.max(hist)+0.01)
 
@@ -59,19 +65,25 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     # ax.spines['top'].set_color('none')
     # ax.spines['left'].set_position(('data',0))
     # ax.spines['bottom'].set_position(('data', 0))
+    if args.x==0:
+       x = d
+    elif args.x==1:
+       x = id_
+    else:
+       x = r
 
-    plt.plot(d,e,alpha=0.8,   # d: density;  id_: id
-             linestyle='-',linewidth=2,marker='s',markerfacecolor='none',
+    plt.plot(x,e,alpha=0.8,   # d: density;  id_: id
+             linestyle='-',linewidth=1.5,marker='s',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='r',markersize=10,
              color='red',label=r'$DFT$ ($SIESTA$)')
 
-    plt.plot(d,ei,alpha=0.8,
-             linestyle='-',linewidth=2,marker='o',markerfacecolor='none',
-             markeredgewidth=1,markeredgecolor='b',markersize=10,
+    plt.plot(x,ei,alpha=0.8,
+             linestyle='-',linewidth=1.5,marker='o',markerfacecolor='none',
+             markeredgewidth=1,markeredgecolor='k',markersize=10,
              color='k',label=r'$ReaxFF-nn$')
 
     ediff = np.abs(e - ei)
-    plt.fill_between(d,ei - ediff, ei + ediff, color='palegreen',
+    plt.fill_between(x,ei - ediff, ei + ediff, color='#4E8872',
                      alpha=0.2)
 
     # pdiff = np.abs(pdft - preax)
@@ -88,6 +100,7 @@ if __name__ == '__main__':
 
    parser = argparse.ArgumentParser(description='stretch molecules')
    parser.add_argument('--t', default='gulp.traj',type=str, help='trajectory file')
+   parser.add_argument('--x', default=0,type=int, help='x axis: 0 density, 1 id, 2 radius')
    parser.add_argument('--i', default=0,type=int, help='atom i')
    parser.add_argument('--j', default=1,type=int, help='atom j')
    args = parser.parse_args(sys.argv[1:])
