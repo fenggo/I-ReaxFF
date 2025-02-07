@@ -1,13 +1,33 @@
 #!/usr/bin/env python
+from os import getcwd,chdir,listdir,system
 from os import getcwd,listdir
 from ase.io import read
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase.io import read
 # from irff.molecule import press_mol
 
+density = 1.85
 cdir    = getcwd()
+
+cdir_   = '/'.join(cdir.split('/')[:-1])
+# print(cdir_)
+dirs    = listdir(cdir_)
+for dir_ in dirs:
+    d = dir_.split('-')
+    if d[0]=='results11' and d[1].isalpha():
+       with open('{:s}/{:s}/density.log'.format(cdir_,dir_),'r') as f:
+           for i,line in enumerate(f.readlines()):
+               if i==0:
+                  continue
+               l = line.split()
+               den = float(l[1])
+               id_ = l[0]
+               if den>=density:
+                  print(id_,den)
+                  system('cp {:s}/{:s}/{:s}/POSCAR.{:s} POSCAR.{:s}{:s}'.format(cdir_,dir_,id_,id_,d[1],id_))
+    
+############ pack to poscars ##########
 files   = listdir(cdir)
- 
 poscars = []
 
 for fil in files:
@@ -17,10 +37,9 @@ for fil in files:
           poscars.append(fil)
 
 fposcars = open('POSCARS','a')
-
 for p in poscars:
     p_ = p.split('.')
-    print(p_)
+    # print(p_)
     if len(p_)>1:
        i_ = p_[1]
     else:
@@ -47,4 +66,4 @@ for p in poscars:
         else:
            print(line[:-1],file=fposcars)
 fposcars.close()
-    
+
