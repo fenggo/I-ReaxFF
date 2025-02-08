@@ -9,7 +9,7 @@ from ase.visualize import view
 from ase.visualize.plot import plot_atoms
 from irff.irff_np import IRFF_NP
 import matplotlib.pyplot as plt
-from irff.plot.deb_bde import deb_energy,deb_bo
+from irff.deb.deb_bde import deb_energy,deb_bo
 
 
 def theta(images):
