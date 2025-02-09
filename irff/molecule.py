@@ -395,6 +395,17 @@ class molecule(object):
       if inbox:
          self.InBox()
 
+      # get label
+      label_dic      = {}
+      for sp in self.atom_name:
+          if sp in label_dic:
+             label_dic[sp] += 1
+          else:
+             label_dic[sp]  = 1
+      self.label = ''
+      for sp in spec:
+          if sp in label_dic:
+             self.label += sp+str(label_dic[sp])
 
   def InBox(self):
       cf  = np.dot(np.expand_dims(self.center,axis=0),self.u) 
