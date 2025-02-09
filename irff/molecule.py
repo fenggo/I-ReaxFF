@@ -403,9 +403,9 @@ class molecule(object):
           else:
              label_dic[sp]  = 1
       self.label = ''
-      for sp in spec:
-          if sp in label_dic:
-             self.label += sp+str(label_dic[sp])
+      for sp in label_dic:
+          # if sp in label_dic:
+          self.label += sp+str(label_dic[sp])
 
   def InBox(self):
       cf  = np.dot(np.expand_dims(self.center,axis=0),self.u) 
