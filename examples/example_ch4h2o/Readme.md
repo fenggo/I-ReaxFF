@@ -4,8 +4,12 @@
 ## Introductions for building a mathine learning potential
 
 ### I. Use the following command to run the train process
+
+In this example two train script have providied, "train_without_force.py" and "train.py"
+
+* train_without_force.py
 ```bash
-nohup ./train.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
+nohup ./train_without_force.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 ```
 * options:
 
@@ -18,6 +22,23 @@ nohup ./train.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 --z: whether evaluate the zero point energy
 
 --s: the train step
+
+* train.py
+```bash
+./train.py   
+```
+Variables need to be set in the python source file "train.py".
+
+Important variable introductions:
+*weight_force*
+e.g. weight_force  = {'h2o16-0':0,'ch4w2-0':1}, where 'h2o16' represent the structure name, 'h2o16-0' represent the 
+number of order of the batch of data. 0 represent forces are not used for trian, and 1 represent forces are to be trained.
+Force training will use large amount of GPU memory, in practice, we only train force of one structure.
+
+The output of this script:
+  step: 830 loss: 0.0407071 accs: 0.800650 h22-v: 0.7193 h2o2-0: 0.8611 ch4w2-0: 0.7977 h2o16-0: 0.8246  force: 0.473940 pen: 13.7729 me: 0.0873 time: 1.9033
+the value after "loss" are losses of energy per atom, and value behind "force" are losses of forces per atom, the loss of force smaller than 0.1 eV/Angstrom 
+is enough for reactions simulation.
 
 ### II. Add new data (structure) to the current training data-set
 
