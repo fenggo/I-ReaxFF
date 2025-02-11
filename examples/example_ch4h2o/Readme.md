@@ -30,9 +30,12 @@ nohup ./train_without_force.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 Variables need to be set in the python source file "train.py".
 
 Important variable introductions:
+
 *weight_force*
+
 e.g. weight_force  = {'h2o16-0':0,'ch4w2-0':1}, where 'h2o16' represent the structure name, 'h2o16-0' represent the 
 number of order of the batch of data. 0 represent forces are not used for trian, and 1 represent forces are to be trained.
+
 Force training will use large amount of GPU memory, in practice, we only train force of one structure.
 
 The output of this script:
