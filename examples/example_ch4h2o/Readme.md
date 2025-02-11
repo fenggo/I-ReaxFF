@@ -31,7 +31,7 @@ Variables need to be set in the python source file "train.py".
 
 Important variable introductions:
 
-*weight_force*
+* weight_force
 
 e.g. weight_force  = {'h2o16-0':0,'ch4w2-0':1}, where 'h2o16' represent the structure name, 'h2o16-0' represent the 
 number of order of the batch of data. 0 represent forces are not used for trian, and 1 represent forces are to be trained.
@@ -40,8 +40,10 @@ Force training will use large amount of GPU memory, in practice, we only train f
 
 The output of this script:
 
+```bash
   step: 830 loss: 0.0407071 accs: 0.800650 h22-v: 0.7193 h2o2-0: 0.8611 ch4w2-0: 0.7977 h2o16-0: 0.8246  force: 0.473940 pen: 13.7729 me: 0.0873 time: 1.9033
-  
+```
+
 the value after "loss" are losses of energy per atom, and value behind "force" are losses of forces per atom, the loss of force smaller than 0.1 eV/Angstrom 
 is enough for reactions simulation.
 
@@ -63,9 +65,11 @@ atoms.write('structure_name.gen')
    This step is iteratively repeated, till performence of the potential satisfactory. 
 
 3. run the lm.py script to call DFT calculation and trian the new data 
+
 ```bash
 nohup ./lm.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 ```
+
 4. convert the parameter file "ffield.json" to the GULP format or lammps format
 
 to GULP format
