@@ -11,8 +11,8 @@ strucs = ['h2o2','ch4w2','h2o16']
 weight       = {'h2o2':2.0,'others':2.0}
 weight_force = {'h2o16-0':0,'ch4w2-0':1}
 
-batchs       = {'others':800}
-batch        = 800
+batchs       = {'others':10000}
+batch        = 10000
 
 for mol in strucs:
     b = batchs[mol] if mol in batchs else batchs['others']
