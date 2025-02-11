@@ -73,7 +73,7 @@ or
 ```bash
 ./lm.py 
 ```
-run it directly.
+run it directly. This script is not needed if you collect data in you manner.
 
 4. convert the parameter file "ffield.json" to the GULP format or lammps format
 
