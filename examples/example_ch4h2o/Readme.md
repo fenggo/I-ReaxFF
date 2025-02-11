@@ -27,16 +27,16 @@ nohup ./train_without_force.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 ```bash
 ./train.py   
 ```
-Variables need to be set in the python source file "train.py".
+Variables need to be set in the Python source file "train.py".
 
 Important variable introductions:
 
 * weight_force
 
-e.g. weight_force  = {'h2o16-0':0,'ch4w2-0':1}, where 'h2o16' represent the structure name, 'h2o16-0' represent the 
-number of order of the batch of data. 0 represent forces are not used for trian, and 1 represent forces are to be trained.
+e.g. weight_force  = {'h2o16-0':0,'ch4w2-0':1}, where 'h2o16' represents the structure name, 'h2o16-0' represents the 
+number of orders of the batch of data. 0 represents forces that are not used for train, and 1 represents forces that are to be trained.
 
-Force training will use large amount of GPU memory, in practice, we only train force of one structure.
+Force training will use a large amount of GPU memory, in practice, we only train the force of one structure.
 
 The output of this script:
 
@@ -44,15 +44,15 @@ The output of this script:
   step: 830 loss: 0.0407071 accs: 0.800650 h22-v: 0.7193 h2o2-0: 0.8611 ch4w2-0: 0.7977 h2o16-0: 0.8246  force: 0.473940 pen: 13.7729 me: 0.0873 time: 1.9033
 ```
 
-the value after "loss" are losses of energy per atom, and value behind "force" are losses of forces per atom, the loss of force smaller than 0.1 eV/Angstrom 
-is enough for reactions simulation.
+the value after "loss" are losses of energy per atom, and the value behind "force" are losses of forces per atom, the loss of force smaller than 0.1 eV/Angstrom 
+is enough for reaction simulations. However, the smaller this value is, the higher precision the potential will has.
 
 ### II. Add new data (structure) to the current training data-set
 
 1. A structure file should be constructed, in the ".gen" format, it can early be converted from POSCAR file, 
-   if you familiar with this format, for example, using ASE code:
+   if you are familiar with this format, for example, using ASE code:
 ```python
-from ase.io import read,write
+from ase.io import read, write
 
 atoms=read('POSCAR')
 atoms.write('structure_name.gen')
