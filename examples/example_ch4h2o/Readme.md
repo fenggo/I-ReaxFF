@@ -45,7 +45,7 @@ The output of this script:
 ```
 
 the value after "loss" are losses of energy per atom, and the value behind "force" are losses of forces per atom, the loss of force smaller than 0.1 
-is enough for reaction simulations. However, the smaller this value is, the higher precision the potential will has, you can train the loss force as small as you can.
+is enough for reaction simulations. However, the smaller this value is, the higher precision the potential will have, you can train the loss force as small as you can.
 
 ### II. Add new data (structure) to the current training data-set
 
@@ -60,9 +60,9 @@ atoms.write('structure_name.gen')
 
 2. prepare the md.traj file
 
-   The md.traj file contains the structures from the potential energy surface, it canbe the trajectories of a short time molecular dynamics simulations, or it canbe strech the valence bond, or rotate the a functional group, or swing a valence angle. 
+   The md.traj file contains the structures from the potential energy surface, it can be the trajectories of a short time molecular dynamics simulations, or it canbe strech the valence bond, or rotate the functional group, or swing a valence angle. 
   
-   This step is iteratively repeated, till performence of the potential satisfactory. 
+   This step is iteratively repeated, till performance of the potential is satisfactory. 
 
 3. run the lm.py script to call DFT calculation and generate the new data containing energies and force of some structure.
 
@@ -73,7 +73,7 @@ or
 ```bash
 ./lm.py 
 ```
-run it directly. This script is not needed if you collect data in you manner.
+run it directly. This script is not needed if you collect data in your way.
 
 4. convert the parameter file "ffield.json" to the GULP format or lammps format
 
