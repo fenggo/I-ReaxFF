@@ -69,6 +69,11 @@ atoms.write('structure_name.gen')
 ```bash
 nohup ./lm.py --f=1 --t=1 --s=10000 --z=1 > py.log 2>&1 &
 ```
+or 
+```bash
+./lm.py 
+```
+run it directly.
 
 4. convert the parameter file "ffield.json" to the GULP format or lammps format
 
