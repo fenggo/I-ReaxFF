@@ -2222,6 +2222,8 @@ class ReaxFF_nn(object):
                                       name='bo0_supervize_{:s}'.format(bd)) 
 
                  if self.reax_be:
+                    r     = tf.gather_nd(self.rbd[mol],bdid,
+                                          name='rbd_supervize_{:s}'.format(bd)) #+
                     bsi   = tf.gather_nd(self.bosi[mol],bdid,
                                           name='bosi_supervize_{:s}'.format(bd)) 
                     bpi   = tf.gather_nd(self.bopi[mol],bdid,
