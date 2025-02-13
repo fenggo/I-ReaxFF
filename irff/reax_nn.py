@@ -722,6 +722,13 @@ class ReaxFF_nn(object):
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
              Fj    = fmessage(flabel,b[1],nbd_,[Dsi_j,Dpi_j,Dpp_j,h,Dpp_i,Dpi_i,Dsi_i],
                               self.m,batch=self.batch[mol],layer=self.mf_layer[1])
+          elif self.MessageFunction==2:
+             self.Dbi[mol][bd]  = Di - h   
+             self.Dbj[mol][bd]  = Dj - h   
+             Fi   = fmessage(flabel,b[0],nbd_,[self.Dbi[mol][bd],h,self.Dbj[mol][bd]],self.m,
+                             batch=self.batch[mol],layer=self.mf_layer[1])
+             Fj   = fmessage(flabel,b[1],nbd_,[self.Dbj[mol][bd],h,self.Dbi[mol][bd]],self.m,
+                             batch=self.batch[mol],layer=self.mf_layer[1])
           elif self.MessageFunction==3:
              self.Dbi[mol][bd]  = Di - h   
              self.Dbj[mol][bd]  = Dj - h   
@@ -2221,9 +2228,29 @@ class ReaxFF_nn(object):
                  bo0_  = tf.gather_nd(self.bo0[mol],bdid,
                                       name='bo0_supervize_{:s}'.format(bd)) 
 
-                 if self.reax_be:
-                    r     = tf.gather_nd(self.rbd[mol],bdid,
+                 if self.bo_clip: # reax_be:
+                    rbd     = tf.gather_nd(self.rbd[mol],bdid,
                                           name='rbd_supervize_{:s}'.format(bd)) #+
+                    for sbo in self.bo_clip[bd]:
+                        r,dil,diu,djl,dju,bo_l,bo_u = sbo
+                        dbi = self.Dbi[mol][bd] 
+                        dbj = self.Dbj[mol][bd] 
+                        fe   = tf.where(tf.logical_and(tf.less_equal(rbd,r),
+                                         tf.logical_and(tf.logical_and(tf.greater_equal(dbi,dil),
+                                                        tf.greater_equal(dbj,djl)), 
+                                                        tf.logical_and(tf.less_equal(dbi,diu),
+                                                        tf.less_equal(dbj,dju))  ) ),
+                                       1.0,0.0)   ##### r< r_e that bo > bore_
+                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-bo0_)*fe)) 
+                                                                                    #     self.bo0[bd]
+                        fe   = tf.where(tf.logical_and(tf.greater_equal(rbd,r),
+                                        tf.logical_and(tf.logical_and(dbi,dil),
+                                                   tf.greater_equal(dbj,djl)), 
+                                                       tf.logical_and(tf.less_equal(dbi,diu),
+                                                            tf.less_equal(dbj,dju))  ) ),
+                                       1.0,0.0)  ##### r> r_e that bo < bore_
+                       self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
+                 if self.bo_clip: # reax_be:
                     bsi   = tf.gather_nd(self.bosi[mol],bdid,
                                           name='bosi_supervize_{:s}'.format(bd)) 
                     bpi   = tf.gather_nd(self.bopi[mol],bdid,
