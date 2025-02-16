@@ -109,7 +109,7 @@ def write_gulp_in(A, runword='gradient qiterative nosymmetry conv verb debu',
         print('output movie arc his.arc', file=finp)
  
     print('output cif gulp produces gulp.cif', file=finp)
-    print('dump {:d} restart.grs'.format(restart), file=finp)
+    print('dump {:d} optimized.structure'.format(restart), file=finp)
     print('#', file=finp)
 
     print('vectors', file=finp)
