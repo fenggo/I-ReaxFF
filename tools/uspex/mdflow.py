@@ -20,7 +20,7 @@ parser.add_argument('--z',default=2,type=int, help='Z')
 parser.add_argument('--p',default=0.0,type=float, help='Pressure')
 parser.add_argument('--T',default=300,type=int, help='Temperature')
 parser.add_argument('--step',default=10000,type=int, help='Time Step')
-parser.add_argument('--d',default=1.85,type=float, help='the minimal density')
+parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
 args = parser.parse_args(sys.argv[1:])
  
 def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
@@ -153,6 +153,7 @@ write_input(inp='inp-grad')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
-atoms = npt(gen='gulp.cif',T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
-run_gulp(n=args.n,atoms=atoms,l=0,step=200)
+if density <= args.d:
+   atoms = npt(gen='gulp.cif',T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
+   run_gulp(n=args.n,atoms=atoms,l=0,step=200)
 
