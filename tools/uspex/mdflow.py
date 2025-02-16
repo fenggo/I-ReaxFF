@@ -23,11 +23,12 @@ parser.add_argument('--step',default=10000,type=int, help='Time Step')
 parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
 args = parser.parse_args(sys.argv[1:])
  
-def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
+def nvt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
         free=' ',dump_interval=10,
         x=1,y=1,z=1,n=1,lib='ffield',thermo_fix=None,
         r=0):
-    atoms = read(gen,index=i)*(x,y,z)
+    # atoms = read(gen,index=i)*(x,y,z)
+    atoms = atoms*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
@@ -122,12 +123,12 @@ def write_output(e=None):
     with open('output','w') as f:
          print('  Cycle:      0 Energy:       {:f}'.format(e),file=f)
 
-def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
+def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
     thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
                   T,tdump,p,p,tdump)
     
-    atoms = nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,c=c,
+    atoms = nvt(atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,c=c,
                 free=free,dump_interval=dump_interval,
                  x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
     
@@ -153,7 +154,12 @@ write_input(inp='inp-grad')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
+atoms = read('gulp.cif')
+masses = np.sum(atoms.get_masses())
+volume = atoms.get_volume()
+density = masses/volume/0.602214129
+
 if density <= args.d:
-   atoms = npt(gen='gulp.cif',T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
+   atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    run_gulp(n=args.n,atoms=atoms,l=0,step=200)
 
