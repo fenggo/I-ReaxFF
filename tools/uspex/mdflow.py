@@ -14,12 +14,12 @@ from irff.md.gulp import write_gulp_in
 
 parser = argparse.ArgumentParser(description='./atoms_to_poscar.py --g=siesta.traj')
 parser.add_argument('--n',default=1,type=int, help='the number of cpu used in this calculation')
-parser.add_argument('--x',default=2,type=int, help='X')
-parser.add_argument('--y',default=2,type=int, help='Y')
-parser.add_argument('--z',default=2,type=int, help='Z')
+parser.add_argument('--x',default=1,type=int, help='X')
+parser.add_argument('--y',default=1,type=int, help='Y')
+parser.add_argument('--z',default=1,type=int, help='Z')
 parser.add_argument('--p',default=0.0,type=float, help='Pressure')
 parser.add_argument('--T',default=300,type=int, help='Temperature')
-parser.add_argument('--step',default=10000,type=int, help='Time Step')
+parser.add_argument('--step',default=5000,type=int, help='Time Step')
 parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
 args = parser.parse_args(sys.argv[1:])
  
