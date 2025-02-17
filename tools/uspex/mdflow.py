@@ -102,7 +102,7 @@ def run_gulp(gen='POSCAR',atoms=None,n=1,inp=None,step=200,l=1,p=0,T=300,t=0.000
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     # atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-def write_input(inp='inp-grad',keywork='grad nosymmetry conv qiterative'):
+def write_input(inp='inp-grad',keyword='grad nosymmetry conv qiterative'):
     with open('input','r') as f:
       lines = f.readlines()
     with open(inp,'w') as f:
