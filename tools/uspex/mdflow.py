@@ -102,13 +102,13 @@ def run_gulp(gen='POSCAR',atoms=None,n=1,inp=None,step=200,l=1,p=0,T=300,t=0.000
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     # atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
-def write_input(inp='inp-grad'):
+def write_input(inp='inp-grad',keywork='grad nosymmetry conv qiterative'):
     with open('input','r') as f:
       lines = f.readlines()
     with open(inp,'w') as f:
       for i,line in enumerate(lines):
           if i==0 :
-             print('grad nosymmetry conv qiterative',file=f)
+             print(keyword,file=f)
           # elif line.find('maxcyc')>=0:
           #    print('maxcyc 0',file=f)
           else:
@@ -150,7 +150,7 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
-write_input(inp='inp-grad')
+write_input(inp='inp-grad',keyword='opti conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
