@@ -2244,7 +2244,7 @@ class ReaxFF_nn(object):
                         self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo_l-bo0_)*fe)) 
                                                                                     #     self.bo0[bd]
                         fe   = tf.where(tf.logical_and(tf.greater_equal(rbd,r),
-                                        tf.logical_and(tf.logical_and(dbi,dil),
+                                        tf.logical_and(tf.logical_and(tf.greater_equal(dbi,dil),
                                                    tf.greater_equal(dbj,djl)), 
                                                        tf.logical_and(tf.less_equal(dbi,diu),
                                                             tf.less_equal(dbj,dju))  ) ),
