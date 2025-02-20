@@ -378,11 +378,13 @@ def arctotraj(arc,mode='w',checkMol=False,traj='gulp.traj'):
     his.close()
     return A
 
-def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+def opt(atoms=None,T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,t=0.00001,output=None,lib='reaxff_nn'):
-    A = read(gen,index=i)*(x,y,z)
+    if atoms is None:
+       A = read(gen,index=i)*(x,y,z)
+    else:
+       A = atoms
     # A = press_mol(A) 
-
     if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
     elif l==0:
