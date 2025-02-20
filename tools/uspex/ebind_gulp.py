@@ -51,7 +51,6 @@ ir = IRFF_NP(atoms=A,
 print('\nnumber of molecules:',nmol)
 print('\ndensity of configuration:',density)
 ff = [1.0,4.0] #,1.9 ,2.0,2.5,3.0,3.5,4.0
-# ff = [3]
 cell = A.get_cell()
 e  = []
 eg = []
@@ -62,16 +61,11 @@ with TrajectoryWriter('md.traj',mode='w') as his:
         _,A = enlarge(m,cell=cell,fac=f,supercell=[1,1,1])
         ir.calculate(A)
         e.append(ir.E)
-		
-        write_gulp_in(A,runword='gradient nosymmetry conv qite verb',
-                      lib='reaxff_nn')
-        system('gulp<inp-gulp>out')
-        (e_,eb_,el_,eo_,eu_,ea_,ep_,
-         etc_,et_,ef_,ev_,ehb_,ecl_,esl_)= get_reax_energy(fo='out')
+
+        A = opt(atoms=A,step=1000,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
+        e_ = A.get_potential_energy()
         eg.append(e_)
-		 
-        A.calc = SinglePointCalculator(A,energy=ir.E)
         his.write(atoms=A)
 
-print('The binding energy: ',e[-1]-e[0],'average:', (e[-1]-e[0])/nmol,'gulp:', (eg[-1]-eg[0])/nmol)
+print('The binding energy: ',(eg[-1]-eg[0]),'average:', (eg[-1]-eg[0])/nmol)
 
