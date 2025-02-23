@@ -285,7 +285,7 @@ def moltoatoms(mols):
     return A
 
 
-def Molecules(atoms,rcut=None,check=False):
+def Molecules(atoms,species=None,rcut=None,check=False):
     cell = atoms.get_cell()
     natm,atoms,X,table = get_neighbors(Atoms=atoms,
                                        r_cut=rcut,
@@ -295,6 +295,7 @@ def Molecules(atoms,rcut=None,check=False):
     m = molecules(natm,atoms,
                   cell=cell,
                   table=table,
+                  species=species,
                   X=X,
                   rcut=rcut,
                   check=check,
@@ -307,6 +308,7 @@ def molecules(natom,specs,cell=None,table=None,
               X=None,check=False,
               inbox=False,
               rcut=None,
+              species=None,
               sizeiscell=True):
     m = []
     for ID in range(natom):
@@ -325,7 +327,7 @@ def molecules(natom,specs,cell=None,table=None,
                mol_x.append(X[i])
 
            m.append(molecule(mol_index,atom_name,mol_x,
-                    check=check,inbox=inbox,rcut=rcut,
+                    check=check,inbox=inbox,rcut=rcut,species=species,
                     cell=cell,table=table,sizeiscell=sizeiscell))
     return m
 
@@ -342,6 +344,7 @@ class molecule(object):
                table=None,
                check=False,
                inbox=False,
+               species=None,
                rcut=None):
       self.inbox        = inbox
       if rcut is None:
@@ -357,6 +360,7 @@ class molecule(object):
       self.mol_x       = np.array(mol_x)
       self.cell        = np.array(cell)
       self.sizeiscell  = sizeiscell
+      self.species     = species
 
       if mol_index is None:
          self.mol_index = np.arange(len(atom_name))
@@ -403,9 +407,13 @@ class molecule(object):
           else:
              label_dic[sp]  = 1
       self.label = ''
-      for sp in label_dic:
-          # if sp in label_dic:
-          self.label += sp+str(label_dic[sp])
+      if self.species
+         for sp in self.species:
+             if sp in label_dic:
+                self.label += sp+str(label_dic[sp])
+      else:
+         for sp in label_dic:
+             self.label += sp+str(label_dic[sp])
 
   def InBox(self):
       cf  = np.dot(np.expand_dims(self.center,axis=0),self.u) 
