@@ -407,7 +407,7 @@ class molecule(object):
           else:
              label_dic[sp]  = 1
       self.label = ''
-      if self.species
+      if self.species:
          for sp in self.species:
              if sp in label_dic:
                 self.label += sp+str(label_dic[sp])
