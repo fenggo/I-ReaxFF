@@ -52,19 +52,18 @@ ff = [1.0,5.0] #,1.9 ,2.0,2.5,3.0,3.5,4.0
 cell = A.get_cell()
 e  = []
 eg = []
+ 
+for i,f in enumerate(ff):
+    m = copy.deepcopy(m_)
+    _,A = enlarge(m,cell=cell,fac=f,supercell=[1,1,1])
+    ir.calculate(A)
+    e.append(ir.E)
 
-with TrajectoryWriter('md.traj',mode='w') as his:
-    for i,f in enumerate(ff):
-        m = copy.deepcopy(m_)
-        _,A = enlarge(m,cell=cell,fac=f,supercell=[1,1,1])
-        ir.calculate(A)
-        e.append(ir.E)
-
-        A = opt(atoms=A,step=1000,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
-        system('mv md.traj md_{:d}.traj'.format(i))
-        e_ = A.get_potential_energy()
-        eg.append(e_)
-        his.write(atoms=A)
+    A = opt(atoms=A,step=500,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
+    system('mv md.traj md_{:d}.traj'.format(i))
+    e_ = A.get_potential_energy()
+    eg.append(e_)
+ 
 
 print('The binding energy: ',(eg[-1]-eg[0]),'average:', (eg[-1]-eg[0])/nmol)
 
