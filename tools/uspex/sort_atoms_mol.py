@@ -53,7 +53,6 @@ c = [r*args.z for r in c]
 atoms = Atoms(elems, x)
 atoms.set_cell([a,b,c])
 atoms.set_pbc([True,True,True])
-atoms.write('POSCAR.supercell')
 
 positions  = atoms.get_positions()
 elems      = atoms.get_chemical_symbols()
