@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 import sys
 import argparse
 from ase.io import read
@@ -13,12 +12,12 @@ args = parser.parse_args(sys.argv[1:])
 atoms  = read(args.geo,index=args.i)
 ad     = AtomDance(atoms=atoms,rmax=1.2)
 zmat   = ad.InitZmat
- 
+
 ad.write_zmat(zmat,uspex=True)
 ad.close()
+
 
 '''
 run the script with command:
      ./uspex_zmat.py --g=structure.gen
 '''
-
