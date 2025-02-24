@@ -150,7 +150,7 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
-write_input(inp='inp-grad',keyword='opti conv qiterative')
+write_input(inp='inp-grad',keyword='opti conp qiterative conjugate')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
