@@ -39,8 +39,8 @@ for i in range(ii):
     for j in range(jj):
         for k in range(kk):
             for n in range(natom):
-                print(i*jj*kk*natom+j*kk*natom+k*natom+n)
-                print(i,j,k,n)
+                # print(i*jj*kk*natom+j*kk*natom+k*natom+n)
+                # print(i,j,k,n)
                 elems[i*jj*kk*natom+j*kk*natom+k*natom+n] = elems_[n]   
                 x[i*jj*kk*natom+j*kk*natom+k*natom+n][0]  = positions[n][0] + k*a[0] + j*b[0] +i*c[0]
                 x[i*jj*kk*natom+j*kk*natom+k*natom+n][1]  = positions[n][1] + k*a[1] + j*b[1] +i*c[1]
