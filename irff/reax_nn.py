@@ -228,6 +228,7 @@ class ReaxFF_nn(object):
       self.eself,self.evdw_,self.ecoul_ = {},{},{}
 
       for st in self.dataset: 
+          st_ = st.split('-')[0]
           nindex = []
           for key in strucs:
               if self.dataset[key]==self.dataset[st]:
@@ -257,8 +258,10 @@ class ReaxFF_nn(object):
              self.nframe      += self.batch[st]
              self.natoms      += strucs[st].natom*self.batch[st]
 
-             if st not in self.weight_force:
+             if st not in self.weight_force and st_ not in self.weight_force:
                 self.weight_force[st] = 0.0 
+             elif st_ in self.weight_force:
+                self.weight_force[st] = self.weight_force[st_] 
 
              if self.weight_force[st]>0:
                 self.natoms_f    += strucs[st].natom*self.batch[st]
@@ -428,7 +431,7 @@ class ReaxFF_nn(object):
                                             name='dftbopi_{:s}'.format(s))
              self.dft_bopp[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.natom[s],self.natom[s],self.batch[s]],
                                             name='dftbopp_{:s}'.format(s))                                    
-          elif (strucs[s].forces is not None) and self.weight_force[s]>0.0:
+          elif (strucs[s].forces is not None) and (self.weight_force[s]>0.0):
              self.dft_forces[s] = tf.compat.v1.placeholder(tf.float32,shape=[self.batch[s],self.natom[s],3],
                                             name='dftforces_{:s}'.format(s))
              self.dft_bosi[s] = self.dft_bopi[s] = self.dft_bopp[s] = None
