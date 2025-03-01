@@ -18,13 +18,14 @@ from irff.molecule import press_mol
 
 parser = argparse.ArgumentParser(description='eos by scale crystal box')
 parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
+parser.add_argument('--i', default=-1,type=int, help='index of trajectory')
 args = parser.parse_args(sys.argv[1:])
 
 lf = open('ffield.json','r')
 j = js.load(lf)
 lf.close()
 
-A = read(args.g)
+A = read(args.g,index=args.i)
 A = press_mol(A)
 x = A.get_positions()
 m = np.min(x,axis=0)
