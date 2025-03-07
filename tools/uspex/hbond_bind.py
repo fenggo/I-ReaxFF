@@ -89,7 +89,7 @@ for i,s in enumerate(imags):
 
 plt.figure()   
 plt.ylabel(r'$Density$ ($g/cm^3$)')
-plt.xlabel(r'$-1$ $HB$ $Energy$ ($eV$)')
+plt.xlabel(r'$-$ $HB$ $Energy$ ($eV$)')
 
 # plt.subplot(2,1,1)
 plt.scatter(Ehb,D,alpha=0.8,
