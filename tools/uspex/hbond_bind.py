@@ -15,10 +15,11 @@ parser.add_argument('--g', default='md.traj',type=str, help='trajectory file')
 parser.add_argument('--s', default=0,type=int, help='strat index of crystal structure')
 parser.add_argument('--e', default=-1,type=int, help='end index of crystal structure')
 parser.add_argument('--b', default=0,type=int, help='compute binding energy')
+parser.add_argument('--p', default=200,type=int, help='step of optimization')
 parser.add_argument('--n', default=8,type=int, help='ncpu')
 args = parser.parse_args(sys.argv[1:])
 
-def bind_energy(A,emol=None):
+def bind_energy(A,emol=None,step=20):
     ff = [1.0,5.0] #,1.9 ,2.0,2.5,3.0,3.5,4.0
     cell = A.get_cell()
     e  = []
@@ -33,7 +34,7 @@ def bind_energy(A,emol=None):
         ir.calculate(A)
         e.append(ir.E)        
         if i==0 or emol is None:
-            A = opt(atoms=A,step=500,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
+            A = opt(atoms=A,step=step,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
             system('mv md.traj md_{:d}.traj'.format(i))
             e_ = A.get_potential_energy()
         else:
@@ -61,7 +62,7 @@ with open('hbond.dat','w') as fd:
 for i,s in enumerate(imags):
     atoms = images[s-1]
     if args.b:
-       atoms = opt(atoms=atoms,step=1000,l=1,t=0.0000001,n=args.n, x=1,y=1,z=1)
+       atoms = opt(atoms=atoms,step=50,l=1,t=0.0000001,n=args.n, x=1,y=1,z=1)
     atoms = press_mol(atoms)
     x     = atoms.get_positions()
     m     = np.min(x,axis=0)
@@ -72,9 +73,9 @@ for i,s in enumerate(imags):
     Ehb.append(-ir.Ehb)
     if args.b:
        if i==0:
-          eb,eb_per_mol,emol = bind_energy(atoms)
+          eb,eb_per_mol,emol = bind_energy(atoms,step=args.p)
        else:
-          eb,eb_per_mol,emol = bind_energy(atoms,emol=emol)
+          eb,eb_per_mol,emol = bind_energy(atoms,emol=emol,step=20)
     Eb.append(eb)
     E.append(ir.E)
     masses = np.sum(atoms.get_masses())
@@ -94,7 +95,7 @@ plt.xlabel(r'$-$ $HB$ $Energy$ ($eV$)')
 # plt.subplot(2,1,1)
 plt.scatter(Ehb,D,alpha=0.8,
             edgecolor='r', s=35,color='none',marker='o',
-            label=r'$Total$ $HB$ $Energy$')
+            label=r'$HB$ $Energy(4CL-20)$')
 
 plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
 plt.savefig('hbond.pdf',transparent=True)
