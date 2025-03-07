@@ -52,7 +52,7 @@ E,Ehb,D = [],[],[]
 Eb      = []
 
 with open('hbond.dat','w') as fd:
-     print('# Crystal_id hbond_energy binding_energy density',file=fd)
+     print('# Crystal_id hbond_energy binding_energy eb_per_mol density',file=fd)
 
 for s in imags:
     atoms = images[s-1]
@@ -76,7 +76,7 @@ for s in imags:
     print('CY: {:6d} ehbond: {:8.4f}, ebind: {:8.4f}, Density: {:9.6}'.format(s,
                       Ehb[-1],eb,density) )
     with open('hbond.dat','a') as fd:
-         print(s,Ehb[-1],Eb,density,file=fd) 
+         print(s,Ehb[-1],eb,eb_per_mol,density,file=fd) 
 
 plt.figure()   
 plt.ylabel(r'$Density$ ($g/cm^3$)')
