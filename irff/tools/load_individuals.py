@@ -13,7 +13,7 @@ class Stack():
     def close(self):
         self.entry = None
 
-def get_indiv(findi='Individuals'):
+def load_density_energy(findi='Individuals'):
     gene = {}
     density = []
     id_g = {}
