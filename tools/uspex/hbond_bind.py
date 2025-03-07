@@ -60,7 +60,8 @@ with open('hbond.dat','w') as fd:
 
 for i,s in enumerate(imags):
     atoms = images[s-1]
-    atoms = opt(atoms=atoms,step=1000,l=1,t=0.0000001,n=args.n, x=1,y=1,z=1)
+    if args.b:
+       atoms = opt(atoms=atoms,step=1000,l=1,t=0.0000001,n=args.n, x=1,y=1,z=1)
     atoms = press_mol(atoms)
     x     = atoms.get_positions()
     m     = np.min(x,axis=0)
