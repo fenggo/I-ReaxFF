@@ -46,7 +46,7 @@ def bind_energy(A,emol=None,step=20):
 images  = Trajectory('Individuals.traj')
 atoms   = images[0]
 if args.e<0:
-   args.e = len(images)
+   args.e = len(images)-1
 imags   = [i for i in range(args.s,args.e+1)]
 
 ir = IRFF_NP(atoms=atoms,nn=True,libfile='ffield.json')
