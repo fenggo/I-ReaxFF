@@ -27,7 +27,7 @@ def bind_energy(A,emol=None,step=20,moleclue_energy={}):
     ir.calculate(A)
   
     A = opt(atoms=A,step=step,l=0,t=0.0000001,n=args.n, x=1,y=1,z=1)
-    system('mv md.traj md_{:d}.traj'.format(i))
+    # system('mv md.traj md_{:d}.traj'.format(i))
     eg = A.get_potential_energy()
 
     if emol is None:
