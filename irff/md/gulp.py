@@ -396,7 +396,7 @@ def opt(atoms=None,T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   output=output,
                   gopt=t,
                   lib=lib)
-    print('\n-  running gulp optimize ...')
+    # print('\n-  running gulp optimize ...')
     if n==1:
        system('gulp<inp-gulp>gulp.out')
     else:
@@ -432,7 +432,7 @@ def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
                   tot_step=tot_step,
                   movieFrequency=movieFrequency,
                   lib=lib)
-    print('\n-  running gulp nvt ...')
+    # print('\n-  running gulp nvt ...')
     if ncpu > 1:
         system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu))
     else:
