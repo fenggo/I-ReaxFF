@@ -54,7 +54,7 @@ Eb      = []
 eb,eb_per_mol,emol = 0.0, 0.0, 0.0
 
 with open('hbond.dat','w') as fd:
-     print('# Crystal_id hbond_energy binding_energy eb_per_mol density',file=fd)
+     print('# Crystal_id hbond_energy binding_energy density',file=fd)
 
 for i,s in enumerate(imags):
     atoms = images[s-1]
