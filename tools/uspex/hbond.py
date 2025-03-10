@@ -71,7 +71,7 @@ for i,s in enumerate(imags):
     D.append(density)
     eb = e-ehb
     print('CY: {:6d}, NM: {:2d} ehbond: {:8.4f}, evdw: {:8.4f}, ebind: {:8.4f},'
-          ' Density: {:9.6}'.format(s,nmol,ehb,ev,eb,density))
+          ' Density: {:9.6}'.format(s,nmol,ehb,ev,e,density))
     with open('hbond.dat','a') as fd:
-         print(s,ehb,eb,density,file=fd) 
+         print(s,ehb,e,e/nmol,density,file=fd) 
 
