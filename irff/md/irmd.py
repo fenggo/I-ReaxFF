@@ -309,7 +309,7 @@ class IRMD(object):
   
       self.dyn.attach(check,interval=1)
       self.dyn.run(0.00001,self.totstep)
-      if active:
+      if self.active:
          traj  = TrajectoryWriter('md.traj',mode='w')
          for atoms in self.images:
              traj.write(atoms=atoms)
