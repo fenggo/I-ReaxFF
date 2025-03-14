@@ -57,8 +57,8 @@ def load_density_energy(findi='Individuals'):
                         energy_g[g] = [e]
         st.close()
     # if n==-1:
-    #    ng  = str(len(gene))
+    ng  = len(gene)
     # else:
     #    ng  = str(n)
     # x   = np.array(dens_g[ng])
-    return id_g,dens_g,energy_g,op_g
+    return n,id_g,dens_g,energy_g,op_g
