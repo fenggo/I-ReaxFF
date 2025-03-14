@@ -13,7 +13,7 @@ class Stack():
     def close(self):
         self.entry = None
 
-def load_density_energy(findi='Individuals'):
+def load_density_energy(n=-1,findi='Individuals'):
     gene = {}
     density = []
     id_g = {}
@@ -56,7 +56,9 @@ def load_density_energy(findi='Individuals'):
                         op_g[g] = [l[2]]
                         energy_g[g] = [e]
         st.close()
-
-    ng  = str(len(gene))
+    if g==-1:
+       ng  = str(len(gene))
+    else:
+       ng  = str(g)
     # x   = np.array(dens_g[ng])
     return id_g[ng],dens_g[ng],energy_g[ng],op_g[ng]
