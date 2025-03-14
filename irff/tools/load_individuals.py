@@ -36,7 +36,7 @@ def load_density_energy(findi='Individuals'):
 
             if len(l) >= 10:
                 if l[0] != 'Gen':
-                    g = l[0]
+                    g = int(l[0])
                     i = l[1] # int(l[1])
                     e = float(l[3])
                     d = float(l[5])
