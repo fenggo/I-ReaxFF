@@ -67,6 +67,11 @@ def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    print('-  enthalpy: ',atoms.get_potential_energy())
+    masses = np.sum(atoms.get_masses())
+    volume = atoms.get_volume()
+    density = masses/volume/0.602214129
+    print('-  density: ',density)
     if x>1 or y>1 or z>1:
        ncell     = x*y*z
        natoms    = int(len(atoms)/ncell)
