@@ -19,6 +19,7 @@ def load_density_energy(findi='Individuals'):
     id_g = {}
     dens_g = {}
     op_g = {}
+    energy_g= {}
 
     with open(findi) as f:
         for line in f.readlines():
@@ -45,16 +46,17 @@ def load_density_energy(findi='Individuals'):
                     if g in gene:
                         gene[g].append(d)
                         id_g[g].append(i)
-                        dens_g[g].append([d, e])
+                        dens_g[g].append(d)
                         op_g[g].append(l[2])
+                        energy_g[g].append(e)
                     else:
                         gene[g] = [d]
                         id_g[g] = [i]
-                        dens_g[g] = [[d, e]]
+                        dens_g[g] = [d]
                         op_g[g] = [l[2]]
+                        energy_g[g] = [e]
         st.close()
 
     ng  = str(len(gene))
-    x   = np.array(dens_g[ng])
-    id_ = id_g[ng]
-    return id_,x[:,0],x[:,1]
+    # x   = np.array(dens_g[ng])
+    return id_g[ng],dens_g[ng],energy_g[ng],op_g[ng]
