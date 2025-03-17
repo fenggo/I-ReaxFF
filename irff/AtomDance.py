@@ -3,6 +3,7 @@ from ase.io import read,write
 from .molecule import molecules
 from ase.io.trajectory import TrajectoryWriter,Trajectory
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.data import atomic_numbers
 #from ase.visualize import view
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ def get_group(i,j,atoms):
            group_j.append(i_)
     return group_i,group_j
 
-def getNeighbor(natom,r,rcut,bo,botol=0.0):
+def getNeighbor(natom,r,rcut,bo,symbols=None,botol=0.0):
     neighbors = [[] for _ in range(natom)]
     for i in range(natom-1):
         for j in range(i+1,natom):
@@ -46,6 +47,9 @@ def getNeighbor(natom,r,rcut,bo,botol=0.0):
                # print(i,j)
                neighbors[i].append(j)
                neighbors[j].append(i)
+    if symbols:
+       for i in range(natom-1):
+           neighbors[i] = sorted(neighbors[i], key=lambda x: atomic_numbers(symbols[x]))
     return neighbors
 
 def getBonds(natom,r,rcut,bo,botol=0.0):
@@ -274,6 +278,7 @@ class AtomDance(object):
                                 botol=self.botol)
       self.freebonds = self.InitBonds
       self.neighbors = getNeighbor(self.natom,self.ir.r,self.rmax*self.ir.re,self.ir.bo0,
+                                   symbols=self.atom_name,
                                    botol=self.botol)
       if rcut is None:
          self.rcut       = self.ir.re*rmax
