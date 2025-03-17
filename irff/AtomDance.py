@@ -355,13 +355,13 @@ class AtomDance(object):
              if m.natom>=3:
                 for i in self.neighbors[second]:
                     if i != first:
-                       if not third is None:
+                       if third is not None:
                           if len(self.neighbors[i])>len(self.neighbors[third]):
                              third = i
                        else:      
                           third = i
 
-             if not third is None:
+             if third is not None:
                 self.zmat_index.append([second,first,-1])  
                 self.zmat_id.append(third)
  
