@@ -339,7 +339,7 @@ class AtomDance(object):
                  if len(self.neighbors[i])==1:
                     first = i
                     break 
-             if not self.FirstAtom is None:
+             if self.FirstAtom:
                 if self.FirstAtom in m.mol_index:
                    first = self.FirstAtom
              self.zmat_index.append([-1,-1,-1])
