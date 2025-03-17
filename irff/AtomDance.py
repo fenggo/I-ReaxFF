@@ -49,7 +49,7 @@ def getNeighbor(natom,r,rcut,bo,symbols=None,botol=0.0):
                neighbors[j].append(i)
     if symbols:
        for i in range(natom-1):
-           neighbors[i] = sorted(neighbors[i], key=lambda x: atomic_numbers(symbols[x]))
+           neighbors[i] = sorted(neighbors[i], key=lambda x: atomic_numbers[symbols[x]])
     return neighbors
 
 def getBonds(natom,r,rcut,bo,botol=0.0):
