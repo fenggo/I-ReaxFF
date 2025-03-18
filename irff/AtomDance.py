@@ -346,10 +346,11 @@ class AtomDance(object):
                     break 
              if self.FirstAtom:
                 if isinstance(self.FirstAtom,list) or isinstance(self.FirstAtom,tuple):
-                   # f_atom = self.FirstAtom[nm]
+                   f_atom = -1
                    for f_ in self.FirstAtom:
                        if f_ in m.mol_index:
                           f_atom = f_
+                          break
                 else:
                    f_atom = self.FirstAtom
                 if f_atom in m.mol_index:
