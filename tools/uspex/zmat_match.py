@@ -3,19 +3,19 @@ from ase.io import read
 from ase import Atoms
 from irff.AtomDance import AtomDance
 
-def match_zat(gen='b_0.gen',match='a_0.gen',first_atom=0):
+def match_zat(gen='b_0.gen',match='a_0.gen',first_atom=0,first_atom_=0):
     atoms  = read(gen,index=-1)
     ad     = AtomDance(atoms=atoms,rmax=1.1,
                      rcut={"H-O":1.22,"H-N":1.22,"H-C":1.22,"O-O":1.4,"others": 1.68},
-                     FirstAtom=0)
+                     FirstAtom=first_atom)
     zmat   = ad.InitZmat
     ind    = ad.zmat_id
     symbol = atoms.get_chemical_symbols()
     
     atoms_ = read(match,index=-1)
     ad_    = AtomDance(atoms=atoms_,rmax=1.1,
-                     rcut={"H-O":1.22,"H-N":1.22,"H-C":1.22,"O-O":1.4,"others": 1.68},
-                     FirstAtom=25)
+                       rcut={"H-O":1.22,"H-N":1.22,"H-C":1.22,"O-O":1.4,"others": 1.68},
+                       FirstAtom=first_atom_)
     zmat_  = ad_.InitZmat
     ind_   = ad_.zmat_id
     symbol_= atoms_.get_chemical_symbols()
@@ -39,18 +39,24 @@ def match_zat(gen='b_0.gen',match='a_0.gen',first_atom=0):
     # print('atomic order: ',zid)
     return ind,ind_,atoms,atoms_
 
-gens = ['b_0.gen','b_1.gen','b_2.gen','b_3.gen']
-mats = ['a_0.gen','a_1.gen','a_2.gen','a_3.gen']
-first_atoms = [25,25,25,25]
+# gens = ['b_0.gen','b_1.gen','b_2.gen','b_3.gen']
+# mats = ['a_0.gen','a_1.gen','a_2.gen','a_3.gen']
+
+gen = 'md_eps.traj' 
+mat = 'md.traj'
+
+first_atom  = [0,1,2,3]
+first_atom_ = [123,135,129,141]
 inds,inds_,image,image_  = [],[],[],[]
 
-for gen,mat,fa in zip(gens,mats,first_atoms):
-    ind,ind_,atoms,atoms_ = match_zat(gen=gen,match=mat,first_atom=fa)
-    inds.append(ind)
-    inds_.append(ind_)
-    image.append(atoms)
-    image_.append(atoms_)
-    print(ind,'\n',ind_)
+
+ind,ind_,atoms,atoms_ = match_zat(gen=gen,match=mat,
+                                  first_atom=first_atom,first_atom_=first_atom_)
+inds.append(ind)
+inds_.append(ind_)
+image.append(atoms)
+image_.append(atoms_)
+print(ind,'\n',ind_)
 
 
 natom  = len(atoms)
@@ -76,4 +82,4 @@ A = Atoms(elems_, positions_)
 A.set_cell(cell)
 A.set_pbc([True,True,True])
 
-A.write('POSCAR')
+A.write('POSCAR.mat')
