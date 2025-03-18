@@ -334,7 +334,7 @@ class AtomDance(object):
                                   cell=atoms.cell,
                                   table=self.neighbors,
                                   sizeiscell=False)
-      for m in self.mols:
+      for nm,m in enumerate(self.mols):
           if len(m.mol_index)==1:
              self.zmat_index.append([-1,-1,-1])
              self.zmat_id.append(m.mol_index[0])
@@ -345,8 +345,12 @@ class AtomDance(object):
                     first = i
                     break 
              if self.FirstAtom:
-                if self.FirstAtom in m.mol_index:
-                   first = self.FirstAtom
+                if isinstance(self.FirstAtom,list) or isinstance(self.FirstAtom,tuple):
+                   f_atom = self.FirstAtom[nm]
+                else:
+                   f_atom = self.FirstAtom
+                if f_atom in m.mol_index:
+                   first = f_atom
              self.zmat_index.append([-1,-1,-1])
              self.zmat_id.append(first)
 
