@@ -22,12 +22,12 @@ O = O_[n]
 
 images = Trajectory('Individuals.traj')
 for i,i_ in enumerate(I):
-    atoms  = images[i-1] 
+    atoms  = images[int(i_)-1] 
     atoms  = opt(atoms=atoms,step=500,l=1,t=0.0000001,n=16)
     masses = np.sum(atoms.get_masses())
     volume = atoms.get_volume()
-    D[i_]  = masses/volume/0.602214129
-    E[i_]  =  atoms.get_potential_energy()
+    D[i]  = masses/volume/0.602214129
+    E[i]  =  atoms.get_potential_energy()
 
 lab,e,d = [],[],[]
 
