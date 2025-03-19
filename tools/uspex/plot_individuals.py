@@ -1,13 +1,34 @@
 #!/usr/bin/env python
-from ase.io import read,write
-from ase.io.trajectory import Trajectory
-from ase import Atoms
+import sys
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-from irff.irff_np import IRFF_NP
+from ase.io.trajectory import Trajectory
 from irff.tools.load_individuals import load_density_energy
+from irff.md.gulp import opt
 
-I,D,E,O = load_density_energy('Individuals')
+
+parser = argparse.ArgumentParser(description='eos by scale crystal box')
+parser.add_argument('--g', default=-1,type=int, help='n generation')
+args = parser.parse_args(sys.argv[1:])
+
+n,I_,D_,E_,O_ = load_density_energy('Individuals')
+if args.g>0:
+   n = args.g
+I = I_[n]
+D = D_[n]
+E = E_[n]
+O = O_[n]
+
+images = Trajectory('Individuals.traj')
+for i,i_ in enumerate(I):
+    atoms  = images[i-1] 
+    atoms  = opt(atoms=atoms,step=500,l=1,t=0.0000001,n=16)
+    masses = np.sum(atoms.get_masses())
+    volume = atoms.get_volume()
+    D[i_]  = masses/volume/0.602214129
+    E[i_]  =  atoms.get_potential_energy()
+
 lab,e,d = [],[],[]
 
 with open('exp.dat','r') as f:
@@ -37,7 +58,8 @@ markers = {'Heredity':'o','keptBest':'s','softmutate':'^',
             'Rotate':'v','Permutate':'8','Random':'p'}
 colors  = {'Heredity':'#1d9bf7','keptBest':'#9933fa','softmutate':'#00ffff',
             'Rotate':'#be588d','Permutate':'#35a153','Random':'#00c957'}
-r_p = {'520':0.02,'560':0.02,'556':0.02}
+right = {'1163':0.02,'1232':0.02,'192':0.02,'121':0.02,'174':0.02}
+left  = {'1084':-0.03,'1164':-0.03,'181':-0.02}
 hide= []
 for op in density:
     # if op in hide:
@@ -49,8 +71,8 @@ for op in density:
     
 for l_,e_,d_ in zip(lab,e,d):
     c = 'k'
-    if l_=='epsilon':
-       lb = r'$\varepsilon$-CL-20'
+    if l_=='fox7':
+       lb = r'$FOX-7(Exp.)$'
        c  = 'r'
     elif l_=='gamma':
        lb = r'$\gamma$-CL-20'
@@ -58,6 +80,8 @@ for l_,e_,d_ in zip(lab,e,d):
     elif l_=='beta':
        lb = r'$\beta$-CL-20'
        c = '#2ec0c2'
+    else:
+       continue
     plt.scatter(d_,e_,alpha=0.9,
             marker='*',color='none',
             edgecolor=c,s=120,
@@ -68,10 +92,12 @@ for l_,e_,d_ in zip(lab,e,d):
 for i,t in enumerate(I):
     d = D[i]
     e = E[i]
-    if t in r_p:
-       plt.text(d+r_p[t],e,t,ha='center',fontsize=6)
+    if t in right:
+       plt.text(d+right[t],e,t,ha='center',fontsize=6)
+    elif t in left:
+       plt.text(d+left[t],e,t,ha='center',fontsize=6)
     else:
-       plt.text(d,e+0.15,t,ha='center',fontsize=6)
+       plt.text(d,e+0.10,t,ha='center',fontsize=6)
 
 plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
 plt.savefig('individuals.svg',transparent=True) 
