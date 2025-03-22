@@ -320,8 +320,9 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
               fix_modify = ' ',
               more_commond = ' ',
+              group={},
               dump_interval=10,
-              freeatoms=None,natoms=None,
+              freeatoms=None,natoms=None,#freeze=False,
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               restartfile=None,
               **kwargs):
@@ -415,6 +416,10 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        print('fix    freeze fixed setforce 0.0 0.0 0.0', file=fin)
        print(' ', file=fin)
        fix = fix.replace('all','free')
+    if group:
+       for g in group:
+           print('group  {:s} id {:s}'.format(g,group[g]), file=fin)
+
     print(fix, file=fin)
     print(fix_modify, file=fin)
     if pair_style.find('reaxff')>=0:
