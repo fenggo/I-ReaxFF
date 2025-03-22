@@ -8,17 +8,19 @@ from ase.io import read # ,write
 from ase.data import atomic_numbers, atomic_masses
 from ase.calculators.singlepoint import SinglePointCalculator
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
+from irff.molecule import Molecules
 
 
-def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         free=' ',dump_interval=10,
         x=1,y=1,z=1,n=1,lib='ffield',thermo_fix=None,
         r=0):
-    atoms = read(gen,index=i)*(x,y,z)
+    if atoms is None:
+       atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
-    freeatoms = free.split()
+    freeatoms = free.split() if isinstance(free,str) else free
     freeatoms = [int(i)+1 for i in freeatoms]
     masses    = {s:atomic_masses[atomic_numbers[s]] for s in species }
     
@@ -88,12 +90,21 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
 
 def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
+    atoms = read(gen,index=i)*(x,y,z)
+    m_  = Molecules(atoms,rcut={"H-O":1.12,"H-N":1.22,"H-C":1.22,"O-O":1.35,"others": 1.62},check=True)
+    free_ = []
+    if free:
+       for i,m in enumerate(m_):
+           # print(dir(m))
+           m.mol_index.sort()
+           print(m.label)
+           if m.label == free:
+              free_.extend(m.mol_index)
     thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
                   T,tdump,p,p,tdump)
-    atoms = nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
-                free=free,dump_interval=dump_interval,
+    atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+                free=free_,dump_interval=dump_interval,
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
-
     return atoms
 
 def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn', 
@@ -205,7 +216,8 @@ def w(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
 
 if __name__ == '__main__':
    ''' use commond like: 
-          ./lmd.py nvt --T=2800 --s=5000 --g=*.gen 
+        ./lmd.py nvt --T=2800 --s=5000 --g=*.gen 
+		  ./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --tdump=10 --r=1
        to run this script.
        ---------------------------------------------
        nvt: NVT MD simulation
