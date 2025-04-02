@@ -42,13 +42,14 @@ if args.r:
 
 lab,e,d = [],[],[]
 
-with open('exp.dat','r') as f:
-     for line in f.readlines():
-         l = line.split()
-         if len(l)>0:
-            lab.append(l[0])
-            e.append(float(l[1]))
-            d.append(float(l[2]))
+if isfile('exp.dat'):
+   with open('exp.dat','r') as f:
+        for line in f.readlines():
+            l = line.split()
+            if len(l)>0:
+               lab.append(l[0])
+               e.append(float(l[1]))
+               d.append(float(l[2]))
 
 ops     = {}
 density = {}
