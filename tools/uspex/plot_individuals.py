@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import argparse
+from os.path import isfile
 import matplotlib.pyplot as plt
 import numpy as np
 from ase.io.trajectory import Trajectory
