@@ -9,6 +9,8 @@ install with commond
   "python setup.py build_ext --inplace"
   "python setup install --user"
 or with command
+*  version 1.7.2 
+  Correct the usage of batch size.
 *  version 1.7.1 
   Remove of dependence of pandas.
 
