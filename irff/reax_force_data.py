@@ -52,7 +52,7 @@ class Dataset(object):
                rbd=None,rv=None,qij=None,
                theta=None,s_ijk=None,s_jkl=None,
                w=None,cos_w=None,cos2w=None,cos3w=None,
-               rhb=None,frhb=None,hbthe=None,q=None):
+               rhb=None,frhb=None,hbthe=None,q=None,eself=None):
       self.dft_energy = dft_energy
       self.forces     = forces
       self.bosi       = bosi
@@ -70,6 +70,7 @@ class Dataset(object):
       self.cos3w      = cos3w
       self.hbthe      = hbthe
       self.q          = q
+      self.eself      = eself
 
 
 class reax_force_data(object):
