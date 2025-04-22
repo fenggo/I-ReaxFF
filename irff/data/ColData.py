@@ -4,12 +4,12 @@ from .prep_data import prep_data
 
 
 class ColData(object):
-  def __init__(self,max_batch=300):
+  def __init__(self,max_batch=10000):
       ''' max_batch: max number of batch 
       '''
       self.max_batch    = max_batch   # max number in direcs to train
 
-  def __call__(self,label=None,dft='ase',batch=1000000,endstep=None,startstep=0,
+  def __call__(self,label=None,dft='ase',batch=100000000,endstep=None,startstep=0,
                increase=1,must_have_force=False):
       self.label  = label
       cwd         = getcwd()
