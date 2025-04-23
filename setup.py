@@ -28,7 +28,7 @@ or with command
 '''
 
 
-__version__ = '1.7.1'
+__version__ = '1.7.2'
 install_requires = ['numpy','ase','tensorflow','matplotlib','paramiko','argh','scikit-learn','cython']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 
