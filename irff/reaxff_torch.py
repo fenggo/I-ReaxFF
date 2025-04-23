@@ -159,7 +159,7 @@ class ReaxFF_nn(nn.Module):
                screen=False,
                tors=[],
                device={'all':'cpu'}):
-      super(ReaxFF_nn_force, self).__init__()
+      super(ReaxFF_nn, self).__init__()
       self.dataset      = dataset 
       self.data         = data
       self.batch_size   = batch
