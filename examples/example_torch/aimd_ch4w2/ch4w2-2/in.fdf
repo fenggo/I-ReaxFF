@@ -1,0 +1,95 @@
+
+################## Species and atoms ##################
+SystemName       siesta
+SystemLabel      siesta
+NumberOfSpecies   3
+NumberOfAtoms     11
+   
+   
+%block ChemicalSpeciesLabel
+1 1 H
+2 8 O
+3 6 C
+%endblock ChemicalSpeciesLabel
+   
+   
+SolutionMethod   Diagon # ## OrderN or Diagon
+PAO.BasisType    split
+%block PAO.Basis
+H     2
+ n=1    0    2  S .7020340
+   4.4302740  0.0
+   1.000   1.000
+ n=2    1    1
+   4.7841521
+   1.000
+O     3
+ n=2    0    2  S .3704717
+   5.1368012   0.0
+   1.000   1.000
+ n=2    1    2  S .5000000
+   5.7187560   0.0
+   1.000   1.000
+ n=3    2    1
+   3.0328434
+   1.000
+C      3
+ n=2    0    2  S .5000000
+   5.3583962   0.0
+   1.000   1.000
+ n=2    1    2  S .3123723
+   5.7783757   0.0
+   1.000   1.000
+ n=3    2    1
+   4.5649411
+   1.000
+%endblock PAO.Basis
+   
+SpinPolarized    F
+   
+DM.MixingWeight      0.4   
+DM.NumberPulay       9
+DM.Tolerance         1.d-4
+   
+   
+   
+   
+################### FUNCTIONAL ###################
+XC.functional    GGA    # Exchange-correlation functional type
+XC.Authors       PBE    # Particular parametrization of xc func
+   
+   
+MeshCutoff       200. Ry # Equivalent planewave cutoff for the grid 
+KgridCutoff      10.000000 Ang
+   
+   
+WriteCoorInitial T
+WriteCoorXmol    T
+WriteMDhistory   T
+WriteMullikenPop 1
+WriteForces      T
+   
+###################  GEOMETRY  ###################
+
+LatticeConstant  1.00 Ang
+%block LatticeVectors
+10.0 0.0 0.0
+0.0 10.0 0.0
+0.0 0.0 10.0
+%endblock LatticeVectors
+   
+AtomicCoordinatesFormat Ang
+   
+%block AtomicCoordinatesAndAtomicSpecies
+2.663596729 5.506305991 4.649233086 1
+3.649968523 5.655326424 4.625021708 2
+3.984625123 5.575758528 5.560263835 1
+3.281934602 3.414772877 3.061326633 1
+3.878474219 3.103952552 3.79772897 2
+4.755747696 3.563882406 3.685251927 1
+7.284346959 4.273625123 6.467018188 1
+6.362134656 4.133659881 5.861399142 3
+5.472726808 4.226254085 6.52371739 1
+6.377305202 3.119813108 5.402756457 1
+6.327282241 4.908725772 5.063685974 1
+%endblock AtomicCoordinatesAndAtomicSpecies
