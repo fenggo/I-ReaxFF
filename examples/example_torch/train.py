@@ -2,7 +2,6 @@
 from os import  system
 import json as js
 import torch
-from ase import Atoms
 from irff.reax_force import ReaxFF_nn_force
 from irff.data.ColData import ColData
 from irff.reax_force_data import reax_force_data
@@ -11,8 +10,7 @@ from irff.intCheck import init_bonds,check_tors
 getdata = ColData()
 
 dataset = {}
-strucs = ['cf11']
-
+strucs = ['ch4w2']  
 batchs  = {'others':50}
 
 for mol in strucs:
@@ -44,37 +42,36 @@ for st in dataset:
                             screen=True)
     data[st] = data_
 
+rn = ReaxFF_nn_force(data=data,
+                    weight_energy={'others':1.0},
+                    weight_force={'ch4w2':1.0},
+                    cons=['acut'],
+                    tors=tors,
+                    libfile='ffield.json',
+                    screen=True,
+                    lambda_bd=1000.0,
+                    lambda_pi=0.0,
+                    lambda_reg=0.001,
+                    lambda_ang=0.0,
+                    device={'all':'cpu'})
+
+optimizer = torch.optim.Adam(rn.parameters(), lr=0.0001 )
 # rn.cuda()
 # rn.compile()
-
+natom = 0
+for st in rn.strcs:
+    natom += rn.batch[st]*rn.natom[st]
 n_epoch = 101
 
 for epoch in range(n_epoch):
     for st in data:
-        data_ = {st:data[st]}
-        rn = ReaxFF_nn_force(data=data_,
-                            weight_energy={'others':1.0},
-                            weight_force={'others':1.0},
-                            cons=['acut'],
-                            tors=tors,
-                            libfile='ffield.json',
-                            screen=True,
-                            lambda_bd=1000.0,
-                            lambda_pi=0.0,
-                            lambda_reg=0.001,
-                            lambda_ang=0.0,
-                            device={'all':'cpu'})
-        optimizer = torch.optim.Adam(rn.parameters(), lr=0.0001 )
-        natom = 0
-        for st in rn.strcs:
-            natom += rn.batch[st]*rn.natom[st]
-        for step in range(10):
-            E,F  = rn()
-            loss = rn.get_loss()
-            optimizer.zero_grad()
-
-            loss.backward(retain_graph=True)
-            optimizer.step()
+        # data_ = {st:data[st]}
+        # for step in range(10):
+        E,F  = rn()
+        loss = rn.get_loss()
+        optimizer.zero_grad()
+        loss.backward(retain_graph=True)
+        optimizer.step()
         print( "eproch: {:5d} loss of {:s}: {:10.5f} energy: {:10.5f} force: {:10.5f} pen: {:10.5f}".format(epoch,
                         st,loss.item(),rn.loss_e.item()/natom,rn.loss_f.item()/natom,rn.loss_penalty.item()))
         rn.save_ffield('ffield.json')
