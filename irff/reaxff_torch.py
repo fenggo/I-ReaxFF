@@ -1270,7 +1270,10 @@ class ReaxFF_nn_force(nn.Module):
              else:
                  self.device[st] = torch.device(self._device['others'])
              if st not in self.weight_force:
-                self.weight_force[st] = 0
+                if st_ in self.weight_force:
+                   self.weight_force[st] = self.weight_force[st_]
+                else:
+                   self.weight_force[st] = 0
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
