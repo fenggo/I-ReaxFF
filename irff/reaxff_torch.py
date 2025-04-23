@@ -128,7 +128,7 @@ def fnn(pre,bd,x,m,layer=5):
     # print(out.shape)
     return  out.squeeze(dim=[2,3]) 
 
-class ReaxFF_nn_force(nn.Module):
+class ReaxFF_nn(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
