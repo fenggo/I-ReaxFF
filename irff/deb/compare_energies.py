@@ -124,7 +124,7 @@ def deb_energy(images,atomi=0,atomj=1,debframe=[],show=True):
     return e,Eb,Eu,Eo,El,Ea,Et,Ep,Etor,Ef,Ev,Ehb,Ec
 
 
-def deb_gulp_energy(images,atomi=0,atomj=1,ffield='reax.lib',show=False):
+def deb_gulp_energy(images,atomi=0,atomj=1,ffield='reax.lib',show=False,ncpu=1):
     ''' test reax with GULP, and run validation-set'''
     fcsv = open('gulp.csv','w')
     csv_write = csv.writer(fcsv)
@@ -142,7 +142,10 @@ def deb_gulp_energy(images,atomi=0,atomj=1,ffield='reax.lib',show=False):
     for atoms in images: 
         write_gulp_in(atoms,runword='gradient nosymmetry conv qite verb',
                       lib=ffield)
-        system('gulp<inp-gulp>out')
+        if ncpu==1:
+           system('gulp<inp-gulp>out')
+        else:
+           system('mpirun -n {:d} gulp<inp-gulp>out'.format(ncpu))
 
         (e_,eb_,el_,eo_,eu_,ea_,ep_,
          etc_,et_,ef_,ev_,ehb_,ecl_,esl_)= get_reax_energy(fo='out')
