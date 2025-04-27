@@ -1387,7 +1387,7 @@ class AtomDance(object):
                                           self.zmat_index[i][1],self.zmat_index[i][2]),
                   ' %7.4f,%8.4f,%9.4f ],' %(zmatrix[i][0],zmatrix[i][1],zmatrix[i][2]),
                   file=f)
-            print('{:4d} '.format(iatom),end=' ',file=f_ind)
+            print('{:d} '.format(iatom),end=' ',file=f_ind)
       f.close()
       f_ind.close()
 
