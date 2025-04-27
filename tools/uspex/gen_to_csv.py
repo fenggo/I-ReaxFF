@@ -20,9 +20,10 @@ for gen in poscars:
 
 (e,ebond_,eunder_,eover_,elone_,eang_,etcon_,epen_,
     etor_,efcon_,ev,ehb,ec) = deb_gulp_energy(images, ffield='reaxff_nn')
+n_images = len(images)
 
 f = open('train.csv','w')
-print(',material_id,energy,density,hydrogen_bond_energy,cif,volume')
+print(',material_id,energy,density,hydrogen_bond_energy,cif,volume',file=f)
 
 for i,atoms in enumerate(images):
     gen_ = poscars[i].split('.')[0]
@@ -32,14 +33,16 @@ for i,atoms in enumerate(images):
     masses = np.sum(atoms.get_masses())
     volume = atoms.get_volume()
     density = masses/volume/0.602214129
-    # if density_>density:
+    print('loading structures {:d}/{:d} ...\r'.format(i,n_images),end='\r')
     structure = AseAtomsAdaptor.get_structure(atoms)
     structure.to(filename="{:s}.cif".format(gen_))
-
-    print('{:d}, {:s}, {:f}, {:f}, {:f}\"#'.format(i,gen_,
-                       e[i],density,ehb[i]),end=' ',file=f)
-    with open("{:s}.cif".format(gen_),'w') as fcif:
-         for line in fcif:
-             print(line.strip(),file=f)
-    print('\",{:f}'.format(volume))
     
+    
+    print('{:d}, {:s}, {:f}, {:f}, {:f}, \"'.format(i,gen_,
+                       e[i],density,ehb[i]),end=' ',file=f)
+    with open("{:s}.cif".format(gen_),'r') as fc:
+         for line in fc.readlines():
+             print(line.strip(),file=f)
+    print('\",{:f}'.format(volume),file=f)
+
+f.close()
