@@ -1366,25 +1366,30 @@ class AtomDance(object):
           atom_id[iatom] = i
       p = self.atoms.positions
 
-      with open (zfile,'w') as f:
-           if uspex:
-              print('MOL_{:s}'.format(self.label),file=f)
-              print('Number of atoms: {:d}'.format(self.natom),file=f)
-           for i,iatom in enumerate(self.zmat_id):
-               if uspex:
-                  st = atom_id[self.zmat_index[i][0]]+1 if self.zmat_index[i][0]>=0 else 0
-                  nd = atom_id[self.zmat_index[i][1]]+1 if self.zmat_index[i][1]>=0 else 0
-                  rd = atom_id[self.zmat_index[i][2]]+1 if self.zmat_index[i][2]>=0 else 0
-                  # print('{:4d} {:4d} {:4d} {:4d} {:4d} {:4d}'.format(st-1,nd-1,rd-1,
-                  #          self.zmat_index[i][0],self.zmat_index[i][1],self.zmat_index[i][2]))
-                  print('{:s} '.format(self.atom_name[iatom]),
-                        '{:10.6f} {:10.6f} {:10.6f} '.format(p[iatom][0],p[iatom][1],p[iatom][2]),
-                        '{:4d} {:4d} {:4d} {:4d}'.format(st,nd,rd,0),file=f)
-               else:
-                  print('[ \'%s\',%4d, %4d, %4d, %4d,' %(self.atom_name[iatom],iatom,self.zmat_index[i][0],
-                                                self.zmat_index[i][1],self.zmat_index[i][2]),
-                        ' %7.4f,%8.4f,%9.4f ],' %(zmatrix[i][0],zmatrix[i][1],zmatrix[i][2]),
-                        file=f)
+      # with 
+      f     = open (zfile,'w')  
+      f_ind = open ('atom_index','w')  
+      if uspex:
+         print('MOL_{:s}'.format(self.label),file=f)
+         print('Number of atoms: {:d}'.format(self.natom),file=f)
+      for i,iatom in enumerate(self.zmat_id):
+         if uspex:
+            st = atom_id[self.zmat_index[i][0]]+1 if self.zmat_index[i][0]>=0 else 0
+            nd = atom_id[self.zmat_index[i][1]]+1 if self.zmat_index[i][1]>=0 else 0
+            rd = atom_id[self.zmat_index[i][2]]+1 if self.zmat_index[i][2]>=0 else 0
+            # print('{:4d} {:4d} {:4d} {:4d} {:4d} {:4d}'.format(st-1,nd-1,rd-1,
+            #          self.zmat_index[i][0],self.zmat_index[i][1],self.zmat_index[i][2]))
+            print('{:s} '.format(self.atom_name[iatom]),
+                  '{:10.6f} {:10.6f} {:10.6f} '.format(p[iatom][0],p[iatom][1],p[iatom][2]),
+                  '{:4d} {:4d} {:4d} {:4d}'.format(st,nd,rd,0),file=f)
+         else:
+            print('[ \'%s\',%4d, %4d, %4d, %4d,' %(self.atom_name[iatom],iatom,self.zmat_index[i][0],
+                                          self.zmat_index[i][1],self.zmat_index[i][2]),
+                  ' %7.4f,%8.4f,%9.4f ],' %(zmatrix[i][0],zmatrix[i][1],zmatrix[i][2]),
+                  file=f)
+            print('{:4d} '.format(iatom),end=' ',file=f_ind)
+      f.close()
+      f_ind.close()
 
   def close(self):
       self.ir        = None
