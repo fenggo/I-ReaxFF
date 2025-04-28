@@ -165,24 +165,6 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
     zv      = None
     for i in range(len(zmat_id)):
         zvlo    = 0.0
-      #   if zmat_index[i][2]!=-1:                    # check torsion
-      #      ang = InitZmat[i][2]-zmatrix[i][2]
-      #      if ang>180.0:
-      #         ang = ang - 360.0
-      #      elif ang<-180.0:
-      #         ang = ang + 360.0
-      #      ang_ = abs(ang)
-      #      if ang_>=1.5*angmax: 
-      #         Df_ += 0.6
-      #         zv   = (i,2)
-      #         zvhi = ang
-      #         zvs.append(zv)
-      #         score.append(0.6)
-      #         zvlo_.append(zvlo)
-      #         zvhi_.append(zvhi)
-      #      elif ang_>=angmax: 
-      #         Df_ += 0.3
-
         if zmat_index[i][1]!=-1:                    # check angle
            ang  = InitZmat[i][1]-zmatrix[i][1]
            ang_ = abs(ang)
@@ -194,14 +176,6 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
               score.append(0.8)
               zvlo_.append(zvlo)
               zvhi_.append(zvhi)
-         #   elif ang_>=angmax: 
-         #      Df_ += 0.5
-         #      zv   = (i,1)
-         #      zvhi = ang
-         #      zvs.append(zv)
-         #      score.append(0.5)
-         #      zvlo_.append(zvlo)
-         #      zvhi_.append(zvhi)
 
         if zmat_index[i][0]!=-1: 
            r_   = zmatrix[i][0]/InitZmat[i][0]
@@ -213,15 +187,7 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
               score.append(1.0)
               zvlo_.append(zvlo)
               zvhi_.append(zvhi)
-         #   elif r_<=rmin or r_>=rmax:
-         #      Df_ += 0.64
-         #      zv   = (i,0)
-         #      zvs.append(zv)
-         #      score.append(0.64)
-         #      zvlo_.append(zvlo)
-         #      zvhi_.append(zvhi)
-         #   elif r_<=1.1*rmin or r_>=0.9*rmax: 
-         #      Df_ += 0.35
+
     if len(score)>=1:
        m = np.argmax(score)
        zv,zvlo,zvhi = zvs[m],zvlo_[m],zvhi_[m] 
@@ -259,10 +225,13 @@ class AtomDance(object):
          self.freeatoms = [i for i in range(self.natom)]
       else: 
          self.freeatoms = freeatoms
-      self.zmat_index= None
-      self.InitZmat  = None
-     
-      label_dic      = {}
+
+      self.zmat_index   = None
+      self.InitZmat     = None
+      self.crystal_zid  =  []
+      self.crystal_zind =  []
+      label_dic         = {}
+
       for sp in self.atom_name:
           if sp in label_dic:
              label_dic[sp] += 1
@@ -299,7 +268,7 @@ class AtomDance(object):
                  self.rcut[i][j] = rc 
 
       self.InitZmat = np.array(self.get_zmatrix(atoms))
-      self.zmatrix  = None
+      self.zmatrix  = self.InitZmat
       # self.write_zmat(self.InitZmat)
 
   def get_zmatrix(self,atoms):
@@ -324,6 +293,58 @@ class AtomDance(object):
                                          self.zmat_index[i][1],self.zmat_index[i][2],
                                          atoms.positions)
              zmatrix.append([r,ang,tor])
+      return zmatrix
+
+  def get_crystal_zmatrix(self,atoms):
+      ''' Represent a crystal structure with Z-matrix '''
+      cell = atoms.get_cell()
+      positions = atoms.get_positions()
+      positions = positions - positions[self.zmat_id[0]] # translation invariance
+      x = np.vstack([positions,cell])   
+
+      if not self.crystal_zind:
+         for i_,i in enumerate(self.zmat_id):
+            if i_==1 :
+               self.crystal_zid.append(self.natom)
+               self.crystal_zid.append(self.natom+1)
+               self.crystal_zid.append(self.natom+2)
+               self.crystal_zid.append(i)
+            else:
+               self.crystal_zid.append(i)
+
+         for i,z in enumerate(self.zmat_index):
+            if i==0:
+               self.crystal_zind.append(z)
+            elif i==1:
+               self.crystal_zind.append([self.crystal_zid[0],-1,-1])
+               self.crystal_zind.append([self.crystal_zid[0],self.natom,-1])
+               self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
+               self.crystal_zind.append([z[0],self.natom,self.natom+1])
+            elif z[0]==-1 and z[1]==-1 and z[2]==-1:
+               self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
+            elif z[1]==-1 and z[2]==-1:
+               self.crystal_zind.append([z[0],self.natom,self.natom+1])
+            elif z[2]==-1:
+               self.crystal_zind.append([z[0],z[1],self.natom])
+            else:
+               self.crystal_zind.append(z)
+      # print(self.crystal_zind)
+      zmatrix = []
+      for i,iatom in enumerate(self.crystal_zid):
+          if self.crystal_zind[i][0]==-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
+             zmatrix.append([0.0,0.0,0.0])
+          elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
+             v = x[iatom] - x[self.crystal_zind[i][0]]
+             r = np.sqrt(np.sum(np.square(v)))
+             zmatrix.append([r,0.0,0.0])
+          elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]!=-1 and self.crystal_zind[i][2]==-1:
+             r,ang = get_zmat_angle(iatom,self.crystal_zind[i][0],self.crystal_zind[i][1],x)
+             zmatrix.append([r,ang,0.0])
+          else:
+             r,ang,tor = get_zmat_variable(iatom,self.crystal_zind[i][0],
+                                           self.crystal_zind[i][1],self.crystal_zind[i][2],x)
+             zmatrix.append([r,ang,tor])
+      self.crystal_zmatrix = zmatrix
       return zmatrix
 
   def get_zmat_index(self,atoms):
@@ -1387,7 +1408,7 @@ class AtomDance(object):
                                           self.zmat_index[i][1],self.zmat_index[i][2]),
                   ' %7.4f,%8.4f,%9.4f ],' %(zmatrix[i][0],zmatrix[i][1],zmatrix[i][2]),
                   file=f)
-            print('{:d} '.format(iatom),end=' ',file=f_ind)
+            print('{:4d} '.format(iatom),end=' ',file=f_ind)
       f.close()
       f_ind.close()
 
