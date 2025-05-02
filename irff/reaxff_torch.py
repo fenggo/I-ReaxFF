@@ -50,9 +50,10 @@ def taper(r,rmin=0.001,rmax=0.002):
     return r22+r3
     
 def fvr(x):
-    xi  = x.unsqueeze(1)
-    xj  = x.unsqueeze(2) 
-    vr  = xj - xi
+    # xi  = x.unsqueeze(1)
+    # xj  = x.unsqueeze(2) 
+    # vr  = xj - xi
+    vr = torch.cdist(x, x, p=2)
     return vr
 
 def fr(vr):
