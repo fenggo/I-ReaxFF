@@ -4,7 +4,7 @@ from .molecule import molecules
 from ase.io.trajectory import TrajectoryWriter,Trajectory
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.data import atomic_numbers
-#from ase.visualize import view
+from ase import Atoms
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -325,7 +325,7 @@ class AtomDance(object):
             elif z[1]==-1 and z[2]==-1:
                self.crystal_zind.append([z[0],self.natom,self.natom+1])
             elif z[2]==-1:
-               self.crystal_zind.append([z[0],z[1],self.natom])
+               self.crystal_zind.append([z[0],z[1],self.natom+1])
             else:
                self.crystal_zind.append(z)
       # print(self.crystal_zind)
@@ -346,7 +346,87 @@ class AtomDance(object):
              zmatrix.append([r,ang,tor])
       self.crystal_zmatrix = zmatrix
       return zmatrix
+  
+  def zmat_to_crystal(self,zmat):
+      ''' Transform the crystal z-matrix to crystal structure '''
+      x    = np.zeros((self.natom+3,3))
+      pos  = np.zeros((self.natom,3))
+      cell = np.zeros((3,3))
+  
+      for i in range(len(self.crystal_zid)):
+          atomi = self.crystal_zid[i]
+          atomj = self.crystal_zind[i][0]
+          atomk = self.crystal_zind[i][1]
+          atoml = self.crystal_zind[i][2]
+          # print(zmat[i])
+          r     = zmat[i][0]
+          ang   = zmat[i][1]
+          tor   = zmat[i][2]
+          if self.crystal_zind[i][0]==-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
+             continue
+          elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
+             x[atomi][0] = r
+          elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]!=-1 and self.crystal_zind[i][2]==-1:
+             x[atomi][0] = r*np.cos(ang)# self.rotate_atom_position(x,atomi,atomj,atomk,atoml,r=r,ang=ang)
+             x[atomi][1] = r*np.sin(ang)
+          else:
+             x[atomi] = self.rotate_atom_position(x,atomi,atomj,atomk,atoml,r=r,ang=ang,tor=tor)
+      # print(x)
+      pos    = x[:self.natom]
+      cell   = x[self.natom:self.natom+3]
+      atoms  = Atoms(self.atom_name,pos,cell=cell,pbc=[True,True,True])
+      return atoms
+  
+  def rotate_atom_position(self,positions,i,j,k,l,r=None,ang=None,tor=None): 
+      vij = positions[i] - positions[j] 
+      vkj = positions[k] - positions[j]
+      rkj = np.sqrt(np.sum(np.square(vkj)))
+      rij = np.sqrt(np.sum(np.square(vij)))
+      # print(i,j,k,l)
+      # print(r,ang,tor)
+      ux  = vkj/rkj
+      # print(ux)
+      if tor is None or tor == 0.0:
+         uij = vij/rij
+         rk  = np.dot(uij,ux)
+         #print(rk)
+         vy  = uij - rk*ux
+         ry  = np.sqrt(np.sum(np.square(vy)))
+         if ry>0.00000001:  # paralell
+            uy = vy/ry
+         else:
+            uy = np.array([0.0,0.0,1.0])
+         #print(uy)
+      else:
+         vkl = positions[k] - positions[l] 
+         rkl = np.sqrt(np.sum(np.square(vkl)))
+         ukl = vkl/rkl
+         rk  = np.dot(ukl,ux)
+         vy  = ukl - rk*ux
+         ry  = np.sqrt(np.sum(np.square(vy)))
+         if ry>0.00000001:
+            uy  = vy/ry 
+         else:
+            uy = np.array([0.0,0.0,1.0])
 
+      a   = ang*3.141593/180.0
+      ox  = r*np.cos(a)*ux
+      ro  = r*np.sin(a)
+      oy  = ro*uy
+      p   = ox + oy
+      if tor is None :
+         # atoms.positions[i] = atoms.positions[j] + p
+         x_ = positions[j] + p
+      else:
+         uz  = np.cross(ux,uy)
+         o_  = positions[j] + ox
+         a   = tor*3.141593/180.0
+         p   = ro*np.cos(a)*uy + ro*np.sin(a)*uz
+         # atoms.positions[i] = o_ + p
+         x_ = o_ + p
+      # print(x_)
+      return x_
+  
   def get_zmat_index(self,atoms):
       self.zmat_index = []
       self.zmat_id    = []
@@ -463,22 +543,19 @@ class AtomDance(object):
          else:
             uy = np.array([0.0,0.0,1.0])
 
-      if ry>0.00000001 and abs(ang - 180.0)>0.00000001:
-         a   = ang*3.141593/180.0
-         ox  = r*np.cos(a)*ux
-         ro  = r*np.sin(a)
-         oy  = ro*uy
-         p   = ox + oy
+      a   = ang*3.141593/180.0
+      ox  = r*np.cos(a)*ux
+      ro  = r*np.sin(a)
+      oy  = ro*uy
+      p   = ox + oy
+      if tor is None :
          atoms.positions[i] = atoms.positions[j] + p
-
-      if not tor is None :
-         if abs(tor) >0.00000001 and ry>0.00000001:
-            vij = p
-            uz  = np.cross(ux,uy)
-            o_  = atoms.positions[j] + ox
-            a   = tor*3.141593/180.0
-            p   = ro*np.cos(a)*uy + ro*np.sin(a)*uz
-            atoms.positions[i] = o_ + p
+      else:
+         uz  = np.cross(ux,uy)
+         o_  = atoms.positions[j] + ox
+         a   = tor*3.141593/180.0
+         p   = ro*np.cos(a)*uy + ro*np.sin(a)*uz
+         atoms.positions[i] = o_ + p
       return atoms
 
   def get_rotate(self):
