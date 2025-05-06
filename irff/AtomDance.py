@@ -328,7 +328,7 @@ class AtomDance(object):
                self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
                self.crystal_zind.append([z[0],self.natom,self.natom+1])
             elif z[0]==-1 and z[1]==-1 and z[2]==-1:
-               self.firstatoms.append(self.crystal_zid[0])
+               self.firstatoms.append(self.zmat_id[i])
                self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
             elif z[1]==-1 and z[2]==-1:
                self.crystal_zind.append([z[0],self.natom,self.natom+1])
