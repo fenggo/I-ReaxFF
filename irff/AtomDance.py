@@ -296,7 +296,10 @@ class AtomDance(object):
       return zmatrix
 
   def get_crystal_zmatrix(self,atoms):
-      ''' Represent a crystal structure with Z-matrix '''
+      ''' Represent a crystal structure with z-matrix 
+          return zmatrix: use radian unit as default
+      '''
+      radian = 3.1415927/180.0
       cell = atoms.get_cell()
       positions = atoms.get_positions()
       positions = positions - positions[self.zmat_id[0]] # translation invariance
@@ -339,16 +342,18 @@ class AtomDance(object):
              zmatrix.append([r,0.0,0.0])
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]!=-1 and self.crystal_zind[i][2]==-1:
              r,ang = get_zmat_angle(iatom,self.crystal_zind[i][0],self.crystal_zind[i][1],x)
-             zmatrix.append([r,ang,0.0])
+             zmatrix.append([r,ang*radian,0.0])
           else:
              r,ang,tor = get_zmat_variable(iatom,self.crystal_zind[i][0],
                                            self.crystal_zind[i][1],self.crystal_zind[i][2],x)
-             zmatrix.append([r,ang,tor])
+             zmatrix.append([r,ang*radian,tor*radian])
       self.crystal_zmatrix = zmatrix
       return zmatrix
   
   def zmat_to_crystal(self,zmat):
-      ''' Transform the crystal z-matrix to crystal structure '''
+      ''' Transform the crystal z-matrix to crystal structure 
+          zmat: use radian unit as default
+      '''
       x    = np.zeros((self.natom+3,3))
       pos  = np.zeros((self.natom,3))
       cell = np.zeros((3,3))
@@ -367,8 +372,9 @@ class AtomDance(object):
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
              x[atomi][0] = r
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]!=-1 and self.crystal_zind[i][2]==-1:
-             x[atomi][0] = r*np.cos(ang)# self.rotate_atom_position(x,atomi,atomj,atomk,atoml,r=r,ang=ang)
+             x[atomi][0] = r*np.cos(ang)  
              x[atomi][1] = r*np.sin(ang)
+             # x[atomi] = self.rotate_atom_position(x,atomi,atomj,atomk,atoml,r=r,ang=ang)
           else:
              x[atomi] = self.rotate_atom_position(x,atomi,atomj,atomk,atoml,r=r,ang=ang,tor=tor)
       # print(x)
@@ -378,12 +384,11 @@ class AtomDance(object):
       return atoms
   
   def rotate_atom_position(self,positions,i,j,k,l,r=None,ang=None,tor=None): 
+      ''' use radian unit as default '''
       vij = positions[i] - positions[j] 
       vkj = positions[k] - positions[j]
       rkj = np.sqrt(np.sum(np.square(vkj)))
       rij = np.sqrt(np.sum(np.square(vij)))
-      # print(i,j,k,l)
-      # print(r,ang,tor)
       ux  = vkj/rkj
       # print(ux)
       if tor is None or tor == 0.0:
@@ -398,6 +403,7 @@ class AtomDance(object):
             uy = np.array([0.0,0.0,1.0])
          #print(uy)
       else:
+         # print(positions[l])
          vkl = positions[k] - positions[l] 
          rkl = np.sqrt(np.sum(np.square(vkl)))
          ukl = vkl/rkl
@@ -409,7 +415,7 @@ class AtomDance(object):
          else:
             uy = np.array([0.0,0.0,1.0])
 
-      a   = ang*3.141593/180.0
+      a   = ang # *3.141593/180.0
       ox  = r*np.cos(a)*ux
       ro  = r*np.sin(a)
       oy  = ro*uy
@@ -420,7 +426,7 @@ class AtomDance(object):
       else:
          uz  = np.cross(ux,uy)
          o_  = positions[j] + ox
-         a   = tor*3.141593/180.0
+         a   = tor # *3.141593/180.0
          p   = ro*np.cos(a)*uy + ro*np.sin(a)*uz
          # atoms.positions[i] = o_ + p
          x_ = o_ + p
