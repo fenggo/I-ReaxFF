@@ -372,7 +372,7 @@ class AtomDance(object):
           atomj = self.crystal_zind[i][0]
           atomk = self.crystal_zind[i][1]
           atoml = self.crystal_zind[i][2]
-          # print(zmat[i])
+          print(atomi,atomj,atomk,atoml)
           if i==1 or i==2 or i==3 or (atomi in self.firstatoms):
              r  = zmat[i][0]*self.lattice_constant
           else:
