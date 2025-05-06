@@ -207,7 +207,8 @@ class AtomDance(object):
       self.angmax        = angmax
       self.FirstAtom     = FirstAtom
       self.lattice_constant = lattice_constant
-      self.bond_constant    = bond_constant
+      self.bond_constant = bond_constant
+      self.firstatoms    = []         
       if atoms is None:
          if poscar is None:
             atoms  = read('poscar.gen')
@@ -233,7 +234,7 @@ class AtomDance(object):
       self.InitZmat     = None
       self.crystal_zid  =  []
       self.crystal_zind =  []
-      label_dic         = {}
+      label_dic         =  {}
 
       for sp in self.atom_name:
           if sp in label_dic:
@@ -327,6 +328,7 @@ class AtomDance(object):
                self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
                self.crystal_zind.append([z[0],self.natom,self.natom+1])
             elif z[0]==-1 and z[1]==-1 and z[2]==-1:
+               self.firstatoms.append(self.crystal_zid[0])
                self.crystal_zind.append([self.crystal_zid[0],self.natom,self.natom+1])
             elif z[1]==-1 and z[2]==-1:
                self.crystal_zind.append([z[0],self.natom,self.natom+1])
@@ -349,7 +351,7 @@ class AtomDance(object):
           else:
              r,ang,tor = get_zmat_variable(iatom,self.crystal_zind[i][0],
                                            self.crystal_zind[i][1],self.crystal_zind[i][2],x)
-             if i==3:
+             if i==3 or (iatom in self.firstatoms):
                 zmatrix.append([r/self.lattice_constant,ang*radian,tor*radian])
              else:
                 zmatrix.append([r/self.bond_constant,ang*radian,tor*radian])
@@ -371,7 +373,7 @@ class AtomDance(object):
           atomk = self.crystal_zind[i][1]
           atoml = self.crystal_zind[i][2]
           # print(zmat[i])
-          if i==1 or i==2 or i==3:
+          if i==1 or i==2 or i==3 (atomi in self.firstatoms):
              r  = zmat[i][0]*self.lattice_constant
           else:
              r  = zmat[i][0]*self.bond_constant
