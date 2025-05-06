@@ -366,13 +366,13 @@ class AtomDance(object):
       x    = np.zeros((self.natom+3,3))
       pos  = np.zeros((self.natom,3))
       cell = np.zeros((3,3))
-  
+    
       for i in range(len(self.crystal_zid)):
           atomi = self.crystal_zid[i]
           atomj = self.crystal_zind[i][0]
           atomk = self.crystal_zind[i][1]
           atoml = self.crystal_zind[i][2]
-          print(atomi,atomj,atomk,atoml)
+          # print(atomi,atomj,atomk,atoml)
           if i==1 or i==2 or i==3 or (atomi in self.firstatoms):
              r  = zmat[i][0]*self.lattice_constant
           else:
