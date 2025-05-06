@@ -197,7 +197,8 @@ def check_zmat(atoms=None,rmin=0.8,rmax=1.35,angmax=25.0,
 class AtomDance(object):
   def __init__(self,atoms=None,poscar=None,nn=True,nomb=False,ffield='ffield.json',
                rotAng=40.0,angmax=30.0,freeatoms=None,FirstAtom=None,
-               rmin=0.4,rmax=1.25,rcut=None,botol=0.0):
+               rmin=0.4,rmax=1.25,lattice_constant=30.0,bond_constant=2.0,
+               rcut=None,botol=0.0):
       self.rmin          = rmin
       self.rmax          = rmax
       self.botol         = botol
@@ -205,6 +206,8 @@ class AtomDance(object):
       self.rotAng        = rotAng
       self.angmax        = angmax
       self.FirstAtom     = FirstAtom
+      self.lattice_constant = lattice_constant
+      self.bond_constant    = bond_constant
       if atoms is None:
          if poscar is None:
             atoms  = read('poscar.gen')
@@ -299,7 +302,7 @@ class AtomDance(object):
       ''' Represent a crystal structure with z-matrix 
           return zmatrix: use radian unit as default
       '''
-      radian = 3.1415927/180.0
+      radian = 1.0/180.0
       cell = atoms.get_cell()
       positions = atoms.get_positions()
       positions = positions - positions[self.zmat_id[0]] # translation invariance
@@ -339,21 +342,25 @@ class AtomDance(object):
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
              v = x[iatom] - x[self.crystal_zind[i][0]]
              r = np.sqrt(np.sum(np.square(v)))
-             zmatrix.append([r,0.0,0.0])
+             zmatrix.append([r/self.lattice_constant,0.0,0.0])
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]!=-1 and self.crystal_zind[i][2]==-1:
              r,ang = get_zmat_angle(iatom,self.crystal_zind[i][0],self.crystal_zind[i][1],x)
-             zmatrix.append([r,ang*radian,0.0])
+             zmatrix.append([r/self.lattice_constant,ang*radian,0.0])
           else:
              r,ang,tor = get_zmat_variable(iatom,self.crystal_zind[i][0],
                                            self.crystal_zind[i][1],self.crystal_zind[i][2],x)
-             zmatrix.append([r,ang*radian,tor*radian])
-      self.crystal_zmatrix = zmatrix
+             if i==3:
+                zmatrix.append([r/self.lattice_constant,ang*radian,tor*radian])
+             else:
+                zmatrix.append([r/self.bond_constant,ang*radian,tor*radian])
+      # self.crystal_zmatrix = zmatrix
       return zmatrix
   
   def zmat_to_crystal(self,zmat):
       ''' Transform the crystal z-matrix to crystal structure 
           zmat: use radian unit as default
       '''
+      pi   = 3.1415927
       x    = np.zeros((self.natom+3,3))
       pos  = np.zeros((self.natom,3))
       cell = np.zeros((3,3))
@@ -364,9 +371,12 @@ class AtomDance(object):
           atomk = self.crystal_zind[i][1]
           atoml = self.crystal_zind[i][2]
           # print(zmat[i])
-          r     = zmat[i][0]
-          ang   = zmat[i][1]
-          tor   = zmat[i][2]
+          if i==1 or i==2 or i==3:
+             r  = zmat[i][0]*self.lattice_constant
+          else:
+             r  = zmat[i][0]*self.bond_constant
+          ang   = zmat[i][1]*pi
+          tor   = zmat[i][2]*pi
           if self.crystal_zind[i][0]==-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
              continue
           elif self.crystal_zind[i][0]!=-1 and self.crystal_zind[i][1]==-1 and self.crystal_zind[i][2]==-1:
