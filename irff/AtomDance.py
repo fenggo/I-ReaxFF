@@ -303,7 +303,7 @@ class AtomDance(object):
       ''' Represent a crystal structure with z-matrix 
           return zmatrix: use radian unit as default
       '''
-      radian = 1.0/180.0
+      radian = 1.0/360.0  # 180.0
       cell = atoms.get_cell()
       positions = atoms.get_positions()
       positions = positions - positions[self.zmat_id[0]] # translation invariance
@@ -362,7 +362,7 @@ class AtomDance(object):
       ''' Transform the crystal z-matrix to crystal structure 
           zmat: use radian unit as default
       '''
-      pi   = 3.1415927
+      pi   = 3.1415927*2.0
       x    = np.zeros((self.natom+3,3))
       pos  = np.zeros((self.natom,3))
       cell = np.zeros((3,3))
