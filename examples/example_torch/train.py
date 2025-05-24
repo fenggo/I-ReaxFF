@@ -2,7 +2,7 @@
 from os import  system
 import json as js
 import torch
-from irff.reax_force import ReaxFF_nn_force
+from irff.reaxff_torch import ReaxFF_nn
 from irff.data.ColData import ColData
 from irff.reax_force_data import reax_force_data
 from irff.intCheck import init_bonds,check_tors
