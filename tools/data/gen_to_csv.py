@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from os import getcwd,chdir,listdir,system
 import numpy as np
+from tqdm import tqdm
 from ase.io.trajectory import Trajectory
 from ase.io import read
 from pymatgen.io.ase import AseAtomsAdaptor
@@ -25,7 +26,8 @@ n_images = len(images)
 f = open('train.csv','w')
 print(',material_id,energy,density,hydrogen_bond_energy,cif,volume',file=f)
 
-for i,atoms in enumerate(images):
+for i in tqdm(range(len(images))):
+    atoms = images[i]
     gen_ = poscars[i].split('.')[0]
     structure = AseAtomsAdaptor.get_structure(atoms)
     structure.to(filename="POSCAR")
@@ -33,13 +35,13 @@ for i,atoms in enumerate(images):
     masses = np.sum(atoms.get_masses())
     volume = atoms.get_volume()
     density = masses/volume/0.602214129
-    print('loading structures {:d}/{:d} ...\r'.format(i,n_images),end='\r')
+    # print('loading structures {:d}/{:d} ...\r'.format(i,n_images),end='\r')
     structure = AseAtomsAdaptor.get_structure(atoms)
     structure.to(filename="{:s}.cif".format(gen_))
     
     
-    print('{:d}, {:s}, {:f}, {:f}, {:f}, \"'.format(i,gen_,
-                       e[i],density,ehb[i]),end=' ',file=f)
+    print('{:d},{:s},{:f},{:f},{:f},\"'.format(i,gen_,
+                       e[i],density,ehb[i]),end='',file=f)
     with open("{:s}.cif".format(gen_),'r') as fc:
          for line in fc.readlines():
              print(line.strip(),file=f)
