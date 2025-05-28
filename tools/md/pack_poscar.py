@@ -6,10 +6,8 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from irff.irff_np import IRFF_NP
 # from irff.molecule import press_mol
 
-cdir    = getcwd()
 poscars = glob.glob('*.gen')
 traj    = TrajectoryWriter('md.traj',mode='w')
-poscars = []
 
 atoms = read(poscars[0])
 ir    = IRFF_NP(atoms=atoms,libfile='ffield.json',nn=True)
