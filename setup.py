@@ -42,7 +42,7 @@ setup(name="irff",
       download_url='{}/archive/{}.tar.gz'.format(url, __version__),
       license="LGPL",
       packages= find_packages(),
-      package_data={'': ['*.gen','*.pyx']},
+      package_data={'': ['*.gen','*.gen','*.pyx']},
       ext_modules=cythonize(['irff/neighbor.pyx','irff/getNeighbor.pyx'],annotate=True))
 
 
