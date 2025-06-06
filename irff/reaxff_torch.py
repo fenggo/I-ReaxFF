@@ -134,7 +134,7 @@ class ReaxFF_nn(nn.Module):
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
   def __init__(self,dataset={},data=None,
-               batch=200,
+               # batch={'others':500},
                sample='uniform',
                libfile='ffield.json',
                vdwcut=10.0,
@@ -163,7 +163,9 @@ class ReaxFF_nn(nn.Module):
       super(ReaxFF_nn, self).__init__()
       self.dataset      = dataset 
       self.data         = data
-      self.batch_size   = batch
+      # self.batch_size   = batch
+      # if 'others' not in self.batch_size:
+      #    self.batch_size['others'] = 200
       self.sample       = sample        # uniform or random
       self.opt          = opt
       self.opt_term     = opt_term
@@ -237,40 +239,40 @@ class ReaxFF_nn(nn.Module):
                     self.ehb[st]   +
                     self.eself[st] + self.zpe[st]     )
       
-  def forward(self):
-      for st in self.strcs:
-          self.get_bond_energy(st)      # get bond energy for every structure
-          self.get_atomic_energy(st)
-          self.get_threebody_energy(st)
-          self.get_fourbody_energy(st)
-          self.get_vdw_energy(st)
-          self.get_hb_energy(st)
-          self.get_total_energy(st)
-          if self.weight_force[st]!=0:
-             self.get_forces(st)
+  def forward(self,st):
+      # for st in self.strcs:
+      self.get_bond_energy(st)      # get bond energy for every structure
+      self.get_atomic_energy(st)
+      self.get_threebody_energy(st)
+      self.get_fourbody_energy(st)
+      self.get_vdw_energy(st)
+      self.get_hb_energy(st)
+      self.get_total_energy(st)
+      if self.weight_force[st]!=0:
+         self.get_forces(st)
       return self.E,self.force
 
-  def get_loss(self):
+  def get_loss(self,st):
       ''' compute loss '''
       loss = nn.MSELoss(reduction='sum')
       self.loss_e = torch.tensor(0.0,device=self.device['diff'])
       self.loss_f = torch.tensor(0.0,device=self.device['diff'])
       self.loss_f.requires_grad_(True)
       self.loss_e.requires_grad_(True)
-      for st in self.strcs:
-          weight_e = self.weight_energy['others'] if st not in self.weight_energy else self.weight_energy[st]
-          self.loss_e = self.loss_e + loss(self.E[st], self.dft_energy[st])*weight_e
-          if self.dft_forces[st] is not None:
-             weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
-             self.loss_f = self.loss_f + loss(self.force[st], self.dft_forces[st])*weight_f
-      self.loss_penalty = self.get_penalty()
+      # for st in self.strcs:
+      weight_e = self.weight_energy['others'] if st not in self.weight_energy else self.weight_energy[st]
+      self.loss_e = self.loss_e + loss(self.E[st], self.dft_energy[st])*weight_e
+      if self.dft_forces[st] is not None:
+         weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
+         self.loss_f = self.loss_f + loss(self.force[st], self.dft_forces[st])*weight_f
+      self.loss_penalty = self.get_penalty(st)
       return self.loss_e + self.loss_f + self.loss_penalty
 
   def get_forces(self,st):
       ''' compute forces with autograd method '''
       torch.autograd.set_detect_anomaly(True)
-      E = torch.sum(self.E[st])
-      grad = torch.autograd.grad(outputs=E,
+      # E = self.E[st]. # torch.sum(self.E[st])
+      grad = torch.autograd.grad(outputs=self.E[st].sum(),
                                  inputs=self.x[st],
                                  create_graph=True,
                                  only_inputs=True)
@@ -1232,6 +1234,10 @@ class ReaxFF_nn(nn.Module):
 
       for st in dataset: 
           if self.data is None:
+             # if st in self.batch_size:
+             #    batch_ = self.batch_size[st]
+             # else:
+             #    batch_ = self.batch_size['others']
              data_ = reax_force_data(structure=st,
                                  traj=self.dataset[st],
                                vdwcut=self.vdwcut,
@@ -1239,7 +1245,7 @@ class ReaxFF_nn(nn.Module):
                                 rcuta=self.rcuta,
                               hbshort=self.hbshort,
                                hblong=self.hblong,
-                                batch=self.batch_size,
+                                # batch=batch_,
                        variable_batch=True,
                                sample=self.sample,
                                     m=self.m_,
@@ -1394,7 +1400,7 @@ class ReaxFF_nn(nn.Module):
     #          for dev in self.devices:
     #              self.m[key].to(dev)  
 
-  def get_penalty(self):
+  def get_penalty(self,st):
       ''' adding some penalty term to pretain the phyical meaning '''
       log_    = torch.tensor(-9.21044036697651,device=self.device['others'])
       penalty = torch.tensor(0.0,device=self.device['others'])
@@ -1445,31 +1451,31 @@ class ReaxFF_nn(nn.Module):
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
           penalty =  penalty + self.penalty_rcut[bd]*self.lambda_bd
  
-          for st in self.strcs:
-              if self.nbd[st][bd]>0:       
-                 b_    = self.b[st][bd]
-                 bdid  = self.bdid[st][b_[0]:b_[1]]
+          # for st in self.strcs:
+          if self.nbd[st][bd]>0:       
+             b_    = self.b[st][bd]
+             bdid  = self.bdid[st][b_[0]:b_[1]]
 
-                 bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
-                 bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
+             bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
+             bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
 
-                 if self.rc_bo[bd].device!=self.rbd[st][bd].device:
-                    rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
-                 else:
-                    rc_bo = self.rc_bo[bd]
+             if self.rc_bo[bd].device!=self.rbd[st][bd].device:
+                rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
+             else:
+                rc_bo = self.rc_bo[bd]
 
-                 fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
-                 # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
-                 self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
+             fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
+             # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
+             self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
-                 fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
-                 self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
+             fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
+             self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
 
-                 fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
-                 self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
-                 
-              if self.lambda_ang>0.000001:
-                 self.penalty_ang[st] = torch.sum(self.thet2[st]*self.fijk[st])
+             fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
+             self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
+             
+          if self.lambda_ang>0.000001:
+             self.penalty_ang[st] = torch.sum(self.thet2[st]*self.fijk[st])
           
           penalty  = penalty + self.penalty_be_cut[bd]*self.lambda_bd
           penalty  = penalty + self.penalty_bop[bd]*self.lambda_bd      
