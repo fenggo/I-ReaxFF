@@ -50,10 +50,10 @@ def taper(r,rmin=0.001,rmax=0.002):
     return r22+r3
     
 def fvr(x):
-    # xi  = x.unsqueeze(1)
-    # xj  = x.unsqueeze(2) 
-    # vr  = xj - xi
-    vr = torch.cdist(x, x, p=2)
+    xi  = x.unsqueeze(1)
+    xj  = x.unsqueeze(2) 
+    vr  = xj - xi
+    # vr = torch.cdist(x, x, p=0)
     return vr
 
 def fr(vr):
@@ -217,12 +217,7 @@ class ReaxFF_nn(nn.Module):
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
-      # self.safety_value   = torch.tensor(0.00000001,device=self.device['diff'])
-      # for dev in self.devices:
-      #     self.safety_value.to(dev)
       self.set_memory()
-      # self.params = nn.Parameter(torch.rand(3, 3), requires_grad=True)
-      # self.Qe= qeq(p=self.p,atoms=self.atoms)
 
   def get_total_energy(self,st):
       ''' compute the total energy of moecule '''
@@ -1239,7 +1234,6 @@ class ReaxFF_nn(nn.Module):
                                 rcuta=self.rcuta,
                               hbshort=self.hbshort,
                                hblong=self.hblong,
-                                batch=self.batch_size,
                        variable_batch=True,
                                sample=self.sample,
                                     m=self.m_,
