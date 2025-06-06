@@ -84,11 +84,11 @@ class reax_force_data(object):
                vdwcut=10.0,rcut=None,rcuta=None,
                hbshort=6.75,hblong=7.5,
                atoms=None,
-               batch=1000,minib=100,sample='uniform',
+               batch=10000000,minib=100,sample='uniform',
                p=None,m=None,mf_layer=None,
                spec=None,bonds=None,angs=None,
                tors=None,hbs=None,      
-               variable_batch=False,
+               variable_batch=True,
                screen=False,
                nindex=[]):
       self.structure = structure
