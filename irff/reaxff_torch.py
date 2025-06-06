@@ -1542,12 +1542,11 @@ class ReaxFF_nn(nn.Module):
          rcut           = None
          rcuta          = None
          re             = None
-         # self.vdwnn     = False
          self.EnergyFunction_ = 0
          self.MessageFunction_= 0
          self.VdwFunction     = 0
-         self.p_['acut']   = 0.0001
-         self.p_['hbtol']  = 0.0001
+         self.p_['acut']      = 0.0001
+         self.p_['hbtol']     = 0.0001
       if self.mf_layer is None:
          self.mf_layer = self.mf_layer_
       if self.be_layer is None:
