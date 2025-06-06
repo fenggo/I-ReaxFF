@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from os import  system
+import time
 import json as js
 import numpy as np
 import torch
@@ -48,6 +49,7 @@ for epoch in range(n_epoch):
     los_e = []
     los_f = []
     los_p = []
+    start = time.time()
     for st in rn.strcs:
         E,F  = rn(st)             # forward
         loss = rn.get_loss(st)
@@ -58,9 +60,9 @@ for epoch in range(n_epoch):
         los_e.append(rn.loss_e.item())
         los_f.append(rn.loss_f.item())
         los_p.append(rn.loss_penalty.item())
-    
-    print( "eproch: {:5d} loss : {:10.5f} energy: {:10.5f} force: {:10.5f} pen: {:10.5f}".format(epoch,
-            np.mean(los),np.mean(los_e)/natom,np.mean(los_f)/natom,np.mean(los_p)))
+    use_time = time.time() - start
+    print( "eproch: {:5d} loss : {:10.5f} energy: {:7.5f} force: {:7.5f} pen: {:10.5f} time: {:6.3f}".format(epoch,
+            np.mean(los),np.mean(los_e)/natom,np.mean(los_f)/natom,np.mean(los_p),use_time))
 
     if epoch%100==0:
        rn.save_ffield('ffield.json')
