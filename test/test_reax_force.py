@@ -51,12 +51,13 @@ print('\n---- reaxff_nn_torce ----\n')
 
 print('\n evdw \n',ir1.evdw[s])
 print('\n ehb \n',ir1.ehb[s])  
-print(ir1.Evdw[s].shape)
+# print(ir1.Evdw[s].shape)
 bo0=ir.bo0[s].detach().numpy()
+print(bo0.shape,bo.shape)
 for i in range(ir1.natom[s]-1):
     for j in range(i+1,ir1.natom[s]):
-        if bo[0][i][j] >= 0.00001 or bo0[i][j][0] >= 0.00001:
-           print(i,j,bo0[i][j][0],bo[i][j])
+        if bo[i][j][0] >= 0.00001 or bo0[0][i][j] >= 0.00001:
+           print(i,j,bo0[0][i][j],bo[i][j][0])
 
 print('\n---- irff ----\n')
 images = Trajectory('md.traj')
