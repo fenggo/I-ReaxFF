@@ -1287,7 +1287,7 @@ class ReaxFF_nn(nn.Module):
                 if st_ in self.weight_force:
                    self.weight_force[st] = self.weight_force[st_]
                 else:
-                   self.weight_force[st] = 1
+                   self.weight_force[st] = 0
           else:
              print('-  data status of %s:' %st,data_.status)
       self.nstrc  = len(strucs)
