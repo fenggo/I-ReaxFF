@@ -270,7 +270,7 @@ class ReaxFF_nn(nn.Module):
 
   def get_forces(self,st):
       ''' compute forces with autograd method '''
-      torch.autograd.set_detect_anomaly(True)
+      # torch.autograd.set_detect_anomaly(True)
       # E = self.E[st]. # torch.sum(self.E[st])
       grad = torch.autograd.grad(outputs=self.E[st].sum(),
                                  inputs=self.x[st],
@@ -327,25 +327,31 @@ class ReaxFF_nn(nn.Module):
       self.bop_si[st] = torch.zeros_like(self.r[st],device=self.device[st])
       self.bop_pi[st] = torch.zeros_like(self.r[st],device=self.device[st])
       self.bop_pp[st] = torch.zeros_like(self.r[st],device=self.device[st])
-      
-      self.rbd[st] = {}
+      self.rbd[st]    = {}
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
           b_   = self.b[st][bd]
           if nbd_==0:
              continue
+              
+          rr   = self.log_/self.p['bo1_'+bd] 
+          self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
+              
           self.rbd[st][bd] = r[:,b_[0]:b_[1]]
+          self.frc[bd] = torch.where(torch.logical_or(torch.greater(self.rbd[st][bd],self.rc_bo[bd]),
+                                                torch.less_equal(self.rbd[st][bd],0.001)), 0.0,1.0)
+
           bodiv1 = torch.div(self.rbd[st][bd],self.p['rosi_'+bd])
           bopow1 = torch.pow(bodiv1,self.p['bo2_'+bd])
-          eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1)) 
+          eterm1 = (1.0+self.botol)*torch.exp(torch.mul(self.p['bo1_'+bd],bopow1))*self.frc[bd] 
 
           bodiv2 = torch.div(self.rbd[st][bd],self.p['ropi_'+bd])
           bopow2 = torch.pow(bodiv2,self.p['bo4_'+bd])
-          eterm2 = torch.exp(torch.mul(self.p['bo3_'+bd],bopow2))
+          eterm2 = torch.exp(torch.mul(self.p['bo3_'+bd],bopow2))*self.frc[bd]
 
           bodiv3 = torch.div(self.rbd[st][bd],self.p['ropp_'+bd])
           bopow3 = torch.pow(bodiv3,self.p['bo6_'+bd])
-          eterm3 = torch.exp(torch.mul(self.p['bo5_'+bd],bopow3))
+          eterm3 = torch.exp(torch.mul(self.p['bo5_'+bd],bopow3))*self.frc[bd]
 
           bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
@@ -365,6 +371,51 @@ class ReaxFF_nn(nn.Module):
       self.D_pi[st]   = torch.sum(self.bop_pi[st],2)
       self.D_pp[st]   = torch.sum(self.bop_pp[st],2)
 
+  def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
+      ''' compute bond-order according the message function'''
+      flabel  = 'fm'
+      bosi = torch.zeros_like(self.r[st],device=self.device[st])
+      bopi = torch.zeros_like(self.r[st],device=self.device[st])
+      bopp = torch.zeros_like(self.r[st],device=self.device[st])
+
+      bosi_ = []
+      bopi_ = []
+      bopp_ = []
+      for bd in self.bonds:
+          nbd_ = self.nbd[st][bd]
+          if nbd_==0:
+             continue
+          b_   = self.b[st][bd]
+
+          bi   = self.bdid[st][b_[0]:b_[1],0]
+          bj   = self.bdid[st][b_[0]:b_[1],1]
+
+          h    = H[:,b_[0]:b_[1]]
+          hsi  = Hsi[:,b_[0]:b_[1]]
+          hpi  = Hpi[:,b_[0]:b_[1]]
+          hpp  = Hpp[:,b_[0]:b_[1]]
+          b    = bd.split('-')
+
+          Di   = Dbi[:,b_[0]:b_[1]] 
+          Dj   = Dbj[:,b_[0]:b_[1]]
+
+          Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
+          Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
+          F    = Fi*Fj
+
+          Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
+
+          bosi_.append(hsi*Fsi)
+          bopi_.append(hpi*Fpi)
+          bopp_.append(hpp*Fpp)
+
+          bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
+          bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
+          bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
+
+      bo   = bosi+bopi+bopp
+      return bo,bosi,bopi,bopp
+  
   def message_passing(self,st):
       self.H[st]    = [self.bop[st]]                     #
       self.Hsi[st]  = [self.bop_si[st]]                  #
@@ -425,51 +476,6 @@ class ReaxFF_nn(nn.Module):
 
       self.fbot[st]   = taper(self.bo0[st],rmin=self.p['acut'],rmax=2.0*self.p['acut']) 
       self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
-
-  def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
-      ''' compute bond-order according the message function'''
-      flabel  = 'fm'
-      bosi = torch.zeros_like(self.r[st],device=self.device[st])
-      bopi = torch.zeros_like(self.r[st],device=self.device[st])
-      bopp = torch.zeros_like(self.r[st],device=self.device[st])
-
-      bosi_ = []
-      bopi_ = []
-      bopp_ = []
-      for bd in self.bonds:
-          nbd_ = self.nbd[st][bd]
-          if nbd_==0:
-             continue
-          b_   = self.b[st][bd]
-
-          bi   = self.bdid[st][b_[0]:b_[1],0]
-          bj   = self.bdid[st][b_[0]:b_[1],1]
-
-          Di   = Dbi[:,b_[0]:b_[1]]
-          Dj   = Dbj[:,b_[0]:b_[1]]
-
-          h    = H[:,b_[0]:b_[1]]
-          hsi  = Hsi[:,b_[0]:b_[1]]
-          hpi  = Hpi[:,b_[0]:b_[1]]
-          hpp  = Hpp[:,b_[0]:b_[1]]
-          b    = bd.split('-')
- 
-          Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
-          F    = Fi*Fj
-
-          Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
-
-          bosi_.append(hsi*Fsi)
-          bopi_.append(hpi*Fpi)
-          bopp_.append(hpp*Fpp)
-
-          bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
-          bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
-          bopp[:,bi,bj] = bopp[:,bj,bi] = hpp*Fpp
-
-      bo   = bosi+bopi+bopp
-      return bo,bosi,bopi,bopp
   
   def get_atomic_energy(self,st):
       ''' compute atomic energy of structure (st): elone, eover,eunder'''
@@ -943,14 +949,14 @@ class ReaxFF_nn(nn.Module):
          self.Ehb[st] = torch.squeeze(torch.cat(Ehb,dim=1),2)
          self.ehb[st] = torch.sum(self.Ehb[st],1)
 
-#   def get_rcbo(self):
-#       ''' get cut-offs for individual bond '''
-#       self.rc_bo = {}
-#       # botol = self.p['cutoff']*0.01
-#       for bd in self.bonds:
-#           b    = bd.split('-')
-#           #ofd = bd if b[0]!=b[1] else b[0]
-#           log_ = torch.log((self.botol/(1.0+self.botol)))
+  def get_rcbo(self):
+      self.rc_bo = {}
+      for bd in self.bonds:
+          b= bd.split('-')
+          ofd=bd if b[0]!=b[1] else '{:s}-{:s}'.format(b[0],b[0])
+          log_ = np.log((self.botol/(1.0 + self.botol)))
+          rr = log_/self.p['bo1_'+bd] 
+          self.rc_bo[bd]=self.p['rosi_'+ofd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
@@ -1044,6 +1050,7 @@ class ReaxFF_nn(nn.Module):
                 self.opt.append(key)
 
       self.botol        = 0.01*self.p_['cutoff'] 
+      self.log_         = torch.tensor(-9.21044036697651,device=self.device['others'])
       self.hbtol        = self.p_['hbtol'] # torch.tensor(self.p_['hbtol'],device=self.device['diff']) 
       self.check_offd()
       # self.check_hb()
@@ -1402,7 +1409,6 @@ class ReaxFF_nn(nn.Module):
 
   def get_penalty(self,st):
       ''' adding some penalty term to pretain the phyical meaning '''
-      log_    = torch.tensor(-9.21044036697651,device=self.device['others'])
       penalty = torch.tensor(0.0,device=self.device['others'])
       wb_p    = []
       # if self.regularize_be:
@@ -1426,26 +1432,25 @@ class ReaxFF_nn(nn.Module):
       self.penalty_ang     = {}
       self.penalty_w       = torch.tensor(0.0,device=self.device['others'])
       self.penalty_b       = torch.tensor(0.0,device=self.device['others'])
-      self.rc_bo           = {}
+      # self.rc_bo         = {}
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
           self.penalty_bop[bd]     = 0.0
           self.penalty_be_cut[bd]  = 0.0
           self.penalty_bo_rcut[bd] = 0.0
           #self.penalty_bo[bd]     = 0.0
-          
-          rr   = log_/self.p['bo1_'+bd] 
+          rr   = self.log_/self.p['bo1_'+bd] 
           self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
-
+          
           if self.fixrcbo:
              rcut_si = torch.square(self.rc_bo[bd]-self.rcut[bd])
           else:
              rcut_si = torch.relu(self.rc_bo[bd]-self.rcut[bd])
 
-          rc_bopi = self.p['ropi_'+bd]*torch.pow(log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
+          rc_bopi = self.p['ropi_'+bd]*torch.pow(self.log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
           rcut_pi = torch.relu(rc_bopi-self.rcut[bd])
 
-          rc_bopp = self.p['ropp_'+bd]*torch.pow(log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
+          rc_bopp = self.p['ropp_'+bd]*torch.pow(self.log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
           rcut_pp = torch.relu(rc_bopp-self.rcut[bd])
 
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
@@ -1542,11 +1547,12 @@ class ReaxFF_nn(nn.Module):
          rcut           = None
          rcuta          = None
          re             = None
+         # self.vdwnn     = False
          self.EnergyFunction_ = 0
          self.MessageFunction_= 0
          self.VdwFunction     = 0
-         self.p_['acut']      = 0.0001
-         self.p_['hbtol']     = 0.0001
+         self.p_['acut']   = 0.0001
+         self.p_['hbtol']  = 0.0001
       if self.mf_layer is None:
          self.mf_layer = self.mf_layer_
       if self.be_layer is None:
@@ -1560,6 +1566,7 @@ class ReaxFF_nn(nn.Module):
   
   def set_memory(self):
       self.r,self.vr,self.rbd      = {},{},{}
+      self.frc,self.rc_bo          = {},{}
       self.E                       = {}
       self.force                   = {}
       self.esi,self.ebd,self.ebond = {},{},{}
