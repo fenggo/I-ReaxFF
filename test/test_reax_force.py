@@ -48,10 +48,15 @@ for s in ir1.bop:
 
 
 print('\n---- reaxff_nn_torce ----\n')
-for s in ir1.bop:
-    print('\n evdw \n',ir1.evdw[s])
-    print('\n ehb \n',ir1.ehb[s])  
-    print(ir1.Evdw[s].shape)
+
+print('\n evdw \n',ir1.evdw[s])
+print('\n ehb \n',ir1.ehb[s])  
+print(ir1.Evdw[s].shape)
+bo0=ir.bo0[s].detach().numpy()
+for i in range(ir1.natom[s]-1):
+    for j in range(i+1,ir1.natom[s]):
+        if bo[i][j] >= 0.00001 or bo0[i][j] >= 0.00001:
+            print(i,j,bo0[i][j],bo[i][j])
 
 print('\n---- irff ----\n')
 images = Trajectory('md.traj')
@@ -79,10 +84,10 @@ for i,img in enumerate(images):
     # print('\n IR-dpi \n',ir2.Dpil)
  
 # print(ir.force)
-print('\n----  forces  ----\n')
-ir_.calculate(atoms=images[0])
-for i in range(ir_.natom):
-    print(f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',forces[i])
+# print('\n----  forces  ----\n')
+# ir_.calculate(atoms=images[0])
+# for i in range(ir_.natom):
+#     print(f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',forces[i])
 
 # get_gulp_forces(images)
 # print('\n lammps: \n')
