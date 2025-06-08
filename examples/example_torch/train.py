@@ -45,26 +45,27 @@ for st in rn.strcs:
 n_epoch = 101
 
 for epoch in range(n_epoch):
+# while True:
     los   = []
     los_e = []
     los_f = []
     los_p = []
     start = time.time()
+    optimizer.zero_grad()
     for st in rn.strcs:
         E,F  = rn(st)             # forward
         loss = rn.get_loss(st)
-        optimizer.zero_grad()
         loss.backward(retain_graph=False)
-        optimizer.step()        # update parameters 
         los.append(loss.item())
-        los_e.append(rn.loss_e.item())
-        los_f.append(rn.loss_f.item())
+        los_e.append(rn.loss_e.item()/rn.natom[st])
+        los_f.append(rn.loss_f.item()/rn.natom[st])
         los_p.append(rn.loss_penalty.item())
+    optimizer.step()        # update parameters 
     use_time = time.time() - start
     print( "eproch: {:5d} loss : {:10.5f} energy: {:7.5f} force: {:7.5f} pen: {:10.5f} time: {:6.3f}".format(epoch,
-            np.mean(los),np.mean(los_e)/natom,np.mean(los_f)/natom,np.mean(los_p),use_time))
+            np.mean(los),np.mean(los_e),np.mean(los_f),np.mean(los_p),use_time))
 
     if epoch%100==0:
-       rn.save_ffield('ffield.json')
+       rn.save_ffield('ffield_{:d}.json'.format(epoch))
 
 
