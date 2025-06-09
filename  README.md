@@ -7,7 +7,7 @@
 * ffield.json: the parameter file from machine learning
 * reaxff_nn.lib  the parameter file converted from ffield.json for usage with GULP
 
-## Requirement
+## Installation
  the following package need to be installed
 1. TensorFlow, pip install tensorflow --user or conda install tensorflow
 2. Numpy,pip install numpy --user
@@ -21,6 +21,11 @@ pip install .
 Alternatively, this package can be install without download the package through pip
 ``` pip install --user irff ```.
 
+## usage
+
+1. generation dataset by DFT calculations
+2. prepare the parameter file 'ffield.json' 
+3. train the model
 
 ## Citation
 1. Feng Guo et al., Intelligent-ReaxFF: Evaluating the reactive force field parameters with machine learning, Computational Materials Science 172, 109393, 2020. 
