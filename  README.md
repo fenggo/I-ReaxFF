@@ -21,7 +21,7 @@ pip install .
 Alternatively, this package can be install without download the package through pip
 ``` pip install --user irff ```.
 
-## usage
+## Usage
 
 1. generating dataset by DFT calculations
 2. prepare the parameter file 'ffield.json' 
