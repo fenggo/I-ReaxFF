@@ -13,7 +13,7 @@
 2. Numpy, pip install numpy --user
 3. matplotlib, pip install matplotlib --user
 
-Install this package after downloading this package and run command in the shell ``` pip install . --user ```. 
+Install this package after downloading this package and run the command in the shell in the I-ReaxFF root directory ``` pip install . --user ```. 
 or using a command with editable mode: 
 ```shell
 pip install. -e
