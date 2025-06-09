@@ -16,7 +16,7 @@
 Install this package after downloading this package and run command in the shell ``` pip install . --user ```. 
 or using a command with editable mode: 
 ```shell
-pip install.
+pip install. -e
 ```
 Alternatively, this package can be installed without downloading the package through pip
 ``` pip install --user irff ```.
