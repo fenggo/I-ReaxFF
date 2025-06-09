@@ -23,7 +23,7 @@ Alternatively, this package can be install without download the package through 
 
 ## usage
 
-1. generation dataset by DFT calculations
+1. generating dataset by DFT calculations
 2. prepare the parameter file 'ffield.json' 
 3. train the model
 
