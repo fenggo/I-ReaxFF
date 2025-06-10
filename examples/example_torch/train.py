@@ -33,7 +33,7 @@ rn = ReaxFF_nn(dataset=dataset,
                lambda_pi=0.0,
                lambda_reg=0.001,
                lambda_ang=0.0,
-               device={'cf21-1':'cpu:0','others':'cuda'})
+               device={'ch4w2-0':'cpu:0','others':'cpu:0'})
 optimizer = torch.optim.Adam(rn.parameters(), lr=0.0001 )
 # rn.cuda()
 # rn.compile()
