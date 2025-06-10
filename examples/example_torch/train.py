@@ -45,7 +45,6 @@ for st in rn.strcs:
 n_epoch = 101
 
 for epoch in range(n_epoch):
-# while True:
     los   = []
     los_e = []
     los_f = []
@@ -65,7 +64,12 @@ for epoch in range(n_epoch):
     print( "eproch: {:5d} loss : {:10.5f} energy: {:7.5f} force: {:7.5f} pen: {:10.5f} time: {:6.3f}".format(epoch,
             np.mean(los),np.mean(los_e),np.mean(los_f),np.mean(los_p),use_time))
 
-    if epoch%100==0:
+    if epoch%1000==0:
        rn.save_ffield('ffield_{:d}.json'.format(epoch))
+    
+print('\n------------- Loss for Batch -------------')
+print('-  Batch  TolLoss EnergyLoss ForceLoss   -')
+for st,l,l_e,l_f,l_p in zip(rn.strcs,los,los_e,los_f,los_p):
+    print('{:10s} {:.5f} {:.5f} {:.5f}'.format(st,l,l_e,l_f))
 
 
