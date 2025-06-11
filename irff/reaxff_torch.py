@@ -1131,6 +1131,16 @@ class ReaxFF_nn(nn.Module):
       if self.nn:
          self.set_m()
 
+  def clamp(self):
+      ''' clamp parameters '''
+      for k in self.p:
+          key = k.split('_')[0]
+          unit_ = self.unit if key in self.punit else 1.0 
+          if k in self.ic.clip:
+             self.p[k].data = torch.clamp(self.p[k].data,min=self.ic.clip[k][0],max=self.ic.clip[k][1])
+          elif key in self.ic.clip:
+             self.p[k].data = torch.clamp(self.p[k].data,min=self.ic.clip[key][0],max=self.ic.clip[key][1])
+
   def init_bonds(self):
       self.bonds,self.offd,self.angs,self.torp,self.hbs = [],[],[],[],[]
       self.spec = []
