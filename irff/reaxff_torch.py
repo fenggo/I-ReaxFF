@@ -148,6 +148,7 @@ class ReaxFF_nn(nn.Module):
                opt=None,
                opt_term={'etcon':0,'efcon':0,'etor':1,
                          'elone':0,'eover':0,'eunder':0,'epen':0},
+               clip={},
                bdopt=None,mfopt=None,beopt=None,
                weight_force={'others':1.0},weight_energy={'others':1.0},
                lambda_bd=100000.0,
@@ -176,6 +177,7 @@ class ReaxFF_nn(nn.Module):
       self.cons         = ['val','vale','valang','vale','valboc','lp3','gamma',
                            'cutoff','hbtol']
       self.cons.extend(cons)
+      self.clip         = clip
       self.fixrcbo      = fixrcbo
       self.weight_force = weight_force
       self.weight_energy= weight_energy
@@ -195,6 +197,9 @@ class ReaxFF_nn(nn.Module):
       self.MessageFunction= MessageFunction
       
       self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
+      self.ic = Intelligent_Check(re=self.re,clip=clip,spec=self.spec,bonds=self.bonds,
+                                  offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
+      self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
       
