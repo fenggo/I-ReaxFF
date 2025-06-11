@@ -1033,7 +1033,7 @@ class ReaxFF_nn(nn.Module):
       self.p_hb   = ['rohb','Dehb','hb1','hb2']
       self.p_tor  = ['V1','V2','V3','tor1','cot1']
 
-      self.ic = Intelligent_Check(re=self.re,clip=clip,spec=self.spec,bonds=self.bonds,
+      self.ic = Intelligent_Check(re=self.re,clip=self.clip,spec=self.spec,bonds=self.bonds,
                                   offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
       self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
 
