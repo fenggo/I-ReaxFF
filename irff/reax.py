@@ -215,7 +215,7 @@ class ReaxFF(object):
 
       self.ic = Intelligent_Check(re=self.re,clip=clip,nanv=nanv,spec=self.spec,bonds=self.bonds,
                                   offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
-      self.p_,self.m_ = self.ic.check(self.p_,self.m_)
+      self.p_,self.m_,_ = self.ic.check(self.p_,self.m_)
       
       if not self.libfile.endswith('.json'):
          self.p_['acut']    = atol        

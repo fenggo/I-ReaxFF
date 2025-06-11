@@ -1035,7 +1035,7 @@ class ReaxFF_nn(nn.Module):
 
       self.ic = Intelligent_Check(re=self.re,clip=self.clip,spec=self.spec,bonds=self.bonds,
                                   offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
-      self.p_,self.m_ = self.ic.check(self.p_,self.m_)
+      self.p_,self.m_,cons = self.ic.check(self.p_,self.m_)
 
       if self.opt is None:
          self.opt = []
