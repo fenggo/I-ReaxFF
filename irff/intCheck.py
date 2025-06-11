@@ -54,9 +54,9 @@ def check_tors(spec,torp):
                               tors.append(tor)
     return tors
 
-def value(p,key):
+def value(p,p_,key):
     fc = open('intcheck.log','a')
-    fc.write('-  %s change to %f\n' %(key,p))
+    fc.write('-  {:s} change from {:f} to {:f}\n'.format(key,p_,p))
     fc.close()
     return p
 
@@ -113,12 +113,12 @@ class Intelligent_Check(object):
       key_  = key.split('_')[0]
 
       if key in suggestion:
-         value = suggestion[key]
+         v = suggestion[key]
       elif key_ in suggestion:
-         value = suggestion[key_]
+         v = suggestion[key_]
       else:
-         value = 0.0
-      return value
+         v = 0.0
+      return v
       
   def auto(self,p):
       kmax = None
@@ -155,31 +155,31 @@ class Intelligent_Check(object):
           k = key.split('_')[0]
           if key in self.clip: 
              if p[key]>self.clip[key][1]:
-                p[key] = value(self.clip[key][1],key)
+                p[key] = value(self.clip[key][1],p[key],key)
                 cons.append(key)
              if p[key]<self.clip[key][0]:
-                p[key] = value(self.clip[key][0],key)
+                p[key] = value(self.clip[key][0],p[key],key)
                 cons.append(key)
           elif k in self.clip: 
              if p[key]>self.clip[k][1]:
-                p[key] = value(self.clip[k][1],key)
+                p[key] = value(self.clip[k][1],p[key],key)
                 cons.append(key)
              if p[key]<self.clip[k][0]:
-                p[key] = value(self.clip[k][0],key)
+                p[key] = value(self.clip[k][0],p[key],key)
                 cons.append(key)
 
           if k in ['val1','val7']: 
              pr = key.split('_')[1]
              ang= pr.split('-')
              if  ang[1]=='H':
-                p[key] = value(0.0,key)
+                p[key] = value(0.0,p[key],key)
           if k == 'valboc': 
-             p[key] = value(p['valang_'+key.split('_')[1]],key)
+             p[key] = value(p['valang_'+key.split('_')[1]],p[key],key)
           if k in ['V1','V2','V3']: 
              pr = key.split('_')[1]
              tor= pr.split('-')
              if tor[1]=='H' or tor[2]=='H':
-                p[key] = value(0.0,key)
+                p[key] = value(0.0,p[key],key)
 
       for key in self.ptor:               ## check four-body parameters
           for tor in self.tors:
