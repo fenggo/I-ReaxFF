@@ -67,9 +67,9 @@ for epoch in range(n_epoch):
     if epoch%1000==0:
        rn.save_ffield('ffield_{:d}.json'.format(epoch))
     
-print('\n------------- Loss for Batch -------------')
-print('-  Batch  TolLoss EnergyLoss ForceLoss   -')
+print('\n------------------- Loss for Batch ------------------')
+print('- Batch   TolLoss       EnergyLoss        ForceLoss   -')
 for st,l,l_e,l_f,l_p in zip(rn.strcs,los,los_e,los_f,los_p):
-    print('{:10s} {:.5f} {:.5f} {:.5f}'.format(st,l,l_e,l_f))
+    print('{:10s} {:11.5f} {:.5f} {:.5f}'.format(st,l,l_e,l_f))
 
 
