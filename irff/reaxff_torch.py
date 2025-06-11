@@ -197,9 +197,7 @@ class ReaxFF_nn(nn.Module):
       self.MessageFunction= MessageFunction
       
       self.m_,self.rcut,self.rcuta,self.re  = self.read_ffield(libfile)
-      self.ic = Intelligent_Check(re=self.re,clip=clip,spec=self.spec,bonds=self.bonds,
-                                  offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
-      self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
+
       if self.m_ is not None:
          self.nn        = True          # whether use neural network
       
@@ -1033,6 +1031,11 @@ class ReaxFF_nn(nn.Module):
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
       self.p_hb   = ['rohb','Dehb','hb1','hb2']
       self.p_tor  = ['V1','V2','V3','tor1','cot1']
+      
+      self.ic = Intelligent_Check(re=self.re,clip=clip,spec=self.spec,bonds=self.bonds,
+                                  offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
+      self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
+
       if self.opt is None:
          self.opt = []
          for key in self.p_g:
