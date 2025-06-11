@@ -1069,9 +1069,12 @@ class ReaxFF_nn(nn.Module):
       self.p            = nn.ParameterDict()   # training parameter 
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
-          grad = True if key in self.opt else False
-          self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
-                                     requires_grad=grad)
+          if key in self.opt:
+             self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
+                                     requires_grad=True)
+          else:
+             self.p[key] = torch.tensor(self.p_[key]*unit_)
+
       # self.atol         = torch.clamp(self.p['acut'],min=self.p_['acut']*0.96)        # atol
       self.p['acut'].data = torch.clamp(self.p['acut'].data,min=self.p_['acut']*0.95,max=self.p_['acut']*1.05)
 
@@ -1079,41 +1082,51 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for sp in self.spec:
               key_ = key+'_'+sp
-              grad = True if key in self.opt or key_ in self.opt else False
-              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_), 
-                                         requires_grad=grad)
+              if key in self.opt or key_ in self.opt:
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_), 
+                                             requires_grad=True)
+              else:
+                 self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       
       for key in self.p_bond:
           unit_ = self.unit if key in self.punit else 1.0
           for bd in self.bonds:
               key_ = key+'_'+bd
-              grad = True if key in self.opt or key_ in self.opt else False
-              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
-                                                requires_grad=grad)
-      
+              if key in self.opt or key_ in self.opt:
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
+                                                requires_grad=True)
+              else:
+                 self.p[key_] = torch.tensor(self.p_[key+'_'+bd]*unit_)
+
       for key in self.p_ang:
           unit_ = self.unit if key in self.punit else 1.0
           for a in self.angs:
               key_ = key + '_' + a
-              grad = True if key in self.opt or key_ in self.opt else False
-              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
-                                          requires_grad=grad)
+              if key in self.opt or key_ in self.opt:
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=True)
+              else:
+                 self.p[key_] = torch.tensor(self.p_[key_]*unit_)
 
       for key in self.p_tor:
           unit_ = self.unit if key in self.punit else 1.0
           for t in self.tors:
               key_ = key + '_' + t
-              grad = True if key in self.opt or key_ in self.opt else False
-              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
-                                          requires_grad=grad)
+              if key in self.opt or key_ in self.opt :
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=True)
+              else:
+                 self.p[key_] = torch.tensor(self.p_[key_]*unit_)  
 
       for key in self.p_hb:
           unit_ = self.unit if key in self.punit else 1.0
           for h in self.hbs:
               key_ = key + '_' + h
-              grad = True if key in self.opt or key_ in self.opt else False
-              self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
-                                          requires_grad=grad)
+              if key in self.opt or key_ in self.opt:
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                                          requires_grad=True)
+              else:
+                 self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       # self.get_rcbo()
       if self.nn:
          self.set_m()
