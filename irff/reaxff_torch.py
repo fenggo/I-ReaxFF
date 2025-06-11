@@ -6,6 +6,7 @@ from ase.calculators.calculator import Calculator, all_changes
 from .qeq import qeq
 from .RadiusCutOff import setRcut
 from .reaxfflib import read_ffield,write_lib
+from .intCheck import Intelligent_Check
 from .reax_force_data import reax_force_data,Dataset
 from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 from .set_matrix_tensor import set_matrix
@@ -1031,7 +1032,7 @@ class ReaxFF_nn(nn.Module):
       self.p_ang  = ['theta0','val1','val2','coa1','val7','val4','pen1'] 
       self.p_hb   = ['rohb','Dehb','hb1','hb2']
       self.p_tor  = ['V1','V2','V3','tor1','cot1']
-      
+
       self.ic = Intelligent_Check(re=self.re,clip=clip,spec=self.spec,bonds=self.bonds,
                                   offd=self.offd,angs=self.angs,tors=self.torp,ptor=self.p_tor)
       self.p_,self.m_ = self.ic.check(self.p_,self.m_,resetDeadNeuron=self.resetDeadNeuron)
