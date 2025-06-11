@@ -74,22 +74,22 @@ class Intelligent_Check(object):
       '''
       self.re = re
       self.nanv=nanv
-      # punit   = ('Desi','Depi','Depp','lp2','ovun5','val1',
+      # punit    = ('Desi','Depi','Depp','lp2','ovun5','val1',
       #             'coa1','V1','V2','V3','cot1','pen1','Devdw','Dehb') 
-      unit       = 4.3364432032e-2
+      # unit     = 4.3364432032e-2
       self.clip  = {'acut':(0.0000999,0.05),'hbtol':(0.0000999,0.05),'cutoff':(0.0000999,0.012),
-                    'ovun5':(0.0,900.0*unit),'ovun1':(0.0,2.0),'gammaw':(0.001,16.0),
+                    'ovun5':(0.0,900.0),'ovun1':(0.0,2.0),'gammaw':(0.001,16.0),
                     'vdw1':(0.001,9.0),'gamma':(0.001,6.0),'tor1':(-9.001,-0.0001),
-                    'pen1':(-60.0*unit,196.0*unit),'Devdw':(0.0001*unit,1.0*unit),
-                    'Dehb':(-3.0*unit,3.0*unit),'Desi':(0.10*unit,990.0*unit),
+                    'pen1':(-60.0,196.0),'Devdw':(0.0001,1.0),
+                    'Dehb':(-3.0,3.0),'Desi':(0.10,990.0),
                     'ovun2':(-50.001,0.0),'tor3':(0.0,10.0),'val7':(0.0,10.0),
                     'tor2':(0.0,30.0),'tor4':(0.0,30.0),
-                    'coa1':(-99.0*unit,0.0),'cot1':(-99.0*unit,0.0),
-                    'V1':(-99.0*unit,199.0*unit),'V2':(-99.0*unit,199.0*unit),
-                    'V3':(-99.0*unit,199.0*unit),
+                    'coa1':(-99.0,0.0),'cot1':(-99.0,0.0),
+                    'V1':(-99.0,199.0),'V2':(-99.0,199.0),
+                    'V3':(-99.0,199.0),
                     'bo1':(-0.25,-0.005),'bo2':(-0.25,-0.005),'bo3':(-0.25,-0.005),
                     'bo2':(1.0,16.0),'bo4':(1.0,16.0),'bo6':(1.0,16.0),
-                    'alfa':(1.0,16.0),'lp1':(1.0,50.0),'lp2':(0.0,999.0*unit),
+                    'alfa':(1.0,16.0),'lp1':(1.0,50.0),'lp2':(0.0,999.0),
                     'coa2':(-10.0,30.0),'coa2':(-10.0,30.0),'rohb':(1.5,3.6),
                     'val1':(0.0,300.0),'val2':(0.0,8.0),'val3':(0.0,8.0),
                     'val5':(0.0,20.0),'val9':(0.0,6.0) }
@@ -149,7 +149,7 @@ class Intelligent_Check(object):
 
   def check(self,p,m=None,resetDeadNeuron=False):
       print('-  check parameters if reasonable ...')
-      unit = 4.3364432032e-2
+      # unit = 4.3364432032e-2
       cons = []
       for key in p:
           k = key.split('_')[0]
