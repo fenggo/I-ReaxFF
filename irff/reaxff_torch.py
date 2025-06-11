@@ -1695,3 +1695,4 @@ class ReaxFF_nn(nn.Module):
          raise RuntimeError('Error: other format is not supported yet!')
   def close(self):
       self.set_memory()
+      self.data = None
