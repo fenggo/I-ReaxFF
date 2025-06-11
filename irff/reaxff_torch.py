@@ -134,7 +134,7 @@ class ReaxFF_nn(nn.Module):
   ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
-  def __init__(self,dataset={},data=None,
+  def __init__(self,dataset={},data={},
                # batch={'others':500},
                sample='uniform',
                libfile='ffield.json',
@@ -1250,7 +1250,7 @@ class ReaxFF_nn(nn.Module):
          dataset = self.data
 
       for st in dataset: 
-          if self.data is None:
+          if st not in self.data:
              # if st in self.batch_size:
              #    batch_ = self.batch_size[st]
              # else:
@@ -1271,6 +1271,7 @@ class ReaxFF_nn(nn.Module):
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
                                screen=self.screen)
+             self.data[st] = data_
           else:
              data_ = self.data[st]
 
