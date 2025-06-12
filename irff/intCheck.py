@@ -94,7 +94,15 @@ class Intelligent_Check(object):
                     'val1':(0.0,300.0),'val2':(0.0,8.0),'val3':(0.0,8.0),
                     'val5':(0.0,20.0),'val9':(0.0,6.0) }
       if clip:
+         for key in clip:
+             k = key.split('_')
+             if len(k)>1:
+                if k[0] in ['Devdw','rvdw','alfa','rosi','ropi','ropp']:
+                   k_ = k[1].split('-')
+                   if len(k_)==1:
+                      self.clip[k[0]+'_'+k_[0]+'-'+k_[0]] = clip[key]
          self.clip.update(clip)
+
       self.spec  = spec
       self.bonds = bonds
       self.offd  = offd
