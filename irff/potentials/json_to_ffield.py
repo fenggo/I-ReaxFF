@@ -6,7 +6,8 @@ from os.path import isfile
 
 ''' run this script by:
       ./json_to_ffield.py
-    command in bash.
+    command in bash to convert ffield.json file to LAMMPS ffield 
+    and control file format.
 '''
 
 def init_bonds(p_):
