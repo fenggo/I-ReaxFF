@@ -29,7 +29,6 @@ def init_bonds(p_):
            hbs.append(k[1])
     return spec,bonds,offd,angs,torp,hbs
 
-
 def jsontoffield():
     lf = open('ffield.json','r')
     j = js.load(lf)
