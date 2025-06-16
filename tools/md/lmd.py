@@ -107,6 +107,13 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
     return atoms
 
+def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
+    thermo_fix = 'fix   1 all nve '
+    nvt(T=T,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+        free=free,dump_interval=dump_interval,
+        x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
+
 def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn', 
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=100):
     atoms = npt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,
@@ -228,6 +235,6 @@ if __name__ == '__main__':
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nvt,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nvt,nve,msst,plot,traj,w])
    argh.dispatch(parser)
 
