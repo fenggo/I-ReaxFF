@@ -4,6 +4,10 @@ import json as js
 from os import environ,system
 from os.path import isfile
 
+''' run this script by:
+      ./json_to_ffield.py
+    command in bash.
+'''
 
 def init_bonds(p_):
     spec,bonds,offd,angs,torp,hbs = [],[],[],[],[],[]
