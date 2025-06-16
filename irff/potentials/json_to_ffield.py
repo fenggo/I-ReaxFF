@@ -1,29 +1,9 @@
 #!/usr/bin/env python
 from irff.reaxfflib import read_ffield,write_ffield
-from irff.qeq import qeq
-from ase.io import read
-import argh
-import argparse
 import json as js
 from os import environ,system
-import csv
-import pandas as pd
 from os.path import isfile
 
-
-def jsontoffield():
-    lf = open('ffield.json','r')
-    j = js.load(lf)
-    p_ = j['p']
-    m_ = j['m']
-    mf_layer  = j['mf_layer']
-    be_layer  = j['be_layer']
-    lf.close()
-
-    spec,bonds,offd,angs,torp,hbs = init_bonds(p_)
-    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,
-                 m=m_,mf_layer=mf_layer,be_layer=be_layer,
-                 libfile='ffield')
 
 def init_bonds(p_):
     spec,bonds,offd,angs,torp,hbs = [],[],[],[],[],[]
@@ -48,6 +28,21 @@ def init_bonds(p_):
         elif k[0]=='rohb':
            hbs.append(k[1])
     return spec,bonds,offd,angs,torp,hbs
+
+
+def jsontoffield():
+    lf = open('ffield.json','r')
+    j = js.load(lf)
+    p_ = j['p']
+    m_ = j['m']
+    mf_layer  = j['mf_layer']
+    be_layer  = j['be_layer']
+    lf.close()
+
+    spec,bonds,offd,angs,torp,hbs = init_bonds(p_)
+    write_ffield(p_,spec,bonds,offd,angs,torp,hbs,
+                 m=m_,mf_layer=mf_layer,be_layer=be_layer,
+                 libfile='ffield')
 
 
 if __name__ == '__main__':
