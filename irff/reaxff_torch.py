@@ -1085,7 +1085,7 @@ class ReaxFF_nn(nn.Module):
               key_ = key+'_'+sp
               if key in self.opt or key_ in self.opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),requires_grad=True)
-                 self.p[key]  = self.pp[key]
+                 self.p[key_]  = self.pp[key_]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       
@@ -1096,7 +1096,7 @@ class ReaxFF_nn(nn.Module):
               if key in self.opt or key_ in self.opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
                                                 requires_grad=True)
-                 self.p[key] = self.pp[key]
+                 self.p[key_] = self.pp[key_]
               else:
                  self.p[key_] = torch.tensor(self.p_[key+'_'+bd]*unit_)
 
@@ -1107,7 +1107,7 @@ class ReaxFF_nn(nn.Module):
               if key in self.opt or key_ in self.opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
-                 self.p[key] = self.pp[key]
+                 self.p[key_] = self.pp[key_]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
 
@@ -1118,7 +1118,7 @@ class ReaxFF_nn(nn.Module):
               if key in self.opt or key_ in self.opt :
                  self.pp[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
-                 self.p[key] = self.pp[key]
+                 self.p[key_] = self.pp[key_]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)  
 
@@ -1129,7 +1129,7 @@ class ReaxFF_nn(nn.Module):
               if key in self.opt or key_ in self.opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
-                 self.p[key]  = self.pp[key]
+                 self.p[key_]  = self.pp[key_]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       # self.get_rcbo()
