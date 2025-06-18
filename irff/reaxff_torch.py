@@ -1066,11 +1066,13 @@ class ReaxFF_nn(nn.Module):
       # self.check_hb()
       self.check_tors()
       
-      self.p            = {} # nn.ParameterDict()   # training parameter 
+      self.pp           = nn.ParameterDict()   # training parameter 
+      self.p            = {}
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
           if key in self.opt:
-             self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_),requires_grad=True)
+             self.pp[key]= nn.Parameter(torch.tensor(self.p_[key]*unit_),requires_grad=True)
+             self.p[key] = self.pp[key]
           else:
              self.p[key] = torch.tensor(self.p_[key]*unit_)
 
@@ -1082,7 +1084,8 @@ class ReaxFF_nn(nn.Module):
           for sp in self.spec:
               key_ = key+'_'+sp
               if key in self.opt or key_ in self.opt:
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),requires_grad=True)
+                 self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),requires_grad=True)
+                 self.p[key]  = self.pp[key]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       
@@ -1091,8 +1094,9 @@ class ReaxFF_nn(nn.Module):
           for bd in self.bonds:
               key_ = key+'_'+bd
               if key in self.opt or key_ in self.opt:
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
+                 self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
                                                 requires_grad=True)
+                 self.p[key] = self.pp[key]
               else:
                  self.p[key_] = torch.tensor(self.p_[key+'_'+bd]*unit_)
 
@@ -1101,8 +1105,9 @@ class ReaxFF_nn(nn.Module):
           for a in self.angs:
               key_ = key + '_' + a
               if key in self.opt or key_ in self.opt:
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                 self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
+                 self.p[key] = self.pp[key]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
 
@@ -1111,8 +1116,9 @@ class ReaxFF_nn(nn.Module):
           for t in self.tors:
               key_ = key + '_' + t
               if key in self.opt or key_ in self.opt :
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                 self.pp[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
+                 self.p[key] = self.pp[key]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)  
 
@@ -1121,8 +1127,9 @@ class ReaxFF_nn(nn.Module):
           for h in self.hbs:
               key_ = key + '_' + h
               if key in self.opt or key_ in self.opt:
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
+                 self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
+                 self.p[key]  = self.pp[key]
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       # self.get_rcbo()
@@ -1131,13 +1138,13 @@ class ReaxFF_nn(nn.Module):
 
   def clamp(self):
       ''' clamp parameters '''
-      for k in self.p:
+      for k in self.pp:
           key = k.split('_')[0]
           unit_ = self.unit if key in self.punit else 1.0 
           if k in self.ic.clip:
-             self.p[k].data = torch.clamp(self.p[k].data,min=self.ic.clip[k][0]*unit_,max=self.ic.clip[k][1]*unit_)
+             self.pp[k].data = torch.clamp(self.pp[k].data,min=self.ic.clip[k][0]*unit_,max=self.ic.clip[k][1]*unit_)
           elif key in self.ic.clip:
-             self.p[k].data = torch.clamp(self.p[k].data,min=self.ic.clip[key][0]*unit_,max=self.ic.clip[key][1]*unit_)
+             self.pp[k].data = torch.clamp(self.pp[k].data,min=self.ic.clip[key][0]*unit_,max=self.ic.clip[key][1]*unit_)
 
   def init_bonds(self):
       self.bonds,self.offd,self.angs,self.torp,self.hbs = [],[],[],[],[]
