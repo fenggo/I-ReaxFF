@@ -1066,12 +1066,11 @@ class ReaxFF_nn(nn.Module):
       # self.check_hb()
       self.check_tors()
       
-      self.p            = nn.ParameterDict()   # training parameter 
+      self.p            = {} # nn.ParameterDict()   # training parameter 
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
           if key in self.opt:
-             self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_), 
-                                     requires_grad=True)
+             self.p[key] = nn.Parameter(torch.tensor(self.p_[key]*unit_),requires_grad=True)
           else:
              self.p[key] = torch.tensor(self.p_[key]*unit_)
 
@@ -1083,8 +1082,7 @@ class ReaxFF_nn(nn.Module):
           for sp in self.spec:
               key_ = key+'_'+sp
               if key in self.opt or key_ in self.opt:
-                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_), 
-                                             requires_grad=True)
+                 self.p[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),requires_grad=True)
               else:
                  self.p[key_] = torch.tensor(self.p_[key_]*unit_)
       
