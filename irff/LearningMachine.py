@@ -460,7 +460,7 @@ class LearningMachine(object):
 
           self.save_config()
 
-          e_gmd = eml_ if learn_method in [3,4,5] else 0.0
+          e_gmd = eml_ if learn_method in [3,4,5] else [0.0]
           e_gulp.append(e_gmd[0])
           diff  = abs(e_gmd[0]-e_aimd[0])
           it.append(iter_)
