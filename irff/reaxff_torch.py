@@ -1419,11 +1419,13 @@ class ReaxFF_nn(nn.Module):
              self.estruc[s] = self.estruc[s_]
           else:
              if s_ in self.MolEnergy_:
-                self.estruc[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_],device=self.device['others']),
-                                               requires_grad=True) 
+                self.pp[s_] = nn.Parameter(torch.tensor(self.MolEnergy_[s_],device=self.device['others']),
+                                               requires_grad=True)
+                self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
              else:
-                self.estruc[s_] = nn.Parameter(torch.tensor(0.0,device=self.device['others']),requires_grad=True) 
+                self.pp[s_] = nn.Parameter(torch.tensor(0.0,device=self.device['others']),requires_grad=True) 
+                self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
   
   def set_m(self):
