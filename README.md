@@ -16,7 +16,7 @@
 Install this package after downloading this package and run the command in the shell in the I-ReaxFF root directory ``` pip install . --user ```. 
 or using a command with editable mode: 
 ```shell
-pip install. -e
+pip install . -e
 ```
 Alternatively, this package can be installed without downloading the package through pip
 ``` pip install --user irff ```.
