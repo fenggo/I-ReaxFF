@@ -1,15 +1,15 @@
 #!/usr/bin/env python
+import sys
+import argparse
 import numpy as np
 import json as js
 from os import environ,system
 from ase.io import read
 from irff.reaxfflib import read_ffield,write_lib
-# from irff.irnnlib_new import write_lib
-from irff.qeq import qeq
 
 
-def ffieldtojson():
-    p,zpe,spec,bonds,offd,angs,torp,hbs= read_ffield(libfile='ffield')
+def ffieldtojson(ffield):
+    p,zpe,spec,bonds,offd,angs,torp,hbs= read_ffield(libfile=ffield)
 
     fj = open('ffield.json','w')
     # j = {'p':p,'m':[],'bo_layer':[],'zpe':[]}
@@ -34,5 +34,10 @@ def ffieldtojson():
 
 
 if __name__ == '__main__':
-   ffieldtojson()
+   help_= 'Run with commond: ./ffield_to_json.py  --f=ffield '
+   parser = argparse.ArgumentParser(description=help_)
+   parser.add_argument('--f',default='ffield',type=str, help='ffield file name')
+   args = parser.parse_args(sys.argv[1:])
+
+   ffieldtojson(args.f)
 
