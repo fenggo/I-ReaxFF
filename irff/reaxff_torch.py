@@ -1497,29 +1497,29 @@ class ReaxFF_nn(nn.Module):
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
           penalty =  penalty + self.penalty_rcut[bd]*self.lambda_bd
  
-          # for st in self.strcs:
-          if self.nbd[st][bd]>0:       
-             b_    = self.b[st][bd]
-             bdid  = self.bdid[st][b_[0]:b_[1]]
+          for st in self.strcs:
+              if self.nbd[st][bd]>0:       
+                 b_    = self.b[st][bd]
+                 bdid  = self.bdid[st][b_[0]:b_[1]]
+ 
+                 bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
+                 bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
 
-             bo0_  = self.bo0[st][:,bdid[:,0],bdid[:,1]]
-             bop_  = self.bop[st][:,bdid[:,0],bdid[:,1]]
+                 if self.rc_bo[bd].device!=self.rbd[st][bd].device:
+                    rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
+                 else:
+                    rc_bo = self.rc_bo[bd]
 
-             if self.rc_bo[bd].device!=self.rbd[st][bd].device:
-                rc_bo = self.rc_bo[bd].to(self.rbd[st][bd].device)
-             else:
-                rc_bo = self.rc_bo[bd]
+                 fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
+                 # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
+                 self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
-             fbo  = torch.where(torch.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
-             # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
-             self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
+                 fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
+                 self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
 
-             fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
-             self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
-
-             fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
-             self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
-             
+                 fesi = torch.where(torch.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
+                 self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + torch.sum(torch.relu(self.esi[st][bd]*fesi))
+                
           if self.lambda_ang>0.000001:
              self.penalty_ang[st] = torch.sum(self.thet2[st]*self.fijk[st])
           
