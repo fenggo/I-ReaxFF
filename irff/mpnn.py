@@ -1129,7 +1129,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
             if pref+'_'+bd in universal_nn:
                 m[pref+'wi_'+bd] = m[pref+'wi']
                 m[pref+'bi_'+bd] = m[pref+'bi']
-            elif pref+'wi_'+bd in m_ and reuse_m:                  # input layer
+            elif m_ is not None and pref+'wi_'+bd in m_ and reuse_m:                  # input layer
                 if nnopt and (bd in bdopt):
                     m[pref+'wi_'+bd] = tf.Variable(m_[pref+'wi_'+bd],name=pref+'wi_'+bd)
                     m[pref+'bi_'+bd] = tf.Variable(m_[pref+'bi_'+bd],name=pref+'bi_'+bd)
