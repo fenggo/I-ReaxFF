@@ -1148,7 +1148,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
                 for i in range(layer[1]):  
                     m[pref+'w_'+bd] = m[pref+'w']
                     m[pref+'b_'+bd] = m[pref+'b']
-            elif pref+'w_'+bd in m_ and reuse_m:     
+            elif m_ is not None and pref+'w_'+bd in m_ and reuse_m:     
                 if nnopt and (bd in bdopt):                            
                     for i in range(layer[1]):   
                         m[pref+'w_'+bd].append(tf.Variable(m_[pref+'w_'+bd][i],name=pref+'wh'+str(i)+'_'+bd )) 
@@ -1167,7 +1167,7 @@ def set_matrix(m_,spec,bonds,mfopt,mpopt,bdopt,messages,
             if pref+'_'+bd in universal_nn:
                 m[pref+'wo_'+bd] = m[pref+'wo']
                 m[pref+'bo_'+bd] = m[pref+'bo']
-            elif pref+'wo_'+bd in m_ and reuse_m:          # output layer
+            elif m_ is not None and pref+'wo_'+bd in m_ and reuse_m:          # output layer
                 if nnopt and (bd in bdopt):       
                     m[pref+'wo_'+bd] = tf.Variable(m_[pref+'wo_'+bd],name=pref+'wo_'+bd)
                     m[pref+'bo_'+bd] = tf.Variable(m_[pref+'bo_'+bd],name=pref+'bo_'+bd)
