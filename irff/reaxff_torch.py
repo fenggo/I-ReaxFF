@@ -1526,7 +1526,7 @@ class ReaxFF_nn(nn.Module):
                                                         torch.logical_and(torch.less_equal(dbi,diu),
                                                         torch.less_equal(dbj,dju))  ) ),
                                        1.0,0.0)   ##### r< r_e that bo > bore_
-                    self.penalty_bo[bd] += torch.sum(input_tensor=torch.relu((bo_l-bo0_)*fe)) 
+                    self.penalty_bo[bd] += torch.sum(torch.relu((bo_l-bo0_)*fe)) 
                                                                                     #     self.bo0[bd]
                     fe   = torch.where(torch.logical_and(torch.greater_equal(self.rbd[st][bd],r),
                                         torch.logical_and(torch.logical_and(torch.greater_equal(dbi,dil),
@@ -1534,7 +1534,7 @@ class ReaxFF_nn(nn.Module):
                                                        torch.logical_and(torch.less_equal(dbi,diu),
                                                             torch.less_equal(dbj,dju))  ) ),
                                                 1.0,0.0)  ##### r> r_e that bo < bore_
-                    self.penalty_bo[bd] += torch.sum(input_tensor=torch.relu((self.bo0[bd]-bo_u)*fe))
+                    self.penalty_bo[bd] += torch.sum(torch.relu((bo0_-bo_u)*fe))
              fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
              self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
 
