@@ -400,11 +400,11 @@ class ReaxFF_nn(nn.Module):
           hpp  = Hpp[:,b_[0]:b_[1]]
           b    = bd.split('-')
 
-          Di   = Dbi[:,b_[0]:b_[1]] 
-          Dj   = Dbj[:,b_[0]:b_[1]]
+          self.Dbi[st][bd]  = Dbi[:,b_[0]:b_[1]] 
+          self.Dbj[st][bd]  = Dbj[:,b_[0]:b_[1]]
 
-          Fi   = fmessage(flabel,b[0],[Di,h,Dj],self.m,layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],[Dj,h,Di],self.m,layer=self.mf_layer[1])
+          Fi   = fmessage(flabel,b[0],[self.Dbi[st][bd],h,self.Dbj[st][bd]],self.m,layer=self.mf_layer[1])
+          Fj   = fmessage(flabel,b[1],[self.Dbj[st][bd],h,self.Dbi[st][bd]],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
 
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
@@ -1479,7 +1479,7 @@ class ReaxFF_nn(nn.Module):
           self.penalty_bop[bd]     = 0.0
           self.penalty_be_cut[bd]  = 0.0
           self.penalty_bo_rcut[bd] = 0.0
-          #self.penalty_bo[bd]     = 0.0
+          self.penalty_bo[bd]      = 0.0
           rr   = self.log_/self.p['bo1_'+bd] 
           self.rc_bo[bd]=self.p['rosi_'+bd]*torch.pow(rr,1.0/self.p['bo2_'+bd])
           
@@ -1514,6 +1514,26 @@ class ReaxFF_nn(nn.Module):
              # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
              self.penalty_bop[bd]  =  self.penalty_bop[bd]  + torch.sum(bop_*fbo)                              #####  
 
+             if bd in self.bo_clip[bd]:
+                for pbo in self.bo_clip[bd]:
+                    r,dil,diu,djl,dju,bo_l,bo_u = pbo
+                    dbi = self.Dbi[st][bd] 
+                    dbj = self.Dbj[st][bd] 
+                    fe  = torch.where(torch.logical_and(torch.less_equal(self.rbd[st][bd],r),
+                                      torch.logical_and(torch.logical_and(torch.greater_equal(dbi,dil),
+                                                        torch.greater_equal(dbj,djl)), 
+                                                        torch.logical_and(torch.less_equal(dbi,diu),
+                                                        torch.less_equal(dbj,dju))  ) ),
+                                       1.0,0.0)   ##### r< r_e that bo > bore_
+                    self.penalty_bo[bd] += torch.sum(input_tensor=torch.relu((bo_l-bo0_)*fe)) 
+                                                                                    #     self.bo0[bd]
+                    fe   = torch.where(torch.logical_and(torch.greater_equal(self.rbd[st][bd],r),
+                                        torch.logical_and(torch.logical_and(torch.greater_equal(dbi,dil),
+                                                   torch.greater_equal(dbj,djl)), 
+                                                       torch.logical_and(torch.less_equal(dbi,diu),
+                                                            torch.less_equal(dbj,dju))  ) ),
+                                                1.0,0.0)  ##### r> r_e that bo < bore_
+                    self.penalty_bo[bd] += torch.sum(input_tensor=torch.relu((self.bo0[bd]-bo_u)*fe))
              fao  = torch.where(torch.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
              self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + torch.sum(bo0_*fao)
 
@@ -1619,6 +1639,12 @@ class ReaxFF_nn(nn.Module):
       self.Deltap,self.Delta = {},{}
       self.D_si,self.D_pi,self.D_pp = {},{},{}
       self.D,self.H,self.Hsi,self.Hpi,self.Hpp = {},{},{},{},{}
+
+      self.Dbi   = {}
+      self.Dbj   = {}
+      for st in self.strcs:
+          self.Dbi[st]   = {}
+          self.Dbj[st]   = {}
 
       self.Delta_pi,self.delta_pi = {},{}
       self.SO,self.Delta_ang   = {},{}
