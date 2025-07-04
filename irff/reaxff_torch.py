@@ -153,7 +153,7 @@ class ReaxFF_nn(nn.Module):
                bdopt=None,mfopt=None,beopt=None,
                weight_force={'others':1.0},weight_energy={'others':1.0},
                bo_clip={},                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
-               lambda_bd=100000.0,
+               lambda_bd=1000.0,
                lambda_pi=0.0,
                lambda_reg=0.01,
                lambda_ang=0.0,
