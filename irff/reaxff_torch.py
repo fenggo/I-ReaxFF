@@ -1521,7 +1521,7 @@ class ReaxFF_nn(nn.Module):
                     dbi = self.Dbi[st][bd] 
                     dbj = self.Dbj[st][bd] 
                     fe  = torch.where(torch.logical_and(torch.less_equal(self.rbd[st][bd],r),
-                                      torch.logical_and(torch.logical_and(torch.greater_equal(dbi,dil),
+                                        torch.logical_and(torch.logical_and(torch.greater_equal(dbi,dil),
                                                         torch.greater_equal(dbj,djl)), 
                                                         torch.logical_and(torch.less_equal(dbi,diu),
                                                         torch.less_equal(dbj,dju))  ) ),
@@ -1547,7 +1547,7 @@ class ReaxFF_nn(nn.Module):
           penalty  = penalty + self.penalty_be_cut[bd]*self.lambda_bd
           penalty  = penalty + self.penalty_bop[bd]*self.lambda_bd      
           penalty  = penalty + self.penalty_bo_rcut[bd]*self.lambda_bd
-          # penalty= penalty + self.penalty_bo[bd]*self.lambda_bd
+          penalty  = penalty + self.penalty_bo[bd]*self.lambda_bd
 
           # penalize term for regularization of the neural networs
           if self.lambda_reg>0.000001:             # regularize to avoid overfit
