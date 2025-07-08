@@ -2253,7 +2253,7 @@ class ReaxFF_nn(object):
                                                        tf.logical_and(tf.less_equal(dbi,diu),
                                                             tf.less_equal(dbj,dju))  ) ),
                                                 1.0,0.0)  ##### r> r_e that bo < bore_
-                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((self.bo0[bd]-bo_u)*fe))
+                        self.penalty_bo[bd] += tf.reduce_sum(input_tensor=tf.nn.relu((bo0_-bo_u)*fe))
                  if self.bo_clip: # reax_be:
                     bsi   = tf.gather_nd(self.bosi[mol],bdid,
                                           name='bosi_supervize_{:s}'.format(bd)) 
