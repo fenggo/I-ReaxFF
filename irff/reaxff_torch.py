@@ -1059,7 +1059,7 @@ class ReaxFF_nn(nn.Module):
                  break
       for bd in self.bonds:
           for st in self.strcs:
-              if self.nb[st][bd]>0:        
+              if self.nbd[st][bd]>0:        
                  bd_opt.add(bd)
                  break
       for bd in self.angs:
