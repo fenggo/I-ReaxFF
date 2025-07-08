@@ -216,9 +216,10 @@ class ReaxFF_nn(nn.Module):
       self.device       = {'others':torch.device(self._device['others']),
                            'diff':torch.device(self._device['diff'])}
       self.tors         = tors
-      self.set_p()
 
+      self.pp           = nn.ParameterDict()   # training parameter 
       self.get_data()
+      self.set_p()
       self.stack_tensor()
 
       self.results        = {}
@@ -1066,8 +1067,7 @@ class ReaxFF_nn(nn.Module):
       self.check_offd()
       # self.check_hb()
       self.check_tors()
-      
-      self.pp           = nn.ParameterDict()   # training parameter 
+
       self.p            = {}
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
