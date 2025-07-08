@@ -1064,12 +1064,12 @@ class ReaxFF_nn(nn.Module):
                  break
       for bd in self.angs:
           for st in self.strcs:
-              if self.nang[st][bd]>0:        
+              if self.na[st][bd]>0:        
                  ang_opt.add(bd)
                  break
       for bd in self.tors:
           for st in self.strcs:
-              if self.ntor[st][bd]>0:        
+              if self.nt[st][bd]>0:        
                  tor_opt.add(bd)
                  break
       for bd in self.hbs:
