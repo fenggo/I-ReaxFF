@@ -217,9 +217,9 @@ class ReaxFF_nn(nn.Module):
                            'diff':torch.device(self._device['diff'])}
       self.tors         = tors
 
-      self.pp           = nn.ParameterDict()   # training parameter 
+      self.pp           = nn.ParameterDict()   # training parameter
+      self.set_p() 
       self.get_data()
-      self.set_p()
       self.stack_tensor()
 
       self.results        = {}
