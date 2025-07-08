@@ -1047,11 +1047,11 @@ class ReaxFF_nn(nn.Module):
       self.check_tors()
       self.get_data()
 
-      sp_opt = set{}
-      bd_opt = set{}
-      ang_opt= set{}
-      tor_opt= set{}
-      hb_opt = set{}
+      sp_opt = set()
+      bd_opt = set()
+      ang_opt= set()
+      tor_opt= set()
+      hb_opt = set()
       for sp in self.spec:
           for st in self.strcs:
               if self.ns[st][bd]>0:        
