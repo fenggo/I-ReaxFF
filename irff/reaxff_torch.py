@@ -862,8 +862,6 @@ class ReaxFF_nn(nn.Module):
       self.Evdw[st]   = torch.tensor(0.0,device=self.device[st])
       self.Ecoul[st]  = torch.tensor(0.0,device=self.device[st])
       nc = 0
-      # gm3 = torch.zeros_like(self.r[st])
-      # print('\n cell \n',self.cell[st].shape)
       cell0,cell1,cell2 = torch.unbind(self.cell[st],axis=2)
       self.cell0[st] = torch.unsqueeze(cell0,1)
       self.cell1[st] = torch.unsqueeze(cell1,1)
@@ -889,8 +887,7 @@ class ReaxFF_nn(nn.Module):
                   gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
                   gm3  = torch.pow(torch.div(1.0,gamma),3.0)
                   r3   = torch.pow(r+0.00000001,3.0)
-                  fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),torch.full_like(r,1.0),
-                                                                                   torch.full_like(r,0.0))
+                  fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
                   if nc<13:
                      fv = torch.triu(fv_,diagonal=0)
                   else:

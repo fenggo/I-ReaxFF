@@ -1315,8 +1315,6 @@ class ReaxFF_nn(object):
 
       self.evdw[st]  = tf.reduce_sum(self.Evdw[st],axis=(0,1))
       self.ecoul[st] = tf.reduce_sum(self.Ecoul[st],axis=(0,1))
-      # print('\n evdw \n',self.evdw[st])
-      # print('\n ecoul \n',self.ecoul[st])
 
   def get_hb_energy(self,st):
       self.ehb[st]  = tf.constant(0.0)
