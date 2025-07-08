@@ -92,13 +92,14 @@ for i in range(ir_.natom):
     # print(i,f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',forces[i])
     print(i,f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',ir_.results['forces'][i])
 
-print('\n ecoul \n',ir1.ecoul[s])
+print('\n---- ecoul ----\n')
 for i in range(ir.natom[s]):
     for j in range(ir.natom[s]):
         ec_ = ir.Ecoul[s][0][i][j].detach().numpy()
         ec  = Ecoul[i][j][0]
-        if ec_>0.00 and ec >0.000:
-           print(i,j,ec,ec_)
+        if ec_>0.00 or ec >0.000:
+           if abs(ec_-ec)>0.001: 
+              print(i,j,ec,ec_)
 
 
         
