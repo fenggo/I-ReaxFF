@@ -1052,29 +1052,29 @@ class ReaxFF_nn(nn.Module):
       ang_opt= set()
       tor_opt= set()
       hb_opt = set()
-      for s in self.spec:
+      for bd in self.spec:
           for st in self.strcs:
-              if self.ns[st][s]>0:        
-                 sp_opt.add(s)
+              if self.ns[st].get(bd,0)>0:        
+                 sp_opt.add(bd)
                  break
       for bd in self.bonds:
           for st in self.strcs:
-              if self.nbd[st][bd]>0:        
+              if self.nbd[st].get(bd,0)>0:        
                  bd_opt.add(bd)
                  break
       for bd in self.angs:
           for st in self.strcs:
-              if self.na[st][bd]>0:        
+              if self.na[st].get(bd,0)>0:        
                  ang_opt.add(bd)
                  break
       for bd in self.tors:
           for st in self.strcs:
-              if self.nt[st][bd]>0:        
+              if self.nt[st].get(bd,0)>0:        
                  tor_opt.add(bd)
                  break
       for bd in self.hbs:
           for st in self.strcs:
-              if self.nhb[st][bd]>0:        
+              if self.nhb[st].get(bd,0)>0:        
                  hb_opt.add(bd)
                  break
 
