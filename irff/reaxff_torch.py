@@ -1039,6 +1039,45 @@ class ReaxFF_nn(nn.Module):
       self.p_,self.m_,cons = self.ic.check(self.p_,self.m_)
       self.cons.extend(cons)
 
+      self.botol        = 0.01*self.p_['cutoff'] 
+      self.log_         = torch.tensor(-9.21044036697651,device=self.device['others'])
+      self.hbtol        = self.p_['hbtol'] # torch.tensor(self.p_['hbtol'],device=self.device['diff']) 
+      self.check_offd()
+      # self.check_hb()
+      self.check_tors()
+      self.get_data()
+
+      sp_opt = set{}
+      bd_opt = set{}
+      ang_opt= set{}
+      tor_opt= set{}
+      hb_opt = set{}
+      for sp in self.spec:
+          for st in self.strcs:
+              if self.ns[st][bd]>0:        
+                 sp_opt.add(bd)
+                 break
+      for bd in self.bonds:
+          for st in self.strcs:
+              if self.nb[st][bd]>0:        
+                 bd_opt.add(bd)
+                 break
+      for bd in self.angs:
+          for st in self.strcs:
+              if self.nang[st][bd]>0:        
+                 ang_opt.add(bd)
+                 break
+      for bd in self.tors:
+          for st in self.strcs:
+              if self.ntor[st][bd]>0:        
+                 tor_opt.add(bd)
+                 break
+      for bd in self.hbs:
+          for st in self.strcs:
+              if self.nhb[st][bd]>0:        
+                 hb_opt.add(bd)
+                 break
+
       if self.opt is None:
          self.opt = []
          for key in self.p_g:
@@ -1060,14 +1099,6 @@ class ReaxFF_nn(nn.Module):
              if key not in self.cons:
                 self.opt.append(key)
 
-      self.botol        = 0.01*self.p_['cutoff'] 
-      self.log_         = torch.tensor(-9.21044036697651,device=self.device['others'])
-      self.hbtol        = self.p_['hbtol'] # torch.tensor(self.p_['hbtol'],device=self.device['diff']) 
-      self.check_offd()
-      # self.check_hb()
-      self.check_tors()
-      self.get_data()
-      
       self.p            = {}
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
@@ -1084,7 +1115,7 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for sp in self.spec:
               key_ = key+'_'+sp
-              if key in self.opt or key_ in self.opt:
+              if (key in self.opt or key_ in self.opt) and sp in sp_opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),requires_grad=True)
                  self.p[key_]  = self.pp[key_]
               else:
@@ -1094,7 +1125,7 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for bd in self.bonds:
               key_ = key+'_'+bd
-              if key in self.opt or key_ in self.opt:
+              if (key in self.opt or key_ in self.opt) and bd in bd_opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key+'_'+bd]*unit_), 
                                                 requires_grad=True)
                  self.p[key_] = self.pp[key_]
@@ -1105,7 +1136,7 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for a in self.angs:
               key_ = key + '_' + a
-              if key in self.opt or key_ in self.opt:
+              if (key in self.opt or key_ in self.opt) and a in ang_opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
                  self.p[key_] = self.pp[key_]
@@ -1116,7 +1147,7 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for t in self.tors:
               key_ = key + '_' + t
-              if key in self.opt or key_ in self.opt :
+              if (key in self.opt or key_ in self.opt) and t in tor_opt:
                  self.pp[key_] = nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
                  self.p[key_] = self.pp[key_]
@@ -1127,7 +1158,7 @@ class ReaxFF_nn(nn.Module):
           unit_ = self.unit if key in self.punit else 1.0
           for h in self.hbs:
               key_ = key + '_' + h
-              if key in self.opt or key_ in self.opt:
+              if (key in self.opt or key_ in self.opt) and h in hb_opt:
                  self.pp[key_]= nn.Parameter(torch.tensor(self.p_[key_]*unit_),
                                           requires_grad=True)
                  self.p[key_]  = self.pp[key_]
