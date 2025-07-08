@@ -877,15 +877,16 @@ class ReaxFF_nn(nn.Module):
               if len(self.vb_i[st][bd])==0:
                  continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
-      
+              
+      gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
+      gm3  = torch.pow(torch.div(1.0,gamma),3.0)
+
       for i in range(-1,2):
           for j in range(-1,2):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                   vr_  = self.vr[st] + cell
                   r    = torch.sqrt(torch.sum(torch.square(vr_),3)+0.00000001)
-                  gamma= torch.sqrt(torch.unsqueeze(self.P[st]['gamma'],1)*torch.unsqueeze(self.P[st]['gamma'],2))
-                  gm3  = torch.pow(torch.div(1.0,gamma),3.0)
                   r3   = torch.pow(r+0.00000001,3.0)
                   fv_  = torch.where(torch.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
                   if nc<13:
