@@ -218,8 +218,8 @@ class ReaxFF_nn(nn.Module):
       self.tors         = tors
 
       self.pp           = nn.ParameterDict()   # training parameter
-      strucs            = self.get_data()
       self.set_p() 
+      strucs            = self.get_data()
       self.generate_data(strucs)
       self.stack_tensor()
 
