@@ -2232,8 +2232,9 @@ class ReaxFF_nn(object):
                                       name='bo0_supervize_{:s}'.format(bd)) 
 
                  if bd in self.bo_clip: # reax_be:
-                    rbd     = tf.gather_nd(self.rbd[mol],bdid,
-                                          name='rbd_supervize_{:s}'.format(bd)) #+
+                    #rbd     = tf.gather_nd(self.rbd[mol],bdid,
+                    #                      name='rbd_supervize_{:s}'.format(bd)) #
+                    rbd      = self.rbd_[mol][bd]
                     for sbo in self.bo_clip[bd]:
                         r,dil,diu,djl,dju,bo_l,bo_u = sbo
                         dbi = self.Dbi[mol][bd] 
