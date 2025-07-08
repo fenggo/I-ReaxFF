@@ -64,8 +64,7 @@ images = Trajectory('md.traj')
 ir_ = IRFF(atoms=images[0],libfile='ffield.json',nn=True)
 ir2 = IRFF_NP(atoms=images[0],libfile='ffield.json',nn=True)
 
-forces = images[0].get_forces()
-
+# forces = images[0].get_forces()
 
 for i,img in enumerate(images):
     ir_.calculate(atoms=img)
@@ -85,16 +84,9 @@ for i,img in enumerate(images):
     # print('\n IR-dpi \n',ir2.Dpil)
  
 # print(ir.force)
-# print('\n----  forces  ----\n')
-# ir_.calculate(atoms=images[0])
-# for i in range(ir_.natom):
-#     print(f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',forces[i])
-
-# get_gulp_forces(images)
-# print('\n lammps: \n')
-# images = Trajectory('md.traj')
-# atoms  = images[0]
-# forces = atoms.get_forces()
-# for f in forces:
-#     print(f)
+print('\n----  forces  ----\n')
+ir_.calculate(atoms=images[0])
+for i in range(ir_.natom):
+    # print(i,f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',forces[i])
+    print(i,f[0][i],'----' ,ir.force[s][0][i].detach().numpy(),'----',ir_.results['forces'][i])
 
