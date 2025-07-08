@@ -47,7 +47,7 @@ class ReaxFF_nn(object):
                # hbtol=0.001,
                weight={'others':1.0},
                weight_force={'others':1.0},
-               bo_clip=None,                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
+               bo_clip={},                 # e.g. bo_clip={'C-C':(1.3,8.5,8.5,0.0,0.0)}
                interactive=False,
                ro_scale=0.1,
                clip_op=True,
@@ -2231,7 +2231,7 @@ class ReaxFF_nn(object):
                  bo0_  = tf.gather_nd(self.bo0[mol],bdid,
                                       name='bo0_supervize_{:s}'.format(bd)) 
 
-                 if self.bo_clip: # reax_be:
+                 if bd in self.bo_clip: # reax_be:
                     rbd     = tf.gather_nd(self.rbd[mol],bdid,
                                           name='rbd_supervize_{:s}'.format(bd)) #+
                     for sbo in self.bo_clip[bd]:
