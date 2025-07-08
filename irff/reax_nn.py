@@ -1286,14 +1286,16 @@ class ReaxFF_nn(object):
                  continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
 
+      gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
+      gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
+
       for i in range(-1,2):
           for j in range(-1,2):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                   vr_  = self.vrr[st] + cell
                   r    = tf.sqrt(tf.reduce_sum(tf.square(vr_),2)+self.safety_value)
-                  gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
-                  gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
+
                   r3   = tf.pow(r,3.0)
                   fv_  = tf.where(tf.logical_and(r>0.00001,r<=self.vdwcut),1.0,0.0)
 
