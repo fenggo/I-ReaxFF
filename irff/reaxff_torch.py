@@ -218,8 +218,9 @@ class ReaxFF_nn(nn.Module):
       self.tors         = tors
 
       self.pp           = nn.ParameterDict()   # training parameter
+      strucs            = self.get_data()
       self.set_p() 
-      self.get_data()
+      self.generate_data(strucs)
       self.stack_tensor()
 
       self.results        = {}
@@ -1329,9 +1330,8 @@ class ReaxFF_nn(nn.Module):
                 else:
                    self.weight_force[st] = 1
           else:
-             print('-  data status of %s:' %st,data_.status)
+             print('-  data status of {:s}: '.format(st),data_.status)
       self.nstrc  = len(strucs)
-      self.generate_data(strucs)
       # self.memory(molecules=strucs)
       # print('-  generating dataset ...')
       return strucs
