@@ -1286,7 +1286,7 @@ class ReaxFF_nn(object):
                  continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
 
-      gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],1)*tf.expand_dims(self.P[st]['gamma'],2))
+      gamma= tf.sqrt(tf.expand_dims(self.P[st]['gamma'],0)*tf.expand_dims(self.P[st]['gamma'],1))
       gm3  = tf.pow(tf.math.divide(1.0,gamma),3.0)
 
       for i in range(-1,2):
