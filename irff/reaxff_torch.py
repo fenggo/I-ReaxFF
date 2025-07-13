@@ -326,7 +326,7 @@ class ReaxFF_nn(nn.Module):
              pieng = torch.mul(self.p['Depi_'+bd],bopi_)
              ppeng = torch.mul(self.p['Depp_'+bd],bopp_) 
              self.esi[st][bd]  =  sieng + pieng + ppeng
-             self.ebd[st][bd]  = -self.esi[st][bd]
+             self.ebd[st][:,bi,bj] = -self.esi[st][bd]
           else:
             self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],self.m,layer=self.be_layer[1])
             self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
