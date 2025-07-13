@@ -316,11 +316,21 @@ class ReaxFF_nn(nn.Module):
           bosi_ = bosi[:,b_[0]:b_[1]]
           bopi_ = bopi[:,b_[0]:b_[1]]
           bopp_ = bopp[:,b_[0]:b_[1]]
+          if self.EnergyFunction==0:
+             FBO  = torch.where(torch.greater(bosi_,0.0),1.0,0.0)
+             FBOR = 1.0 - FBO
+             powb = torch.pow(bosi_+FBOR,self.p['be2_'+bd])
+             expb = torch.exp(torch.mul(self.p['be1_'+bd],1.0-powb))
 
-          self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],
-                    self.m,layer=self.be_layer[1])
-          self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
-
+             sieng = self.p['Desi_'+bd]*bosi_*expb*FBO 
+             pieng = torch.mul(self.p['Depi_'+bd],bopi_)
+             ppeng = torch.mul(self.p['Depp_'+bd],bopp_) 
+             self.esi[mol][bd]  =  sieng + pieng + ppeng
+             self.ebd[mol][bd]  = -self.esi[mol][bd]
+          else:
+            self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],self.m,layer=self.be_layer[1])
+            self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
+          Ebd.append(self.ebd[mol][bd])
       # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
       self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2],keepdim=False)
       # self.ebond[st]= torch.squeeze(self.ebond[st],2)
