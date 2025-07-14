@@ -1894,6 +1894,9 @@ class ReaxFF_nn(object):
       i       = 0
       zpe     = {}
       self.loss_zero = 0.0
+      
+      if not exists('ffields'):
+         mkdir('ffields')
 
       while totrain:
           if step==0:
@@ -1959,7 +1962,7 @@ class ReaxFF_nn(object):
              self.time = current
 
           if i%writelib==0 or i==step:
-             self.lib_bk = libfile+'_'+str(i)
+             self.lib_bk = 'ffields/'+libfile+'_'+str(i)
              self.write_lib(libfile=self.lib_bk,loss=loss_)
 
              if i==step:
