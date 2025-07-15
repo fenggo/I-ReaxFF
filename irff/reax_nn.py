@@ -942,7 +942,7 @@ class ReaxFF_nn(object):
       self.EUN[mol]     = -ovun5*(1.0-expeu1)*eu1*eu2                          # must positive
 
   def get_threebody_energy(self,st):
-      pbopow        = tf.negative(tf.pow(self.bo[st],8)) # original: self.BO0 
+      pbopow        = tf.negative(tf.pow(self.bo[st]+self.safety_value,8)) # original: self.BO0 
       pboexp        = tf.exp(pbopow)
       self.Pbo[st] = tf.reduce_prod(pboexp,axis=1,name=st+'_pbo') # BO Product
 
@@ -1038,14 +1038,14 @@ class ReaxFF_nn(object):
       
       cond1 = tf.logical_and(tf.less_equal(Sbo,1.0),tf.greater(Sbo,0.0))
       S1    = tf.where(cond1,Sbo,0.0)                                    #  0< sbo < 1                  
-      Sbo1  = tf.where(cond1,tf.pow(S1+0.0000001,self.p['val9']),0.0) 
+      Sbo1  = tf.where(cond1,tf.pow(S1+self.safety_value,self.p['val9']),0.0) 
 
       cond2 = tf.logical_and(tf.less(Sbo,2.0),tf.greater(Sbo,1.0))
       S2    = tf.where(cond2,Sbo,0.0)                     
       F2    = tf.where(cond2,1.0,0.0)                                    #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      Sbo12 = tf.where(cond2,2.0-tf.pow(S2,self.p['val9']),0.0)          #  1< sbo <2
+      Sbo12 = tf.where(cond2,2.0-tf.pow(S2+self.safety_value,self.p['val9']),0.0)          #  1< sbo <2
                                                                                                  #     sbo >2
       Sbo2  = tf.where(tf.greater_equal(Sbo,2.0),1.0,0.0)
 
@@ -1296,7 +1296,7 @@ class ReaxFF_nn(object):
                   vr_  = self.vrr[st] + cell
                   r    = tf.sqrt(tf.reduce_sum(tf.square(vr_),2)+self.safety_value)
 
-                  r3   = tf.pow(r,3.0)
+                  r3   = tf.pow(r+self.safety_value,3.0)
                   fv_  = tf.where(tf.logical_and(r>0.00001,r<=self.vdwcut),1.0,0.0)
 
                   if nc<13:
@@ -1341,11 +1341,11 @@ class ReaxFF_nn(object):
                       vrjk   = vrjk_ + cell 
                       
                       rjk2   = tf.reduce_sum(tf.square(vrjk),axis=1)
-                      rjk    = tf.sqrt(rjk2)
+                      rjk    = tf.sqrt(rjk2+self.safety_value)
 
                       vrik   = vrij + vrjk
                       rik2   = tf.reduce_sum(tf.square(vrik),axis=1)
-                      rik    = tf.sqrt(rik2)
+                      rik    = tf.sqrt(rik2+self.safety_value)
 
                       cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
                       hbthe  = 0.5-0.5*cos_th
