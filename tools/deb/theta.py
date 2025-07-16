@@ -6,6 +6,9 @@ from ase.io.trajectory import Trajectory
 from irff.irff_np import IRFF_NP
 import matplotlib.pyplot as plt
 
+''' print out the value about angles
+    The value of f7 and f8 must be positive, and approach to 1.
+ '''
 
 def theta(images):
     atoms = images[0]
@@ -16,15 +19,14 @@ def theta(images):
 
     for a,ang in enumerate(ir.angs):
         i_,j_,k_ = ang
-        if ir.eang[a]>0.00000001:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f}'.format(a,i_,j_,k_,
-                 ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a]))
-        elif ir.eang[a]<0.0:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f} {:8.4f} {:8.4f} {:8.4f}'.format(a,i_,j_,k_,
+        if ir.eang[a]>1000.00000001:
+           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f}  {:8.4f} '.format(a,i_,j_,k_,
+                 ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],ir.theta[a]))
+        else: # if ir.eang[a]<0.0:
+           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s} E: {:8.4f} {:8.4f} f7 {:8.4f} f8 {:8.4f} thet {:8.4f}'.format(a,i_,j_,k_,
                  ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],
-                 ir.fijk[a],ir.f_7[a],ir.f_8[a]))
+                 ir.fijk[a],ir.f_7[a],ir.f_8[a],ir.theta[a]))
             
-
     a_ = int(input('please input the id of the  angle to output(-1 to exit): '))
     i,j,k = ir.angs[a_]
     ang_ =  '{:s}-{:s}-{:s}'.format(ir.atom_name[i],ir.atom_name[j],ir.atom_name[k])
