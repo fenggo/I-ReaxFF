@@ -55,13 +55,13 @@ def theta(images,trace):
                    else:
                       print(a)
 
-        # plt.figure()     
-        # # plt.plot(theta_,Eang,alpha=0.8,linewidth=2,linestyle='-',color='b',label=r'$Eangle({:s})$'.format(ang_))
-        # plt.scatter(theta_,Eang,marker='o',color='none',edgecolors='r',s=10,label=r'$Eangle({:s})$'.format(ang_))
+            plt.figure()     
+            # plt.plot(theta_,Eang,alpha=0.8,linewidth=2,linestyle='-',color='b',label=r'$Eangle({:s})$'.format(ang_))
+            plt.scatter(theta_,Eang,marker='o',color='none',edgecolors='r',s=10,label=r'$Eangle({:s})$'.format(ang_))
 
-        # plt.legend(loc='best',edgecolor='yellowgreen')
-        # plt.show() # if show else plt.savefig('deb_bo.pdf')
-        # plt.close()
+            plt.legend(loc='best',edgecolor='yellowgreen')
+            plt.show() # if show else plt.savefig('deb_bo.pdf')
+            plt.close()
 
 
 help_ = 'run with commond: ./theta.py --t=md.traj '
