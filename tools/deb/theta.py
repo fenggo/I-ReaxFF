@@ -52,8 +52,6 @@ def theta(images,trace):
                             ir.SBO3[a],ir.expang[a],ir.eang[a])) # self.thet0-self.theta
                    theta_.append(ir.theta[a])
                    Eang.append(ir.eang[a])
-                   else:
-                      print(a)
 
             plt.figure()     
             # plt.plot(theta_,Eang,alpha=0.8,linewidth=2,linestyle='-',color='b',label=r'$Eangle({:s})$'.format(ang_))
@@ -62,7 +60,8 @@ def theta(images,trace):
             plt.legend(loc='best',edgecolor='yellowgreen')
             plt.show() # if show else plt.savefig('deb_bo.pdf')
             plt.close()
-
+        else:
+            print(a)
 
 help_ = 'run with commond: ./theta.py --t=md.traj '
 
