@@ -117,7 +117,7 @@ def get_data(dataset={'nm-0': 'nm-0.traj'}, bonds=['C-C'],
 
             for ii in range(ir.natom-1):
                 for jj in range(ii+1, ir.natom):
-                    if ir.r[ii][jj] < ir.r_cut[ii][jj] or ir.bo0[ii][jj]>0 or ir.bop[ii][jj]>0:
+                    if ir.r[ii][jj] < 1.001*ir.r_cut[ii][jj] or ir.bo0[ii][jj]>0 or ir.bop[ii][jj]>0:
                         bd = ir.atom_name[ii] + '-' + ir.atom_name[jj]
                         bdr = ir.atom_name[jj] + '-' + ir.atom_name[ii]
 
