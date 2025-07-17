@@ -2255,7 +2255,7 @@ def clip_parameters(p_,v,clip):
         elif key == 'alfa':
            p[k] = tf.clip_by_value(v[k],3.0,16.0)
         elif key== 'lp1':
-           p[k] = tf.clip_by_value(v[k],1.0,50.0)
+           p[k] = tf.clip_by_value(v[k],0.0,50.0)
         elif key== 'lp2':
            p[k] = tf.clip_by_value(v[k],0.0,999.0*unit)
         elif key== 'lp3':
