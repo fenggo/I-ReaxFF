@@ -138,7 +138,7 @@ for epoch in range(n_epoch):
           for st in rn.strcs:
               try:
                   estruc = np.mean(rn.dft_energy[st].detach().numpy()  - rn.E[st].detach().numpy())
-              except RuntimeError:
+              except TypeError:
                   estruc = np.mean(rn.dft_energy[st].cpu().detach().numpy()  - rn.E[st].cpu().detach().numpy())
               print('Estruc  {:10s}:   {:10.5f}'.format(st,estruc))
           print('---------------------------------------------------------\n')
