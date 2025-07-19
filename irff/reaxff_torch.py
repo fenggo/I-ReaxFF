@@ -1464,7 +1464,8 @@ class ReaxFF_nn(nn.Module):
                 self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
              else:
-                self.pp[s_] = nn.Parameter(torch.tensor(0.0,device=self.device['others']),requires_grad=True) 
+                est = 0.0 # self.dft_energy[s] - self.E[s]
+                self.pp[s_] = nn.Parameter(torch.tensor(est,device=self.device['others']),requires_grad=True) 
                 self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
   
