@@ -54,7 +54,8 @@ clip = {'Devdw':[0,0.856],
         'Dehb':[-3.998,0.0],'Dehb_C-H-O':[-3.9,-0.35],
         'rohb':[1.877,2.392],'hb1':[2.72,3.64],'hb2':[18.7,19.64],
         'rvdw':[1.755,2.46],'rvdw_C':[1.864,2.399],'rvdw_O':[1.84,2.50],'rvdw_C-N':[1.7556,2.399],
-        'val1':[0.0,70], 'val2':[0.05,6.55],'val3':[0.05,7.934],'val4':[0.01,4.5], # cause NaN !!
+        'val1':[0.0,70], 'val2':[0.05,6.55],
+        'val3':[10,36],'val4':[0.0,3.0],'val5':[0.1,1.5],# cause NaN !!
         #'coa1':[-0.16,0.0],
         'tor1':[-8.26,-0.001],'tor2':[0.41,8.16],'tor3':[0.041,5.0],'tor4':[0.05,1.0],
         'V2':[0,89.5], # 'acut':[0,0.002798],
@@ -80,14 +81,12 @@ rn = ReaxFF_nn(dataset=dataset,data=data,
             device={'cf21-1':'cpu:0','others':'cuda'})
 data = rn.data
 # print(rn.cons)
-optimizer = torch.optim.AdamW(rn.parameters(), lr=0.00001)
-# optimizer = torch.optim.Adadelta(rn.parameters(), lr=0.00003)
-# rn.cuda()
-# rn.compile()
-# for key in rn.p_:
-#     k = key.split('_')[0]
-#     if k =='coa1':
-#        rn.ic.clip[key] = rn.p_[key]
+parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
+parser.add_argument('--e',default=100001 ,type=int, help='the number of epoch of train')
+parser.add_argument('--l',default=0.0001 ,type=float, help='learning rate')
+args = parser.parse_args(sys.argv[1:])
+
+optimizer = torch.optim.AdamW(rn.parameters(), lr=args.l)
 
 if not exists('ffields'):
    mkdir('ffields')
@@ -106,21 +105,24 @@ for epoch in range(n_epoch):
         loss.backward(retain_graph=False)
         los.append(loss.item())
         los_e.append(rn.loss_e.item()/rn.natom[st])
-        los_f.append(rn.loss_f.item()/rn.natom[st])
+        los_f.append(rn.loss_f.item()/(rn.natom[st]))
         los_p.append(rn.loss_penalty.item())
     optimizer.step()        # update parameters 
     
-    # if rn.ic.clip['coa1'][0]<0.0:
-    #    rn.ic.clip['coa1'][0] += 0.0001
-    # if rn.ic.clip['lp2_H'][1]>0.0:
-    #    rn.ic.clip['lp2_H'][1] -= 0.0001
-    
+    if rn.ic.clip['V2'][1]>0:
+       rn.ic.clip['V2'][1] -= 0.0001
+    # if rn.ic.clip['V1'][1]>3:
+    #    rn.ic.clip['V1'][1] -= 0.0001
+    # if rn.ic.clip['tor2'][1]>0.3:
+    #    rn.ic.clip['tor2'][1] -= 0.002
     rn.clamp()              # contrain the paramters
- 
+    los_ = np.mean(los)
+
     use_time = time.time() - start
     print( "eproch: {:5d} loss : {:10.5f} energy: {:7.5f} force: {:7.5f} pen: {:10.5f} time: {:6.3f}".format(epoch,
-            np.mean(los),np.mean(los_e),np.mean(los_f),np.mean(los_p),use_time))
-
+            los_,np.mean(los_e),np.mean(los_f),np.mean(los_p),use_time))
+    if np.isnan(los_):
+       break
     if epoch%100==0:
        rn.save_ffield('ffields/ffield_{:d}.json'.format(epoch))
        # rn.save_ffield('ffield.json')
@@ -130,4 +132,12 @@ for epoch in range(n_epoch):
        for st,l,l_e,l_f,l_p in zip(rn.strcs,los,los_e,los_f,los_p):
            print('  {:10s} {:11.5f} {:10.5f}   {:10.5f}'.format(st,l,l_e,l_f))
        print('---------------------------------------------------------\n')
+       if epoch==0:
+          for st in rn.strcs:
+              try:
+                  estruc = np.mean(rn.dft_energy[st].detach().numpy()  - rn.E[st].detach().numpy())
+              except RuntimeError:
+                  estruc = np.mean(rn.dft_energy[st].cpu().detach().numpy()  - rn.E[st].cpu().detach().numpy())
+              print('Estruc  {:10s}:   {:10.5f}'.format(st,estruc))
+          print('---------------------------------------------------------\n')
 rn.close()
