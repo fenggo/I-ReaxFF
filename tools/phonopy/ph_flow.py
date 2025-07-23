@@ -3,6 +3,23 @@ from os import system, listdir #,popen
 
 '''phonon compute work flow'''
 
+def force_unit():
+    ''' 二阶力常数的长度单位是Unit of length: au 转换成 AA '''
+    f0 = open('FORCE_CONSTANTS','r')
+    f1 = open('FORCE_CONSTANTS_2ND','w')
+    
+    lines = f0.readlines()
+    for line in lines:
+        l = line.split()
+        if len(l)==3:
+           print('  {:17.12f} {:17.12f} {:17.12f}'.format(float(l[0])/0.52917721,
+                 float(l[1])/0.52917721,float(l[2])/0.52917721),file=f1)
+        else:
+           print(line,end=' ',file=f1)
+        
+    f0.close()
+    f1.close()
+
 # 1、 优化结构
 system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=4 --x=8 --y=8 --l=1')
 system('./gmd.py opt --s=1 --g=POSCAR.unitcell  --n=4 --output=shengbte')
@@ -39,7 +56,8 @@ system('./plotband.py')
 system('phonopy --writefc --full-fc')
 
 # 此时计算的二阶力常数的长度单位是Unit of length: au 转换成 AA
-system('./force_unit.py')
+# system('./force_unit.py')
+force_unit()
 
 # 计算三阶力常数
 # system('./thirdorder_gulp.py sow 8 8 1  1  ') # (最后一个1：指1nm，即截断半径10埃)
