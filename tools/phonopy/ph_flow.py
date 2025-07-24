@@ -40,7 +40,7 @@ def phonon_force(n,calc,ncpu):
     spec  = parse_fdf_species(fdf='in.fdf')
     atoms = parse_fdf('supercell-00{:d}'.format(n),spec=spec)
     #view(atoms)
-    print('-  calculating structure {:d} ...'.format())
+    print('-  calculating structure {:d} ...'.format(n))
     if calc=='gulp':  
        atoms = get_gulp_forces([atoms])
     elif calc=='gap':
