@@ -2,6 +2,10 @@
 from os import system, listdir #,popen
 import sys
 import argparse
+from irff.md.gulp import get_gulp_forces
+from irff.md.lammps import get_lammps_forces
+from irff.dft.siesta import parse_fdf,parse_fdf_species,single_point
+from irff.irff import IRFF
 
 '''phonon compute work flow
    使用Phononpy和GULP计算声子色散曲线
@@ -31,9 +35,34 @@ def get_supercell():
         if f.startswith('supercell-') and f.endswith('.fdf'):
            n += 1
     return n
+    
+def phonon_force(n,calc,ncpu):
+    spec  = parse_fdf_species(fdf='in.fdf')
+    atoms = parse_fdf('supercell-00{:d}'.format(n),spec=spec)
+    #view(atoms)
+    print('-  calculating structure {:d} ...'.format(n))
+    if calc=='gulp':  
+       atoms = get_gulp_forces([atoms])
+    elif calc=='gap':
+       atoms = get_lammps_forces(atoms,pair_style='quip',
+           pair_coeff='* * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6',
+           units='metal',atom_style='atomic')
+    elif calc=='siesta':
+       atoms = single_point(atoms,cpu=ncpu,id=n, xcf='GGA',xca='PBE',basistype='split') 
+    else:
+       atoms = get_lammps_forces(atoms)
+    forces = atoms.get_forces()
+    
+    with open('Forces.FA', 'w') as ff:
+        print(len(atoms), file=ff)
+        for i, f in enumerate(forces):
+            print('{:4d} {:12.8f} {:12.8f} {:12.8f}'.format(
+                  i+1, f[0], f[1], f[2]), file=ff)   
+    system('mv Forces.FA Forces-00{:d}.FA'.format(n))
 
 parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
 parser.add_argument('--c',default='gulp',type=str, help='calculator: gulp, siesta, or lammps')
+parser.add_argument('--n',default=8,type=int, help='number of cpu core')
 args = parser.parse_args(sys.argv[1:])
 
 # 1、 优化结构
@@ -59,7 +88,8 @@ system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.01')
 n = get_supercell()
 # 4 、计算每个位移文件受力
 for i in range(n):
-    system('./phonon_force.py --n={:d} --c={:s}'.format(i+1,args.c))
+    # system('./phonon_force.py --n={:d} --c={:s}'.format(i+1,args.c))
+    phonon_force(i+1,args.c,args.n)
 # system('cp force.0 lammps_forces_gp.0')
 
 fs = ['Forces-00{:d}.FA'.format(i) for i in range(1,n+1)]
