@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from os import system, listdir #,popen
+import sys
+import argparse
 
 '''phonon compute work flow
    使用Phononpy和GULP计算声子色散曲线
@@ -22,22 +24,39 @@ def force_unit():
     f0.close()
     f1.close()
 
+def get_supercell():
+    n     = 0
+    files = listdir()
+    for f in files:
+        if f.startswith('supercell-') and f.endswith('.fdf'):
+           n += 1
+    return n
+
+parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
+parser.add_argument('--c',default=0,type=int, help='calculator: 0 gulp 1 siesta 2 lammps')
+args = parser.parse_args(sys.argv[1:])
+
 # 1、 优化结构
-system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=8 --x=8 --y=8 --l=1')
-# system('./gmd.py opt --s=1 --g=POSCAR.unitcell  --n=4 --output=shengbte')
+
+if args.c==0:
+   system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=8 --x=8 --y=8 --l=1')
+elif args.c==1: # for siesta
+   system('./smd.py opt --s=200 --g=POSCAR.unitcell  --n=8 --l=1')
 
 # 2 、先将结构文件转换为siesta输入文件
-system('./smd.py wi --g=POSCAR.unitcell')
+if args.c==1: # for siesta
+   system('./smd.py w --g=id_unitcell.traj')
+else:
+   system('./smd.py w --g=POSCAR.unitcell')
  
 # 3 、生成位移文件
-system('rm supercell-00*.fdf')
-system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.02')
+try:
+   system('rm supercell-00*.fdf')
+except:
+   pass
+system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.01')
 
-n     = 0
-files = listdir()
-for f in files:
-    if f.startswith('supercell-') and f.endswith('.fdf'):
-       n += 1
+n = get_supercell()
 # 4 、计算每个位移文件受力
 for i in range(n):
     system('./phonon_force.py --n={:d}'.format(i+1))
@@ -51,7 +70,12 @@ system('phonopy --siesta -c in.fdf -p --dim="8 8 1" --band="0.0 0.0 0.0 1/4 0.0 
 
 system('phonopy-bandplot --gnuplot band.yaml > band.dat')
 
-system('mv band.dat band-nn-gulp.dat')
+if args.c==0:
+   calc='gulp'
+elif args.c==1:
+   calc='siesta'
+    
+system('mv band.dat band-{:s}.dat'.format(calc))
 system('./plotband.py')
 
 # 使用Phonopy计算二阶力常数
