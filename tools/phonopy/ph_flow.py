@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 from os import system, listdir #,popen
 
-'''phonon compute work flow'''
+'''phonon compute work flow
+   使用Phononpy和GULP计算声子色散曲线
+'''
 
 def force_unit():
-    ''' 二阶力常数的长度单位是Unit of length: au 转换成 AA '''
+    ''' 二阶力常数的长度单位是Unit of length: au 转换成 Angstrom '''
     f0 = open('FORCE_CONSTANTS','r')
     f1 = open('FORCE_CONSTANTS_2ND','w')
     
@@ -21,8 +23,8 @@ def force_unit():
     f1.close()
 
 # 1、 优化结构
-system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=4 --x=8 --y=8 --l=1')
-system('./gmd.py opt --s=1 --g=POSCAR.unitcell  --n=4 --output=shengbte')
+system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=8 --x=8 --y=8 --l=1')
+# system('./gmd.py opt --s=1 --g=POSCAR.unitcell  --n=4 --output=shengbte')
 
 # 2 、先将结构文件转换为siesta输入文件
 system('./smd.py wi --g=POSCAR.unitcell')
@@ -36,7 +38,7 @@ files = listdir()
 for f in files:
     if f.startswith('supercell-') and f.endswith('.fdf'):
        n += 1
-
+# 4 、计算每个位移文件受力
 for i in range(n):
     system('./phonon_force.py --n={:d}'.format(i+1))
 # system('cp force.0 lammps_forces_gp.0')
@@ -53,11 +55,10 @@ system('mv band.dat band-nn-gulp.dat')
 system('./plotband.py')
 
 # 使用Phonopy计算二阶力常数
-system('phonopy --writefc --full-fc')
+# system('phonopy --writefc --full-fc')
 
 # 此时计算的二阶力常数的长度单位是Unit of length: au 转换成 AA
-# system('./force_unit.py')
-force_unit()
+# force_unit()
 
 # 计算三阶力常数
 # system('./thirdorder_gulp.py sow 8 8 1  1  ') # (最后一个1：指1nm，即截断半径10埃)
