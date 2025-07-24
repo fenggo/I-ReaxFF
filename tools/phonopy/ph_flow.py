@@ -41,7 +41,7 @@ args = parser.parse_args(sys.argv[1:])
 if args.c=='gulp':
    system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=8 --x=8 --y=8 --l=1')
 elif args.c=='siesta': # for siesta
-   system('./smd.py opt --s=200 --g=POSCAR.unitcell  --n=8 --l=1')
+   system('./smd.py opt --s=200 --g=POSCAR.unitcell  --n=8 --l=0')
 
 # 2 、先将结构文件转换为siesta输入文件
 if args.c=='siesta': # for siesta
@@ -59,7 +59,7 @@ system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.01')
 n = get_supercell()
 # 4 、计算每个位移文件受力
 for i in range(n):
-    system('./phonon_force.py --n={:d} --c={}'.format(i+1,args.c))
+    system('./phonon_force.py --n={:d} --c={:s}'.format(i+1,args.c))
 # system('cp force.0 lammps_forces_gp.0')
 
 fs = ['Forces-00{:d}.FA'.format(i) for i in range(1,n+1)]
