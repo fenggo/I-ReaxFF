@@ -19,11 +19,6 @@ parser.add_argument('--g',default='POSCAR',type=str, help='geomentry file name')
 parser.add_argument('--c',default='gulp',type=str, help='calculator name')
 args    = parser.parse_args(sys.argv[1:])
 
-# system('cp geo.genS-00{:d} geo-s{:d}.gen'.format(args.n,args.n))
-# atoms = read(args.g)
-# write_siesta_in(atoms, coord='cart',md=False, opt='CG',
-#                 VariableCell='true', xcf='VDW', xca='DRSLL',
-#                 basistype='DZP')
 
 spec  = parse_fdf_species(fdf='in.fdf')
 atoms = parse_fdf('supercell-00{:d}'.format(args.n),spec=spec)
@@ -36,7 +31,7 @@ elif args.c=='gap':
        pair_coeff='* * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6',
        units='metal',atom_style='atomic')
 elif args.c=='siesta':
-   atoms = single_point(atoms,id=args.n, xcf='GGA',xca='PBE',basistype='split') 
+   atoms = single_point(atoms,cpu=args.n,id=args.n, xcf='GGA',xca='PBE',basistype='split') 
 else:
    atoms = get_lammps_forces(atoms)
 forces = atoms.get_forces()
