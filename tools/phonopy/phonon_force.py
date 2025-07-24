@@ -8,7 +8,7 @@ from ase.io import read # ,write
 from ase.visualize import view
 from irff.md.gulp import get_gulp_forces
 from irff.md.lammps import get_lammps_forces
-from irff.dft.siesta import parse_fdf,parse_fdf_species,write_siesta_in
+from irff.dft.siesta import parse_fdf,parse_fdf_species,single_point
 from irff.irff import IRFF
 
 
@@ -35,6 +35,8 @@ elif args.c=='gap':
    atoms = get_lammps_forces(atoms,pair_style='quip',
        pair_coeff='* * Carbon_GAP_20_potential/Carbon_GAP_20.xml "" 6',
        units='metal',atom_style='atomic')
+elif args.c=='siesta':
+   atoms = single_point(atoms,id=args.n, xcf='GGA',xca='PBE',basistype='split') 
 else:
    atoms = get_lammps_forces(atoms)
 forces = atoms.get_forces()
