@@ -33,18 +33,18 @@ def get_supercell():
     return n
 
 parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
-parser.add_argument('--c',default=0,type=int, help='calculator: 0 gulp 1 siesta 2 lammps')
+parser.add_argument('--c',default='gulp',type=str, help='calculator: gulp, siesta, or lammps')
 args = parser.parse_args(sys.argv[1:])
 
 # 1、 优化结构
 
-if args.c==0:
+if args.c=='gulp':
    system('./gmd.py opt --s=1000 --g=POSCAR.unitcell  --n=8 --x=8 --y=8 --l=1')
-elif args.c==1: # for siesta
+elif args.c=='siesta': # for siesta
    system('./smd.py opt --s=200 --g=POSCAR.unitcell  --n=8 --l=1')
 
 # 2 、先将结构文件转换为siesta输入文件
-if args.c==1: # for siesta
+if args.c=='siesta': # for siesta
    system('./smd.py w --g=id_unitcell.traj')
 else:
    system('./smd.py w --g=POSCAR.unitcell')
@@ -59,7 +59,7 @@ system('phonopy --siesta -c=in.fdf -d --dim="8 8 1" --amplitude=0.01')
 n = get_supercell()
 # 4 、计算每个位移文件受力
 for i in range(n):
-    system('./phonon_force.py --n={:d}'.format(i+1))
+    system('./phonon_force.py --n={:d} --c={}'.format(i+1,args.c))
 # system('cp force.0 lammps_forces_gp.0')
 
 fs = ['Forces-00{:d}.FA'.format(i) for i in range(1,n+1)]
@@ -67,15 +67,8 @@ fs = ' '.join(fs)
 
 system('phonopy -f {:s} --siesta'.format(fs))
 system('phonopy --siesta -c in.fdf -p --dim="8 8 1" --band="0.0 0.0 0.0 1/4 0.0 0.0  0.5 0.0 0.0  2/3 -1/3 1/2 1/3 -1/6 0.0  0.0 0.0 0.0"')
-
 system('phonopy-bandplot --gnuplot band.yaml > band.dat')
-
-if args.c==0:
-   calc='gulp'
-elif args.c==1:
-   calc='siesta'
-    
-system('mv band.dat band-{:s}.dat'.format(calc))
+system('mv band.dat band-{:s}.dat'.format(args.c))
 system('./plotband.py')
 
 # 使用Phonopy计算二阶力常数
