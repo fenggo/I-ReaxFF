@@ -1763,14 +1763,14 @@ class ReaxFF_nn(nn.Module):
                     for i,m in enumerate(self.m[key]):
                         # if isinstance(M, np.ndarray):
                         if self.device['diff'].type == 'cpu':
-                        self.m_[key][i] = m.detach().numpy().tolist()
+                           self.m_[key][i] = m.detach().numpy().tolist()
                         else:
-                        self.m_[key][i] = m.cpu().detach().numpy().tolist()
+                           self.m_[key][i] = m.cpu().detach().numpy().tolist()
                 else:
                     if self.device['diff'].type == 'cpu':
-                    self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
+                       self.m_[key] = self.m[key].detach().numpy().tolist()  # covert ndarray to list
                     else:
-                    self.m_[key] = self.m[key].cpu().detach().numpy().tolist()
+                       self.m_[key] = self.m[key].cpu().detach().numpy().tolist()
          # print(' * save parameters to file ...')
          fj = open(ffield,'w')
          j = {'p':self.p_,'m':self.m_,
