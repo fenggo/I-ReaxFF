@@ -28,7 +28,7 @@ batch        = 70
 # batchs       = {'tkx2':batch,'fox7':150,'fox':500,'tnt':500,
 #                 'cf11':172,
 #                 'others':300}
-batchs       = {'ch4w2':200,
+batchs       = {'ch4w2':batch,
                 'others':300}
 for mol in strucs:
     b = batchs[mol] if mol in batchs else batchs['others']
@@ -111,8 +111,8 @@ for epoch in range(n_epoch):
         los_p.append(rn.loss_penalty.item())
     optimizer.step()        # update parameters 
     
-    if rn.ic.clip['V2'][1]>0:
-       rn.ic.clip['V2'][1] -= 0.0001
+    # if rn.ic.clip['V2'][1]>0:
+    #    rn.ic.clip['V2'][1] -= 0.0001
     # if rn.ic.clip['V1'][1]>3:
     #    rn.ic.clip['V1'][1] -= 0.0001
     # if rn.ic.clip['tor2'][1]>0.3:
