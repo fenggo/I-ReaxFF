@@ -93,7 +93,7 @@ optimizer = torch.optim.AdamW(rn.parameters(), lr=args.l)
 if not exists('ffields'):
    mkdir('ffields')
 
-n_epoch = 10001   
+n_epoch = args.e +1   
 for epoch in range(n_epoch):
     los   = []
     los_e = []
@@ -141,5 +141,10 @@ for epoch in range(n_epoch):
               except TypeError:
                   estruc = np.mean(rn.dft_energy[st].cpu().detach().numpy()  - rn.E[st].cpu().detach().numpy())
               print('Estruc  {:10s}:   {:10.5f}'.format(st,estruc))
+              if args.e<=1:
+                 st_ = st.split('-')[0]
+                 emol = rn.MolEnergy_[st_] + estruc
+                 rn.estruc[st].data = torch.clamp(rn.estruc[st].data,min=emol,max=emol)
           print('---------------------------------------------------------\n')
+rn.save_ffield('ffield.json')
 rn.close()
