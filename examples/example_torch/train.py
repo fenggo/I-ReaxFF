@@ -75,7 +75,7 @@ bo_clip = {'N-N':[(2.0,0,9,0,9,0.0,0.001)],
            'C-N':[(2.0,6.5,7.2,3.2,3.7,0.0,0.001)]}
 
 parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
-parser.add_argument('--e',default=100001 ,type=int, help='the number of epoch of train')
+parser.add_argument('--e',default=5001 ,type=int, help='the number of epoch of train')
 parser.add_argument('--c',default=0 ,type=int, help='circulation')
 parser.add_argument('--l',default=0.0001 ,type=float, help='learning rate')
 args = parser.parse_args(sys.argv[1:])
