@@ -17,12 +17,12 @@ def theta(images,trace):
     for a,ang in enumerate(ir.angs):
         i_,j_,k_ = ang
         if ir.eang[a]>1000.00000001:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s}  {:8.4f}  {:8.4f} '.format(a,i_,j_,k_,
+           print('{:3d} {:3d}-{:3d}-{:3d}  {:s}-{:s}-{:s}  {:8.4f}  {:8.4f} '.format(a,i_,j_,k_,
                  ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],ir.theta[a]))
         else: # if ir.eang[a]<0.0:
-           print('{:3d} {:2d}-{:2d}-{:2d}  {:s}-{:s}-{:s} E: {:8.4f} {:8.4f} f7 {:8.4f} f8 {:8.4f} thet {:8.4f}'.format(a,i_,j_,k_,
+           print('{:3d} {:3d}-{:3d}-{:3d}  {:s}-{:s}-{:s} E: {:8.4f} {:8.4f} f7 {:8.4f} f8 {:8.4f} thet {:8.4f} {:8.4f}'.format(a,i_,j_,k_,
                  ir.atom_name[i_],ir.atom_name[j_],ir.atom_name[k_],ir.eang[a],
-                 ir.fijk[a],ir.f_7[a],ir.f_8[a],ir.theta[a]))
+                 ir.fijk[a],ir.f_7[a],ir.f_8[a],ir.theta[a],ir.thet0[a]))
             
     if trace:
         a_ = int(input('please input the id of the  angle to output(-1 to exit): '))
@@ -52,16 +52,18 @@ def theta(images,trace):
                             ir.SBO3[a],ir.expang[a],ir.eang[a])) # self.thet0-self.theta
                    theta_.append(ir.theta[a])
                    Eang.append(ir.eang[a])
-
             plt.figure()     
             # plt.plot(theta_,Eang,alpha=0.8,linewidth=2,linestyle='-',color='b',label=r'$Eangle({:s})$'.format(ang_))
             plt.scatter(theta_,Eang,marker='o',color='none',edgecolors='r',s=10,label=r'$Eangle({:s})$'.format(ang_))
-
+    
             plt.legend(loc='best',edgecolor='yellowgreen')
             plt.show() # if show else plt.savefig('deb_bo.pdf')
             plt.close()
         else:
             print(a)
+
+
+
 
 help_ = 'run with commond: ./theta.py --t=md.traj '
 
@@ -71,7 +73,7 @@ parser.add_argument('--trace',default=0,type=int,help='trace this angel')
 args = parser.parse_args(sys.argv[1:])
 
 images = Trajectory(args.t)
-theta(images,args.track)
+theta(images,args.trace)
 
 # 3.1415926*120/180.0   = 2.0943950666666664
 # 3.1415926*109.8/180.0 = 1.9163714859999998
