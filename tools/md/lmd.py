@@ -97,7 +97,7 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        for i,m in enumerate(m_):
            # print(dir(m))
            m.mol_index.sort()
-           print(m.label)
+           # print(m.label)
            if m.label == free:
               free_.extend(m.mol_index)
     thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
