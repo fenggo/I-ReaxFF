@@ -121,7 +121,8 @@ def fit():
             los_e.append(rn.loss_e.item()/rn.natom[st])
             los_f.append(rn.loss_f.item()/(rn.natom[st]))
             los_p.append(rn.loss_penalty.item())
-        optimizer.step()        # update parameters 
+        if args.e>:
+           optimizer.step()        # update parameters 
         
         rn.clamp()              # contrain the paramters
         los_ = np.mean(los)
