@@ -1737,6 +1737,7 @@ class ReaxFF_nn(nn.Module):
           if key in ['V1','V2','V3','tor1','cot1']:
              k_ = k.split('_')[1]
              if k_ not in self.torp:
+                self.p_.pop(k,None)
                 continue
               
           if key in self.p_offd:
