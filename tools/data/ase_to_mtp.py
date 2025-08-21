@@ -34,9 +34,11 @@ def write_cfg(atom,cell,position,force,cfg):
 cdir    = getcwd()
 files   = listdir(cdir)
 trajs   = []
-for fil in files:
-    if fil.startswith(args.t) and fil.endswith('.traj'): 
-       trajs.append(fil)
+t_      = args.t.split()
+for t in t_:
+    for fil in files:
+        if fil.startswith(t) and fil.endswith('.traj'): 
+           trajs.append(fil)
 
 cfg = open('train.cfg','w')
 for traj in trajs:
