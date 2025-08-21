@@ -48,7 +48,7 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
        units      = "metal"
        atom_style = 'atomic'
     elif model == 'reaxff':
-       pair_style = 'reaxff control checkqeq yes'   # without lg set lgvdw no
+       pair_style = 'reaxff control checkqeq yes'          # without lg set lgvdw no
        pair_coeff = '* * {:s} {:s}'.format(lib,sp)
        units      = "real"
        atom_style = 'charge'
@@ -230,7 +230,8 @@ def w(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
 if __name__ == '__main__':
    ''' use commond like: 
         ./lmd.py nvt --T=2800 --s=5000 --g=*.gen 
-		  ./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --tdump=10 --r=1
+		./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --tdump=10 --r=1
+        ./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --m=quip
        to run this script.
        ---------------------------------------------
        nvt: NVT MD simulation
