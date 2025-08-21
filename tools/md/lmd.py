@@ -41,6 +41,12 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
        pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
        units      = "metal"
        atom_style = 'atomic'
+    elif model == 'mtp':
+       pair_style = 'mlip load_from=pot.almtp'  
+       lib        = 'pot.almtp'
+       pair_coeff = '*  *  # {:s}'.format(sp)
+       units      = "metal"
+       atom_style = 'atomic'
     elif model == 'reaxff':
        pair_style = 'reaxff control checkqeq yes'   # without lg set lgvdw no
        pair_coeff = '* * {:s} {:s}'.format(lib,sp)
