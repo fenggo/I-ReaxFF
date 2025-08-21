@@ -8,7 +8,7 @@ from ase.io.trajectory import Trajectory
 
 
 parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
-parser.add_argument('--t',default='md.traj' ,type=str, help='trajectory name')
+parser.add_argument('--t',default='md.traj' ,type=str, help='trajectory name contains energies and forces')
 args = parser.parse_args(sys.argv[1:])
 
 images = Trajectory(args.t)
