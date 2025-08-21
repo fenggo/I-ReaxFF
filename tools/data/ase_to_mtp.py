@@ -9,8 +9,6 @@ from ase.io.trajectory import Trajectory
 
 parser = argparse.ArgumentParser(description='./train_torch.py --e=1000')
 parser.add_argument('--t',default='md.traj' ,type=str, help='trajectory name')
-parser.add_argument('--c',default=0 ,type=int, help='circulation')
-parser.add_argument('--l',default=0.0001 ,type=float, help='learning rate')
 args = parser.parse_args(sys.argv[1:])
 
 images = Trajectory(args.t)
