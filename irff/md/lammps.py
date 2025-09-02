@@ -320,6 +320,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
               fix = 'fix   1 all npt temp 800 800 100.0 iso 10000 10000 100',
               fix_modify = ' ',
               more_commond = ' ',
+              p=0.0,
               group={},
               dump_interval=10,
               freeatoms=None,natoms=None,#freeze=False,
@@ -428,14 +429,17 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
        else:
           print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
        print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
+    if 'minimize' in kwargs:
+       print('fix 1 all box/relax iso {:f} dilate partial'.format(p), file=fin)
+
     print(' ', file=fin)
     print(more_commond, file=fin)
     
     if 'minimize' in kwargs:
         print('min_style   cg', file=fin)
         print('min_modify  line quadratic', file=fin)
-        print('minimize    {:s}'.format(kwargs['minimize']), file=fin)
-
+        # print('minimize    {:s}'.format(kwargs['minimize']), file=fin)
+   
     print(' ', file=fin)
     print('thermo        {:d}'.format(dump_interval), file=fin)
     print(thermo_style, file=fin)
@@ -456,7 +460,12 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     print('log           %s'  %log, file=fin)
     print(' ', file=fin)
     print('restart       10000 restart', file=fin)
-    print('run           %d'  %total, file=fin)
+
+    if 'minimize' in kwargs:
+       print('minimize    {:s}'.format(kwargs['minimize']), file=fin)
+    else:
+       print('run           %d'  %total, file=fin)
+    
     print(' ', file=fin)
     if restartfile is not None:
        print('write_restart {:s}'.format(restartfile), file=fin)
