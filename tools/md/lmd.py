@@ -142,8 +142,8 @@ def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-
     atoms.write('POSCAR.unitcell')
     return atoms
 
-def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
-        x=1,y=1,z=1,n=1,lib='ffield'):
+def minimize(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+        x=1,y=1,z=1,n=1,lib='ffield',l=0):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
@@ -152,6 +152,12 @@ def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
        pair_style = 'quip'  
        lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
        pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
+       units      = "metal"
+       atom_style = 'atomic'
+    elif model == 'mtp':
+       pair_style = 'mlip load_from=pot.almtp'  
+       lib        = 'pot.almtp'
+       pair_coeff = '*  *  # {:s}'.format(sp)
        units      = "metal"
        atom_style = 'atomic'
     else:
@@ -171,7 +177,7 @@ def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
               pair_coeff = pair_coeff,
               fix = ' ', 
               fix_modify = ' ',
-              minimize   = '1e-5 1e-5 2000 2000',
+              minimize   = '1e-7 1e-5 2000 20000', # etol ftol maxiter maxeval(max number of force/energy evaluations)
               thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
               data='data.lammps',units=units,atom_style=atom_style,
               restartfile='restart')
@@ -242,6 +248,6 @@ if __name__ == '__main__':
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nvt,nve,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nvt,minimize,nve,msst,plot,traj,w])
    argh.dispatch(parser)
 
