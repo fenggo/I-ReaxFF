@@ -430,7 +430,7 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
           print('fix    rex all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff', file=fin)
        print('fix    sp  all reaxff/species 1 20 20  species.out', file=fin) # every 1 compute bond-order, per 20 av bo, and per 20 calc species
     if 'minimize' in kwargs:
-       print('fix 1 all box/relax iso {:f} dilate partial'.format(p), file=fin)
+       print('fix    brelax all box/relax iso {:f} dilate partial'.format(p), file=fin)
 
     print(' ', file=fin)
     print(more_commond, file=fin)
