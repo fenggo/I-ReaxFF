@@ -47,27 +47,28 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
         ei.append(ir.E)
         r.append(ir.r[i][j])
 
-        lmp1 = IRFF(atoms=atoms,lmpcmds=cmd1, log_file='test1.log')
-        lmp2 = IRFF(atoms=atoms,lmpcmds=cmd2, log_file='test2.log')
-        lmp3 = IRFF(atoms=atoms,lmpcmds=cmd3, log_file='test3.log')
-        atoms.calc = lmp1
+        lmp = IRFF(atoms=atoms,lmpcmds=cmd1, log_file='test1.log')
+        # lmp2 = IRFF(atoms=atoms,lmpcmds=cmd2, log_file='test2.log')
+        # lmp3 = IRFF(atoms=atoms,lmpcmds=cmd3, log_file='test3.log')
+        atoms.calc = lmp
         e1.append(atoms.get_potential_energy())
-        atoms1.calc = lmp2
-        e2.append(atoms1.get_potential_energy())
-        atoms2.calc = lmp3
-        e3.append(atoms2.get_potential_energy())
-        print("Energy: ", e1[-1],e2[-1],e3[-1],ir.E)
+        #atoms1.calc = lmp2
+        #e2.append(atoms1.get_potential_energy())
+        #atoms2.calc = lmp3
+        #e3.append(atoms2.get_potential_energy())
+        # print("Energy: ", e1[-1],e2[-1],e3[-1],ir.E)
+    print("Energy: ", e1[-1],ir.E)
 
     e_max = min(e)
     e = np.array(e) - e_max
     e_max = min(e1)
     e1 = np.array(e1) - e_max
     e_max = min(ei)
-    ei   = np.array(ei) - e_max
-    e_max = min(e2)
-    e2   = np.array(e2) - e_max
-    e_max = min(e3)
-    e3   = np.array(e3) - e_max
+    # ei   = np.array(ei) - e_max
+    # e_max = min(ei)
+    # e2   = np.array(e2) - e_max
+    # e_max = min(e3)
+    # e3   = np.array(e3) - e_max
     plt.figure()   
     plt.ylabel(r'$Energy$ ($eV$)')
     plt.xlabel(r'$Time$ $Step$ ($fs$)')
@@ -86,20 +87,20 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
              markeredgewidth=1,markeredgecolor='yellowgreen',markersize=8,
              color='yellowgreen',label=r'$DFT(SIESTA)$')
     
-    plt.plot(r,e2,alpha=0.8,
-             linestyle='-',marker='^',markerfacecolor='none',
-             markeredgewidth=1,markeredgecolor='b',markersize=8,
-             color='b',label=r'$ReaxFF$-$RDX$')
+    # plt.plot(r,e2,alpha=0.8,
+    #         linestyle='-',marker='^',markerfacecolor='none',
+    #         markeredgewidth=1,markeredgecolor='b',markersize=8,
+    #         color='b',label=r'$ReaxFF$-$RDX$')
 
     plt.plot(r,e1,alpha=0.8,
              linestyle='-',marker='o',markerfacecolor='none',
              markeredgewidth=1,markeredgecolor='r',markersize=8,
              color='r',label=r'$ReaxFF-nn$')
 
-    plt.plot(r,e3,alpha=0.8,
-             linestyle='-',marker='s',markerfacecolor='none',
-             markeredgewidth=1,markeredgecolor='k',markersize=8,
-             color='k',label=r'$ReaxFF$-$lg$')
+    # plt.plot(r,e3,alpha=0.8,
+    #         linestyle='-',marker='s',markerfacecolor='none',
+    #         markeredgewidth=1,markeredgecolor='k',markersize=8,
+    #         color='k',label=r'$ReaxFF$-$lg$')
     # ediff = np.abs(e - ei)
     # plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
     #                  alpha=0.2)
