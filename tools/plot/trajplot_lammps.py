@@ -63,7 +63,7 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     e = np.array(e) - e_max
     e_max = min(e1)
     e1 = np.array(e1) - e_max
-    e_max = min(ei)
+    # e_max = min(ei)
     # ei   = np.array(ei) - e_max
     # e_max = min(ei)
     # e2   = np.array(e2) - e_max
@@ -101,9 +101,9 @@ def trajplot(traj='siesta.traj',nn=True,i=0,j=1):
     #         linestyle='-',marker='s',markerfacecolor='none',
     #         markeredgewidth=1,markeredgecolor='k',markersize=8,
     #         color='k',label=r'$ReaxFF$-$lg$')
-    # ediff = np.abs(e - ei)
-    # plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
-    #                  alpha=0.2)
+    ediff = np.abs(e - e1)
+    plt.fill_between(r,ei - ediff, ei + ediff, color='palegreen',
+                     alpha=0.2)
 
     # pdiff = np.abs(pdft - preax)
     # plt.fill_between(v_, pdft - pdiff, pdft + pdiff, color='palegreen',
