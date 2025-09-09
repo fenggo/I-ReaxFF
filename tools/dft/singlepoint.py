@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import subprocess
 import numpy as np
-from os import getcwd,chdir,mkdir,system
+from os import getcwd,chdir,mkdir
 from os.path import exists
 import sys
 import argparse
@@ -49,7 +49,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
            mkdir(str(s))
 
         chdir(work_dir)
-        system('cp ../*.psf ./')
+        subprocess.call('cp ../*.psf ./',shell=True)
         # img = siesta_opt(images[s-1],ncpu=ncpu,us='F',VariableCell='true',tstep=step,
         #                  xcf='GGA',xca='PBE',basistype='split')
                          # xcf='VDW',xca='DRSLL',basistype='split')
@@ -58,9 +58,9 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
                            xcf='GGA',xca='PBE',basistype='split',
                            val={'C':4.0,'H':1.0,'O':6.0,'N':5.0,'F':7.0,'Al':3.0},
                            cpu=ncpu)               
-        system('rm *.xml ')
-        system('rm INPUT_TMP.* ')
-        system('rm fdf-* ')
+        subprocess.call('rm *.xml ',shell=True)
+        subprocess.callsystem('rm INPUT_TMP.* ',shell=True)
+        subprocess.call('rm fdf-* ',shell=True)
         atoms = img # [-1]
         atoms.write('POSCAR.{:d}'.format(s))
         res.write(atoms=atoms)
