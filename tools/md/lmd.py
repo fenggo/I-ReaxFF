@@ -113,6 +113,28 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
     return atoms
 
+def nptmin(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
+    atoms = read(gen,index=i)*(x,y,z)
+    m_  = Molecules(atoms,rcut={"H-O":1.12,"H-N":1.22,"H-C":1.22,"O-O":1.35,"others": 1.62},check=True)
+    free_ = []
+    if free:
+       for i,m in enumerate(m_):
+           # print(dir(m))
+           m.mol_index.sort()
+           # print(m.label)
+           if m.label == free:
+              free_.extend(m.mol_index)
+    thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
+                  T,tdump,p,p,tdump)
+    atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+                free=free_,dump_interval=dump_interval,
+                x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
+    minimize(T=T,atoms=atoms,timestep=timestep,step=step,model=model,
+        x=x,y=y,z=z,n=n,lib=lib,l=0)
+    
+    return atoms
+
 def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
     thermo_fix = 'fix   1 all nve '
@@ -142,9 +164,11 @@ def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-
     atoms.write('POSCAR.unitcell')
     return atoms
 
-def minimize(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
-        x=1,y=1,z=1,n=1,lib='ffield',l=0):
-    atoms = read(gen,index=i)*(x,y,z)
+def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
+             model='reaxff-nn',c=0,
+             x=1,y=1,z=1,n=1,lib='ffield',l=0):
+    if atoms is None:
+       atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
@@ -248,6 +272,6 @@ if __name__ == '__main__':
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nvt,minimize,nve,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nptmin,nvt,minimize,nve,msst,plot,traj,w])
    argh.dispatch(parser)
 
