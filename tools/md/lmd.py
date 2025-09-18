@@ -132,7 +132,6 @@ def nptmin(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='re
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
     minimize(T=T,atoms=atoms,timestep=timestep,step=step,model=model,
         x=x,y=y,z=z,n=n,lib=lib,l=0)
-    
     return atoms
 
 def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
@@ -210,7 +209,22 @@ def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
        system('lammps<in.lammps>out')
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
+    atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
+    if x>1 or y>1 or z>1:
+       ncell     = x*y*z
+       natoms    = int(len(atoms)/ncell)
+       species   = atoms.get_chemical_symbols()
+       positions = atoms.get_positions()
+       #forces    = atoms.get_forces()
+       cell      = atoms.get_cell()
+       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
+       u         = np.linalg.inv(cell)
+       pos_      = np.dot(positions[0:natoms], u)
+       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
+       pos       = np.dot(posf, cell)
+       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+                         cell=cell,pbc=[True,True,True])
+    atoms.write('POSCAR.unitcell')
 
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,
