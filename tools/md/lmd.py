@@ -8,6 +8,7 @@ from ase.io import read # ,write
 from ase.data import atomic_numbers, atomic_masses
 from ase.calculators.singlepoint import SinglePointCalculator
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
+from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
 from irff.molecule import Molecules
 
 
@@ -130,9 +131,11 @@ def nptmin(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='re
     atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
                 free=free_,dump_interval=dump_interval,
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
+    opt(atoms=atoms,step=500,l=1,c=0,p=p,
+                x=x,y=y,z=y,n=n,lib=lib)
     minimize(T=T,atoms=atoms,timestep=timestep,step=step,model=model,
-        x=x,y=y,z=z,n=n,lib=lib,l=0)
-    return atoms
+                x=x,y=y,z=z,n=n,lib=lib,l=0)
+    # return atoms
 
 def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
@@ -141,28 +144,34 @@ def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         free=free,dump_interval=dump_interval,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
-def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn', 
-        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=100):
-    atoms = npt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,
-                p=p,x=x,y=y,z=z,n=n,lib=lib,free=free,dump_interval=dump_interval)
-    if x>1 or y>1 or z>1:
-       ncell     = x*y*z
-       natoms    = int(len(atoms)/ncell)
-       species   = atoms.get_chemical_symbols()
-       positions = atoms.get_positions()
-       forces    = atoms.get_forces()
-       cell      = atoms.get_cell()
-       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
-       u         = np.linalg.inv(cell)
-       pos_      = np.dot(positions[0:natoms], u)
-       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
-       pos       = np.dot(posf, cell)
-       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
-                         cell=cell,pbc=[True,True,True])
-   
-    atoms.write('POSCAR.unitcell')
-    return atoms
+def opt(T=350,atoms=None,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
+        x=1,y=1,z=1,n=1,lib='reaxff_nn'):
+    if atoms is None:
+       A = read(gen,index=i)*(x,y,z)
+    # A = press_mol(A) 
+    if l==1 or p>0.0000001:
+       runword= 'opti conp qiterative stre atomic_stress'
+    elif l==0:
+       runword='opti conv qiterative'
 
+    write_gulp_in(A,runword=runword,
+                  T=T,maxcyc=step,pressure=p,
+                  lib=lib)
+    print('\n-  running gulp optimize ...')
+    if n==1:
+       system('gulp<inp-gulp>gulp.out')
+    else:
+       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+    # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
+    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
+    print('-  enthalpy: ',atoms.get_potential_energy())
+    masses = np.sum(atoms.get_masses())
+    volume = atoms.get_volume()
+    density = masses/volume/0.602214129
+    print('-  density: ',density)
+    return atoms
+    
 def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
              model='reaxff-nn',c=0,
              x=1,y=1,z=1,n=1,lib='ffield',l=0):
