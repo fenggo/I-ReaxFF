@@ -131,7 +131,7 @@ def nptmin(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='re
     atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
                 free=free_,dump_interval=dump_interval,
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
-    opt(atoms=atoms,step=500,l=1,c=0,p=p,x=x,y=y,z=y,n=n,lib=lib)
+    opt(atoms=atoms,step=500,l=1,c=0,p=p,x=x,y=y,z=y,n=n,lib='reaxff_nn')
     minimize(T=T,atoms=atoms,timestep=timestep,step=step,model=model,
                 x=x,y=y,z=z,n=n,lib=lib,l=0)
     # return atoms
