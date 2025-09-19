@@ -146,14 +146,14 @@ def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
 def opt(T=350,atoms=None,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,lib='reaxff_nn'):
     if atoms is None:
-       A = read(gen,index=i)*(x,y,z)
+       atoms = read(gen,index=i)*(x,y,z)
     # A = press_mol(A) 
     if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
     elif l==0:
        runword='opti conv qiterative'
 
-    write_gulp_in(A,runword=runword,
+    write_gulp_in(atoms,runword=runword,
                   T=T,maxcyc=step,pressure=p,
                   lib=lib)
     print('\n-  running gulp optimize ...')
