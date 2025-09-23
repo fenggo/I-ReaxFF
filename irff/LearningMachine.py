@@ -15,7 +15,7 @@ from .dft.CheckEmol import check_emol
 #from .md.gulp import nvt as gulp_nvt
 #from .data.mdtodata import MDtoData
 from .data.prep_data import prep_data
-import tensorflow as tf
+# import tensorflow as tf
 from .md.irmd import IRMD
 from .trainer import train_reax,train_mpnn,train_nn
 from .AtomDance import AtomDance,check_zmat
@@ -351,7 +351,7 @@ class LearningMachine(object):
           check_emol(trajs_)
 
           self.load_config()
-          tf.compat.v1.disable_eager_execution()                       # training untill
+          # tf.compat.v1.disable_eager_execution()                     # training untill
           accu = -1000.0                                               # acc >= accMin
           tIter= 1   
           loss = self.lossCriteria+0.1      
