@@ -59,7 +59,7 @@ def calc_individuals(traj,density=1.88,ids=None,step=50,ncpu=8):
                            val={'C':4.0,'H':1.0,'O':6.0,'N':5.0,'F':7.0,'Al':3.0},
                            cpu=ncpu)               
         subprocess.call('rm *.xml ',shell=True)
-        subprocess.callsystem('rm INPUT_TMP.* ',shell=True)
+        subprocess.call('rm INPUT_TMP.* ',shell=True)
         subprocess.call('rm fdf-* ',shell=True)
         atoms = img # [-1]
         atoms.write('POSCAR.{:d}'.format(s))
