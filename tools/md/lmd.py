@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argh
 import argparse
-from os import system #,popen
+import subprocess
 import numpy as np
 from ase import Atoms
 from ase.io import read # ,write
@@ -89,9 +89,9 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
               restartfile='restart')
     print('\n-  running lammps ...')
     if n==1:
-       system('lammps<in.lammps>out')
+       subprocess.call('lammps<in.lammps>out')
     else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+       subprocess.call('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
     atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
     return atoms
 
@@ -158,9 +158,9 @@ def opt(T=350,atoms=None,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
-       system('gulp<inp-gulp>gulp.out')
+       subprocess.call('gulp<inp-gulp>gulp.out')
     else:
-       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
@@ -214,9 +214,9 @@ def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
               restartfile='restart')
     print('\n-  running lammps minimize ...')
     if n==1:
-       system('lammps<in.lammps>out')
+       subprocess.call('lammps<in.lammps>out')
     else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+       subprocess.call('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
     atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
     if x>1 or y>1 or z>1:
        ncell     = x*y*z
