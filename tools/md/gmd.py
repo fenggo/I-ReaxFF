@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argh
 import argparse
-from os import system,popen
+import subprocess
 import time
 import numpy as np
 from ase.io import read # ,write
@@ -21,9 +21,9 @@ def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
                   lib=lib)
     print('\n-  running gulp nvt ...')
     if n==1:
-       system('gulp<inp-gulp>gulp.out')
+       subprocess.call('gulp<inp-gulp>gulp.out')
     else:
-       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     xyztotraj('his.xyz',mode=mode,traj='md.traj', checkMol=c,scale=False)
 
 def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
@@ -39,9 +39,9 @@ def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp phonon calculation ...')
     if n==1:
-       system('gulp<inp-phonon>phonon.out')
+       subprocess.call('gulp<inp-phonon>phonon.out')
     else:
-       system('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n))
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
 def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
@@ -62,9 +62,9 @@ def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
-       system('gulp<inp-gulp>gulp.out')
+       subprocess.call('gulp<inp-gulp>gulp.out')
     else:
-       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
     print('-  enthalpy: ',atoms.get_potential_energy())
@@ -110,9 +110,9 @@ def sheng(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp optimize ...')
     if n==1:
-       system('gulp<inp-sheng>sheng.out')
+       subprocess.call('gulp<inp-sheng>sheng.out')
     else:
-       system('mpirun -n {:d} gulp<inp-sheng>sheng.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-sheng>sheng.out'.format(n))
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False)
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
