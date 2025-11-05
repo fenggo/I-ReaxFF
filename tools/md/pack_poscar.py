@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import subprocess
-from os import getcwd,listdir,system
+import sys
+import argparse
+from os import getcwd,listdir # ,system
 from os.path import exists
 from ase.io import read
 from ase.io.trajectory import TrajectoryWriter
@@ -8,26 +10,26 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from irff.irff_np import IRFF_NP
 # from irff.molecule import press_mol
 
-density = 1.7
 cdir    = getcwd()
+parser  = argparse.ArgumentParser(description='./pack_poscar.py --d=1.83')
+parser.add_argument('--d',default=None ,type=float, help='the density of POSCAR file should be copyed')
+args    = parser.parse_args(sys.argv[1:])
 cdir_   = '/'.join(cdir.split('/')[:-1])
-# print('当前目录：',cdir_)
-# dirs    = listdir(cdir_)
-# for dir_ in dirs:
-    #d = dir_.split('-')
-#    if dir_.isalnum(): # d[1].isalpha(): isalnum()
-if exists('{:s}/density.log'.format(cdir_)):
-   with open('{:s}/density.log'.format(cdir_),'r') as f:
-    for i,line in enumerate(f.readlines()):
-        if i==0:
-           continue
-        l = line.split()
-        den = float(l[1])
-        # id_ = l[0]
-        if den>=density:
-           print(l[0],den)
-           if exists('{:s}/{:s}/POSCAR.{:s}'.format(cdir_,l[0],l[0])):
-              system('cp {:s}/{:s}/POSCAR.{:s} ./'.format(cdir_,l[0],l[0]))
+density = args.d
+
+if args.d is not None:
+   if exists('{:s}/density.log'.format(cdir_)):
+      with open('{:s}/density.log'.format(cdir_),'r') as f:
+        for i,line in enumerate(f.readlines()):
+            if i==0:
+               continue
+            l = line.split()
+            den = float(l[1])
+            # id_ = l[0]
+            if den>=density:
+               print(l[0],den)
+               if exists('{:s}/{:s}/POSCAR.{:s}'.format(cdir_,l[0],l[0])):
+                  subprocess.call('cp {:s}/{:s}/POSCAR.{:s} ./'.format(cdir_,l[0],l[0]),shell=True)
 
 #################### pack poscars to md.traj ######################
 #cdir    = getcwd()
