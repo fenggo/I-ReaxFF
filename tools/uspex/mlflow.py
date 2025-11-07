@@ -10,10 +10,7 @@ from ase.data import atomic_numbers, atomic_masses
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 from irff.md.gulp import write_gulp_in
 
-''' A work flow in combination with USPEX
-    Use thie script with command in INPUT.txt:
-       python mdflow.py --n=16 --p=0.1 --s=10000 --d=1.6 --T=100
-'''
+''' A work flow in combination with USPEX '''
 
 parser = argparse.ArgumentParser(description='./atoms_to_poscar.py --g=siesta.traj')
 parser.add_argument('--n',default=1,type=int, help='the number of cpu used in this calculation')
@@ -153,7 +150,7 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
-write_input(inp='inp-grad',keyword='opti conp qiterative conjugate')
+write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
@@ -162,7 +159,7 @@ masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
 
-if density >= args.d:
-   atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
-   run_gulp(n=args.n,atoms=atoms,l=0,step=200)
+if density <= args.d:
+   # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
+   run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
 
