@@ -453,6 +453,16 @@ class AtomDance(object):
                                   cell=atoms.cell,
                                   table=self.neighbors,
                                   sizeiscell=False)
+
+      if isinstance(self.FirstAtom,list) or isinstance(self.FirstAtom,tuple):
+         mols = []
+         for f_ in self.FirstAtom:         # adjust the molecule order
+             for m in self.mols:
+                 if f_ in m.mol_index:
+                       mols.append(m)
+                       break
+         self.mols = mols
+
       for nm,m in enumerate(self.mols):
           if len(m.mol_index)==1:
              self.zmat_index.append([-1,-1,-1])
