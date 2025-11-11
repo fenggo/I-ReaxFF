@@ -21,6 +21,7 @@ parser.add_argument('--p',default=0.0,type=float, help='Pressure')
 parser.add_argument('--T',default=300,type=int, help='Temperature')
 parser.add_argument('--step',default=5000,type=int, help='Time Step')
 parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
+parser.add_argument('--o',default=0,type=int, help='structure optimization')
 args = parser.parse_args(sys.argv[1:])
  
 def nvt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
@@ -159,7 +160,7 @@ masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
 
-if density <= args.d:
+if density <= args.d or args.o:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
 
