@@ -164,7 +164,8 @@ def get_initial_poly(skf='C-C'):
 
 
 def write_dftb_in(coordinate='dftb.gen',
-                  runtype = 'energy',   # canbe energy, opt, md ...
+                  runtype = 'energy',    # canbe energy, opt, md ...
+                  driver='ConjugateGradient',
                   ensemble='nvt',
                   step=2000,dt=0.1,T=300,timescale=500,
                   AdaptFillingTemp='No',P=0.0,
@@ -175,11 +176,11 @@ def write_dftb_in(coordinate='dftb.gen',
                   maxf  = 1.0e-5,
                   maxam = {'C':'p','H':'s','O':'p','N':'p'},
                   Hubbard={'C':-0.1492,'H': -0.1857,'O':-0.1575,'N': -0.1535},
-                  maxscc=1000,
+                  maxscc=300,
                   readinitialcharges = 'No',
                   polynomial = {},
-                  dispersion = None, # dftd3
-                  thirdorder = 'True',  # must
+                  dispersion = None,       # dftd3
+                  thirdorder = 'True',     # must
                   analysis = True,
                   skf_dir = './' ,
                   w_poly = True):
@@ -194,13 +195,13 @@ def write_dftb_in(coordinate='dftb.gen',
     if runtype=='energy':
          print('Driver = {} ', file=fin)
     elif runtype=='opt':
-         print('Driver = LBFGS{ ', file=fin)  # ConjugateGradient     
+         print('Driver = {:s}{ '.format(driver), file=fin)  # ConjugateGradient or LBFGS
          print('    LatticeOpt = %s' %latopt, file=fin)
          print('    OutputPrefix = %s' %label, file=fin)
          print('    MaxForceComponent = %f' %maxf, file=fin) 
          print('    MaxSteps = 2000 }', file=fin)
     elif runtype=='md':
-         print('Driver = VelocityVerlet{ ', file=fin)  # ConjugateGradient     
+         print('Driver = VelocityVerlet{ ', file=fin)      
          print('    Steps = %d' %step, file=fin)
          print('    TimeStep [Femtosecond]  = %f' %dt, file=fin)
          print('    Thermostat = Berendsen {' , file=fin) 
@@ -289,7 +290,6 @@ def write_dftb_in(coordinate='dftb.gen',
        print('}', file=fin)
     fin.close()
 
-
 def get_dftb_forces():
     ff = open('detailed.out','r')
     readforce = False
@@ -314,7 +314,6 @@ def get_dftb_forces():
        exit()
     # print(len(forces))
     return forces
-
 
 def get_dftb_energy(out='dftb.out'):
     fo = open(out,'r')
@@ -471,6 +470,42 @@ class DFTB(object):
       # send_msg('-  Dftb+ task completed.')
       # return e,p,t
 
+  def opt(self,compress=1.0,mdRestart=100,
+          velocities=None,
+          driver='ConjugateGradient',
+          step='1000',
+          latopt='no',
+          dispersion=None,    # dftd3
+          thirdorder='True',  # must
+          initCharge='No'):
+      ''' geomentry optimization with dftb+ '''
+      A = read(self.gen,index=-1)
+      cell = A.get_cell()
+      # cell = cell*compress
+      # A.set_cell(cell)
+      # A.write(self.gen)
+
+      write_dftb_in(coordinate=self.gen,
+                    runtype = 'opt',   # canbe energy, opt, md ... ensemble='nvt',
+                    driver=driver,
+                    step=step,dt=0.1,T=T,timescale=500,
+                    AdaptFillingTemp='No',P=0.0,
+                    latopt=latopt,
+                    label='dftb',
+                    restart=mdRestart,
+                    maxf=1.0e-5,
+                    maxam=self.maxam,
+                    Hubbard=self.hubbard,
+                    maxscc=self.maxscc,
+                    readinitialcharges=initCharge,
+                    polynomial={},
+                    dispersion=dispersion,    # dftd3
+                    thirdorder=thirdorder,  # must
+                    analysis=True,
+                    skf_dir=self.skf_dir,
+                    w_poly=False)
+      self.run_dftb()
+      e,p,t = xyztotraj('dftb.xyz')
 
   def get_traj(self):
         e,p,t = xyztotraj('dftb.xyz')
