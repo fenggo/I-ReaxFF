@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-from __future__ import print_function
 from os import system, getcwd, chdir,listdir
 import numpy as np
 import matplotlib.pyplot as plt
