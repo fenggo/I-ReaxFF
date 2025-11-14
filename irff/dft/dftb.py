@@ -1,4 +1,5 @@
-from os import system, getcwd, chdir,listdir
+import subprocess
+from os import getcwd, chdir,listdir
 import numpy as np
 import matplotlib.pyplot as plt
 from ase.io import read,write
@@ -22,7 +23,7 @@ def write_polynomial(skf='C-C',rcut=3.9,c=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],dire
     if direc!='./':
        cdir = getcwd()
        chdir(direc)
-    system('mv '+skf+ '.skf' + ' '+ skf+ '.skf.b')
+    subprocess.call('mv '+skf+ '.skf' + ' '+ skf+ '.skf.b',shell=True)
     fb  = open(skf+'.skf.b','r')
     fskf= open(skf+'.skf','w')
 
@@ -60,7 +61,7 @@ def write_zero_spline(skf='C-C.skf',direc='./'):
     if direc!='./':
        cdir = getcwd()
        chdir(direc)
-    system('mv '+skf + ' '+ skf+ '.b')
+    subprocess.call('mv '+skf + ' '+ skf+ '.b',shell=True)
     fb  = open(skf+'.b','r')
     fskf= open(skf,'w')
 
@@ -162,8 +163,8 @@ def get_initial_poly(skf='C-C'):
 
 
 def write_dftb_in(coordinate='dftb.gen',
-                  runtype = 'energy',    # canbe energy, opt, md ...
-                  driver='ConjugateGradient',
+                  runtype = 'energy',         # canbe energy, opt, md ...
+                  driver='ConjugateGradient', # ConjugateGradient or LBFGS
                   ensemble='nvt',
                   step=2000,dt=0.1,T=300,timescale=500,
                   AdaptFillingTemp='No',P=0.0,
@@ -181,26 +182,29 @@ def write_dftb_in(coordinate='dftb.gen',
                   thirdorder = 'True',     # must
                   analysis = True,
                   skf_dir = './' ,
-                  w_poly = True):
+                  w_poly = True,
+                  ncpu=1):
     ''' prepare dftb input '''
 
     fin = open('dftb_in.hsd','w')
     print('Geometry = GenFormat { ', file=fin)
-    print('   <<< "%s"' %coordinate, file=fin)
+    print('   <<< \"{:s}\"'.format(coordinate), file=fin)
     print('}', file=fin)
     print(' ', file=fin)
     print(' ', file=fin)
     if runtype=='energy':
          print('Driver = {} ', file=fin)
     elif runtype=='opt':
-         print('Driver = {:s}{ '.format(driver), file=fin)  # ConjugateGradient or LBFGS
+         print('Driver = {:s}  '.format(driver),end=' ', file=fin)  # ConjugateGradient or LBFGS
+         print('{ ', file=fin)
          print('    LatticeOpt = %s' %latopt, file=fin)
          print('    OutputPrefix = %s' %label, file=fin)
-         print('    MaxForceComponent = %f' %maxf, file=fin) 
-         print('    MaxSteps = 2000 }', file=fin)
+         # print('    Convergence = %f' %maxf, file=fin) 
+         print('    MaxSteps = {:d}'.format(step),end=' ', file=fin)
+         print('}',file=fin)
     elif runtype=='md':
          print('Driver = VelocityVerlet{ ', file=fin)      
-         print('    Steps = %d' %step, file=fin)
+         print('    Steps = {:d}'.format(step), file=fin)
          print('    TimeStep [Femtosecond]  = %f' %dt, file=fin)
          print('    Thermostat = Berendsen {' , file=fin) 
          print('        Temperature [Kelvin] = %f' %T, file=fin)
@@ -209,11 +213,11 @@ def write_dftb_in(coordinate='dftb.gen',
          print('       }', file=fin)
          if not velocities is None:
             print('    Velocities =  { ' , file=fin)
-            print('         <<+ " %s" '  %velocities, file=fin)
+            print('         <<+ \"{:s}\" '.format(velocities), file=fin)
             print('                       } ' , file=fin)
          if ensemble=='npt':
             print('    Barostat = { ', file=fin) 
-            print('        Pressure [pa] = %f' %P, file=fin)
+            print('        Pressure [pa] = {:f}'.format(P), file=fin)
             print('        Timescale = %d}' %timescale, file=fin)
          print('    OutputPrefix = %s' %label, file=fin)  # ConjugateGradient     
          print('    MDRestartFrequency = %d' %restart, file=fin)
@@ -280,11 +284,15 @@ def write_dftb_in(coordinate='dftb.gen',
     print('} ', file=fin)
 
     print('ParserOptions {', file=fin)
-    print('   ParserVersion = 7', file=fin)
+    print('   ParserVersion = 14', file=fin)
     print('}', file=fin)
     if analysis:
        print('Analysis = { ', file=fin)
-       print('CalculateForces = Yes', file=fin)
+       print('   PrintForces = Yes', file=fin)
+       print('}', file=fin)
+    if ncpu>1:
+       print('Parallel = { ', file=fin)
+       print('   UseOmpThreads = Yes', file=fin)
        print('}', file=fin)
     fin.close()
 
@@ -346,7 +354,7 @@ def get_dftb_energy(out='dftb.out'):
      
 
 def run_dftb(cmd='dftb+>dftb.out'):
-    system(cmd)
+    subprocess.call(cmd,shell=True)
 
 
 def reaxyz(fxyz):
@@ -414,7 +422,7 @@ def xyztotraj(fxyz,gen='poscar.gen',mode='w'):
 
 
 class DFTB(object):
-  def __init__(self,pressure=None,dT=5.0,ncpu=1,gen='poscar.gen',
+  def __init__(self,pressure=None,dT=5.0,ncpu=1,#gen='poscar.gen',
                skf_dir='./',
                maxam={'C':'p','H':'s','O':'p','N':'p'},
                hubbard={'C':-0.1492,'H': -0.1857,'O':-0.1575,'N': -0.1535},
@@ -427,14 +435,14 @@ class DFTB(object):
       self.pressure = pressure
       self.np       = ncpu
       self.dT       = dT
-      self.gen      = gen
+      # self.gen    = gen
       self.skf_dir  = skf_dir
       self.maxam    = maxam
       self.hubbard  = hubbard
       self.maxscc   = maxscc
 
 
-  def nvt(self,T=2500,compress=1.0,mdRestart=10,
+  def nvt(self,gen,T=2500,compress=1.0,mdRestart=10,
           velocities=None,
           initCharge='No'):
       A = read(self.gen,index=-1)
@@ -443,12 +451,11 @@ class DFTB(object):
       A.set_cell(cell)
       A.write(self.gen)
 
-      write_dftb_in(coordinate=self.gen,
+      write_dftb_in(coordinate=gen,
                     runtype = 'md',   # canbe energy, opt, md ...
                     ensemble='nvt',
                     step=2000,dt=0.1,T=T,timescale=500,
                     AdaptFillingTemp='No',P=0.0,
-                    latopt='no',
                     label='dftb',
                     velocities=velocities,
                     restart=mdRestart,
@@ -468,25 +475,24 @@ class DFTB(object):
       # send_msg('-  Dftb+ task completed.')
       # return e,p,t
 
-  def opt(self,compress=1.0,mdRestart=100,
-          velocities=None,
-          driver='ConjugateGradient',
-          step='1000',
+  def opt(self,gen,mdRestart=100,
+          driver='GeometryOptimisation',
+          step=1000,
           latopt='no',
           dispersion=None,    # dftd3
           thirdorder='True',  # must
           initCharge='No'):
       ''' geomentry optimization with dftb+ '''
-      A = read(self.gen,index=-1)
-      cell = A.get_cell()
+      #A = read(self.gen,index=-1)
+      #cell = A.get_cell()
       # cell = cell*compress
       # A.set_cell(cell)
       # A.write(self.gen)
 
-      write_dftb_in(coordinate=self.gen,
+      write_dftb_in(coordinate=gen,
                     runtype = 'opt',   # canbe energy, opt, md ... ensemble='nvt',
                     driver=driver,
-                    step=step,dt=0.1,T=T,timescale=500,
+                    step=step,dt=0.1,timescale=500,
                     AdaptFillingTemp='No',P=0.0,
                     latopt=latopt,
                     label='dftb',
@@ -498,12 +504,12 @@ class DFTB(object):
                     readinitialcharges=initCharge,
                     polynomial={},
                     dispersion=dispersion,    # dftd3
-                    thirdorder=thirdorder,  # must
+                    thirdorder=thirdorder,    # must
                     analysis=True,
                     skf_dir=self.skf_dir,
-                    w_poly=False)
+                    w_poly=False,ncpu=self.np)
       self.run_dftb()
-      e,p,t = xyztotraj('dftb.xyz')
+      e,p,t = xyztotraj('dftb.xyz',gen=gen)
 
   def get_traj(self):
         e,p,t = xyztotraj('dftb.xyz')
@@ -512,9 +518,9 @@ class DFTB(object):
 
   def run_dftb(self,gen='poscar.gen'):
       if self.np==1:
-         system('dftb+>dftb.out')
+         subprocess.call('dftb+>dftb.out',shell=True)
       else:
-         system('mpirun -n %d dftb+>dftb.out' %self.np)
+         subprocess.call('mpirun -n {:d} dftb+>dftb.out'.format(self.np),shell=True)
 
 
   def get_thermal(self,out='dftb.out'):
@@ -528,19 +534,11 @@ class DFTB(object):
 
 
 if __name__ == '__main__':
-   if isfile('dftb.traj'):
-      A = read('dftb.traj',index=-1)
-      write_dftb_velocities(A,'velocities')
-      A.write('poscar.gen')
-      v='velocities'
-   else:
-      v = None
-
    ''' evergy (mdRestart) to write MD trajectories i.e. positions and velocities 
        when task completed, can use " ase gui dftb.traj to see the MD results"
    '''
    dftb = DFTB(pressure=None,dT=5.0,ncpu=40,
                skf_dir='/home/leno/scisoft/3ob-3-1/')
-   dftb.nvt(T=2500,compress=0.996,mdRestart=10,velocities=v)
+   dftb.nvt(T=2500,compress=0.996,mdRestart=10)
 
  
