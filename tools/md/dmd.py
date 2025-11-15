@@ -18,5 +18,5 @@ if not gen_.endswith('.gen'):
    gen_    = 'dftb.gen'
 
 dftb = DFTB(maxscc=300,skf_dir='./')
-dftb.opt(gen=args.gen,latopt='yes',step=args.step)
+dftb.opt(gen=gen_,latopt='yes',step=args.step)
 
