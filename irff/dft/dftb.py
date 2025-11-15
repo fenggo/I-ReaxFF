@@ -518,7 +518,7 @@ class DFTB(object):
       print('-  Hugstate calculation compeleted.')
       
 def dftb_opt(gen,step=500,latopt='yes',skf_dir='./'):
-    ''' run DFTB+ geomentric optimization '''
+    ''' run DFTB+ geometric optimization '''
     gen_ = gen
     if not gen_.endswith('.gen'):
        atoms   = read(gen)

@@ -9,8 +9,20 @@ from ase import Atoms
 from ase.data import atomic_numbers, atomic_masses
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
 from irff.md.gulp import write_gulp_in
+from irff.dft.dftb import dftb_opt
 
-''' A work flow in combination with USPEX '''
+''' A work flow in combination with USPEX 
+
+lammps output:
+volume
+583.135930885456
+energy
+-14041.2797331359
+Lattice parameters
+6.60331492567472 0.00  0.00
+2.80503193968843 8.45672340736994  0.00
+-0.746224409308551  -2.99136934823913  10.4425284086715
+'''
 
 parser = argparse.ArgumentParser(description='./atoms_to_poscar.py --g=siesta.traj')
 parser.add_argument('--n',default=1,type=int, help='the number of cpu used in this calculation')
@@ -22,6 +34,7 @@ parser.add_argument('--T',default=300,type=int, help='Temperature')
 parser.add_argument('--step',default=5000,type=int, help='Time Step')
 parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
 parser.add_argument('--o',default=0,type=int, help='structure optimization')
+parser.add_argument('--b',default=0,type=int, help='DFTB+ structure optimization')
 args = parser.parse_args(sys.argv[1:])
  
 def nvt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
@@ -151,6 +164,7 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
+
 write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
@@ -160,7 +174,9 @@ masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
 
-if density <= args.d or args.o:
+if density <= args.d or args.o or args.b:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
-   run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
-
+   if args.b:
+     dftb_opt(gen,step=500,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
+   else:
+     run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
