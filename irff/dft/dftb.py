@@ -509,7 +509,7 @@ class DFTB(object):
                     skf_dir=self.skf_dir,
                     w_poly=False,ncpu=self.np)
       self.run_dftb()
-      e,p,t = xyztotraj('dftb.xyz',gen=gen)
+      # e,p,t = xyztotraj('dftb.xyz',gen=gen)
 
   def get_traj(self):
         e,p,t = xyztotraj('dftb.xyz')
@@ -537,8 +537,7 @@ if __name__ == '__main__':
    ''' evergy (mdRestart) to write MD trajectories i.e. positions and velocities 
        when task completed, can use " ase gui dftb.traj to see the MD results"
    '''
-   dftb = DFTB(pressure=None,dT=5.0,ncpu=40,
-               skf_dir='/home/leno/scisoft/3ob-3-1/')
+   dftb = DFTB(pressure=None,dT=5.0,ncpu=40,skf_dir='./3ob-3-1/')
    dftb.nvt(T=2500,compress=0.996,mdRestart=10)
 
  
