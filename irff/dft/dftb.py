@@ -10,14 +10,12 @@ from ase.calculators.singlepoint import SinglePointCalculator
 # from dingtalk import send_msg
 # libatlas-base-dev  arlapack dftb install must install atlas first
 
-
 def mass(element):
     mas = {'C':12.000,'H':1.008,'N':14.000,'O':15.999,'Fe':55.845}
     if element in mas:
        return mas[element]
     else:
        return 0.0
-
 
 def write_polynomial(skf='C-C',rcut=3.9,c=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],direc='./'):
     if direc!='./':
@@ -43,7 +41,6 @@ def write_polynomial(skf='C-C',rcut=3.9,c=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],dire
     if direc!='./':
        chdir(cdir)
 
-
 def zero_spline(direc=None):
     cdir = getcwd()
     if not direc is None:
@@ -55,7 +52,6 @@ def zero_spline(direc=None):
     for skf in outs:
         if skf.find('.b')<0 and skf.find('.skf')>=0:
            write_zero_spline(skf=skf,direc='./')
-
 
 def write_zero_spline(skf='C-C.skf',direc='./'):
     if direc!='./':
@@ -94,7 +90,6 @@ def write_zero_spline(skf='C-C.skf',direc='./'):
     if direc!='./':
        chdir(cdir)
 
-
 def read_splines(skf='C-C'):
     fs = open(skf+'.skf','r')
     reads = False
@@ -114,7 +109,6 @@ def read_splines(skf='C-C'):
               spline.append(s)
     fs.close()
     return spline
-
 
 def get_initial_poly(skf='C-C'):
     fs = open(skf+'.skf','r')
@@ -161,14 +155,13 @@ def get_initial_poly(skf='C-C'):
     # plt.savefig('spline.eps')
     return result.x
 
-
 def write_dftb_in(coordinate='dftb.gen',
                   runtype = 'energy',         # canbe energy, opt, md ...
                   driver='ConjugateGradient', # ConjugateGradient or LBFGS
                   ensemble='nvt',
                   step=2000,dt=0.1,T=300,timescale=500,
                   AdaptFillingTemp='No',P=0.0,
-                  latopt = 'yes',
+                  latopt = latopt,
                   label = 'dftb',
                   restart=10,
                   velocities=None,
@@ -352,10 +345,8 @@ def get_dftb_energy(out='dftb.out'):
                    toread = False
     return np.array(energy),np.array(p),np.array(t)
      
-
 def run_dftb(cmd='dftb+>dftb.out'):
     subprocess.call(cmd,shell=True)
-
 
 def reaxyz(fxyz):
     # cell = get_lattice()
@@ -399,7 +390,6 @@ def reaxyz(fxyz):
         nf += 1
     return atom_name,np.array(positions),np.array(velocities),frames
 
-
 def xyztotraj(fxyz,gen='poscar.gen',mode='w'):
     A = read(gen)
     atom_name,positions,velocities,frames = reaxyz(fxyz)
@@ -419,7 +409,6 @@ def xyztotraj(fxyz,gen='poscar.gen',mode='w'):
         del A
     his.close()
     return e[frames],p[frames],t[frames]
-
 
 class DFTB(object):
   def __init__(self,pressure=None,dT=5.0,ncpu=1,#gen='poscar.gen',
@@ -515,22 +504,29 @@ class DFTB(object):
         e,p,t = xyztotraj('dftb.xyz')
         return e,p,t
 
-
   def run_dftb(self,gen='poscar.gen'):
       if self.np==1:
          subprocess.call('dftb+>dftb.out',shell=True)
       else:
          subprocess.call('mpirun -n {:d} dftb+>dftb.out'.format(self.np),shell=True)
 
-
   def get_thermal(self,out='dftb.out'):
       e,p,t = get_dftb_energy(out=out)
       return e,p,t
       
-
   def close(self):
       print('-  Hugstate calculation compeleted.')
       
+def dftb_opt(gen,step=500,latopt='yes',skf_dir='./'):
+    ''' run DFTB+ geomentric optimization '''
+    gen_ = gen
+    if not gen_.endswith('.gen'):
+       atoms   = read(gen)
+       atoms.write('dftb.gen')
+       gen_    = 'dftb.gen'
+
+    dftb = DFTB(maxscc=300,skf_dir=skf_dir)
+    dftb.opt(gen=gen_,latopt=latopt,step=step)
 
 
 if __name__ == '__main__':
