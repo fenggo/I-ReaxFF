@@ -9,7 +9,7 @@ install with commond
   "python setup.py build_ext --inplace"
   "python setup install --user"
 or with command
-*  version 1.7.3 
+*  version 1.7.8 
   Add the dftb calculator.
 *  version 1.7.2 
   Correct the usage of batch size.
