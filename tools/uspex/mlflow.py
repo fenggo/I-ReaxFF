@@ -184,9 +184,10 @@ def write_geometry(gen='optimized.gen');
          print(lengths[0],lengths[1],lengths[2],angles[0],angles[1],angles[2],file=gf)
          print('fractional  1  ',file=gf)
          for i,x in enumerate(xf):
-             print(symbols[i],' core ',xf[0],xf[1],xf[2]),' 0.0 1.0 0.0 ',file=gf)
+             print(symbols[i],' core ',xf[0],xf[1],xf[2],' 0.0 1.0 0.0 ',file=gf)
          print(' ',file=gf)
          print('dump every      1 optimized.structure',file=gf)
+                
     
 write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
@@ -200,7 +201,7 @@ density = masses/volume/0.602214129
 if density <= args.d or args.o:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    if args.b:
-      dftb_opt(atoms=atoms,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
+      dftb_opt(atoms=atoms,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/')
       output = subprocess.check_output('grep \'Total Energy:\' dftb.out | tail -1',shell=True)
       e = float(output.split()[-2])
       write_output(e=e)
