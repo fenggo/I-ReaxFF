@@ -517,14 +517,18 @@ class DFTB(object):
   def close(self):
       print('-  Hugstate calculation compeleted.')
       
-def dftb_opt(gen,step=500,latopt='yes',skf_dir='./'):
+def dftb_opt(gen=None,atoms=None,step=500,latopt='yes',skf_dir='./'):
     ''' run DFTB+ geometric optimization '''
     gen_ = gen
-    if not gen_.endswith('.gen'):
-       atoms   = read(gen)
+    if gen is not None:
+       if not gen_.endswith('.gen'):
+          atoms   = read(gen)
+          atoms.write('dftb.gen')
+          gen_    = 'dftb.gen'
+    else:
        atoms.write('dftb.gen')
        gen_    = 'dftb.gen'
-
+       
     dftb = DFTB(maxscc=300,skf_dir=skf_dir)
     dftb.opt(gen=gen_,latopt=latopt,step=step)
 

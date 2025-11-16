@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 from os.path import isfile
 from os import system, getcwd,listdir
 import sys
@@ -32,7 +33,7 @@ parser.add_argument('--z',default=1,type=int, help='Z')
 parser.add_argument('--p',default=0.0,type=float, help='Pressure')
 parser.add_argument('--T',default=300,type=int, help='Temperature')
 parser.add_argument('--step',default=5000,type=int, help='Time Step')
-parser.add_argument('--d',default=1.75,type=float, help='the minimal density')
+parser.add_argument('--d',default=9,type=float, help='the minimal density')
 parser.add_argument('--o',default=0,type=int, help='structure optimization')
 parser.add_argument('--b',default=0,type=int, help='DFTB+ structure optimization')
 args = parser.parse_args(sys.argv[1:])
@@ -86,18 +87,18 @@ def nvt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
               restartfile='restart')
     print('\n-  running lammps ...')
     if n==1:
-       system('lammps<in.lammps>out')
+       subprocess.call('lammps<in.lammps>out',shell=True)
     else:
-       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+       subprocess.call('mpirun -n {:d} lammps -i in.lammps>out'.format(n),shell=True)
     atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
     return atoms
 
-def run_gulp(gen='POSCAR',atoms=None,n=1,inp=None,step=200,l=1,p=0,T=300,t=0.0001,lib='reaxff_nn'):
+def run_gulp(atoms=None,n=1,inp=None,step=200,l=1,p=0,T=300,t=0.0001,lib='reaxff_nn'):
     if inp is not None:
        if n==1:
-          system('gulp<{:s}>output'.format(inp)) 
+          subprocess.call('gulp<{:s}>output'.format(inp),shell=True) 
        else:
-          system('mpirun -n {:d} gulp<{:s}>output'.format(n,inp))  # get initial crystal structure
+          subprocess.call('mpirun -n {:d} gulp<{:s}>output'.format(n,inp),shell=True)  # get initial crystal structure
     else:
        if l==1 or p>0.0000001:
           runword= 'opti conp qiterative stre atomic_stress'
@@ -110,9 +111,9 @@ def run_gulp(gen='POSCAR',atoms=None,n=1,inp=None,step=200,l=1,p=0,T=300,t=0.000
                   lib=lib)
        print('\n-  running gulp optimize ...')
        if n==1:
-          system('gulp<inp-gulp>output')
+          subprocess.call('gulp<inp-gulp>output',shell=True)
        else:
-          system('mpirun -n {:d} gulp<inp-gulp>output'.format(n))
+          subprocess.call('mpirun -n {:d} gulp<inp-gulp>output'.format(n),shell=True)
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     # atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
 
@@ -164,7 +165,28 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
+def write_geometry(gen='optimized.gen');
+    atoms = read(gen)
+    cell = atoms.get_cell()
+    angles = cell.angles()
+    lengths = cell.lengths()
+    cell = cell[:].astype(dtype=np.float32)
+    rcell     = np.linalg.inv(cell).astype(dtype=np.float32)
+    positions = atoms.get_positions()
+    xf        = np.dot(positions,rcell)
+    xf        = np.mod(xf,1.0)
+    symbols = atoms.get_chemical_symbols()
 
+    with open('optimized.structure','r') as gf:
+         print('opti nosymmetry conp qiterative conjugate  ',file=gf)
+         print(' ',file=gf)
+         print('cell  ',file=gf)
+         print(lengths[0],lengths[1],lengths[2],angles[0],angles[1],angles[2],file=gf)
+         print('fractional  1  ',file=gf)
+         for i,x in enumerate(xf):
+             print(symbols[i],' core ',xf[0],xf[1],xf[2]),' 0.0 1.0 0.0 ',file=gf)
+                
+    
 write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
@@ -174,9 +196,14 @@ masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
 
-if density <= args.d or args.o or args.b:
+if density <= args.d or args.o:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    if args.b:
-     dftb_opt(gen,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
+      dftb_opt(atoms=atoms,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
+      output = subprocess.check_output('grep \'Total Energy:\' dftb.out | tail -1',shell=True)
+      e = float(output.split()[-2])
+      write_output(e=e)
+      write_geometry(gen='dftb.gen')
    else:
-     run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
+      run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
+
