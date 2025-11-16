@@ -185,7 +185,7 @@ def write_geometry(gen='optimized.gen'):
          print(lengths[0],lengths[1],lengths[2],angles[0],angles[1],angles[2],file=gf)
          print('fractional  1  ',file=gf)
          for i,x in enumerate(xf):
-             print('{:1s}     core {:12.9f} {:12.9f} {:12.9f} 0.0 1.0 0.0'.format(symbols[i],
+             print('{:1s}     core {:12.9f} {:12.9f} {:12.9f}    0.0 1.0 0.0'.format(symbols[i],
                                                                       x[0],x[1],x[2]),file=gf)
          print(' ',file=gf)
          print('dump every      1 optimized.structure',file=gf)
