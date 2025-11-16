@@ -165,7 +165,7 @@ def npt(atoms,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,c=0,
     atoms.write('POSCAR.lammps')
     return atoms
 
-def write_geometry(gen='optimized.gen');
+def write_geometry(gen='optimized.gen'):
     atoms = read(gen)
     cell = atoms.get_cell()
     angles = cell.angles()
