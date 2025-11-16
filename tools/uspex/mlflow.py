@@ -182,7 +182,9 @@ def write_geometry(gen='optimized.gen'):
          print('opti nosymmetry conp qiterative conjugate  ',file=gf)
          print(' ',file=gf)
          print('cell  ',file=gf)
-         print(lengths[0],lengths[1],lengths[2],angles[0],angles[1],angles[2],file=gf)
+         #   6.80240161   5.69664152   5.91581126  99.91236580 104.21459462 103.96779224   
+         print(' {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f} {:12.8f}'.format(lengths[0],
+                              lengths[1],lengths[2],angles[0],angles[1],angles[2]),file=gf)
          print('fractional  1  ',file=gf)
          for i,x in enumerate(xf):
              print('{:1s}     core {:12.9f} {:12.9f} {:12.9f}    0.0 1.0 0.0'.format(symbols[i],
