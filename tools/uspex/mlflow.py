@@ -27,6 +27,7 @@ Lattice parameters
 
 parser = argparse.ArgumentParser(description='./atoms_to_poscar.py --g=siesta.traj')
 parser.add_argument('--n',default=1,type=int, help='the number of cpu used in this calculation')
+parser.add_argument('--g',default='gulp.cif',type=str, help='geometry file')
 parser.add_argument('--x',default=1,type=int, help='X')
 parser.add_argument('--y',default=1,type=int, help='Y')
 parser.add_argument('--z',default=1,type=int, help='Z')
@@ -177,14 +178,14 @@ def write_geometry(gen='optimized.gen'):
     xf        = np.mod(xf,1.0)
     symbols = atoms.get_chemical_symbols()
 
-    with open('optimized.structure','r') as gf:
+    with open('optimized.structure','w') as gf:
          print('opti nosymmetry conp qiterative conjugate  ',file=gf)
          print(' ',file=gf)
          print('cell  ',file=gf)
          print(lengths[0],lengths[1],lengths[2],angles[0],angles[1],angles[2],file=gf)
          print('fractional  1  ',file=gf)
          for i,x in enumerate(xf):
-             print(symbols[i],' core ',xf[0],xf[1],xf[2],' 0.0 1.0 0.0 ',file=gf)
+             print(symbols[i],' core ',x[0],x[1],x[2],' 0.0 1.0 0.0 ',file=gf)
          print(' ',file=gf)
          print('dump every      1 optimized.structure',file=gf)
                 
@@ -193,10 +194,15 @@ write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
 write_output()
 
-atoms = read('gulp.cif')
+atoms = read(args.g)
 masses = np.sum(atoms.get_masses())
 volume = atoms.get_volume()
 density = masses/volume/0.602214129
+
+'''
+python mlflow.py  --n=20 --step=500 --d=1.72
+python mlflow.py  --b=1  --step=500
+'''
 
 if density <= args.d or args.o:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
