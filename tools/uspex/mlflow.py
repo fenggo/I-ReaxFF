@@ -185,7 +185,8 @@ def write_geometry(gen='optimized.gen');
          print('fractional  1  ',file=gf)
          for i,x in enumerate(xf):
              print(symbols[i],' core ',xf[0],xf[1],xf[2]),' 0.0 1.0 0.0 ',file=gf)
-                
+         print(' ',file=gf)
+         print('dump every      1 optimized.structure',file=gf)
     
 write_input(inp='inp-grad',keyword='grad conv qiterative')
 run_gulp(n=args.n,inp='inp-grad')
