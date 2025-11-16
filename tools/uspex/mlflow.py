@@ -177,6 +177,6 @@ density = masses/volume/0.602214129
 if density <= args.d or args.o or args.b:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    if args.b:
-     dftb_opt(gen,step=500,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
+     dftb_opt(gen,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/mio/')
    else:
      run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
