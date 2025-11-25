@@ -168,6 +168,7 @@ def write_dftb_in(coordinate='dftb.gen',
                   maxf  = 1.0e-5,
                   maxam = {'C':'p','H':'s','O':'p','N':'p'},
                   Hubbard={'C':-0.1492,'H': -0.1857,'O':-0.1575,'N': -0.1535},
+                  Hamiltonian='dftb',      # or xTB
                   maxscc=300,
                   readinitialcharges = 'No',
                   polynomial = {},
@@ -220,9 +221,15 @@ def write_dftb_in(coordinate='dftb.gen',
          print('}', file=fin)
     print(' ', file=fin)
     print(' ', file=fin)
-    print('Hamiltonian = DFTB{ ', file=fin)
+    if Hamiltonian=='xTB' or  Hamiltonian=='xtb':
+       print('Hamiltonian = xTB{ ', file=fin)
+    else:
+       print('Hamiltonian = DFTB{ ', file=fin)
     print('    KPointsAndWeights = { ', file=fin)
-    print('         SupercellFolding = 2 0 0, 0 2 0, 0 0 2, 0.5 0.5 0.5', file=fin)
+    if Hamiltonian=='xTB' or  Hamiltonian=='xtb':
+       print('         SupercellFolding = 1 0 0, 0 1 0, 0 0 1, 0.0 0.0 0.0', file=fin)
+    else:
+       print('         SupercellFolding = 2 0 0, 0 2 0, 0 0 2, 0.5 0.5 0.5', file=fin)
     print('            }', file=fin)
     print('    MaxAngularMomentum = { ', file=fin)
     for key in maxam:
