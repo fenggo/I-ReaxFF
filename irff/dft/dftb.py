@@ -545,7 +545,9 @@ class DFTB(object):
   def close(self):
       print('-  Hugstate calculation compeleted.')
       
-def dftb_opt(gen=None,atoms=None,dispersion='dftd3',fermiT=0.0,step=500,
+def dftb_opt(gen=None,atoms=None,
+             thirdorder='True',
+             dispersion='dftd3',fermiT=0.0,step=500,
              latopt='yes',skf_dir='./'):
     ''' run DFTB+ geometric optimization '''
     gen_ = gen
