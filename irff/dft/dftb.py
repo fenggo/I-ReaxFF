@@ -455,6 +455,7 @@ class DFTB(object):
                dispersion=None,
                thirdorder='True',
                fermiT=0.0,
+               mixer='Broyden',
                maxscc=1000):
       '''
       Hugoniot equation of state.
@@ -472,6 +473,7 @@ class DFTB(object):
       self.dispersion = dispersion
       self.thirdorder = thirdorder
       self.fermiT   = fermiT
+      self.mixer    = mixer
 
 
   def nvt(self,gen,T=2500,compress=1.0,mdRestart=10,
@@ -500,6 +502,7 @@ class DFTB(object):
                     dispersion=self.dispersion, # dftd3
                     thirdorder='True',  # must
                     fermiT=self.fermiT,
+                    mixer=self.mixer,
                     analysis=True,
                     skf_dir=self.skf_dir,
                     w_poly=False)
@@ -537,6 +540,7 @@ class DFTB(object):
                     dispersion=self.dispersion,    # dftd3
                     thirdorder=self.thirdorder,    # must
                     fermiT=self.fermiT,
+                    mixer=self.mixer,
                     analysis=True,
                     skf_dir=self.skf_dir,
                     w_poly=False,ncpu=self.np)
