@@ -210,11 +210,10 @@ python mlflow.py  --b=1  --step=500
 if density <= args.d or args.o:
    # atoms = npt(atoms,T=args.T,step=args.step,p=args.p,x=args.x,y=args.y,z=args.z,n=args.n,dump_interval=100)
    if args.b:
-      dftb_opt(atoms=atoms,step=args.step,skf_dir='/home/xuni/uspex_tnt/Specific/')
+      dftb_opt(atoms=atoms,step=args.step,dispersion='dftd3',skf_dir='./')
       output = subprocess.check_output('grep \'Total Energy:\' dftb.out | tail -1',shell=True)
       e = float(output.split()[-2])
       write_output(e=e)
       write_geometry(gen='dftb.gen')
    else:
       run_gulp(n=args.n,atoms=atoms,l=1,step=1000)
-

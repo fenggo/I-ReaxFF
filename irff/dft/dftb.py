@@ -484,6 +484,7 @@ class DFTB(object):
                     polynomial={},
                     dispersion=self.dispersion, # dftd3
                     thirdorder='True',  # must
+                    fermiT=self.fermiT,
                     analysis=True,
                     skf_dir=self.skf_dir,
                     w_poly=False)
@@ -520,6 +521,7 @@ class DFTB(object):
                     polynomial={},
                     dispersion=self.dispersion,    # dftd3
                     thirdorder=self.thirdorder,    # must
+                    fermiT=self.fermiT,
                     analysis=True,
                     skf_dir=self.skf_dir,
                     w_poly=False,ncpu=self.np)
