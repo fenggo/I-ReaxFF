@@ -252,7 +252,7 @@ def write_dftb_in(coordinate='dftb.gen',
        print('            MaximalWeight = 100000', file=fin)
        print('            WeightFactor = 0.01', file=fin)
        print('             }', file=fin)
-   else:
+    else:
        print('    Mixer = Anderson {', file=fin)
        print('            MixingParameter = 0.05', file=fin)
        print('            Generations = 4', file=fin)
