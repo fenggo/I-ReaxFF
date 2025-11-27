@@ -174,6 +174,7 @@ def write_dftb_in(coordinate='dftb.gen',
                   polynomial = {},
                   dispersion = None,       # dftd3
                   thirdorder = 'True',     # must
+                  fermiT=0.0,
                   analysis = True,
                   skf_dir = './' ,
                   w_poly = True,
@@ -252,7 +253,7 @@ def write_dftb_in(coordinate='dftb.gen',
     print('    ReadInitialCharges  = %s' %readinitialcharges, file=fin)
     print('    Charge  = 0 ', file=fin)
     print('    Filling = Fermi {', file=fin)
-    print('    Temperature = 0.0', file=fin)
+    print('    Temperature = {:f}'.format(fermiT), file=fin)
     print('    IndependentKFilling = No', file=fin)
     print('             }', file=fin)
     if thirdorder:
@@ -438,6 +439,7 @@ class DFTB(object):
                hubbard={'C':-0.1492,'H': -0.1857,'O':-0.1575,'N': -0.1535},
                dispersion=None,
                thirdorder='True',
+               fermiT=0.0,
                maxscc=1000):
       '''
       Hugoniot equation of state.
@@ -454,6 +456,7 @@ class DFTB(object):
       self.maxscc   = maxscc
       self.dispersion = dispersion
       self.thirdorder = thirdorder
+      self.fermiT   = fermiT
 
 
   def nvt(self,gen,T=2500,compress=1.0,mdRestart=10,
@@ -540,7 +543,8 @@ class DFTB(object):
   def close(self):
       print('-  Hugstate calculation compeleted.')
       
-def dftb_opt(gen=None,atoms=None,dispersion='dftd3',step=500,latopt='yes',skf_dir='./'):
+def dftb_opt(gen=None,atoms=None,dispersion='dftd3',fermiT=0.0,step=500,
+             latopt='yes',skf_dir='./'):
     ''' run DFTB+ geometric optimization '''
     gen_ = gen
     if gen is not None:
@@ -552,7 +556,9 @@ def dftb_opt(gen=None,atoms=None,dispersion='dftd3',step=500,latopt='yes',skf_di
        atoms.write('dftb.gen')
        gen_    = 'dftb.gen'
        
-    dftb = DFTB(maxscc=300,dispersion=dispersion,skf_dir=skf_dir)
+    dftb = DFTB(maxscc=300,
+                fermiT=fermiT,
+                dispersion=dispersion,skf_dir=skf_dir)
     dftb.opt(gen=gen_,latopt=latopt,step=step)
 
 
