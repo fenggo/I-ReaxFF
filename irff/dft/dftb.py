@@ -422,6 +422,8 @@ class DFTB(object):
                skf_dir='./',
                maxam={'C':'p','H':'s','O':'p','N':'p'},
                hubbard={'C':-0.1492,'H': -0.1857,'O':-0.1575,'N': -0.1535},
+               dispersion=None,
+               thirdorder='True',
                maxscc=1000):
       '''
       Hugoniot equation of state.
@@ -436,6 +438,8 @@ class DFTB(object):
       self.maxam    = maxam
       self.hubbard  = hubbard
       self.maxscc   = maxscc
+      self.dispersion = dispersion
+      self.thirdorder = thirdorder
 
 
   def nvt(self,gen,T=2500,compress=1.0,mdRestart=10,
@@ -461,7 +465,7 @@ class DFTB(object):
                     maxscc=self.maxscc,
                     readinitialcharges=initCharge,
                     polynomial={},
-                    dispersion=None, # dftd3
+                    dispersion=self.dispersion, # dftd3
                     thirdorder='True',  # must
                     analysis=True,
                     skf_dir=self.skf_dir,
@@ -475,8 +479,6 @@ class DFTB(object):
           driver='GeometryOptimisation',
           step=1000,
           latopt='no',
-          dispersion=None,    # dftd3
-          thirdorder='True',  # must
           initCharge='No'):
       ''' geomentry optimization with dftb+ '''
       #A = read(self.gen,index=-1)
@@ -499,8 +501,8 @@ class DFTB(object):
                     maxscc=self.maxscc,
                     readinitialcharges=initCharge,
                     polynomial={},
-                    dispersion=dispersion,    # dftd3
-                    thirdorder=thirdorder,    # must
+                    dispersion=self.dispersion,    # dftd3
+                    thirdorder=self.thirdorder,    # must
                     analysis=True,
                     skf_dir=self.skf_dir,
                     w_poly=False,ncpu=self.np)
@@ -524,7 +526,7 @@ class DFTB(object):
   def close(self):
       print('-  Hugstate calculation compeleted.')
       
-def dftb_opt(gen=None,atoms=None,step=500,latopt='yes',skf_dir='./'):
+def dftb_opt(gen=None,atoms=None,dispersion='dftd3',step=500,latopt='yes',skf_dir='./'):
     ''' run DFTB+ geometric optimization '''
     gen_ = gen
     if gen is not None:
@@ -536,7 +538,7 @@ def dftb_opt(gen=None,atoms=None,step=500,latopt='yes',skf_dir='./'):
        atoms.write('dftb.gen')
        gen_    = 'dftb.gen'
        
-    dftb = DFTB(maxscc=300,skf_dir=skf_dir)
+    dftb = DFTB(maxscc=300,dispersion=dispersion,skf_dir=skf_dir)
     dftb.opt(gen=gen_,latopt=latopt,step=step)
 
 
@@ -544,7 +546,7 @@ if __name__ == '__main__':
    ''' evergy (mdRestart) to write MD trajectories i.e. positions and velocities 
        when task completed, can use " ase gui dftb.traj to see the MD results"
    '''
-   dftb = DFTB(pressure=None,dT=5.0,ncpu=40,skf_dir='./3ob-3-1/')
+   dftb = DFTB(pressure=None,dispersion='dftd3',dT=5.0,ncpu=40,skf_dir='./3ob-3-1/')
    dftb.nvt(T=2500,compress=0.996,mdRestart=10)
 
  
