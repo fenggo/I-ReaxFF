@@ -567,6 +567,7 @@ class DFTB(object):
 def dftb_opt(gen=None,atoms=None,
              thirdorder='True',
              dispersion='dftd3',fermiT=0.0,step=500,
+             mixer='Broyden',
              latopt='yes',skf_dir='./'):
     ''' run DFTB+ geometric optimization '''
     gen_ = gen
