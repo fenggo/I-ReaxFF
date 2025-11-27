@@ -264,6 +264,13 @@ def write_dftb_in(coordinate='dftb.gen',
        print('        }', file=fin)
     if dispersion == 'dftd3':
        print('    Dispersion = DftD3 {}', file=fin)
+    elif dispersion == 'simpledftd3':
+       print('    Dispersion = SimpleDftD3 {', file=fin)
+       print('        a1 = 0.5719', file=fin)
+       print('        a2 = 3.6017', file=fin)
+       print('        s6 = 1.0', file=fin)
+       print('        s8 = 0.5883', file=fin)
+       print('     }', file=fin)
     else:
        print('    Dispersion = LennardJones {', file=fin)
        print('    Parameters = UFFParameters {}', file=fin)
