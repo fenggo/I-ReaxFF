@@ -175,6 +175,7 @@ def write_dftb_in(coordinate='dftb.gen',
                   dispersion = None,       # dftd3
                   thirdorder = 'True',     # must
                   fermiT=0.0,
+                  mixer='Broyden',  # Anderson, DIIS
                   analysis = True,
                   skf_dir = './' ,
                   w_poly = True,
@@ -243,13 +244,27 @@ def write_dftb_in(coordinate='dftb.gen',
     print('        Separator = "-" ', file=fin)
     print('        Suffix = ".skf" ', file=fin)
     print('             }', file=fin)
-    print('    Mixer = Broyden {', file=fin)
-    print('            MixingParameter = 0.2', file=fin)
-    print('            InverseJacobiWeight = 0.01', file=fin)
-    print('            MinimalWeight = 1', file=fin)
-    print('            MaximalWeight = 100000', file=fin)
-    print('            WeightFactor = 0.01', file=fin)
-    print('             }', file=fin)
+    if mixer=='Broyden' or mixer=='broyden':
+       print('    Mixer = Broyden {', file=fin)
+       print('            MixingParameter = 0.2', file=fin)
+       print('            InverseJacobiWeight = 0.01', file=fin)
+       print('            MinimalWeight = 1', file=fin)
+       print('            MaximalWeight = 100000', file=fin)
+       print('            WeightFactor = 0.01', file=fin)
+       print('             }', file=fin)
+   else:
+       print('    Mixer = Anderson {', file=fin)
+       print('            MixingParameter = 0.05', file=fin)
+       print('            Generations = 4', file=fin)
+       # Now the over-ride the (previously hidden) default old settings
+       print('            InitMixingParameter = 0.01', file=fin)
+       print('            DynMixingParameters = {', file=fin)
+       print('            1.0e-2 0.1 # use 0.1 as mixing if more converged that 1.0e-2', file=fin)
+       print('            1.0e-3 0.3 # again, but 1.0e-3', file=fin)
+       print('            1.0e-4 0.5 # and the same', file=fin)
+       print('          }', file=fin)
+       print('           DiagonalRescaling = 0.01', file=fin)
+       print('       }', file=fin)
     print('    ReadInitialCharges  = %s' %readinitialcharges, file=fin)
     print('    Charge  = 0 ', file=fin)
     print('    Filling = Fermi {', file=fin)
