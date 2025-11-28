@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 from os import getcwd,chdir,listdir
 from os.path import exists
 
@@ -39,3 +40,4 @@ with open('Seeds.dat','r') as fd:
              r = res[r_]
              if st_ in r:
                 print(st,r[st_])
+# output = subprocess.check_output('grep EA POSCARS_1',shell=True)
