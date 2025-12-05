@@ -2,6 +2,8 @@
 import subprocess
 
 ''' A script that run USPEX.m
+    run this scrip with:
+      nohup ./uspex.py 2>&1 & 
 '''
 
 while True:
