@@ -49,7 +49,7 @@ def search_flow(comm,mpi_rank,mpi_size,noprint,logger):
     while jobs.id_queueing:
         logger.info(f'job id queueing: {jobs.id_queueing}')
         cnt_recheck += 1
-        logger.info(f'\n\nrecheck {cnt_recheck}\n')
+        logger.info(f'\n\ncalculate structure {cnt_recheck}\n')
         jobs.check_job()
         jobs.handle_job()
     else:
