@@ -247,12 +247,6 @@ class AtomDance(object):
              self.label += sp+str(label_dic[sp])
 
       self.ir.calculate_Delta(atoms)
-      self.InitBonds = getBonds(self.natom,self.ir.r,self.rmax*self.ir.re,self.ir.bo0,
-                                botol=self.botol)
-      self.freebonds = self.InitBonds
-      self.neighbors = getNeighbor(self.natom,self.ir.r,self.rmax*self.ir.re,self.ir.bo0,
-                                   symbols=self.atom_name,
-                                   botol=self.botol)
       if rcut is None:
          self.rcut       = self.ir.re*rmax
       else:
@@ -262,14 +256,20 @@ class AtomDance(object):
                  bd = self.ir.atom_name[i] + '-' + self.ir.atom_name[j]
                  bdr= self.ir.atom_name[j] + '-' + self.ir.atom_name[i]
                  if bd in rcut:
-                    rc = rcut[bd]
+                    self.rcut[i][j] = rcut[bd]
                  elif bdr in rcut:
-                    rc = rcut[bdr]
+                    self.rcut[i][j] = rcut[bdr]
                  elif 'others' in rcut:
-                    rc = rcut['others']
-                 else:
-                    rc = 1.8
-                 self.rcut[i][j] = rc 
+                    self.rcut[i][j] = rcut['others']
+                 # else:
+                 #    self.rcut[i][j] = 1.8
+
+      self.InitBonds = getBonds(self.natom,self.ir.r,self.rcut,self.ir.bo0,
+                                botol=self.botol)
+      self.freebonds = self.InitBonds
+      self.neighbors = getNeighbor(self.natom,self.ir.r,self.rcut,self.ir.bo0,
+                                   symbols=self.atom_name,
+                                   botol=self.botol)
 
       self.InitZmat = np.array(self.get_zmatrix(atoms))
       self.zmatrix  = self.InitZmat
