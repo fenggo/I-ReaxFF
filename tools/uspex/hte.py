@@ -13,6 +13,7 @@ from irff.md.gulp import write_gulp_in
 from irff.dft.dftb import dftb_opt
 
 ''' A work flow in combination with USPEX 
+    High-Throughput Evolutionary Crystal Structure Prediction Method
 
 lammps output:
 volume
