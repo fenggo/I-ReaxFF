@@ -386,9 +386,9 @@ def opt(atoms=None,T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
        A = atoms
     # A = press_mol(A) 
     if l==1 or p>0.0000001:
-       runword= 'opti conp qiterative stre atomic_stress'
+       runword= 'opti conp qiterative stre atomic_stress verb'
     elif l==0:
-       runword='opti conv qiterative'
+       runword='opti conv qiterative verb'
     if output=='shengbte':
        runword= 'opti conv qiterative prop phonons thermal num3'
     write_gulp_in(A,runword=runword,
