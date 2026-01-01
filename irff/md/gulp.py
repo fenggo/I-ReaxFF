@@ -1,4 +1,5 @@
-from os import system
+# from os import system
+import subprocess
 from os.path import isfile
 import numpy as np
 import json as js
@@ -398,9 +399,9 @@ def opt(atoms=None,T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     # print('\n-  running gulp optimize ...')
     if n==1:
-       system('gulp<inp-gulp>gulp.out')
+       subprocess.call('gulp<inp-gulp>gulp.out',shell=True)
     else:
-       system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n),shell=True)
     # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
     if x>1 or y>1 or z>1:
@@ -434,9 +435,9 @@ def nvt(atoms=None, gen='poscar.gen', T=350, time_step=0.1, tot_step=100,
                   lib=lib)
     # print('\n-  running gulp nvt ...')
     if ncpu > 1:
-        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu))
+        subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu),shell=True)
     else:
-        system('gulp<inp-gulp>gulp.out')
+        subprocess.call('gulp<inp-gulp>gulp.out',shell=True)
     xyztotraj('his.xyz',mode=mode,traj='md.traj',scale=False)
 
 def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
@@ -452,9 +453,9 @@ def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
                   lib=lib)
     print('\n-  running gulp phonon calculation ...')
     if n==1:
-       system('gulp<inp-phonon>phonon.out')
+       subprocess.call('gulp<inp-phonon>phonon.out',shell=True)
     else:
-       system('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n))
+       subprocess.call('mpirun -n {:d} gulp<inp-phonon>phonon.out'.format(n),shell=True)
     atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
     
 def npt(T=350, time_step=0.1, tot_step=10.0, ncpu=1):
@@ -465,9 +466,9 @@ def npt(T=350, time_step=0.1, tot_step=10.0, ncpu=1):
                   tot_step=tot_step,
                   lib='reax')
     if ncpu > 1:
-        system('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu))
+        subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(ncpu),shell=True)
     else:
-        system('gulp<inp-gulp>gulp.out')
+        subprocess.call('gulp<inp-gulp>gulp.out',shell=True)
     xyztotraj('his.xyz',mode='w',traj='md.traj',scale=False)
 
 
@@ -500,9 +501,9 @@ def gulp(atoms=None, gen='poscar.gen', inp=None, out='gulp.out', ncpu=1):
 
     print('-  running gulp ...')
     if ncpu > 1:
-        system('mpirun -n {:d} gulp< {:s} > {:s}'.format(ncpu, 'gin', out))
+        subprocess.call('mpirun -n {:d} gulp< {:s} > {:s}'.format(ncpu, 'gin', out),shell=True)
     else:
-        system('gulp< {:s} > {:s}'.format('gin', out))
+        subprocess.call('gulp< {:s} > {:s}'.format('gin', out),shell=True)
     if isfile('his.xyz'):
         xyztotraj('his.xyz')
     print('-  Job completed.')
@@ -550,7 +551,7 @@ def init_bonds(p_):
 def get_gulp_energy(atoms, ffield='reaxff_nn'):
     write_gulp_in(atoms, runword='gradient nosymmetry conv qite verb',
                   lib=ffield)
-    system('gulp<inp-gulp>out')
+    subprocess.call('gulp<inp-gulp>out',shell=True)
 
     (e_, eb_, el_, eo_, eu_, ea_, ep_,
      etc_, et_, ef_, ev_, ehb_, ecl_, esl_) = get_reax_energy(fo='out')
@@ -602,7 +603,7 @@ def get_gulp_forces(images, traj='gulp_force.traj', ffield='reaxff_nn',e_kw='Rea
         write_gulp_in(atoms, runword='gradient nosymmetry conv qite verb',
                       output='drv gulp', restart=1,
                       lib=ffield)
-        system('gulp<inp-gulp>out')
+        subprocess.call('gulp<inp-gulp>out',shell=True)
         forces = get_gulp_force_from_drv('gulp.drv', wforce=wforce)
         #atoms.forces = forces
         (e, eb_, el_, eo_, eu_, ea_, ep_,
