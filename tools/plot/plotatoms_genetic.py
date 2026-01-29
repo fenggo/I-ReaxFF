@@ -17,7 +17,7 @@ parser.add_argument('--camera_position',default='xy',type=str, help='whether plo
 args = parser.parse_args(sys.argv[1:])
 
 #-------------------  定义原子颜色和大小　--------------------
-radius = {'C':0.36,'H':0.16,'N':0.30,'O':0.28}
+radius = {'C':0.66,'H':0.25,'N':0.60,'O':0.45}
 colors = {'C':'black','H':'white','N':'deepskyblue','O':'m'}
 
 def parse_atoms(atoms):
@@ -60,7 +60,7 @@ p.show_axes()
 
 atoms  = read(args.geo,index=args.i)
 m_     = Molecules(atoms,rcut={'O-H':1.2,'others': 1.6},check=True)
-print(m_)
+# print(m_)
 
 for m in m_:
     atoms_ = moltoatoms([m])
@@ -70,14 +70,14 @@ for m in m_:
     #------------------------ 画出原子　------------------------
     opac =  1 
     if natom==21:
-       c = "#10D745"  
+       c = "#0CE442"  
     else:
-       c = "#EC062C"
+       c = "#EC0690"
    
     for i,atom in enumerate(atoms_):
         sphere = pv.Sphere(radius=radius[atom.symbol], center=(atom.x,atom.y,atom.z))
         # c = colors[atom.symbol] 
-        p.add_mesh(sphere, color=c, pbr=True, opacity=1.0,metallic=1/8, roughness=1/5)  
+        p.add_mesh(sphere, color=c, pbr=True, opacity=1,metallic=0.1, roughness=0.2,smooth_shading=True)  
 
     #----------------------- 画出原子键　-----------------------
     bonds = pv.PolyData()
@@ -85,9 +85,9 @@ for m in m_:
 
     # print(bds)
     bonds.lines = bds
-    tube = bonds.tube(radius=0.10)
+    tube = bonds.tube(radius=0.20)
     # tube.plot(smooth_shading=True,pbr=True, metallic=2/4,)
-    p.add_mesh(tube,pbr=True,metallic=3/4,color=c, roughness=2/5, opacity=1.0,smooth_shading=True)
+    p.add_mesh(tube,pbr=True,metallic=0.1,color=c, roughness=0.2, opacity=1,smooth_shading=True)
 
  
 # p.view_vector((0,1,0))
