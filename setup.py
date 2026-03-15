@@ -41,7 +41,7 @@ setup(name="irff",
       license="LGPL",
       packages= find_packages(),
       package_data={'': ['*.gen','*.json','.pyx']},
-      # ext_modules=cythonize(['irff/neighbor.pyx','irff/getNeighbor.pyx'],
-      annotate=True))
+      # ext_modules=cythonize(['irff/neighbor.pyx','irff/getNeighbor.pyx'],annotate=True)
+      )
 
 
