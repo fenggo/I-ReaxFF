@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 # from distutils.core import setup
-from Cython.Distutils import build_ext
-from Cython.Build import cythonize
+# from Cython.Distutils import build_ext
+# from Cython.Build import cythonize
 
 
 '''
@@ -41,6 +41,7 @@ setup(name="irff",
       license="LGPL",
       packages= find_packages(),
       package_data={'': ['*.gen','*.json','.pyx']},
-      ext_modules=cythonize(['irff/neighbor.pyx','irff/getNeighbor.pyx'],annotate=True))
+      # ext_modules=cythonize(['irff/neighbor.pyx','irff/getNeighbor.pyx'],
+      annotate=True))
 
 
