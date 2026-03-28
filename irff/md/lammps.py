@@ -582,7 +582,7 @@ def construct_cell(diagdisp, offdiag):
     return cell, celldisp
 
 def lammpstraj_to_ase(filename='lammps.trj',index=-1,traj='md.traj', 
-                      mode='w',units='real',
+                      mode='w',units='real',log='lmp.log',
                       inp='in.lammps',atomid=None,recover=False):
     """Process cleartext lammps dumpfiles
     :param filename: trajectory file name
@@ -590,7 +590,7 @@ def lammpstraj_to_ase(filename='lammps.trj',index=-1,traj='md.traj',
     :rtype: list
     """
     e = []
-    with open('lmp.log','r') as fl:
+    with open(log,'r') as fl:
          lines = fl.readlines()
          readenergy = False
          for line in lines:
