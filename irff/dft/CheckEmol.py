@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from ase import Atoms
 from ase.io.trajectory import Trajectory
 from ase.io import read
-import tensorflow as tf
+# import tensorflow as tf
 import json as js
 
 
