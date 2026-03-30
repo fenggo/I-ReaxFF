@@ -18,5 +18,5 @@ A = read(args.g)
 # build.make_supercell(A,[2,2,2])
 # write('poscar.gen',A*(2,2,2))
 
-_,atoms = SuperCell(A,fac=1.0,supercell=None)
+_,atoms = SuperCell(A,fac=1.0,supercell=[args.x,args.y,args.z])
 write('POSCAR.supercell',atoms)
