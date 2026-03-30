@@ -17,7 +17,7 @@ from .dft.CheckEmol import check_emol
 from .data.prep_data import prep_data
 # import tensorflow as tf
 from .md.irmd import IRMD
-from .trainer import train_reax,train_mpnn,train_nn
+from .trainer import train_reax,train_mpnn,train_nn,train_torch
 from .AtomDance import AtomDance,check_zmat
 from .dingtalk import send_msg
 
@@ -70,7 +70,7 @@ class LearningMachine(object):
                rmin=0.88,rmax=1.33,angmax=25.0,
                CheckZmat=True,uncertainty=0.96,period=30,
                EngTole=0.05,dEtole=0.2,dEstop=2.0,
-               nn=True,vdwnn=False,trainer=1,
+               nn=True,vdwnn=False,trainer=3,
                bo_layer=None,mf_layer=[9,1],be_layer=[9,1],vdw_layer=None,#[6,1],
                be_universal_nn=None,bo_universal_nn=None,
                mf_universal_nn=None,vdw_universal_nn=None,
@@ -200,6 +200,8 @@ class LearningMachine(object):
          self.train = train_mpnn
       elif self.trainer==2:
          self.train = train_nn
+      elif self.trainer==3:
+         self.train = train_torch
       else:
          raise RuntimeError('Error: train method not implimented!')
 

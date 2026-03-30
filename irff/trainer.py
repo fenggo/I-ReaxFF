@@ -195,6 +195,85 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
     ''' train the massage passing model '''
+    regularize =True if lambda_reg>0.0001 else False
+    cons_=['val','vale',
+           'ovun1','ovun2','ovun3','ovun4',
+           'ovun5','ovun6','ovun7','ovun8',
+           'lp2','lp3',#'lp1',
+           'cot1','cot2',
+           'coa1','coa2','coa3','coa4',
+           'pen1','pen2','pen3','pen4',
+           'Depi','Depp',#'Desi','Devdw',
+           #'bo1','bo2','bo3','bo4','bo5','bo6',
+           #'rosi','ropi','ropp',
+           'cutoff','hbtol','acut' ] #'val8','val9','val10' 
+    if cons is None:
+       cons = cons_
+    else:
+       cons = cons + cons_
+       
+    rn = ReaxFF_nn(libfile=ffield,
+              dataset=dataset, 
+              dft='siesta',
+              spec=spec,
+              energy_term=energy_term,
+              clip=clip,
+              cons=cons,
+              mf_layer=mf_layer,be_layer=be_layer,
+              be_universal_nn=be_universal_nn,
+              mf_universal_nn=mf_universal_nn,
+              MessageFunction=MessageFunction,# EnergyFunction=EnergyFunction,
+              messages=messages,
+              nnopt=nnopt,
+              batch=batch,
+              losFunc='n2',
+              regularize_be=regularize,regularize_mf=regularize,
+              lambda_reg=lambda_reg,lambda_bd=lambda_bd,
+              lambda_me=lambda_me,
+              weight=weight,weight_force=weight_force,
+              convergence=convergence,
+              lossConvergence=lossConvergence) # Loss Functon can be n2,abs,mse,huber
+
+    loss,accu,accMax,i,zpe =rn.run(learning_rate=learning_rate,
+                                   step=step,
+                                   print_step=10,
+                                   writelib=writelib) 
+
+    libstep = int(i - i%writelib)
+    if i==libstep:
+       libstep = libstep - writelib
+    if libstep<=0:
+       ffd = 'ffield.json'
+    else:
+       ffd = 'ffield_' + str(libstep) + '.json'
+
+    p   = rn.p_
+    if loss==0.0 and accu==0.0:
+       send_msg('-  Warning: the loss is NaN!')
+       return -1,1,accMax,p,zpe,i
+
+    rn.close()
+    return loss,accu,accMax,p,zpe,i
+
+def train_torch(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=1000.0,
+               energy_term={'ecoul':True},cons=None,clip={},
+               spec=[],
+               writelib=1000,nn=True,vdwnn=True,VdwFunction=1,
+               bo_layer=[4,1],mf_layer=[9,2],be_layer=[6,1],vdw_layer=[6,1],
+               be_universal_nn='all',bo_universal_nn='all',mf_universal_nn='all',
+               vdw_universal_nn='all',
+               BOFunction=0,EnergyFunction=3,MessageFunction=2,
+               messages=1,nnopt=[1,1,1,1],
+               bo_clip=False,#boc={},#boup={},
+               spv_be=False,belo={},beup={},
+               spv_vdw=False,vlo={},vup={},
+               lambda_me=0.1,lambda_bd=1000.0,
+               weight={'others':10.0},weight_force={'others':1.0},
+               pi_clip=False,
+               lambda_reg=0.0001, # regularize=True,
+               learning_rate=1.0e-4,
+               ffield = 'ffield.json',**kwargs):
+    ''' train the massage passing model '''
     from .reaxff_torch import ReaxFF_nn
     regularize =True if lambda_reg>0.0001 else False
     cons_=['val','vale',
@@ -224,10 +303,46 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
               lambda_reg=lambda_reg,lambda_bd=lambda_bd,
               weight_energy=weight,weight_force=weight_force ) # Loss Functon can be n2,abs,mse,huber
 
-    loss,accu,accMax,i,zpe =rn.run(step=step) 
+    optimizer = torch.optim.Adam(rn.parameters(), lr=args.l)
+    n_epoch = step + 1
+    for epoch in range(n_epoch):
+        los   = []
+        los_e = []
+        los_f = []
+        los_p = []
+        start = time.time()
+        optimizer.zero_grad()
+        for st in rn.strcs:
+            E,F  = rn(st)             # forward
+            loss = rn.get_loss(st)
+            loss.backward(retain_graph=False)
+            los.append(loss.item())
+            los_e.append(rn.loss_e.item()/rn.natom[st])
+            los_f.append(rn.loss_f.item()/(rn.natom[st]))
+            los_p.append(rn.loss_penalty.item())
+         
+        optimizer.step()        # update parameters 
+        rn.clamp()              # contrain the paramters
+        los_ = np.mean(los)
+    
+        use_time = time.time() - start
+        print( "eproch: {:5d} loss : {:10.5f} energy: {:7.5f} force: {:7.5f} pen: {:10.5f} time: {:6.3f}".format(epoch,
+                los_,np.mean(los_e),np.mean(los_f),np.mean(los_p),use_time))
+        if np.isnan(los_):
+           break
+        if epoch%100==0:
+           rn.save_ffield('ffields/ffield_{:d}.json'.format(epoch))
+           # rn.save_ffield('ffield.json')
+           print('\n-------------------- Loss for Batches -------------------')
+           print('-   Batch     TolLoss     EnergyLoss    ForceLoss       -')
+           print('---------------------------------------------------------')
+           for st,l,l_e,l_f,l_p in zip(rn.strcs,los,los_e,los_f,los_p):
+               print('  {:10s} {:11.5f} {:10.5f}   {:10.5f}'.format(st,l,l_e,l_f))
+           print('---------------------------------------------------------\n')
 
+    rn.save_ffield('ffield.json')
     rn.close()
-    return 0.0, 0.0 , 0.0 , 0.0 ,0.0, 0  
+    return los_, np.mean(los_e), np.mean(los_f), np.mean(los_p),0.0, epoch  
 
 if __name__ == '__main__':
    ''' use commond like ./bp.py <t> to run it
