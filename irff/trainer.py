@@ -195,7 +195,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
     ''' train the massage passing model '''
-    from .reax_nn import ReaxFF_nn
+    from .reaxff_torch import ReaxFF_nn
     regularize =True if lambda_reg>0.0001 else False
     cons_=['val','vale',
            'ovun1','ovun2','ovun3','ovun4',
@@ -216,45 +216,18 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
     rn = ReaxFF_nn(libfile=ffield,
               dataset=dataset, 
               dft='siesta',
-              spec=spec,
-              energy_term=energy_term,
               clip=clip,
               cons=cons,
               mf_layer=mf_layer,be_layer=be_layer,
-              be_universal_nn=be_universal_nn,
-              mf_universal_nn=mf_universal_nn,
               MessageFunction=MessageFunction,# EnergyFunction=EnergyFunction,
               messages=messages,
-              nnopt=nnopt,
-              batch=batch,
-              losFunc='n2',
-              regularize_be=regularize,regularize_mf=regularize,
               lambda_reg=lambda_reg,lambda_bd=lambda_bd,
-              lambda_me=lambda_me,
-              weight=weight,weight_force=weight_force,
-              convergence=convergence,
-              lossConvergence=lossConvergence) # Loss Functon can be n2,abs,mse,huber
+              weight_energy=weight,weight_force=weight_force ) # Loss Functon can be n2,abs,mse,huber
 
-    loss,accu,accMax,i,zpe =rn.run(learning_rate=learning_rate,
-                                   step=step,
-                                   print_step=10,
-                                   writelib=writelib) 
-
-    libstep = int(i - i%writelib)
-    if i==libstep:
-       libstep = libstep - writelib
-    if libstep<=0:
-       ffd = 'ffield.json'
-    else:
-       ffd = 'ffield_' + str(libstep) + '.json'
-
-    p   = rn.p_
-    if loss==0.0 and accu==0.0:
-       send_msg('-  Warning: the loss is NaN!')
-       return -1,1,accMax,p,zpe,i
+    loss,accu,accMax,i,zpe =rn.run(step=step) 
 
     rn.close()
-    return loss,accu,accMax,p,zpe,i
+    return 0.0, 0.0 , 0.0 , 0.0 ,0.0, 0  
 
 if __name__ == '__main__':
    ''' use commond like ./bp.py <t> to run it
