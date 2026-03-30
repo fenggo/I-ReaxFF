@@ -195,6 +195,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
     ''' train the massage passing model '''
+    from .reax_nn import ReaxFF_nn
     regularize =True if lambda_reg>0.0001 else False
     cons_=['val','vale',
            'ovun1','ovun2','ovun3','ovun4',
