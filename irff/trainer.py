@@ -5,9 +5,9 @@ from os.path import isfile # exists
 import argh
 import argparse
 import numpy as np
-from .reax import ReaxFF
-from .reax_nn import ReaxFF_nn
-from .mpnn import MPNN
+# from .reax import ReaxFF
+# from .reax_nn import ReaxFF_nn
+# from .mpnn import MPNN
 # from .intCheck import Intelligent_Check 
 from .dingtalk import send_msg
 import json as js
@@ -44,6 +44,7 @@ def train_reax(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
           learning_rate=1.0e-4,
           ffield='ffield.json',**kwargs):
     ''' training the force field '''
+    from .reax import ReaxFF
     rn = ReaxFF(libfile=ffield,
                 dataset=dataset, 
                 dft='siesta',
@@ -101,6 +102,7 @@ def train_mpnn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergenc
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
     ''' train the massage passing model '''
+    from .mpnn import MPNN
     regularize =True if lambda_reg>0.0001 else False
     cons_=['val','vale',
            'ovun1','ovun2','ovun3','ovun4',
@@ -193,6 +195,7 @@ def train_nn(dataset=None,step=5000,batch=None,convergence=0.97,lossConvergence=
                learning_rate=1.0e-4,
                ffield = 'ffield.json',**kwargs):
     ''' train the massage passing model '''
+    from .reax_nn import ReaxFF_nn
     regularize =True if lambda_reg>0.0001 else False
     cons_=['val','vale',
            'ovun1','ovun2','ovun3','ovun4',
