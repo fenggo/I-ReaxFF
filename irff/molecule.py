@@ -217,7 +217,20 @@ def press_mol(atoms,fac=1.0,rcut=None,inbox=False,check=True):
     return atoms
 
 
-def SuperCell(m,cell=None,fac=1.0,supercell=None):
+def SuperCell(atoms,fac=1.0,supercell=None):
+    cell = atoms.get_cell()
+    natm,atoms,X,table = get_neighbors(Atoms=atoms,
+                                r_cut=rcut,
+                                cell=cell) #,exception=['O-O','H-H']
+    
+    m = molecules(natm,atoms,
+                  cell=cell,
+                  table=table,
+                  X=X,
+                  rcut=rcut,
+                  check=check,
+                  inbox=inbox,
+                  sizeiscell=True)
     mols,atoms = enlarge(m,cell=cell,fac=fac,supercell=supercell)
     return mols,atoms
 
