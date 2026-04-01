@@ -284,6 +284,7 @@ if __name__ == '__main__':
         ./lmd.py nvt --T=2800 --s=5000 --g=*.gen 
 		./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --tdump=10 --r=1
         ./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --m=quip
+        ./lmd.py traj --i=in.meta.lammps --t=meta.lammpstrj
        to run this script.
        ---------------------------------------------
        nvt: NVT MD simulation
