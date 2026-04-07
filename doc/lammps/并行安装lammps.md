@@ -23,3 +23,10 @@ make install-python
 from lammps import lammps
 ```
 如能加载没有报错信息,安装成功。
+
+（选装）COLVAR模块
+```
+make lib-colvar
+make yes-colvar
+make mpi
+```
