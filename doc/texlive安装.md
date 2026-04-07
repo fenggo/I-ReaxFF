@@ -6,4 +6,4 @@ https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/
 
 根据提示，在～/.bashrc文件中修改环境变量（打开方式：gedit ~/.bashrc、deepin-editor~/.bashrc、vi ~/.bashrc）
 
-VScode安装扩展：Latex Workshop
+VScode安装扩展：LaTex Workshop、LaTex Uitility
