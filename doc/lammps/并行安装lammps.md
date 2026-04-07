@@ -26,7 +26,7 @@ from lammps import lammps
 
 （选装）COLVAR模块
 ```
-make lib-colvar
+make lib-colvar args="-m mpi" ## 或者 make lib-colvar args="-m ubuntu"
 make yes-colvar
-make mpi
+make mpi                      ## 或者 make ubuntu
 ```
