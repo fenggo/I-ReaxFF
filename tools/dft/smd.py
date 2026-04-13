@@ -122,13 +122,22 @@ def x(f='siesta.XV'):
              c = c_.split()
              print(c[0],c[1],c[2],file=fg)
 
-def w(gen='poscar.gen'):
+def fdf(gen='poscar.gen',xcf='gga'):
     A = read(gen,index=-1)
     print('\n-  writing siesta input ...')
-    write_siesta_in(A,coord='cart', md=False, opt='CG',
+    if xcf=='gga':
+       write_siesta_in(A,coord='cart', md=False, opt='CG',
+                    VariableCell='true', 
+                    xcf='GGA',xca='PBE',basistype='split' )
+    elif xcf=='vdw':
+       write_siesta_in(A,coord='cart', md=False, opt='CG',
                     VariableCell='true', xcf='VDW', xca='DRSLL',
-                    basistype='DZP')
-
+                    basistype='split') # DZP
+       # siesta_opt(A,ncpu=ncpu,us=us,VariableCell=vc,tstep=step,
+       #            xcf='GGA',xca='PBE',basistype='split')
+       #            xcf='VDW',xca='DRSLL',basistype='split')
+    else:
+       print('Not supported yet!')
 
 if __name__ == '__main__':
    ''' use commond like ./smd.py opt --l=1 --g=*.gen --n=8 to run it
