@@ -151,7 +151,7 @@ if __name__ == '__main__':
        --n: the number of the CPU cores will be used
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,w])
+   argh.add_commands(parser, [md,opt,traj,npt,pm,mde,x,fdf])
    argh.dispatch(parser)
 
 
