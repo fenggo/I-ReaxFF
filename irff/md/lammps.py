@@ -923,7 +923,7 @@ def get_lammps_forces(atoms,lmp='lammps',
               data='data.lammps',
               units=units,atom_style=atom_style,
               restartfile='restart')
-    print('\n-  running lammps nvt ...')
+    # print('\n-  running lammps nvt ...')
     if ncpu==1:
        system('{:s} <in.lammps>out'.format(lmp))
     else:
