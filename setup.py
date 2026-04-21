@@ -9,6 +9,8 @@ install with commond
   "python setup.py build_ext --inplace"
   "python setup install --user"
 or with command
+*  version 1.7.9 
+  using samples.traj instead of md.traj
 *  version 1.7.8 
   Add the dftb calculator.
 *  version 1.7.2 
@@ -26,7 +28,7 @@ or with command
 '''
 
 
-__version__ = '1.7.8'
+__version__ = '1.7.9'
 install_requires = ['numpy','ase'] # ,'tensorflow','matplotlib','paramiko','argh','scikit-learn','cython']
 url = "https://gitee.com/fenggo/I-ReaxFF"
 

@@ -1,5 +1,6 @@
 from os.path import exists,isfile
 from os import getcwd,chdir,mkdir,listdir,system
+import subprocess
 import numpy as np
 import json as js
 from ase.io import read,write
@@ -281,10 +282,16 @@ class LearningMachine(object):
              continue
           if images is not None:
              atoms = images[-1] 
-          elif isfile('md.traj'): 
-             atoms = read('md.traj',index=-1) 
+          elif isfile('samples.traj'): 
+             atoms = read('samples.traj',index=-1) 
              consistance = self.check_atoms(atoms)
-             assert consistance,'-  The species in md.traj is not consistant with initial configuration!'
+             assert consistance,'-  The species in samples.traj is not consistant with initial configuration!'
+             # print('-  atomic structure from MD trajectories.')
+          elif isfile('md.traj'): 
+             subprocess.call('mv md.traj samples.traj',shell=True)
+             atoms = read('samples.traj',index=-1) 
+             consistance = self.check_atoms(atoms)
+             assert consistance,'-  The species in md.traj/samples.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
           else:
              print('-  cannot find MD trajectory, use learn_method=1 in the first iter.')
@@ -421,7 +428,7 @@ class LearningMachine(object):
           if learn_method==6:
              if ms<len(self.freeatoms):
                 i = self.freeatoms[ms]
-                self.a.pes(i,atoms,nbin=dft_step,dr=0.1,traj='md.traj')
+                self.a.pes(i,atoms,nbin=dft_step,dr=0.1,traj='samples.traj')
              if ms == len(self.freeatoms) -1:
                 self.learn_method=3
           elif learn_method==4:
@@ -431,17 +438,17 @@ class LearningMachine(object):
           else:
              if Deformed>=1.0:
                 images,relaxlog = self.a.zmat_relax(atoms=atoms,zmat_variable=zmat_variable,nbin=relax_step,
-                                                    zvlo=zvlo,zvhi=zvhi,traj='md.traj')
+                                                    zvlo=zvlo,zvhi=zvhi,traj='samples.traj')
              elif uncertainty_zv is not None:
                 images,relaxlog = self.a.zmat_relax(atoms=atoms,zmat_variable=uncertainty_zv,nbin=relax_step,
-                                                    zmatrix=self.a.zmatrix,zvlo=u_zvlo,zvhi=u_zvhi,traj='md.traj') # ,reset=True
+                                                    zmatrix=self.a.zmatrix,zvlo=u_zvlo,zvhi=u_zvhi,traj='samples.traj') # ,reset=True
              else:
                 e_gmd,mdsteps,Deformed,zmat_variable,zvlo,zvhi = self.mlmd(atoms, 10000,
                                                 iter_,learn_method,beta=self.beta,learnpair=self.learnpair,
                                                 groupi=groupi,groupj=groupj) 
                 if self.CheckZmat and mdsteps<=3:
                    mdsteps= 10
-                   images,relaxlog = self.a.continous(atoms,nbin=mdsteps,traj='md.traj')
+                   images,relaxlog = self.a.continous(atoms,nbin=mdsteps,traj='samples.traj')
              if images is not None:
                 Deformed,zmat,zmat_variable,zvlo,zvhi = check_zmat(atoms=images[-1],rmin=self.rmin,
                                        rmax=self.rmax,angmax=self.angmax,zmat_id=self.a.zmat_id,
@@ -544,7 +551,7 @@ class LearningMachine(object):
       elif self.dft=='qe':
          system('cp ../../pseudo/*.UPF ./')
       system('cp ../../ffield.json ./')     # prepare files
-      system('cp ../../md.traj ./')
+      system('cp ../../samples.traj ./')
       
       emlmd  = []
       ind_   = ' '
@@ -564,14 +571,14 @@ class LearningMachine(object):
          else:
             raise RuntimeError('-  This method not implimented!')
          eaimd = [images[0].get_potential_energy()]
-         system('cp %s ../../md.traj' %(self.label+'.traj'))
+         system('cp %s ../../samples.traj' %(self.label+'.traj'))
       elif learn_method==2:
          if self.dft=='siesta':
             images = siesta_opt(atoms=atoms,label=self.label,ncpu=self.ncpu,VariableCell=self.lattice_opt,us='F',
                                 tstep=tstep,FreeAtoms=self.freeatoms,
                                 xcf=self.xcf,xca=self.xca,basistype=self.basistype,**self.kwargs)
-            system('cp {:s}.traj md.traj'.format(self.label))
-            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
+            system('cp {:s}.traj samples.traj'.format(self.label))
+            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='samples.traj',label=self.label,EngTole=self.EngTole,
                                                  frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
@@ -582,8 +589,8 @@ class LearningMachine(object):
             images = qeopt(atoms=atoms,label=self.label,ncpu=self.ncpu,tstep=tstep,
                            kpts=self.kpts,**self.kwargs) ## geomentry optimize
             ind_   = 'Geomentry Optimization'
-            system('cp {:s}.traj md.traj'.format(self.label))
-            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
+            system('cp {:s}.traj samples.traj'.format(self.label))
+            E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='samples.traj',label=self.label,EngTole=self.EngTole,
                                                  frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
@@ -592,10 +599,10 @@ class LearningMachine(object):
          else:
             raise RuntimeError('-  This method not implimented!')
          eaimd = [images[0].get_potential_energy()]
-         system('cp %s ../../md.traj' %(self.label+'.traj'))
+         system('cp %s ../../samples.traj' %(self.label+'.traj'))
       elif learn_method>2:
          # print('-  files in this dir \n',cwd+'/'+run_dir,'\n',listdir())
-         E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='md.traj',label=self.label,EngTole=self.EngTole,
+         E,E_,dEmax,d2Emax,ind_ = SinglePointEnergies(traj='samples.traj',label=self.label,EngTole=self.EngTole,
                                                  frame=tstep,select=self.automatic_sampling,
                                                  dE=self.dEtole,colmin=self.col_min_interval,
                                                  dft=self.dft,kpts=self.kpts,
@@ -628,6 +635,7 @@ class LearningMachine(object):
          Deformed,zmats,zv,zvlo,zvhi = irmd.opt()
       else:
          Deformed,zmats,zv,zvlo,zvhi = irmd.run()
+      subprocess.call('mv md.traj samples.traj',shell=True)
       mdsteps= irmd.step
       Emd    = irmd.Epot
       irmd.close()
