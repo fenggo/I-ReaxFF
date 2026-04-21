@@ -11,7 +11,7 @@ from irff.irff_np import IRFF_NP
 # from irff.molecule import press_mol
 
 cdir    = getcwd()
-parser  = argparse.ArgumentParser(description='./pack_poscar.py --d=1.83')
+parser  = argparse.ArgumentParser(description='./poscar_to_traj.py --d=1.83')
 parser.add_argument('--d',default=None ,type=float, help='the density of POSCAR file should be copyed')
 args    = parser.parse_args(sys.argv[1:])
 cdir_   = '/'.join(cdir.split('/')[:-1])
@@ -34,7 +34,7 @@ if args.d is not None:
 #################### pack poscars to md.traj ######################
 #cdir    = getcwd()
 files   = listdir(cdir)
-traj    = TrajectoryWriter('md.traj',mode='w')
+traj    = TrajectoryWriter('samples.traj',mode='w')
 poscars = []
 
 for fil in files:
