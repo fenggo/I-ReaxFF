@@ -288,6 +288,7 @@ class LearningMachine(object):
              assert consistance,'-  The species in samples.traj is not consistant with initial configuration!'
              # print('-  atomic structure from MD trajectories.')
           elif isfile('md.traj'): 
+             print('-  Walling: sample sturcutes filename will use samples.traj instead!')
              subprocess.call('mv md.traj samples.traj',shell=True)
              atoms = read('samples.traj',index=-1) 
              consistance = self.check_atoms(atoms)
