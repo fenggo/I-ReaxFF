@@ -1,55 +1,60 @@
 #!/usr/bin/env python
 import argh
 import argparse
-import subprocess
+from os import system #,popen
 import numpy as np
 from ase import Atoms
 from ase.io import read # ,write
 from ase.data import atomic_numbers, atomic_masses
 from ase.calculators.singlepoint import SinglePointCalculator
 from irff.md.lammps import writeLammpsData,writeLammpsIn,get_lammps_thermal,lammpstraj_to_ase
-from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
-from irff.molecule import Molecules
 
 
-def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         free=' ',dump_interval=10,
         x=1,y=1,z=1,n=1,lib='ffield',thermo_fix=None,
         r=0):
-    if atoms is None:
-       atoms = read(gen,index=i)*(x,y,z)
+    atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
+    if model == 'mtp':
+       symbols = ['C','O','N','H']
+    else:
+       symbols = sorted(set(symbols))
+    species = sorted(set(symbols)) if model != 'mtp'  else symbols
     sp      = ' '.join(species)
-    freeatoms = free.split() if isinstance(free,str) else free
+    freeatoms = free.split()
     freeatoms = [int(i)+1 for i in freeatoms]
     masses    = {s:atomic_masses[atomic_numbers[s]] for s in species }
-    
+
     if model == 'quip':
-       pair_style = 'quip'  
+       pair_style = 'quip'
        lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
        pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
        units      = "metal"
        atom_style = 'atomic'
+    elif model == 'mtp':
+       pair_style = 'mlip load_from=pot.almtp'
+       pair_coeff = '* * # {:s}'.format(sp)
+       units      = "metal"
+       atom_style = 'atomic'
+    elif model == 'dpmd':
+       pair_style = 'deepmd EMFF-2025_V1.0.pb'
+       pair_coeff = '* * # {:s}'.format(sp)
+       units      = "metal"
+       atom_style = 'atomic'
     elif model == 'ace':
-       pair_style = 'hybrid/overlay pace table linear 10000'  
+       pair_style = 'hybrid/overlay pace table linear 10000'
        pair_coeff = ['* * pace c_ace.yace C','* * table d2_short.table D2 9.0']
        units      = "metal"
        atom_style = 'atomic'
     elif model == 'airebo':
-       pair_style = 'airebo 3.0 1 1'  
+       pair_style = 'airebo 3.0 1 1'
        lib        = 'CH.airebo'
        pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
        units      = "metal"
        atom_style = 'atomic'
-    elif model == 'mtp':
-       pair_style = 'mlip load_from=pot.almtp'  
-       lib        = 'pot.almtp'
-       pair_coeff = '*  *  # {:s}'.format(sp)
-       units      = "metal"
-       atom_style = 'atomic'
     elif model == 'reaxff':
-       pair_style = 'reaxff control checkqeq yes'          # without lg set lgvdw no
+       pair_style = 'reaxff control checkqeq yes'   # without lg set lgvdw no
        pair_coeff = '* * {:s} {:s}'.format(lib,sp)
        units      = "real"
        atom_style = 'charge'
@@ -59,7 +64,7 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
        units      = "real"
        atom_style = 'charge'
     if thermo_fix is None:
-       thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:d} '.format(T,T,tdump) 
+       thermo_fix = 'fix   1 all nvt temp {:f} {:f} {:d} '.format(T,T,tdump)
 
     thermo_style = 'thermo_style  custom step temp epair etotal press vol \
        cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz'
@@ -67,7 +72,7 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
     if r == 0:
        r_=None
        data = 'data.lammps'
-       writeLammpsData(atoms,data='data.lammps',specorder=None, 
+       writeLammpsData(atoms,data='data.lammps',specorder=species,
                        masses=masses,
                        force_skew=False,
                        velocities=False,units=units,atom_style=atom_style)
@@ -89,141 +94,25 @@ def nvt(atoms=None,T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,m
               restartfile='restart')
     print('\n-  running lammps ...')
     if n==1:
-       subprocess.call('lammps<in.lammps>out')
+       system('lammps<in.lammps>out')
     else:
-       subprocess.call('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
     atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
     return atoms
 
 def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
-    atoms = read(gen,index=i)*(x,y,z)
-    m_  = Molecules(atoms,rcut={"H-O":1.12,"H-N":1.22,"H-C":1.22,"O-O":1.35,"others": 1.62},check=True)
-    free_ = []
-    if free:
-       for i,m in enumerate(m_):
-           # print(dir(m))
-           m.mol_index.sort()
-           # print(m.label)
-           if m.label == free:
-              free_.extend(m.mol_index)
     thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
                   T,tdump,p,p,tdump)
-    atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
-                free=free_,dump_interval=dump_interval,
+    atoms = nvt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
+                free=free,dump_interval=dump_interval,
                 x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
-    return atoms
-
-def nptmin(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
-        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
-    atoms = read(gen,index=i)*(x,y,z)
-    m_  = Molecules(atoms,rcut={"H-O":1.12,"H-N":1.22,"H-C":1.22,"O-O":1.35,"others": 1.62},check=True)
-    free_ = []
-    if free:
-       for i,m in enumerate(m_):
-           # print(dir(m))
-           m.mol_index.sort()
-           # print(m.label)
-           if m.label == free:
-              free_.extend(m.mol_index)
-    thermo_fix = 'fix   1 all npt temp {:f} {:f} {:d} iso {:f} {:f} {:d}'.format(T,
-                  T,tdump,p,p,tdump)
-    atoms = nvt(atoms=atoms,T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
-                free=free_,dump_interval=dump_interval,
-                x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
-    opt(atoms=atoms,step=500,l=1,c=0,p=p,x=x,y=y,z=y,n=n,lib='reaxff_nn')
-    minimize(T=T,atoms=atoms,timestep=timestep,step=step,model=model,
-                x=x,y=y,z=z,n=n,lib=lib,l=0)
-    # return atoms
-
-def nve(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
-        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10,r=0):
-    thermo_fix = 'fix   1 all nve '
-    nvt(T=T,timestep=timestep,step=step,gen=gen,i=i,model=model,c=c,
-        free=free,dump_interval=dump_interval,
-        x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
-
-def opt(T=350,atoms=None,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
-        x=1,y=1,z=1,n=1,lib='reaxff_nn'):
-    if atoms is None:
-       atoms = read(gen,index=i)*(x,y,z)
-    # A = press_mol(A) 
-    if l==1 or p>0.0000001:
-       runword= 'opti conp qiterative stre atomic_stress'
-    elif l==0:
-       runword='opti conv qiterative'
-
-    write_gulp_in(atoms,runword=runword,
-                  T=T,maxcyc=step,pressure=p,
-                  lib=lib)
-    print('\n-  running gulp optimize ...')
-    if n==1:
-       subprocess.call('gulp<inp-gulp>gulp.out')
-    else:
-       subprocess.call('mpirun -n {:d} gulp<inp-gulp>gulp.out'.format(n))
-    # xyztotraj('his.xyz',mode='w',traj='md.traj',checkMol=c,scale=False) 
-    arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
-    atoms = arctotraj('his_3D.arc',traj='md.traj',checkMol=c)
-    print('-  enthalpy: ',atoms.get_potential_energy())
-    masses = np.sum(atoms.get_masses())
-    volume = atoms.get_volume()
-    density = masses/volume/0.602214129
-    print('-  density: ',density)
-    return atoms
-    
-def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
-             model='reaxff-nn',c=0,
-             x=1,y=1,z=1,n=1,lib='ffield',l=0):
-    if atoms is None:
-       atoms = read(gen,index=i)*(x,y,z)
-    symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
-    sp      = ' '.join(species)
-    if model == 'quip':
-       pair_style = 'quip'  
-       lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
-       pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
-       units      = "metal"
-       atom_style = 'atomic'
-    elif model == 'mtp':
-       pair_style = 'mlip load_from=pot.almtp'  
-       lib        = 'pot.almtp'
-       pair_coeff = '*  *  # {:s}'.format(sp)
-       units      = "metal"
-       atom_style = 'atomic'
-    else:
-       pair_style = 'reaxff control nn yes checkqeq yes'   # without lg set lgvdw no
-       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
-       units      = "real"
-       atom_style = 'charge'
-    writeLammpsData(atoms,data='data.lammps',specorder=None, 
-                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
-                             'N':14.0000,'F':18.9980},
-                    force_skew=False,
-                    velocities=False,units=units,atom_style=atom_style)
-    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
-              dump_interval=1,
-              species=species,
-              pair_style = pair_style,  # without lg set lgvdw no
-              pair_coeff = pair_coeff,
-              fix = ' ', 
-              fix_modify = ' ',
-              minimize   = '1e-7 1e-5 2000 20000', # etol ftol maxiter maxeval(max number of force/energy evaluations)
-              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
-              data='data.lammps',units=units,atom_style=atom_style,
-              restartfile='restart')
-    print('\n-  running lammps minimize ...')
-    if n==1:
-       subprocess.call('lammps<in.lammps>out')
-    else:
-       subprocess.call('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
-    atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
     if x>1 or y>1 or z>1:
        ncell     = x*y*z
        natoms    = int(len(atoms)/ncell)
        species   = atoms.get_chemical_symbols()
        positions = atoms.get_positions()
-       #forces    = atoms.get_forces()
+       forces    = atoms.get_forces()
        cell      = atoms.get_cell()
        cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
        u         = np.linalg.inv(cell)
@@ -233,6 +122,70 @@ def minimize(T=350,atoms=None,timestep=0.1,step=1,gen='poscar.gen',i=-1,
        atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
     atoms.write('POSCAR.unitcell')
+    # return atoms
+
+def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',
+        p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10):
+    atoms = npt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,
+                p=p,x=x,y=y,z=z,n=n,lib=lib,free=free,dump_interval=dump_interval)
+    # x,y,z=2,2,2
+    if x>1 or y>1 or z>1:
+       ncell     = x*y*z
+       natoms    = int(len(atoms)/ncell)
+       species   = atoms.get_chemical_symbols()
+       positions = atoms.get_positions()
+       forces    = atoms.get_forces()
+       cell      = atoms.get_cell()
+       cell      = [cell[0]/x, cell[1]/y,cell[2]/z]
+       u         = np.linalg.inv(cell)
+       pos_      = np.dot(positions[0:natoms], u)
+       posf      = np.mod(pos_, 1.0)          # aplling simple pbc conditions
+       pos       = np.dot(posf, cell)
+       atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
+                         cell=cell,pbc=[True,True,True])
+
+    atoms.write('POSCAR.unitcell')
+    return atoms
+
+def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
+        x=1,y=1,z=1,n=1,lib='ffield'):
+    atoms = read(gen,index=i)*(x,y,z)
+    symbols = atoms.get_chemical_symbols()
+    species = sorted(set(symbols))
+    sp      = ' '.join(species)
+    if model == 'quip':
+       pair_style = 'quip'
+       lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
+       pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
+       units      = "metal"
+       atom_style = 'atomic'
+    else:
+       pair_style = 'reaxff control nn yes checkqeq yes'   # without lg set lgvdw no
+       pair_coeff = '* * {:s} {:s}'.format(lib,sp)
+       units      = "real"
+       atom_style = 'charge'
+    writeLammpsData(atoms,data='data.lammps',specorder=None,
+                    masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
+                             'N':14.0000,'F':18.9980},
+                    force_skew=False,
+                    velocities=False,units=units,atom_style=atom_style)
+    writeLammpsIn(log='lmp.log',timestep=timestep,total=step,restart=None,
+              dump_interval=1,
+              species=species,
+              pair_style = pair_style,  # without lg set lgvdw no
+              pair_coeff = pair_coeff,
+              fix = ' ',
+              fix_modify = ' ',
+              minimize   = '1e-5 1e-5 2000 2000',
+              thermo_style ='thermo_style  custom step temp epair etotal press vol cella cellb cellc cellalpha cellbeta cellgamma pxx pyy pzz pxy pxz pyz',
+              data='data.lammps',units=units,atom_style=atom_style,
+              restartfile='restart')
+    print('\n-  running lammps minimize ...')
+    if n==1:
+       system('lammps<in.lammps>out')
+    else:
+       system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
+    lammpstraj_to_ase('lammps.trj',inp='in.lammps',recover=c,units=units)
 
 def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=1,y=1,z=1,n=1,
@@ -246,7 +199,9 @@ def msst(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='w',c=0,
         x=x,y=y,z=z,n=n,lib=lib,thermo_fix=thermo_fix,r=r)
 
 def traj(inp='in.lammps',traj='lammps.trj',s=0,e=0,c=0,units='real'):
-    ''' usage: ./lmd.py traj --inp=in.lammps --unit=metal '''
+    ''' usage: ./lmd.py traj --inp=in.lammps --unit=metal 
+               ./lmd.py traj --i=in.meta.lammps --t=meta.lammpstrj
+    '''
     if e==0:
        atomid = None
     else:
@@ -262,7 +217,7 @@ def w(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     symbols = atoms.get_chemical_symbols()
     species = sorted(set(symbols))
     sp      = ' '.join(species)
-    writeLammpsData(atoms,data='data.lammps',specorder=None, 
+    writeLammpsData(atoms,data='data.lammps',specorder=None,
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
@@ -280,21 +235,19 @@ def w(T=350,timestep=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
     print('\n-  write lammps input ...')
 
 if __name__ == '__main__':
-   ''' use commond like: 
-        ./lmd.py nvt --T=2800 --s=5000 --g=*.gen 
-		./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --tdump=10 --r=1
-        ./lmd.py npt --T=50 --s=1000 --g=md.traj --n=8 --p=2 --m=quip
-        ./lmd.py traj --i=in.meta.lammps --t=meta.lammpstrj
+   ''' use commond like:
+          ./lmd.py nvt --T=2800 --s=5000 --g=*.gen
+          ./lmd.py npt --s=20000 --g=md.traj --p=2 --n=8  --T=150 --tdump=200
+          ./lmd.py traj --i=in.meta.lammps --t=meta.lammpstrj
        to run this script.
        ---------------------------------------------
        nvt: NVT MD simulation
        opt: structure optimization
        w  : write the gulp input file
-       --g: the atomic structure file 
+       --g: the atomic structure file
        --s: MD simulation steps
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nptmin,nvt,minimize,nve,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nvt,msst,plot,traj,w])
    argh.dispatch(parser)
-
