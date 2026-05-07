@@ -17,10 +17,9 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     if model == 'mtp':
-       symbols = ['C','O','N','H']
+       species = symbols = ['C','O','N','H']
     else:
-       symbols = sorted(set(symbols))
-    species = sorted(set(symbols)) if model != 'mtp'  else symbols
+       species = symbols = sorted(set(symbols))
     sp      = ' '.join(species)
     freeatoms = free.split()
     freeatoms = [int(i)+1 for i in freeatoms]
