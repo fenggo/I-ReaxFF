@@ -604,7 +604,12 @@ def lammpstraj_to_ase(filename='lammps.trj',index=-1,traj='md.traj',
                 readenergy = False
              l = line.split()
              if readenergy and l[0]!='Step' and len(l)==nt:
-                e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
+                if units=='real':
+                   e.append(float(l[2])*4.3364432032e-2) # unit conver to eV
+                elif units=='metal':
+                   e.append(float(l[2])) # unit conver to eV
+                else:
+                   e.append(float(l[2])) # unit conver to eV
     with open(inp,'r') as fi:
          lines = fi.readlines()
          model = 'reaxff'
