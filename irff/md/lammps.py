@@ -470,6 +470,8 @@ def writeLammpsIn(log='lmp.log',timestep=0.1,total=200, data=None,restart=None,
     if restartfile is not None:
        print('write_restart {:s}'.format(restartfile), file=fin)
     print(' ', file=fin)
+    print('variable e equal etotal', file=fin)
+    print('print \"Total Energy: $e\"', file=fin)  
     fin.close()
 
 
