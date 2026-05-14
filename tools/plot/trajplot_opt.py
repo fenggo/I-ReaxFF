@@ -79,15 +79,15 @@ def get_lammps_energy_mtp(atoms,n=4):
     atoms.potential_energy = e_
     return atoms
 
-def trajplot(traj='siesta.traj',n=8,i=0,j=1):
+def trajplot(traj='siesta.traj',n=8,i=0,j=1,n_struct=100):
     images_        = Trajectory(traj)
     step,e1,e2,e= [],[],[],[]
     e3,e4          = [],[]
     r              = []
     # 随机抽样100个结构
     n_images = len(images_)
-    if n_images > 100:
-        sampled_indices = random.sample(range(n_images), 100)
+    if n_images > n_struct:
+        sampled_indices = random.sample(range(n_images), n_struct)
         images = [images_[idx] for idx in sampled_indices]
     else:
         images = images_
@@ -161,6 +161,8 @@ if __name__ == '__main__':
    parser.add_argument('--t', default='structures.traj',type=str, help='trajectory file')
    parser.add_argument('--i', default=0,type=int, help='atom i')
    parser.add_argument('--j', default=0,type=int, help='atom j')
+   parser.add_argument('--n', default=8,type=int, help='number of cpu to be used')
+   parser.add_argument('--ns', default=100,type=int, help='number of structures to be plotted')
    args = parser.parse_args(sys.argv[1:])
-   trajplot(traj=args.t,i=args.i,j=args.j)
+   trajplot(traj=args.t,i=args.i,j=args.j,n=args.n,n_struct=args.ns)
 
