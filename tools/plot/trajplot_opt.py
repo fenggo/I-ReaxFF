@@ -74,9 +74,9 @@ def get_lammps_energy_mtp(atoms,n=4):
     else:
        system('mpirun -n {:d} lammps -i in.lammps>out'.format(n))
     atoms = lammpstraj_to_ase('lammps.trj',inp='in.lammps',units=units)
-    line = subprocess.check_output('grep \"Total Energy:\" lmp.log',shell=True)
-    e_ = float(line.split()[-1])
-    atoms.potential_energy = e_
+   #  line = subprocess.check_output('grep \"Total Energy:\" lmp.log',shell=True)
+   #  e_ = float(line.split()[-1])
+   #  atoms.energy = e_
     return atoms
 
 def trajplot(traj='siesta.traj',n=8,i=0,j=1,n_struct=100):
