@@ -86,6 +86,7 @@ def trajplot(traj='siesta.traj',n=8,i=0,j=1,n_struct=100):
     r              = []
     # 随机抽样100个结构
     n_images = len(images_)
+    masses = np.sum(images_[0].get_masses())
     if n_images > n_struct:
         sampled_indices = random.sample(range(n_images), n_struct)
         images = [images_[idx] for idx in sampled_indices]
@@ -95,13 +96,23 @@ def trajplot(traj='siesta.traj',n=8,i=0,j=1,n_struct=100):
     for i_,atoms in enumerate(images):
         step.append(i_)
         e.append(atoms.get_potential_energy())
-        atoms_gulp = get_gulp_energy(atoms,n=8,libfile='reaxff_nn.lib')
-        e1.append(atoms_gulp.get_potential_energy())
+        atoms_rnn = get_gulp_energy(atoms,n=8,libfile='reaxff_nn.lib')
+        #### calculate density 
+    
+        volume = atoms_rnn.get_volume()
+        density_rnn = masses/volume/0.602214129
+
+        e1.append(atoms_rnn.get_potential_energy())
         # e2.append(get_lammps_forces(atoms).get_potential_energy())
-        atoms_lammps = get_lammps_energy_mtp(atoms,n=8)
-        e3.append(atoms_lammps.get_potential_energy())
+        atoms_mtp = get_lammps_energy_mtp(atoms,n=8)
+
+        volume = atoms_mtp.get_volume()
+        density_mtp = masses/volume/0.602214129
+        
+        e3.append(atoms_mtp.get_potential_energy())
         # e4.append(get_deepmd_energy(atoms))
-        print(e[-1], e1[-1],e3[-1],file=fe)
+        print(e[-1], e1[-1],e3[-1],density_rnn,density_mtp,file=fe)
+        
     fe.close()
     e1  = np.array(e1) - min(e1)
     # e2  = np.array(e2) - min(e2)
