@@ -32,9 +32,12 @@ make mpi                      ## 或者 make ubuntu
 ```
 
 (选装) DeePMD模块
-
+```
 pip install deepmd-kit  # 安装DeePMD Python包
+```
 获取 DeepMD 库路径
+```
 python -c "import deepmd; print(deepmd.__path__[0])"
+```
  （如：/home/feng/.local/anaconda/envs/deepmd-lmp/lib/python3.10/site-packages/deepmd）
 安装lammps
