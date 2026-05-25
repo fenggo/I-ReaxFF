@@ -124,8 +124,9 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     atoms.write('POSCAR.unitcell')
     # return atoms
 
-def opt(T=5,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',
+def opt(T=5,tdump=100,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10):
+    timestep = 0.1 if model == 'reaxff-nn' else 1.0
     atoms = npt(T=T,tdump=tdump,timestep=timestep,step=step,gen=gen,i=i,model=model,
                 p=p,x=x,y=y,z=z,n=n,lib=lib,free=free,dump_interval=dump_interval)
     # x,y,z=2,2,2
