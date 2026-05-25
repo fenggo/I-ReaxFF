@@ -151,7 +151,11 @@ def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
-    species = sorted(set(symbols))
+    if model == 'mtp':
+       symbols = ['C','O','N','H']
+    else:
+       symbols = sorted(set(symbols))
+    species = symbols
     sp      = ' '.join(species)
     if model == 'quip':
        pair_style = 'quip'
