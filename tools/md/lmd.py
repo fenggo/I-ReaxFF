@@ -121,8 +121,8 @@ def npt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
        pos       = np.dot(posf, cell)
        atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
-    atoms.write('POSCAR.unitcell')
-    # return atoms
+    # atoms.write('POSCAR.unitcell')
+    return atoms
 
 def opt(T=5,tdump=100,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',
         p=0.0,x=1,y=1,z=1,n=1,lib='ffield',free=' ',dump_interval=10):
@@ -144,8 +144,13 @@ def opt(T=5,tdump=100,step=100,gen='poscar.gen',i=-1,model='reaxff-nn',
        pos       = np.dot(posf, cell)
        atoms     = Atoms(species[0:natoms],pos,#forces=forces[0:natoms],
                          cell=cell,pbc=[True,True,True])
+    masses = np.sum(atoms.get_masses())
+    volume = atoms.get_volume()
+    density = masses/volume/0.602214129
+    print('-  enthalpy: ',atoms.get_potential_energy())
+    print('-  density: ',density)
     # atoms.write('POSCAR.unitcell')
-    # return atoms
+    #return atoms
 
 def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
         x=1,y=1,z=1,n=1,lib='ffield'):
