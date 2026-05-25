@@ -17,9 +17,11 @@ def nvt(T=350,tdump=100,timestep=0.1,step=100,gen='poscar.gen',i=-1,model='reaxf
     atoms = read(gen,index=i)*(x,y,z)
     symbols = atoms.get_chemical_symbols()
     if model == 'mtp':
-       species = symbols = ['C','O','N','H']
+       symbols = ['C','O','N','H']
+       species = symbols
     else:
-       species = symbols = sorted(set(symbols))
+       symbols = sorted(set(symbols))
+       species = sorted(set(symbols))
     sp      = ' '.join(species)
     freeatoms = free.split()
     freeatoms = [int(i)+1 for i in freeatoms]
@@ -156,6 +158,11 @@ def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
        pair_style = 'quip'
        lib        = 'Carbon_GAP_20_potential/Carbon_GAP_20.xml \"\"'
        pair_coeff = '* * {:s} {:d}'.format(lib,atomic_numbers[sp])
+       units      = "metal"
+       atom_style = 'atomic'
+    elif model == 'mtp':
+       pair_style = 'mlip load_from=pot.almtp'
+       pair_coeff = '* * # {:s}'.format(sp)
        units      = "metal"
        atom_style = 'atomic'
     else:
