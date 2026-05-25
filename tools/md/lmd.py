@@ -258,5 +258,5 @@ if __name__ == '__main__':
        --T: MD simulation temperature
    '''
    parser = argparse.ArgumentParser()
-   argh.add_commands(parser, [opt,npt,nvt,msst,plot,traj,w])
+   argh.add_commands(parser, [opt,npt,nvt,min,msst,plot,traj,w])
    argh.dispatch(parser)
