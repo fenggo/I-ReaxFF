@@ -173,7 +173,7 @@ def min(T=350,timestep=0.1,step=1,gen='poscar.gen',i=-1,model='reaxff-nn',c=0,
        pair_coeff = '* * {:s} {:s}'.format(lib,sp)
        units      = "real"
        atom_style = 'charge'
-    writeLammpsData(atoms,data='data.lammps',specorder=None,
+    writeLammpsData(atoms,data='data.lammps',specorder=species,
                     masses={'Al':26.9820,'C':12.0000,'H':1.0080,'O':15.9990,
                              'N':14.0000,'F':18.9980},
                     force_skew=False,
