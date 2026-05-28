@@ -7,6 +7,7 @@ import numpy as np
 from ase.io import read # ,write
 from ase import Atoms
 from irff.md.gulp import write_gulp_in,arctotraj,get_md_results,plot_md,xyztotraj
+from irff.molecule import SuperCell
 
 
 def nvt(T=350.0,time_step=0.1,step=100,gen='poscar.gen',i=-1,mode='w',c=0,
@@ -46,8 +47,12 @@ def phonon(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
 
 def opt(T=300,gen='siesta.traj',step=200,i=-1,l=0,c=0,p=0.0,
         x=1,y=1,z=1,n=1,t=0.00001,output=None,lib='reaxff_nn'):
-    A = read(gen,index=i)*(x,y,z)
-    # A = press_mol(A) 
+    A = read(gen,index=i) 
+    if x>1 or y>1 or z>1:
+       try:
+          _,A = SuperCell(A,fac=1.0,supercell=[x,y,z])
+       except:
+          A = A*(x,y,z)
 
     if l==1 or p>0.0000001:
        runword= 'opti conp qiterative stre atomic_stress'
