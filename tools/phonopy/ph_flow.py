@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from os import listdir
+from os import system, listdir
 import subprocess
 import sys
 import argparse
@@ -12,12 +12,19 @@ from irff.md.gulp import get_gulp_forces
 from irff.md.lammps import get_lammps_forces
 from irff.dft.siesta import parse_fdf, parse_fdf_species, single_point, write_siesta_in
 from irff.irff import IRFF
+# from pymatgen.symmetry.kpath import SeekpathKPath
+# from pymatgen.symmetry.kpath import HighSymmKpath
+# from pymatgen.io.ase import AseAtomsAdaptor
+from pymatgen.core import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.symmetry.bandstructure import HighSymmKpath
 
 '''
 phonon compute work flow
    使用Phononpy和GULP/Siesta/LAMMPS计算声子色散曲线
    体系: CL-20/TNT 共晶
 '''
+
 def read_banddata(bdfile):
     data = [[]]
     with open(bdfile,'r') as f:
@@ -57,20 +64,23 @@ def plotband(label=''):
         n = len(db[:,0])
         x = db[:,0]
         y = db[:,1]
-        index_ = random.sample(range(n),20)
-        x     = x[index_]
-        y     = y[index_]
+        # index_ = random.sample(range(n),20)
+        # x     = x[index_]
+        # y     = y[index_]
         xmax = np.max(x)
         ymax = np.max(y)
         # ax.plot(x,y,color='r',label='ReaxFF-nn')
-        X.extend(x)
-        Y.extend(y)
+        # X.extend(x)
+        # Y.extend(y)
+        X.append(x)
+        Y.append(y)
     # ax.scatter(X,Y,marker='o',color='none',edgecolors='b',s=1,label=label)
-    ax.plot(X,Y,color='b',label=label)
+    for x,y in zip(X,Y):
+        ax.plot(x,y,color='b')
 
     plt.xlim((0, xmax))
     plt.ylim((0., ymax+5.0))
-    plt.legend(loc='upper center',ncol=2,edgecolor='yellowgreen',fontsize=16)
+    # plt.legend(loc='upper center',ncol=2,edgecolor='yellowgreen',fontsize=16)
     plt.tight_layout()
     plt.savefig("band-{:s}.pdf".format(label))
     plt.close()
@@ -289,6 +299,20 @@ if __name__ == '__main__':
 
         print('  Plotting comparison figure ...')
         # subprocess.call('./plotband.py', shell=True)
+        
+        struct = Structure.from_file("POSCAR")  # 或其他格式
+        # seekpath = SeekpathKPath(struct)
+        # kpath = HighSymmKpath(struct)
+        # kpoints = kpath.kpath["kpoints"]  # 高对称点坐标
+        # path = kpath.kpath["path"]        # 路径段
+        structure = Structure.from_file("POSCAR")  # 例如从VASP的POSCAR文件加载结构
+        sym_anal = SpacegroupAnalyzer(structure)
+        primitive_std = sym_anal.get_primitive_standard_structure()  # 获取原胞标准结构
+        bz_kpath = HighSymmKpath(primitive_std)  # 获取布里渊区的高对称路径
+        kpath = bz_kpath.kpath  # 获取k点路径
+        # print(kpoints)
+        print(kpath)
+        
         plotband(calc)
         print('  [Done] band-{:s}.pdf generated'.format(calc))
 
