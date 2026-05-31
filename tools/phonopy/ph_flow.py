@@ -16,6 +16,7 @@ from irff.irff import IRFF
 # from pymatgen.symmetry.kpath import HighSymmKpath
 # from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.core import Structure
+from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.symmetry.bandstructure import HighSymmKpath
 
@@ -24,6 +25,45 @@ phonon compute work flow
    使用Phononpy和GULP/Siesta/LAMMPS计算声子色散曲线
    体系: CL-20/TNT 共晶
 '''
+
+
+def get_band_path(structure_file='POSCAR.unitcell'):
+    '''使用pymatgen HighSymmKpath动态生成高对称K点路径。
+
+    return:
+        band_str  : 给 phonopy --band="..." 用的字符串 (segment之间用 ',' 分隔)
+        label_str : 给 phonopy --band-labels="..." 用的字符串
+        labels    : 标签列表（每个segment的顺序）
+        kpoints   : dict {label: [kx,ky,kz]}
+        path_segs : 多段路径列表（嵌套list）
+    '''
+    atoms = read(structure_file, index=-1)
+    structure = AseAtomsAdaptor.get_structure(atoms)
+    sga = SpacegroupAnalyzer(structure)
+    primitive_std = sga.get_primitive_standard_structure(international_monoclinic=False)
+
+    bz_kpath = HighSymmKpath(primitive_std)
+    kpath = bz_kpath.kpath
+    path_segs = kpath['path']        # e.g. [['\\Gamma','M','K','\\Gamma'], ...]
+    kpoints   = kpath['kpoints']     # {label: [kx,ky,kz]}
+
+    band_str_segments  = []
+    label_str_segments = []
+    flat_labels        = []
+    for seg in path_segs:
+        coords = []
+        for lab in seg:
+            kp = kpoints[lab]
+            coords.append('{:.6f} {:.6f} {:.6f}'.format(kp[0], kp[1], kp[2]))
+            flat_labels.append(lab)
+        band_str_segments.append('  '.join(coords))
+        label_str_segments.append(' '.join(seg))
+
+    band_str  = ' , '.join(band_str_segments)
+    label_str = ' '.join(label_str_segments)
+    print('-  band path  : {:s}'.format(' | '.join(label_str_segments)))
+    print('-  band kpts  : {:s}'.format(band_str))
+    return band_str, label_str, flat_labels, kpoints, path_segs
 
 def read_banddata(bdfile):
     data = [[]]
@@ -41,46 +81,71 @@ def read_banddata(bdfile):
                 data[ib].append((float(l[0]),float(l[1])))
     return data
 
-def plotband(label=''):
-    data_nn   = read_banddata('band-{:s}.dat'.format(label))
+def _tex_label(lab):
+    '''把 pymatgen 标签转成 matplotlib mathtext。'''
+    s = lab.replace('\\Gamma', r'\Gamma')
+    # 已经是 Gamma/Sigma 等带反斜杠的，用 $...$ 包起来
+    if '\\' in s or '_' in s:
+        return r'${:s}$'.format(s)
+    return r'${:s}$'.format(s)
 
-    plt.figure(figsize=(8,6))
-    plt.grid(visible=True,which='major',axis='x',color='r',lw=1)
+
+def _segment_tick_positions(path_segs, kpoints, xmax_total):
+    '''按高对称点之间的笛卡尔间距（用分数坐标欧氏距离近似）算累计x坐标，再
+    线性缩放到 [0, xmax_total]，使其与phonopy band.dat里的x对齐。
+    '''
+    cum = [0.0]
+    labels = [path_segs[0][0]]
+    for seg in path_segs:
+        for i in range(1, len(seg)):
+            k0 = np.array(kpoints[seg[i - 1]])
+            k1 = np.array(kpoints[seg[i]])
+            cum.append(cum[-1] + float(np.linalg.norm(k1 - k0)))
+            labels.append(seg[i])
+        # segment 之间的不连续：phonopy band.dat 也会在此处重置x，但为简单起见
+        # 这里仅在 segment 之间留一个 0 间距的占位符（视觉上重叠的两个label）
+    cum = np.array(cum)
+    if cum[-1] > 0:
+        cum = cum * (xmax_total / cum[-1])
+    return cum.tolist(), labels
+
+
+def plotband(label='', path=None, kpoints=None):
+    data_nn = read_banddata('band-{:s}.dat'.format(label))
+
+    plt.figure(figsize=(8, 6))
+    plt.grid(visible=True, which='major', axis='x', color='r', lw=1)
     ax = plt.subplot()
-    ax.set_ylabel(r"$Frequency$ ($THz$)", weight="medium",fontdict={"fontsize":18})
-    ax.set_xticks([0.00000000, 0.12362750, 0.19554850, 0.33884600])
-    ax.set_xticklabels([r"$\Gamma$", r"$M$", r"$K$", r"$\Gamma$"])
-    plt.xticks(fontsize=25)
+    ax.set_ylabel(r"$Frequency$ ($THz$)", weight="medium", fontdict={"fontsize": 18})
 
-    xmax= 0.0
-    ymax= 0.0
-    X   = []
-    Y   = []
+    xmax = 0.0
+    ymax = 0.0
+    X = []
+    Y = []
 
     for db in data_nn:
-        #print(db)
-        if len(db)==0: continue
+        if len(db) == 0:
+            continue
         db = np.array(db)
-        n = len(db[:,0])
-        x = db[:,0]
-        y = db[:,1]
-        # index_ = random.sample(range(n),20)
-        # x     = x[index_]
-        # y     = y[index_]
-        xmax = np.max(x)
-        ymax = np.max(y)
-        # ax.plot(x,y,color='r',label='ReaxFF-nn')
-        # X.extend(x)
-        # Y.extend(y)
+        x = db[:, 0]
+        y = db[:, 1]
+        xmax = max(xmax, float(np.max(x)))
+        ymax = max(ymax, float(np.max(y)))
         X.append(x)
         Y.append(y)
-    # ax.scatter(X,Y,marker='o',color='none',edgecolors='b',s=1,label=label)
-    for x,y in zip(X,Y):
-        ax.plot(x,y,color='b')
+
+    # 动态设置xticks
+    if path is not None and kpoints is not None and xmax > 0:
+        tick_pos, tick_labs = _segment_tick_positions(path, kpoints, xmax)
+        ax.set_xticks(tick_pos)
+        ax.set_xticklabels([_tex_label(l) for l in tick_labs])
+    plt.xticks(fontsize=20)
+
+    for x, y in zip(X, Y):
+        ax.plot(x, y, color='b')
 
     plt.xlim((0, xmax))
-    plt.ylim((0., ymax+5.0))
-    # plt.legend(loc='upper center',ncol=2,edgecolor='yellowgreen',fontsize=16)
+    plt.ylim((0., ymax + 5.0))
     plt.tight_layout()
     plt.savefig("band-{:s}.pdf".format(label))
     plt.close()
@@ -146,7 +211,7 @@ def phonon_force(n, calc, ncpu):
         for i, f in enumerate(forces):
             print('{:4d} {:12.8f} {:12.8f} {:12.8f}'.format(
                 i + 1, f[0], f[1], f[2]), file=ff)
-    system('mv Forces.FA Forces-00{:d}.FA'.format(n))
+    subprocess.call('mv Forces.FA Forces-{:d}.FA'.format(n), shell=True)
 
 
 def print_banner(title):
@@ -210,7 +275,8 @@ if __name__ == '__main__':
 
         if calc == 'siesta':
             print('  Writing Siesta input from id_unitcell.traj ...')
-            subprocess.call('./smd.py w --g=id_unitcell.traj', shell=True)
+            # subprocess.call('./smd.py w --g=id_unitcell.traj', shell=True)
+            write_fdf('id_unitcell.traj')
         else:
             print('  Writing Siesta-format input from POSCAR.unitcell ...')
             write_fdf('POSCAR.unitcell')
@@ -220,7 +286,7 @@ if __name__ == '__main__':
     # ============================================================
     # Step 3: 生成位移超胞
     # ============================================================
-    n_supercell = get_supercell()
+   
     if step <=3:
         print_banner('Step 3/7: Generate Displaced Supercells')
 
@@ -231,10 +297,11 @@ if __name__ == '__main__':
 
         print('  Running: phonopy --siesta -c=in.fdf -d --dim="2 2 2" --amplitude=0.01')             # 修改dim参数计算不同的超胞数，
         subprocess.call('phonopy --siesta -c=in.fdf -d --dim="2 2 2" --amplitude=0.01', shell=True)  # 以取得较好的计算结果
-
+        n_supercell = get_supercell()
         print('  Generated {:d} displaced supercells'.format(n_supercell))
         print('  [Done]')
 
+    # print('--------->',n_supercell)
     # ============================================================
     # Step 4: 计算每个位移超胞的受力
     # ============================================================
@@ -244,10 +311,10 @@ if __name__ == '__main__':
         for i in range(n_supercell):
             i1 = i + 1
             t_step_start = time.time()
-            print('  [{:d}/{:d}] Calculating supercell-00{:d} ... \r'.format(i1, n_supercell, i1), end='', flush=True)
+            print('  [{:d}/{:d}] Calculating supercell-{:d} ... \r'.format(i1, n_supercell, i1), end='\r', flush=True)
             phonon_force(i1, calc, ncpu)
-            t_step = time.time() - t_step_start
-            print(' done ({:.1f} s)'.format(t_step))
+            # t_step = time.time() - t_step_start
+            # print(' done ({:.1f} s)'.format(t_step))
 
         t4 = time.time()
         print('  [Done] All {:d} force calculations completed ({:.1f} s)'.format(n_supercell, t4 - t1))
@@ -258,10 +325,10 @@ if __name__ == '__main__':
     if step <=5:
         print_banner('Step 5/7: Collect Forces → FORCE_SETS')
 
-        fs = ['Forces-00{:d}.FA'.format(i) for i in range(1, n_supercell + 1)]
+        fs = ['Forces-{:d}.FA'.format(i) for i in range(1, n_supercell + 1)]
         fs_str = ' '.join(fs)
         cmd = 'phonopy -f {:s} --siesta'.format(fs_str)
-        print('  Running: {:s}'.format(cmd))
+        # print('  Running: {:s}'.format(cmd))
         subprocess.call(cmd, shell=True)
         print('  [Done] FORCE_SETS generated')
 
@@ -269,17 +336,17 @@ if __name__ == '__main__':
     # Step 6: 计算声子色散曲线
     # ============================================================
     if step <=6:
-        print_banner('Step 6/7: Compute Phonon Band Structure')     # 修改能带计算路径
+        print_banner('Step 6/7: Compute Phonon Band Structure')
 
-        band_path = ('0.0 0.0 0.0  '    # Gamma
-                     '1/4 0.0 0.0  '     # M
-                     '0.5 0.0 0.0  '     # K (approximate)
-                     '2/3 -1/3 1/2  '    # Gamma (in hexagonal)
-                     '1/3 -1/6 0.0  '    # intermediate point
-                     '0.0 0.0 0.0')      # Gamma
-        print('  K-path: G(0,0,0) -> M(1/4,0,0) -> K(1/2,0,0) -> G(2/3,-1/3,1/2) -> (1/3,-1/6,0) -> G(0,0,0)')
+        # 使用pymatgen HighSymmKpath动态生成高对称K点路径
+        if calc == 'siesta':
+            struct_file = 'id_unitcell.traj'
+        else:
+            struct_file = 'POSCAR.unitcell'
+        band_path, label_str, _, _, _ = get_band_path(struct_file)
 
-        cmd = 'phonopy --siesta -c in.fdf --dim="2 2 2" --band="{:s}"'.format(band_path) # -p
+        cmd = ('phonopy --siesta -c in.fdf --dim="2 2 2" '
+               '--band="{:s}" --band-labels="{:s}"').format(band_path, label_str)
         print('  Running: {:s}'.format(cmd))
         subprocess.call(cmd, shell=True)
         print('  [Done] band.yaml and band.pdf generated')
@@ -299,21 +366,15 @@ if __name__ == '__main__':
 
         print('  Plotting comparison figure ...')
         # subprocess.call('./plotband.py', shell=True)
-        
-        struct = Structure.from_file("POSCAR")  # 或其他格式
-        # seekpath = SeekpathKPath(struct)
-        # kpath = HighSymmKpath(struct)
-        # kpoints = kpath.kpath["kpoints"]  # 高对称点坐标
-        # path = kpath.kpath["path"]        # 路径段
-        structure = Structure.from_file("POSCAR")  # 例如从VASP的POSCAR文件加载结构
-        sym_anal = SpacegroupAnalyzer(structure)
-        primitive_std = sym_anal.get_primitive_standard_structure()  # 获取原胞标准结构
-        bz_kpath = HighSymmKpath(primitive_std)  # 获取布里渊区的高对称路径
-        kpath = bz_kpath.kpath  # 获取k点路径
-        # print(kpoints)
-        print(kpath)
-        
-        plotband(calc)
+
+        # 重用Step 6生成的K路径（如果跳过Step 6，则在此处重新生成）
+        if calc == 'siesta':
+            struct_file = 'id_unitcell.traj'
+        else:
+            struct_file = 'POSCAR.unitcell'
+        _, _, _, kpoints, path = get_band_path(struct_file)
+
+        plotband(calc, path=path, kpoints=kpoints)
         print('  [Done] band-{:s}.pdf generated'.format(calc))
 
     # ============================================================
