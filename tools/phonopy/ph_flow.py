@@ -6,6 +6,7 @@ import argparse
 import time
 import random
 import numpy as np
+import yaml
 import matplotlib.pyplot as plt
 from ase.io import read
 from irff.md.gulp import get_gulp_forces
@@ -90,27 +91,65 @@ def _tex_label(lab):
     return r'${:s}$'.format(s)
 
 
-def _segment_tick_positions(path_segs, kpoints, xmax_total):
-    '''按高对称点之间的笛卡尔间距（用分数坐标欧氏距离近似）算累计x坐标，再
-    线性缩放到 [0, xmax_total]，使其与phonopy band.dat里的x对齐。
+def _band_yaml_tick_positions(band_yaml='band.yaml', kpoints=None):
+    '''从 band.yaml 读取 phonopy 计算出的精确高对称点 Cartesian 距离，
+    不再使用分数坐标欧氏距离近似，避免非正交晶格下 xtick 偏移导致的
+    曲线段重叠。
     '''
-    cum = [0.0]
-    labels = [path_segs[0][0]]
-    for seg in path_segs:
-        for i in range(1, len(seg)):
-            k0 = np.array(kpoints[seg[i - 1]])
-            k1 = np.array(kpoints[seg[i]])
-            cum.append(cum[-1] + float(np.linalg.norm(k1 - k0)))
-            labels.append(seg[i])
-        # segment 之间的不连续：phonopy band.dat 也会在此处重置x，但为简单起见
-        # 这里仅在 segment 之间留一个 0 间距的占位符（视觉上重叠的两个label）
-    cum = np.array(cum)
-    if cum[-1] > 0:
-        cum = cum * (xmax_total / cum[-1])
-    return cum.tolist(), labels
+    with open(band_yaml, 'r') as f:
+        bd = yaml.safe_load(f)
+    nqpoint = bd['nqpoint']
+    npath = bd.get('npath', nqpoint)
+
+    labels_from_yaml = bd.get('labels', [])
+    phonon_list = bd['phonon']
+
+    pts_per_path = nqpoint // npath if npath > 0 else nqpoint
+    ticks = []
+    tick_labels = []
+    seen = set()
+
+    if npath > 0:
+        for iseg in range(npath):
+            idx_start = iseg * pts_per_path
+            idx_end = (iseg + 1) * pts_per_path - 1
+            q_start = np.array(phonon_list[idx_start]['q-position'])
+            q_end = np.array(phonon_list[idx_end]['q-position'])
+
+            label_start = _match_label(q_start, kpoints) if kpoints else None
+            label_end = _match_label(q_end, kpoints) if kpoints else None
+
+            for idx, match_lab in [(idx_start, label_start),
+                                    (idx_end, label_end)]:
+                if match_lab and match_lab not in seen:
+                    ticks.append(phonon_list[idx]['distance'])
+                    tick_labels.append(match_lab)
+                    seen.add(match_lab)
+
+    # 如果从 segment 边界没找到足够标签，fallback 到 labels 字段
+    if len(ticks) < 2 and labels_from_yaml:
+        ticks = []
+        tick_labels = []
+        for i, lab in enumerate(labels_from_yaml):
+            if lab not in seen:
+                idx = i * pts_per_path
+                if idx < len(phonon_list):
+                    ticks.append(phonon_list[idx]['distance'])
+                    tick_labels.append(lab)
+                    seen.add(lab)
+
+    return ticks, tick_labels
 
 
-def plotband(label='', path=None, kpoints=None):
+def _match_label(q_pos, kpoints, tol=1e-4):
+    '''根据 q-position 匹配 pymatgen 的高对称点标签。'''
+    for lab, kp in kpoints.items():
+        if np.linalg.norm(q_pos - np.array(kp)) < tol:
+            return lab
+    return None
+
+
+def plotband(label='', path=None, kpoints=None,yl=None,yu=None):
     data_nn = read_banddata('band-{:s}.dat'.format(label))
 
     plt.figure(figsize=(8, 6))
@@ -134,18 +173,23 @@ def plotband(label='', path=None, kpoints=None):
         X.append(x)
         Y.append(y)
 
-    # 动态设置xticks
-    if path is not None and kpoints is not None and xmax > 0:
-        tick_pos, tick_labs = _segment_tick_positions(path, kpoints, xmax)
-        ax.set_xticks(tick_pos)
-        ax.set_xticklabels([_tex_label(l) for l in tick_labs])
+    # 动态设置xticks — 从 band.yaml 读取精确距离
+    if kpoints is not None:
+        ticks, tick_labels = _band_yaml_tick_positions('band.yaml', kpoints)
+        if len(ticks) > 0:
+            ax.set_xticks(ticks)
+            ax.set_xticklabels([_tex_label(l) for l in tick_labels])
     plt.xticks(fontsize=20)
 
     for x, y in zip(X, Y):
         ax.plot(x, y, color='b')
 
     plt.xlim((0, xmax))
-    plt.ylim((0., ymax + 5.0))
+    if yl is None:
+       yl = 0.0
+    if yu is None:
+       yu = ymax
+    plt.ylim((yl, yu + 5.0))
     plt.tight_layout()
     plt.savefig("band-{:s}.svg".format(label))
     plt.close()
@@ -230,12 +274,16 @@ if __name__ == '__main__':
     parser.add_argument('--n', default=8, type=int,help='number of CPU cores (MPI)')
     parser.add_argument('--g', default='md.traj',help='geometry file / atomic configuration')
     parser.add_argument('--s', default=0, type=int,help='from this step start calculation')
+    parser.add_argument('--ll', default=None, type=float,help='lower limit')
+    parser.add_argument('--ul', default=None, type=float,help='upper limit')
     args = parser.parse_args(sys.argv[1:])
 
     g    = args.g
     ncpu = args.n
     calc = args.c
     step = args.s
+    ll   = args.ll
+    ul   = args.ul
     
     if step <=1:
         print_banner('Phonon Dispersion Calculation Workflow')
@@ -243,7 +291,6 @@ if __name__ == '__main__':
         print('  Calculator: {:s}'.format(calc))
         print('  CPU cores:  {:d}'.format(ncpu))
         print('  Geometry:   {:s}'.format(g))
-        print('  Supercell:  2 x 2 x 2')
         print('  Displacement amplitude: 0.01 Ang')
 
         # ============================================================
@@ -373,8 +420,10 @@ if __name__ == '__main__':
         else:
             struct_file = 'POSCAR.unitcell'
         _, _, _, kpoints, path = get_band_path(struct_file)
+        # print(kpoints)
+        # print(path)
 
-        plotband(calc, path=path, kpoints=kpoints)
+        plotband(calc, kpoints=kpoints,yl=ll,yu=ul)
         print('  [Done] band-{:s}.svg generated'.format(calc))
 
     # ============================================================
@@ -389,7 +438,7 @@ if __name__ == '__main__':
     print('  Output files:')
     print('    band-{:s}.dat    - Band structure data'.format(calc))
     print('    band.yaml        - Phonopy band data')
-    print('    band.svg         - Band structure plot')
+    print('    band-{:s}.svg         - Band structure plot'.format(calc))
     print('    FORCE_SETS       - Second-order force constants')
     print('    POSCAR.unitcell  - Optimized unit cell')
     print('')
