@@ -147,7 +147,7 @@ def plotband(label='', path=None, kpoints=None):
     plt.xlim((0, xmax))
     plt.ylim((0., ymax + 5.0))
     plt.tight_layout()
-    plt.savefig("band-{:s}.pdf".format(label))
+    plt.savefig("band-{:s}.svg".format(label))
     plt.close()
 
 def force_unit():
@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
         if calc == 'ReaxFF-nn':
             cmd = './gmd.py opt --s=1000 --g={:s} --n={:d}  --l=1'.format(g, ncpu) # --x=2 --y=2 --z=2 优化不使用超胞
-            print('  Running GULP optimization (2x2x2 supercell, variable cell)...')
+            print('  Running GULP optimization (variable cell)...')
             print('  Command: {:s}'.format(cmd))
             subprocess.call(cmd, shell=True)
         elif calc == 'siesta':
@@ -297,9 +297,9 @@ if __name__ == '__main__':
 
         print('  Running: phonopy --siesta -c=in.fdf -d --dim="2 2 2" --amplitude=0.01')             # 修改dim参数计算不同的超胞数，
         subprocess.call('phonopy --siesta -c=in.fdf -d --dim="2 2 2" --amplitude=0.01', shell=True)  # 以取得较好的计算结果
-        n_supercell = get_supercell()
-        print('  Generated {:d} displaced supercells'.format(n_supercell))
-        print('  [Done]')
+    n_supercell = get_supercell()
+    print('  Generated {:d} displaced supercells'.format(n_supercell))
+    print('  [Done]')
 
     # print('--------->',n_supercell)
     # ============================================================
@@ -349,7 +349,7 @@ if __name__ == '__main__':
                '--band="{:s}" --band-labels="{:s}"').format(band_path, label_str)
         print('  Running: {:s}'.format(cmd))
         subprocess.call(cmd, shell=True)
-        print('  [Done] band.yaml and band.pdf generated')
+        print('  [Done] band.yaml and band.dat generated')
 
     # ============================================================
     # Step 7: 数据提取与绘图
@@ -375,7 +375,7 @@ if __name__ == '__main__':
         _, _, _, kpoints, path = get_band_path(struct_file)
 
         plotband(calc, path=path, kpoints=kpoints)
-        print('  [Done] band-{:s}.pdf generated'.format(calc))
+        print('  [Done] band-{:s}.svg generated'.format(calc))
 
     # ============================================================
     # 完成
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     print('  Output files:')
     print('    band-{:s}.dat    - Band structure data'.format(calc))
     print('    band.yaml        - Phonopy band data')
-    print('    band.pdf         - Band structure plot')
+    print('    band.svg         - Band structure plot')
     print('    FORCE_SETS       - Second-order force constants')
     print('    POSCAR.unitcell  - Optimized unit cell')
     print('')
