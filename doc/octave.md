@@ -1,3 +1,5 @@
+* 下载
+https://mirror.lyrahosting.com/gnu/octave/
 * 安装必要依赖
 ```
 sudo apt-get install libreadline-dev
