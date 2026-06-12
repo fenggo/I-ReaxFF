@@ -5,7 +5,6 @@ import argparse
 import json as js
 from os import environ,system
 import csv
-import pandas as pd
 from os.path import isfile
 from ..reaxfflib import read_ffield,write_lib,write_lib
 from ..qeq import qeq
