@@ -1,4 +1,3 @@
-import pandas as pd
 import random
 from os.path import isfile
 from os import listdir,getcwd
