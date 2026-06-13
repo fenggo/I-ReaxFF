@@ -6,7 +6,7 @@ import argparse
 import json as js
 import tensorflow as tf
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize_scalar
