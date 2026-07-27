@@ -13,7 +13,6 @@ from .set_matrix_jax import set_matrix
 from .intCheck import check_tors as check_torsion
 import jax
 import jax.numpy as jnp
-from jax import grad, jit, vmap
 import optax
 
 try:
@@ -21,16 +20,19 @@ try:
 except ImportError:
    from .neighbors import get_neighbors,get_pangle,get_ptorsion,get_phb
 
-# Enable float64 for numerical consistency
+# Enable float64
 jax.config.update('jax_enable_x64', True)
+
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
 
 def rtaper(r,rmin=0.001,rmax=0.002):
     ''' taper function for bond-order '''
-    r3    = jnp.where(r<rmin, jnp.ones_like(r), jnp.zeros_like(r))
+    r3    = np.where(r<rmin,np.full_like(r,1.0),np.full_like(r,0.0)) # r > rmax then 1 else 0
 
-    ok    = jnp.logical_and(r<=rmax, r>rmin)
-    r2    = jnp.where(ok, r, jnp.zeros_like(r))
-    r20   = jnp.where(ok, jnp.ones_like(r), jnp.zeros_like(r))
+    ok    = np.logical_and(r<=rmax,r>rmin)     # rmin < r < rmax  = r else 0
+    r2    = np.where(ok,r,np.full_like(r,0.0))
+    r20   = np.where(ok,np.full_like(r,1.0),np.full_like(r,0.0))
 
     rterm = 1.0/(rmax-rmin)**3.0
     rm    = rmax*r20
@@ -41,11 +43,11 @@ def rtaper(r,rmin=0.001,rmax=0.002):
 
 def taper(r,rmin=0.001,rmax=0.002):
     ''' taper function for bond-order '''
-    r3    = jnp.where(r>rmax, jnp.ones_like(r), jnp.zeros_like(r))
+    r3    = np.where(r>rmax,np.full_like(r,1.0),np.full_like(r,0.0)) # r > rmax then 1 else 0
 
-    ok    = jnp.logical_and(r<=rmax, r>rmin)
-    r2    = jnp.where(ok, r, jnp.zeros_like(r))
-    r20   = jnp.where(ok, jnp.ones_like(r), jnp.zeros_like(r))
+    ok    = np.logical_and(r<=rmax,r>rmin)      # rmin < r < rmax  = r else 0
+    r2    = np.where(ok,r,np.full_like(r,0.0))
+    r20   = np.where(ok,np.full_like(r,1.0),np.full_like(r,0.0))
 
     rterm = 1.0/(rmin-rmax)**3.0
     rm    = rmin*r20
@@ -55,60 +57,107 @@ def taper(r,rmin=0.001,rmax=0.002):
     return r22+r3
     
 def fvr(x):
-    xi  = jnp.expand_dims(x, 1)
-    xj  = jnp.expand_dims(x, 2)
+    xi  = np.expand_dims(x, 1)
+    xj  = np.expand_dims(x, 2) 
     vr  = xj - xi
+    # vr = torch.cdist(x, x, p=2)
     return vr
 
 def fr(vr):
-    R   = jnp.sqrt(jnp.sum(vr*vr, 2))
+    R   = np.sqrt(np.sum(vr*vr,2))
     return R
 
 def DIV(y,x):
     xok = (x!=0.0)
     f = lambda x: y/x
-    safe_x = jnp.where(xok, x, jnp.ones_like(x))
-    return jnp.where(xok, f(safe_x), jnp.zeros_like(x))
+    safe_x = np.where(xok,x,np.full_like(x,1.0))
+    return np.where(xok, f(safe_x), np.full_like(x,0.0))
 
 def DIV_IF(y,x):
     xok = (x!=0.0)
     f = lambda x: y/x
-    safe_x = jnp.where(xok, x, jnp.full_like(x, 0.00000001))
-    return jnp.where(xok, f(safe_x), f(safe_x))
+    safe_x = np.where(xok,x,np.full_like(x,0.00000001))
+    return np.where(xok, f(safe_x), f(safe_x))
 
 def relu(x):
-    return jnp.where(x>0.0, x, jnp.zeros_like(x))
+    return np.where(x>0.0,x,np.full_like(x,0.0))  
 
 def fmessage(pre,bd,x,m,layer=5):
     ''' Dimention: (nbatch,3) input = 3
-                Wi:  (3,9)
+                Wi:  (3,9) 
                 Wh:  (9,9)
                 Wo:  (9,3)  output = 3
     '''
-    X   = jnp.expand_dims(jnp.stack(x, axis=2), axis=2)
-    o   = []
-    o.append(jax.nn.sigmoid(jnp.matmul(X, m[pre+'wi_'+bd]) + m[pre+'bi_'+bd]))
-    for l in range(layer):
-        o.append(jax.nn.sigmoid(jnp.matmul(o[-1], m[pre+'w_'+bd][l]) + m[pre+'b_'+bd][l]))
-    out = jax.nn.sigmoid(jnp.matmul(o[-1], m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])
-    return jnp.squeeze(out, axis=2)
+    X   = np.expand_dims(np.stack(x,axis=2),axis=2)
+    # print('\n X \n',X,X.shape)
+    o   =  []                        
+    o.append(sigmoid(np.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
+    # print('\n ai \n',o[-1])
+    for l in range(layer):                                                   # hidden layer      
+        o.append(sigmoid(np.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
+    out = sigmoid(np.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
+    return  np.squeeze(out, axis=2) 
 
 def fnn(pre,bd,x,m,layer=5):
     ''' Dimention: (nbatch,3) input = 3
-                Wi:  (3,8)
+                Wi:  (3,8) 
                 Wh:  (8,8)
                 Wo:  (8,1)  output = 3
     '''
-    X   = jnp.expand_dims(jnp.stack(x, axis=2), axis=2)
-    o   = []
-    o.append(jax.nn.sigmoid(jnp.matmul(X, m[pre+'wi_'+bd]) + m[pre+'bi_'+bd]))
+    X   = np.expand_dims(np.stack(x,axis=2),axis=2)
+    #                                 #        Wi:  (3,8) 
+    o   =  []
+    o.append(sigmoid(np.matmul(X,m[pre+'wi_'+bd])+m[pre+'bi_'+bd]))   # input layer
+
+    for l in range(layer):                                     # hidden layer      
+        o.append(sigmoid(np.matmul(o[-1],m[pre+'w_'+bd][l])+m[pre+'b_'+bd][l]))
+
+    out = sigmoid(np.matmul(o[-1],m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])  # output layer
+    # print(out.shape)
+    return  np.squeeze(out, axis=(2, 3)) 
+
+
+
+# ── JAX-based force computation ──
+# These JAX functions compute energy from positions, allowing
+# jax.grad to efficiently compute forces.
+
+def taper_jnp(r, rmin=0.001, rmax=0.002):
+    r3 = jnp.where(r > rmax, jnp.ones_like(r), jnp.zeros_like(r))
+    ok = jnp.logical_and(r <= rmax, r > rmin)
+    r2 = jnp.where(ok, r, jnp.zeros_like(r))
+    r20 = jnp.where(ok, jnp.ones_like(r), jnp.zeros_like(r))
+    rterm = 1.0 / (rmin - rmax) ** 3.0
+    rm = rmin * r20
+    rd = rm - r2
+    trm1 = rm + 2.0 * r2 - 3.0 * rmax * r20
+    return rterm * rd * rd * trm1 + r3
+
+def fvr_jnp(x):
+    xi = jnp.expand_dims(x, 1)
+    xj = jnp.expand_dims(x, 2)
+    return xj - xi
+
+def fmessage_jnp(pre, bd, x, m, layer=5):
+    X = jnp.expand_dims(jnp.stack(x, axis=2), axis=2)
+    o = [jax.nn.sigmoid(jnp.matmul(X, m[pre + 'wi_' + bd]) + m[pre + 'bi_' + bd])]
     for l in range(layer):
-        o.append(jax.nn.sigmoid(jnp.matmul(o[-1], m[pre+'w_'+bd][l]) + m[pre+'b_'+bd][l]))
-    out = jax.nn.sigmoid(jnp.matmul(o[-1], m[pre+'wo_'+bd]) + m[pre+'bo_'+bd])
+        o.append(jax.nn.sigmoid(jnp.matmul(o[-1], m[pre + 'w_' + bd][l]) + m[pre + 'b_' + bd][l]))
+    out = jax.nn.sigmoid(jnp.matmul(o[-1], m[pre + 'wo_' + bd]) + m[pre + 'bo_' + bd])
+    return jnp.squeeze(out, axis=2)
+
+def fnn_jnp(pre, bd, x, m, layer=5):
+    X = jnp.expand_dims(jnp.stack(x, axis=2), axis=2)
+    o = [jax.nn.sigmoid(jnp.matmul(X, m[pre + 'wi_' + bd]) + m[pre + 'bi_' + bd])]
+    for l in range(layer):
+        o.append(jax.nn.sigmoid(jnp.matmul(o[-1], m[pre + 'w_' + bd][l]) + m[pre + 'b_' + bd][l]))
+    out = jax.nn.sigmoid(jnp.matmul(o[-1], m[pre + 'wo_' + bd]) + m[pre + 'bo_' + bd])
     return jnp.squeeze(out, axis=(2, 3))
 
+
 class ReaxFF_nn:
-  ''' Force Learning (JAX backend) '''
+
+  ''' Force Learning '''
   name = "ReaxFF_nn"
   implemented_properties = ["energy", "forces"]
   def __init__(self,dataset={},data={},
@@ -138,10 +187,14 @@ class ReaxFF_nn:
                eaopt=[],
                nomb=False,              # this option is used when deal with metal system
                screen=False,
-               tors=[]):
-
+               tors=[],
+               device={'all':'cpu'}):
+      
       self.dataset      = dataset 
-      self         = data
+      self.data         = data
+      # self.batch_size   = batch
+      # if 'others' not in self.batch_size:
+      #    self.batch_size['others'] = 200
       self.sample       = sample        # uniform or random
       self.opt          = opt
       self.opt_term     = opt_term
@@ -182,31 +235,38 @@ class ReaxFF_nn:
       if 'diff' not in self._device:
          if 'others' in self._device:
             self._device['diff'] = self._device['others']
-      
-      self.device       = {'others': self._device['others'],
-                           'diff': self._device['diff']}
+      self.device       = {'others':(self._device['others']),
+                           'diff':(self._device['diff'])}
       self.tors         = tors
 
-      self.pp           = {}   # training parameters dict (jnp arrays)
+      self.pp           = {}   # training parameter
       self.set_p() 
       self.stack_tensor()
 
       self.results        = {}
       self.nomb           = nomb # without angle, torsion and hbond manybody term
       self.messages       = messages 
+      # self.safety_value   = np.array(0.00000001)
+      # for dev in self.devices:
+      #     self.safety_value
       self.set_memory()
+      # self.params = np.random.rand(3, 3))
+      # self.Qe= qeq(p=self.p,atoms=self.atoms)
 
   def get_total_energy(self,st):
-        ''' compute the total energy of moecule '''
-        self.E[st] = (self.ebond[st] + 
-                      self.eover[st] + self.eunder[st]+ self.elone[st] +
-                      self.eang[st]  + self.epen[st]  + self.etcon[st] +
-                      self.etor[st]  + self.efcon[st] +
-                      self.ecoul[st] + self.evdw[st]  + 
-                      self.ehb[st]   +
-                      self.eself[st] + self.zpe[st]     )
+      ''' compute the total energy of moecule '''
+      if self.zpe[st].device != self.device[st]:
+         self.zpe[st] = self.zpe[st]
+
+      self.E[st] = (self.ebond[st] + 
+                    self.eover[st] + self.eunder[st]+ self.elone[st] +
+                    self.eang[st]  + self.epen[st]  + self.etcon[st] +
+                    self.etor[st]  + self.efcon[st] +
+                    self.ecoul[st] + self.evdw[st]  + 
+                    self.ehb[st]   +
+                    self.eself[st] + self.zpe[st]     )
       
-  def forward(self,st):
+  def forward(self, st):
       # for st in self.strcs:
       self.get_bond_energy(st)      # get bond energy for every structure
       self.get_atomic_energy(st)
@@ -221,35 +281,239 @@ class ReaxFF_nn:
 
   def get_loss(self,st):
       ''' compute loss '''
-      self.loss_e = jnp.array(0.0)
-      self.loss_f = jnp.array(0.0)
+      self.loss_e = 0.0
+      self.loss_f = 0.0
       weight_e = self.weight_energy['others'] if st not in self.weight_energy else self.weight_energy[st]
-      self.loss_e = self.loss_e + jnp.sum(jnp.square(self.E[st] - self.dft_energy[st]))*weight_e
+      self.loss_e = self.loss_e + np.sum(np.square(self.E[st] - self.dft_energy[st]))*weight_e
       if self.dft_forces[st] is not None:
          weight_f = self.weight_force['others'] if st not in self.weight_force else self.weight_force[st]
-         self.loss_f = self.loss_f + jnp.sum(jnp.square(self.force[st] - self.dft_forces[st]))*weight_f
+         self.loss_f = self.loss_f + np.sum(np.square(self.force[st] - self.dft_forces[st]))*weight_f
       self.loss_penalty = self.get_penalty(st)
       return self.loss_e + self.loss_f + self.loss_penalty
+  def get_forces(self, st):
+      ''' compute forces using jax.grad '''
+      try:
+          # Convert necessary arrays to jnp
+          x_jnp = jnp.array(self.x[st])
+          rcell_jnp = jnp.array(self.rcell[st])
+          cell_jnp = jnp.array(self.cell[st])
+          
+          # Define energy function
+          def energy_fn(x):
+              return self._compute_energy_jax(st, x, rcell_jnp, cell_jnp)
+          
+          # Compute forces = -dE/dx
+          grad_fn = jax.grad(energy_fn)
+          forces_jnp = grad_fn(x_jnp)
+          self.force[st] = -np.array(forces_jnp)
+      except Exception as e:
+          # Fallback to finite difference if JAX fails
+          print(f"  Warning: jax.grad failed ({e}), using finite diff")
+          self._forces_finite_diff(st)
 
-  def get_forces(self,st):
-      ''' compute forces with autograd method (JAX) '''
-      # JAX: use jax.grad to compute dE/dx, then negate
-      force_fn = jax.grad(lambda x: jnp.sum(self.E[st]))
-      self.force[st] = -force_fn(self.x[st])
+  def _forces_finite_diff(self, st):
+      ''' Finite difference fallback for forces. '''
+      eps = 1e-5
+      nbatch = self.x[st].shape[0]
+      natom = self.x[st].shape[1]
+      forces = np.zeros((nbatch, natom, 3))
+      for ib in range(nbatch):
+          for ia in range(natom):
+              for idim in range(3):
+                  x_orig = self.x[st][ib, ia, idim]
+                  self.x[st][ib, ia, idim] = x_orig + eps
+                  self._recompute_energy(st)
+                  E_plus = self.E[st][ib]
+                  self.x[st][ib, ia, idim] = x_orig - eps
+                  self._recompute_energy(st)
+                  E_minus = self.E[st][ib]
+                  self.x[st][ib, ia, idim] = x_orig
+                  forces[ib, ia, idim] = -(E_plus - E_minus) / (2 * eps)
+      self.force[st] = forces
+
+  def _compute_energy_jax(self, st, x, rcell, cell):
+      """Pure JAX function: positions -> bond energy (scalar sum)."""
+      natom = x.shape[1]
+      bdid_full = self.bdid[st]
+      
+      # Convert numpy scalar params to Python floats for JAX tracing
+      p = {k: float(v) for k, v in self.p.items()}
+      _log = float(self.log_)
+      _botol = float(self.botol)
+      
+      # 1. Pairwise vectors and distances
+      vr = fvr_jnp(x)
+      vrf = jnp.matmul(vr, rcell)
+      vrf = jnp.where(vrf - 0.5 > 0, vrf - 1.0, vrf)
+      vrf = jnp.where(vrf + 0.5 < 0, vrf + 1.0, vrf)
+      vr = jnp.matmul(vrf, cell)
+      r = jnp.sqrt(jnp.sum(vr * vr, axis=3) + 1e-8)
+      
+      # 2. Bond orders from distances
+      r_bond = r[:, bdid_full[:, 0], bdid_full[:, 1]]
+      bop_si = jnp.zeros_like(r)
+      bop_pi = jnp.zeros_like(r)
+      bop_pp = jnp.zeros_like(r)
+      
+      for bd_name in self.bonds:
+          if self.nbd[st].get(bd_name, 0) == 0:
+              continue
+          b_start, b_end = self.b[st][bd_name]
+          ndx = bdid_full[b_start:b_end]
+          bi = ndx[:, 0]
+          bj = ndx[:, 1]
+          r_bd = r[:, bi, bj]
+          
+          p_key = 'bo1_' + bd_name
+          rr = _log / p[p_key]
+          rc_bo = p['rosi_' + bd_name] * jnp.power(rr, 1.0 / p['bo2_' + bd_name])
+          frc = jnp.where(jnp.logical_or(r_bd > rc_bo, r_bd <= 0.001), 0.0, 1.0)
+          
+          bodiv1 = r_bd / p['rosi_' + bd_name]
+          bopow1 = jnp.power(bodiv1, p['bo2_' + bd_name])
+          eterm1 = (1.0 + _botol) * jnp.exp(p['bo1_' + bd_name] * bopow1) * frc
+          
+          bodiv2 = r_bd / p['ropi_' + bd_name]
+          bopow2 = jnp.power(bodiv2, p['bo4_' + bd_name])
+          eterm2 = jnp.exp(p['bo3_' + bd_name] * bopow2) * frc
+          
+          bodiv3 = r_bd / p['ropp_' + bd_name]
+          bopow3 = jnp.power(bodiv3, p['bo6_' + bd_name])
+          eterm3 = jnp.exp(p['bo5_' + bd_name] * bopow3) * frc
+          
+          bsi = taper_jnp(eterm1, rmin=_botol, rmax=2.0 * _botol) * (eterm1 - _botol)
+          bpi = taper_jnp(eterm2, rmin=_botol, rmax=2.0 * _botol) * eterm2
+          bpp = taper_jnp(eterm3, rmin=_botol, rmax=2.0 * _botol) * eterm3
+          
+          bop_si = bop_si.at[:, bi, bj].set(bsi)
+          bop_si = bop_si.at[:, bj, bi].set(bsi)
+          bop_pi = bop_pi.at[:, bi, bj].set(bpi)
+          bop_pi = bop_pi.at[:, bj, bi].set(bpi)
+          bop_pp = bop_pp.at[:, bi, bj].set(bpp)
+          bop_pp = bop_pp.at[:, bj, bi].set(bpp)
+      
+      bop = bop_si + bop_pi + bop_pp
+      
+      # 3. Message passing
+      eye = jnp.expand_dims(1.0 - jnp.eye(natom), axis=0)
+      H = [bop]
+      Hsi = [bop_si]
+      Hpi = [bop_pi]
+      Hpp = [bop_pp]
+      D = [jnp.sum(bop, axis=2)]
+      
+      for t in range(1, self.messages + 1):
+          Di = jnp.expand_dims(D[t - 1], 2) * eye
+          Dj = jnp.expand_dims(D[t - 1], 1) * eye
+          Dbi = Di - H[t - 1]
+          Dbj = Dj - H[t - 1]
+          
+          Dbi_ = Dbi[:, bdid_full[:, 0], bdid_full[:, 1]]
+          Dbj_ = Dbj[:, bdid_full[:, 0], bdid_full[:, 1]]
+          H_ = H[t - 1][:, bdid_full[:, 0], bdid_full[:, 1]]
+          Hsi_ = Hsi[t - 1][:, bdid_full[:, 0], bdid_full[:, 1]]
+          Hpi_ = Hpi[t - 1][:, bdid_full[:, 0], bdid_full[:, 1]]
+          Hpp_ = Hpp[t - 1][:, bdid_full[:, 0], bdid_full[:, 1]]
+          
+          bo_new = jnp.zeros_like(r)
+          bosi_new = jnp.zeros_like(r)
+          bopi_new = jnp.zeros_like(r)
+          bopp_new = jnp.zeros_like(r)
+          
+          for bd_name in self.bonds:
+              if self.nbd[st].get(bd_name, 0) == 0:
+                  continue
+              b_start, b_end = self.b[st][bd_name]
+              ndx = bdid_full[b_start:b_end]
+              bi = ndx[:, 0]
+              bj = ndx[:, 1]
+              bd_parts = bd_name.split('-')
+              
+              h = H_[:, b_start:b_end]
+              hsi = Hsi_[:, b_start:b_end]
+              hpi = Hpi_[:, b_start:b_end]
+              hpp = Hpp_[:, b_start:b_end]
+              dbi = Dbi_[:, b_start:b_end]
+              dbj = Dbj_[:, b_start:b_end]
+              
+              Fi = fmessage_jnp('fm', bd_parts[0], [dbi, h, dbj], self.m, layer=self.mf_layer[1])
+              Fj = fmessage_jnp('fm', bd_parts[1], [dbj, h, dbi], self.m, layer=self.mf_layer[1])
+              F = Fi * Fj
+              
+              Fsi = F[..., 0]
+              Fpi = F[..., 1]
+              Fpp = F[..., 2]
+              
+              bo_new = bo_new.at[:, bi, bj].set(hsi * Fsi)
+              bo_new = bo_new.at[:, bj, bi].set(hsi * Fsi)
+              bosi_new = bosi_new.at[:, bi, bj].set(hsi * Fsi)
+              bosi_new = bosi_new.at[:, bj, bi].set(hsi * Fsi)
+              bopi_new = bopi_new.at[:, bi, bj].set(hpi * Fpi)
+              bopi_new = bopi_new.at[:, bj, bi].set(hpi * Fpi)
+              bopp_new = bopp_new.at[:, bi, bj].set(hpp * Fpp)
+              bopp_new = bopp_new.at[:, bj, bi].set(hpp * Fpp)
+          
+          H.append(bo_new)
+          Hsi.append(bosi_new)
+          Hpi.append(bopi_new)
+          Hpp.append(bopp_new)
+          D.append(jnp.sum(bo_new, axis=2))
+      
+      # 4. Bond energy
+      bo0 = H[-1]
+      bosi = Hsi[-1]
+      bopi = Hpi[-1]
+      bopp = Hpp[-1]
+      
+      bosi_bond = bosi[:, bdid_full[:, 0], bdid_full[:, 1]]
+      bopi_bond = bopi[:, bdid_full[:, 0], bdid_full[:, 1]]
+      bopp_bond = bopp[:, bdid_full[:, 0], bdid_full[:, 1]]
+      
+      ebd = jnp.zeros_like(r)
+      for bd_name in self.bonds:
+          if self.nbd[st].get(bd_name, 0) == 0:
+              continue
+          b_start, b_end = self.b[st][bd_name]
+          ndx = bdid_full[b_start:b_end]
+          bi = ndx[:, 0]
+          bj = ndx[:, 1]
+          
+          bosi_ = bosi_bond[:, b_start:b_end]
+          bopi_ = bopi_bond[:, b_start:b_end]
+          bopp_ = bopp_bond[:, b_start:b_end]
+          
+          if self.EnergyFunction == 0:
+              FBO = jnp.where(bosi_ > 0.0, 1.0, 0.0)
+              FBOR = 1.0 - FBO
+              powb = jnp.power(bosi_ + FBOR, p['be2_' + bd_name])
+              expb = jnp.exp(p['be1_' + bd_name] * (1.0 - powb))
+              sieng = p['Desi_' + bd_name] * bosi_ * expb * FBO
+              pieng = p['Depi_' + bd_name] * bopi_
+              ppeng = p['Depp_' + bd_name] * bopp_
+              esi = sieng + pieng + ppeng
+          else:
+              esi = fnn_jnp('fe', bd_name, [bosi_, bopi_, bopp_], self.m, layer=self.be_layer[1])
+              esi = p['Desi_' + bd_name] * esi
+          
+          ebd = ebd.at[:, bi, bj].set(-esi)
+          ebd = ebd.at[:, bj, bi].set(-esi)
+      
+      ebond = jnp.sum(ebd, axis=(1, 2))
+      return jnp.sum(ebond)
 
   def get_bond_energy(self,st):
       vr          = fvr(self.x[st])
-      vrf         = jnp.matmul(vr,self.rcell[st])
-      vrf         = jnp.where(vrf-0.5>0,vrf-1.0,vrf)
-      vrf         = jnp.where(vrf+0.5<0,vrf+1.0,vrf) 
-      self.vr[st] = jnp.matmul(vrf,self.cell[st])
-      self.r[st]  = jnp.sqrt(jnp.sum(self.vr[st]*self.vr[st],axis=3) + 0.00000001) # 
+      vrf         = np.matmul(vr,self.rcell[st])
+      vrf         = np.where(vrf-0.5>0,vrf-1.0,vrf)
+      vrf         = np.where(vrf+0.5<0,vrf+1.0,vrf) 
+      self.vr[st] = np.matmul(vrf,self.cell[st])
+      self.r[st]  = np.sqrt(np.sum(self.vr[st]*self.vr[st],axis=3) + 0.00000001) # 
       
       self.get_bondorder_uc(st)
       self.message_passing(st)
       self.get_final_state(st)
       
-      self.ebd[st] = jnp.zeros_like(self.bosi[st])
+      self.ebd[st] = np.zeros_like(self.bosi[st])
       self.esi[st] = {}
       bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
       bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -267,31 +531,31 @@ class ReaxFF_nn:
           bopi_ = bopi[:,b_[0]:b_[1]]
           bopp_ = bopp[:,b_[0]:b_[1]]
           if self.EnergyFunction==0:
-             FBO  = jnp.where(jnp.greater(bosi_,0.0),1.0,0.0)
+             FBO  = np.where(np.greater(bosi_,0.0),1.0,0.0)
              FBOR = 1.0 - FBO
-             powb = jnp.power(bosi_+FBOR,self.p['be2_'+bd])
-             expb = jnp.exp(jnp.multiply(self.p['be1_'+bd],1.0-powb))
+             powb = np.power(bosi_+FBOR,self.p['be2_'+bd])
+             expb = np.exp(np.multiply(self.p['be1_'+bd],1.0-powb))
 
              sieng = self.p['Desi_'+bd]*bosi_*expb*FBO 
-             pieng = jnp.multiply(self.p['Depi_'+bd],bopi_)
-             ppeng = jnp.multiply(self.p['Depp_'+bd],bopp_) 
+             pieng = np.multiply(self.p['Depi_'+bd],bopi_)
+             ppeng = np.multiply(self.p['Depp_'+bd],bopp_) 
              self.esi[st][bd]  =  sieng + pieng + ppeng
              self.ebd[st][:,bi,bj] = -self.esi[st][bd]
           else:
             self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],self.m,layer=self.be_layer[1])
             self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
           # Ebd.append(self.ebd[mol][bd])
-      # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = jnp.concatenate(ebd,axis=1)
-      self.ebond[st]= jnp.sum(self.ebd[st],axis=(1, 2),keepdims=False)
-      # self.ebond[st]= jnp.squeeze(self.ebond[st],2)
+      # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = np.concatenate(ebd,axis=1)
+      self.ebond[st]= np.sum(self.ebd[st],axis=(1, 2),keepdims=False)
+      # self.ebond[st]= np.squeeze(self.ebond[st],2)
   
   def get_bondorder_uc(self,st):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
       r = self.r[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-      self.bop_si[st] = jnp.zeros_like(self.r[st])
-      self.bop_pi[st] = jnp.zeros_like(self.r[st])
-      self.bop_pp[st] = jnp.zeros_like(self.r[st])
+      self.bop_si[st] = np.zeros_like(self.r[st])
+      self.bop_pi[st] = np.zeros_like(self.r[st])
+      self.bop_pp[st] = np.zeros_like(self.r[st])
       self.rbd[st]    = {}
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
@@ -300,48 +564,48 @@ class ReaxFF_nn:
              continue
               
           rr   = self.log_/self.p['bo1_'+bd] 
-          self.rc_bo[bd]=self.p['rosi_'+bd]*jnp.power(rr,1.0/self.p['bo2_'+bd])
+          self.rc_bo[bd]=self.p['rosi_'+bd]*np.power(rr,1.0/self.p['bo2_'+bd])
               
           self.rbd[st][bd] = r[:,b_[0]:b_[1]]
-          self.frc[bd] = jnp.where(jnp.logical_or(jnp.greater(self.rbd[st][bd],self.rc_bo[bd]),
-                                                jnp.less_equal(self.rbd[st][bd],0.001)), 0.0,1.0)
+          self.frc[bd] = np.where(np.logical_or(np.greater(self.rbd[st][bd],self.rc_bo[bd]),
+                                                np.less_equal(self.rbd[st][bd],0.001)), 0.0,1.0)
 
-          bodiv1 = jnp.divide(self.rbd[st][bd],self.p['rosi_'+bd])
-          bopow1 = jnp.power(bodiv1,self.p['bo2_'+bd])
-          eterm1 = (1.0+self.botol)*jnp.exp(jnp.multiply(self.p['bo1_'+bd],bopow1))*self.frc[bd] 
+          bodiv1 = np.divide(self.rbd[st][bd],self.p['rosi_'+bd])
+          bopow1 = np.power(bodiv1,self.p['bo2_'+bd])
+          eterm1 = (1.0+self.botol)*np.exp(np.multiply(self.p['bo1_'+bd],bopow1))*self.frc[bd] 
 
-          bodiv2 = jnp.divide(self.rbd[st][bd],self.p['ropi_'+bd])
-          bopow2 = jnp.power(bodiv2,self.p['bo4_'+bd])
-          eterm2 = jnp.exp(jnp.multiply(self.p['bo3_'+bd],bopow2))*self.frc[bd]
+          bodiv2 = np.divide(self.rbd[st][bd],self.p['ropi_'+bd])
+          bopow2 = np.power(bodiv2,self.p['bo4_'+bd])
+          eterm2 = np.exp(np.multiply(self.p['bo3_'+bd],bopow2))*self.frc[bd]
 
-          bodiv3 = jnp.divide(self.rbd[st][bd],self.p['ropp_'+bd])
-          bopow3 = jnp.power(bodiv3,self.p['bo6_'+bd])
-          eterm3 = jnp.exp(jnp.multiply(self.p['bo5_'+bd],bopow3))*self.frc[bd]
+          bodiv3 = np.divide(self.rbd[st][bd],self.p['ropp_'+bd])
+          bopow3 = np.power(bodiv3,self.p['bo6_'+bd])
+          eterm3 = np.exp(np.multiply(self.p['bo5_'+bd],bopow3))*self.frc[bd]
 
           bop_si.append(taper(eterm1,rmin=self.botol,rmax=2.0*self.botol)*(eterm1-self.botol)) # consist with GULP
           bop_pi.append(taper(eterm2,rmin=self.botol,rmax=2.0*self.botol)*eterm2)
           bop_pp.append(taper(eterm3,rmin=self.botol,rmax=2.0*self.botol)*eterm3)
       
-      bosi_ = jnp.concatenate(bop_si,axis=1)
-      bopi_ = jnp.concatenate(bop_pi,axis=1)
-      bopp_ = jnp.concatenate(bop_pp,axis=1)
+      bosi_ = np.concatenate(bop_si,axis=1)
+      bopi_ = np.concatenate(bop_pi,axis=1)
+      bopp_ = np.concatenate(bop_pp,axis=1)
 
       self.bop_si[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_si[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bosi_
       self.bop_pi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pi[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bopi_
       self.bop_pp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = self.bop_pp[st][:,self.bdid[st][:,1],self.bdid[st][:,0]] = bopp_
       self.bop[st]    = self.bop_si[st] + self.bop_pi[st] + self.bop_pp[st]
       # print(self.bop[st].size)
-      self.Deltap[st] = jnp.sum(self.bop[st],2)
-      self.D_si[st]   = jnp.sum(self.bop_si[st],2)
-      self.D_pi[st]   = jnp.sum(self.bop_pi[st],2)
-      self.D_pp[st]   = jnp.sum(self.bop_pp[st],2)
+      self.Deltap[st] = np.sum(self.bop[st],2)
+      self.D_si[st]   = np.sum(self.bop_si[st],2)
+      self.D_pi[st]   = np.sum(self.bop_pi[st],2)
+      self.D_pp[st]   = np.sum(self.bop_pp[st],2)
 
   def get_bondorder(self,st,Dbi,H,Dbj,Hsi,Hpi,Hpp):
       ''' compute bond-order according the message function'''
       flabel  = 'fm'
-      bosi = jnp.zeros_like(self.r[st])
-      bopi = jnp.zeros_like(self.r[st])
-      bopp = jnp.zeros_like(self.r[st])
+      bosi = np.zeros_like(self.r[st])
+      bopi = np.zeros_like(self.r[st])
+      bopp = np.zeros_like(self.r[st])
 
       bosi_ = []
       bopi_ = []
@@ -368,7 +632,7 @@ class ReaxFF_nn:
           Fj   = fmessage(flabel,b[1],[self.Dbj[st][bd],h,self.Dbi[st][bd]],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
 
-          Fsi, Fpi, Fpp = [F[..., i] for i in range(3)]
+          Fsi,Fpi,Fpp = [F[..., i] for i in range(3)]
 
           bosi_.append(hsi*Fsi)
           bopi_.append(hpi*Fpi)
@@ -389,8 +653,8 @@ class ReaxFF_nn:
       self.D[st]    = [self.Deltap[st]]    
       
       for t in range(1,self.messages+1):
-          Di   = jnp.expand_dims(self.D[st][t-1],2)*self.eye[st]
-          Dj   = jnp.expand_dims(self.D[st][t-1],1)*self.eye[st]
+          Di   = np.expand_dims(self.D[st][t-1],2)*self.eye[st]
+          Dj   = np.expand_dims(self.D[st][t-1],1)*self.eye[st]
 
           Dbi  = Di  - self.H[st][t-1] 
           Dbj  = Dj  - self.H[st][t-1]
@@ -409,7 +673,7 @@ class ReaxFF_nn:
           self.Hpi[st].append(bopi)
           self.Hpp[st].append(bopp)
 
-          Delta = jnp.sum(bo,2)
+          Delta = np.sum(bo,2)
           self.D[st].append(Delta)                  # degree matrix
 
   def get_final_state(self,st):     
@@ -419,7 +683,7 @@ class ReaxFF_nn:
       self.bopi[st]   = self.Hpi[st][-1]
       self.bopp[st]   = self.Hpp[st][-1]
 
-      self.bo[st]     = jax.nn.relu(self.bo0[st] - self.p['acut'])
+      self.bo[st]     = np.maximum(0, self.bo0[st] - self.p['acut'])
 
       bso             = []
       bo0             = self.bo0[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
@@ -431,13 +695,13 @@ class ReaxFF_nn:
           bo0_ = bo0[:,b_[0]:b_[1]]
           bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0_)
       
-      bso_   = jnp.zeros_like(self.bo0[st])
-      bso_[:,self.bdid[st][:,0],self.bdid[st][:,1]]  = jnp.concatenate(bso,1)
-      bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = jnp.concatenate(bso,1)
+      bso_   = np.zeros_like(self.bo0[st])
+      bso_[:,self.bdid[st][:,0],self.bdid[st][:,1]]  = np.concatenate(bso,1)
+      bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = np.concatenate(bso,1)
 
-      self.SO[st]      = jnp.sum(bso_,2)  
+      self.SO[st]      = np.sum(bso_,2)  
       self.Delta_pi[st]= self.bopi[st]+self.bopp[st]
-      self.delta_pi[st]= jnp.sum(self.Delta_pi[st],2) 
+      self.delta_pi[st]= np.sum(self.Delta_pi[st],2) 
 
       self.fbot[st]   = taper(self.bo0[st],rmin=self.p['acut'],rmax=2.0*self.p['acut']) 
       self.fhb[st]    = taper(self.bo0[st],rmin=self.hbtol,rmax=2.0*self.hbtol) 
@@ -445,12 +709,12 @@ class ReaxFF_nn:
   def get_atomic_energy(self,st):
       ''' compute atomic energy of structure (st): elone, eover,eunder'''
       # st_ = st.split('-')[0]
-      self.Elone[st]     = jnp.zeros_like(self.Delta[st])
-      self.Eover[st]     = jnp.zeros_like(self.Delta[st])
-      self.Eunder[st]    = jnp.zeros_like(self.Delta[st])
-      self.Nlp[st]       = jnp.zeros_like(self.Delta[st])
-      self.Delta_ang[st] = jnp.zeros_like(self.Delta[st])
-      Dlp                = jnp.zeros_like(self.Delta[st])
+      self.Elone[st]     = np.zeros_like(self.Delta[st])
+      self.Eover[st]     = np.zeros_like(self.Delta[st])
+      self.Eunder[st]    = np.zeros_like(self.Delta[st])
+      self.Nlp[st]       = np.zeros_like(self.Delta[st])
+      self.Delta_ang[st] = np.zeros_like(self.Delta[st])
+      Dlp                = np.zeros_like(self.Delta[st])
 
       delta       = {}
       delta_pi    = {}
@@ -469,7 +733,7 @@ class ReaxFF_nn:
 
       for sp in self.spec:
           # print(delta_pi.shape,dlp.shape)
-          dpi                 = jnp.sum(delta_pi[sp]*jnp.expand_dims(Dlp,1), 2)
+          dpi                 = np.sum(delta_pi[sp]*np.expand_dims(Dlp,1), 2)
           # print(dpi)
           delta_lpcorr,Eover  = self.get_eover(sp,delta[sp],delta_lp[sp],dpi,so[sp]) 
           Eunder              = self.get_eunder(sp,delta_lpcorr,dpi) 
@@ -479,11 +743,11 @@ class ReaxFF_nn:
           self.Eover[st][:,self.s[st][sp]]      = Eover
           self.Eunder[st][:,self.s[st][sp]]     = Eunder
 
-      self.elone[st]  = jnp.sum(self.Elone[st],1)
-      self.eover[st]  = jnp.sum(self.Eover[st],1)
-      self.eunder[st] = jnp.sum(self.Eunder[st],1)
+      self.elone[st]  = np.sum(self.Elone[st],1)
+      self.eover[st]  = np.sum(self.Eover[st],1)
+      self.eunder[st] = np.sum(self.Eunder[st],1)
 
-      self.eatomic[st] = jnp.array(0.0)
+      self.eatomic[st] = np.array(0.0)
       for sp in self.spec:
           if self.ns[st][sp]>0:
              self.eatomic[st] -= self.p['atomic_'+sp]*self.ns[st][sp]
@@ -491,45 +755,45 @@ class ReaxFF_nn:
   
   def get_eover(self,sp,delta,delta_lp,dpi,so):
       delta_val    = delta - self.p['val_'+sp]
-      delta_lpcorr = delta_val - jnp.divide(delta_lp,
-                     1.0+self.p['ovun3']*jnp.exp(self.p['ovun4']*dpi))
+      delta_lpcorr = delta_val - np.divide(delta_lp,
+                     1.0+self.p['ovun3']*np.exp(self.p['ovun4']*dpi))
       otrm1              = DIV_IF(1.0,delta_lpcorr + self.p['val_'+sp])
-      otrm2              = jax.nn.sigmoid(-self.p['ovun2_'+sp]*delta_lpcorr)
+      otrm2              = sigmoid(-self.p['ovun2_'+sp]*delta_lpcorr)
       Eover              = so*otrm1*delta_lpcorr*otrm2
       return delta_lpcorr,Eover 
   
   def get_eunder(self,sp,delta_lpcorr,dpi):
-      expeu1            = jnp.exp(self.p['ovun6']*delta_lpcorr)
-      eu1               = jax.nn.sigmoid(self.p['ovun2_'+sp]*delta_lpcorr)
-      expeu3            = jnp.exp(self.p['ovun8']*dpi)
-      eu2               = jnp.divide(1.0,1.0+self.p['ovun7']*expeu3)
+      expeu1            = np.exp(self.p['ovun6']*delta_lpcorr)
+      eu1               = sigmoid(self.p['ovun2_'+sp]*delta_lpcorr)
+      expeu3            = np.exp(self.p['ovun8']*dpi)
+      eu2               = np.divide(1.0,1.0+self.p['ovun7']*expeu3)
       Eunder            = -self.p['ovun5_'+sp]*(1.0-expeu1)*eu1*eu2                          # must positive
       return Eunder 
   
   def get_elone(self,sp,delta):
       Nlp            = 0.5*(self.p['vale_'+sp] - self.p['val_'+sp])
       delta_e        = 0.5*(delta - self.p['vale_'+sp])
-      De             = -jax.nn.relu(-jnp.ceil(delta_e)) 
-      nlp            = -De + jnp.exp(-self.p['lp1']*4.0*jnp.square(1.0+delta_e-De))
+      De             = -np.maximum(0, -np.ceil(delta_e)) 
+      nlp            = -De + np.exp(-self.p['lp1']*4.0*np.square(1.0+delta_e-De))
 
       delta_lp       = Nlp - nlp           
-      # Delta_lp     = jax.nn.relu(Delta_lp+1) -1
+      # Delta_lp     = np.maximum(0, Delta_lp+1) -1
       dlp            = delta -self.p['val_'+sp] - delta_lp
 
-      explp          = 1.0+jnp.exp(-75.0*delta_lp) # -self.p['lp3']
+      explp          = 1.0+np.exp(-75.0*delta_lp) # -self.p['lp3']
       Elone          = self.p['lp2_'+sp]*delta_lp/explp
       return delta_lp,nlp,dlp,Elone
   
   def get_threebody_energy(self,st):
       ''' compute three-body term interaction '''
-      PBOpow        = -jnp.power(self.bo[st]+0.00000001,8)        # original: self.BO0 
-      PBOexp        =  jnp.exp(PBOpow)
-      self.Pbo[st]  =  jnp.prod(PBOexp,2)     # BO Product
+      PBOpow        = -np.power(self.bo[st]+0.00000001,8)        # original: self.BO0 
+      PBOexp        =  np.exp(PBOpow)
+      self.Pbo[st]  =  np.prod(PBOexp,2)     # BO Product
 
       if self.nang[st]==0:
-         self.eang[st] = jnp.zeros(self.batch[st]) 
-         self.epen[st] = jnp.zeros(self.batch[st]) 
-         self.etcon[st]= jnp.zeros(self.batch[st]) 
+         self.eang[st] = np.zeros(self.batch[st]) 
+         self.epen[st] = np.zeros(self.batch[st]) 
+         self.etcon[st]= np.zeros(self.batch[st]) 
       else:
          Eang  = []
          Epen  = []
@@ -562,12 +826,12 @@ class ReaxFF_nn:
                 Epen.append(Ep)
                 Etcon.append(Et)
 
-         self.Eang[st] = jnp.concatenate(Eang,axis=1)
-         self.Epen[st] = jnp.concatenate(Epen,axis=1)
-         self.Etcon[st]= jnp.concatenate(Etcon,axis=1)
-         self.eang[st] = jnp.sum(self.Eang[st],1)
-         self.epen[st] = jnp.sum(self.Epen[st],1)
-         self.etcon[st]= jnp.sum(self.Etcon[st],1)
+         self.Eang[st] = np.concatenate(Eang,axis=1)
+         self.Epen[st] = np.concatenate(Epen,axis=1)
+         self.Etcon[st]= np.concatenate(Etcon,axis=1)
+         self.eang[st] = np.sum(self.Eang[st],1)
+         self.epen[st] = np.sum(self.Epen[st],1)
+         self.etcon[st]= np.sum(self.Etcon[st],1)
 
   def get_theta(self,st,ai,aj,ak):
       Rij = self.r[st][:,ai,aj]  
@@ -575,16 +839,16 @@ class ReaxFF_nn:
       # Rik = self.r[self.angi,self.angk]  
       vik = self.vr[st][:,ai,aj] + self.vr[st][:,aj,ak]
       # print(vik.shape)
-      Rik = jnp.sqrt(jnp.sum(jnp.square(vik),2))
+      Rik = np.sqrt(np.sum(np.square(vik),2))
 
       Rij2= Rij*Rij
       Rjk2= Rjk*Rjk
       Rik2= Rik*Rik
 
       cos_theta = (Rij2+Rjk2-Rik2)/(2.0*Rij*Rjk)
-      cos_theta = jnp.where(cos_theta>0.9999999,0.9999999,cos_theta)   
-      cos_theta = jnp.where(cos_theta<-0.9999999,-0.9999999,cos_theta)
-      theta     = jnp.arccos(cos_theta)
+      cos_theta = np.where(cos_theta>0.9999999,0.9999999,cos_theta)   
+      cos_theta = np.where(cos_theta<-0.9999999,-0.9999999,cos_theta)
+      theta     = np.arccos(cos_theta)
       return theta
 
   def get_eangle(self,sp,ang,boij,bojk,fij,fjk,theta,delta_ang,sbo,pbo,nlp):
@@ -592,9 +856,9 @@ class ReaxFF_nn:
 
       theta0         = self.get_theta0(ang,delta_ang,sbo,pbo,nlp)
       thet           = theta0 - theta
-      thet2          = jnp.square(thet)
+      thet2          = np.square(thet)
 
-      expang         = jnp.exp(-self.p['val2_'+ang]*thet2)
+      expang         = np.exp(-self.p['val2_'+ang]*thet2)
       f_7            = self.f7(sp,ang,boij,bojk)
       f_8            = self.f8(sp,ang,delta_ang)
       Eang           = fijk*f_7*f_8*(self.p['val1_'+ang]-self.p['val1_'+ang]*expang) 
@@ -603,72 +867,72 @@ class ReaxFF_nn:
   def get_theta0(self,ang,delta_ang,sbo,pbo,nlp):
       Sbo   = sbo - (1.0-pbo)*(delta_ang+self.p['val8']*nlp)    
       
-      ok    = jnp.logical_and(jnp.less_equal(Sbo,1.0),jnp.greater(Sbo,0.0))
-      S1    = jnp.where(ok,Sbo,0.0)    #  0< sbo < 1                  
-      Sbo1  = jnp.where(ok,jnp.power(S1+0.00000001,self.p['val9']),0.0) 
+      ok    = np.logical_and(np.less_equal(Sbo,1.0),np.greater(Sbo,0.0))
+      S1    = np.where(ok,Sbo,0.0)    #  0< sbo < 1                  
+      Sbo1  = np.where(ok,np.power(S1+0.00000001,self.p['val9']),0.0) 
 
-      ok    = jnp.logical_and(jnp.less(Sbo,2.0),jnp.greater(Sbo,1.0))
-      S2    = jnp.where(ok,Sbo,0.0)                     
-      F2    = jnp.where(ok,1.0,0.0)                 #  1< sbo <2
+      ok    = np.logical_and(np.less(Sbo,2.0),np.greater(Sbo,1.0))
+      S2    = np.where(ok,Sbo,0.0)                     
+      F2    = np.where(ok,1.0,0.0)                 #  1< sbo <2
      
       S2    = 2.0*F2-S2  
-      Sbo12 = jnp.where(ok,2.0-jnp.power(S2+0.00000001,self.p['val9']),0.0)  #  1< sbo <2
+      Sbo12 = np.where(ok,2.0-np.power(S2+0.00000001,self.p['val9']),0.0)  #  1< sbo <2
                                                                                       #     sbo >2
-      Sbo2  = jnp.where(jnp.greater_equal(Sbo,2.0),1.0,0.0)
+      Sbo2  = np.where(np.greater_equal(Sbo,2.0),1.0,0.0)
 
       Sbo3   = Sbo1 + Sbo12 + 2.0*Sbo2
-      theta0_ = 180.0 - self.p['theta0_'+ang]*(1.0-jnp.exp(-self.p['val10']*(2.0-Sbo3)))
+      theta0_ = 180.0 - self.p['theta0_'+ang]*(1.0-np.exp(-self.p['val10']*(2.0-Sbo3)))
       theta0 = theta0_/57.29577951
       return theta0
 
   def f7(self,sp,ang,boij,bojk): 
-      Fboi  = jnp.where(jnp.greater(boij,0.0),1.0,0.0)   
+      Fboi  = np.where(np.greater(boij,0.0),1.0,0.0)   
       Fbori = 1.0 - Fboi                                                                         # prevent NAN error
-      expij = jnp.exp(-self.p['val3_'+sp]*jnp.power(boij+Fbori,self.p['val4_'+ang])*Fboi)
+      expij = np.exp(-self.p['val3_'+sp]*np.power(boij+Fbori,self.p['val4_'+ang])*Fboi)
 
-      Fbok  = jnp.where(jnp.greater(bojk,0.0),1.0,0.0)   
+      Fbok  = np.where(np.greater(bojk,0.0),1.0,0.0)   
       Fbork = 1.0 - Fbok 
-      expjk = jnp.exp(-self.p['val3_'+sp]*jnp.power(bojk+Fbork,self.p['val4_'+ang])*Fbok)
+      expjk = np.exp(-self.p['val3_'+sp]*np.power(bojk+Fbork,self.p['val4_'+ang])*Fbok)
       fi = 1.0 - expij
       fk = 1.0 - expjk
       F  = fi*fk
       return F 
 
   def f8(self,sp,ang,delta_ang):
-      exp6 = jnp.exp( self.p['val6']*delta_ang)
-      exp7 = jnp.exp(-self.p['val7_'+ang]*delta_ang)
-      F    = self.p['val5_'+sp] - (self.p['val5_'+sp]-1.0)*jnp.divide(2.0+exp6,1.0+exp6+exp7)
+      exp6 = np.exp( self.p['val6']*delta_ang)
+      exp7 = np.exp(-self.p['val7_'+ang]*delta_ang)
+      F    = self.p['val5_'+sp] - (self.p['val5_'+sp]-1.0)*np.divide(2.0+exp6,1.0+exp6+exp7)
       return F
 
   def get_epenalty(self,ang,delta,boij,bojk,fijk):
       f_9  = self.f9(delta)
-      expi = jnp.exp(-self.p['pen2']*jnp.square(boij-2.0))
-      expk = jnp.exp(-self.p['pen2']*jnp.square(bojk-2.0))
+      expi = np.exp(-self.p['pen2']*np.square(boij-2.0))
+      expk = np.exp(-self.p['pen2']*np.square(bojk-2.0))
       Ep   = self.p['pen1_'+ang]*f_9*expi*expk*fijk
       return Ep
 
   def f9(self,Delta):
-      exp3 = jnp.exp(-self.p['pen3']*Delta)
-      exp4 = jnp.exp( self.p['pen4']*Delta)
-      F = jnp.divide(2.0+exp3,1.0+exp3+exp4)
+      exp3 = np.exp(-self.p['pen3']*Delta)
+      exp4 = np.exp( self.p['pen4']*Delta)
+      F = np.divide(2.0+exp3,1.0+exp3+exp4)
       return F
 
   def get_three_conj(self,ang,delta_ang,delta_i,delta_k,boij,bojk,fijk):
       delta_coa  = delta_ang # self.D_ang[st] + valang - valboc
-      expcoa1    = jnp.exp(self.p['coa2']*delta_coa)
+      expcoa1    = np.exp(self.p['coa2']*delta_coa)
 
-      texp0 = jnp.divide(self.p['coa1_'+ang],1.0 + expcoa1)  
-      texp1 = jnp.exp(-self.p['coa3']*jnp.square(delta_i-boij))
-      texp2 = jnp.exp(-self.p['coa3']*jnp.square(delta_k-bojk))
-      texp3 = jnp.exp(-self.p['coa4']*jnp.square(boij-1.5))
-      texp4 = jnp.exp(-self.p['coa4']*jnp.square(bojk-1.5))
+      texp0 = np.divide(self.p['coa1_'+ang],1.0 + expcoa1)  
+      texp1 = np.exp(-self.p['coa3']*np.square(delta_i-boij))
+      texp2 = np.exp(-self.p['coa3']*np.square(delta_k-bojk))
+      texp3 = np.exp(-self.p['coa4']*np.square(boij-1.5))
+      texp4 = np.exp(-self.p['coa4']*np.square(bojk-1.5))
       Etc   = texp0*texp1*texp2*texp3*texp4*fijk 
       return Etc
 
   def get_fourbody_energy(self,st):
       if (not self.opt_term['etor'] and not self.opt_term['efcon']) or self.ntor[st]==0:
-         self.etor[st] = jnp.zeros([self.batch[st]])
-         self.efcon[st]= jnp.zeros([self.batch[st]])
+         self.etor[st] = np.zeros([self.batch[st]])
+         self.efcon[st]= np.zeros([self.batch[st]])
       else:
          Etor   =    []
          Efcon  =    []
@@ -699,12 +963,12 @@ class ReaxFF_nn:
                 
                 Etor.append(Et)
                 Efcon.append(Ef)
-                # self.etor[st] = self.etor[st]  + jnp.sum(Et,1)
-                # self.efcon[st]= self.efcon[st] + jnp.sum(Ef,1)
-         self.Etor[st] = jnp.concatenate(Etor,axis=1)
-         self.Efcon[st] = jnp.concatenate(Efcon,axis=1)
-         self.etor[st] = jnp.sum(self.Etor[st],1)
-         self.efcon[st]= jnp.sum(self.Efcon[st],1)
+                # self.etor[st] = self.etor[st]  + np.sum(Et,1)
+                # self.efcon[st]= self.efcon[st] + np.sum(Ef,1)
+         self.Etor[st] = np.concatenate(Etor,axis=1)
+         self.Efcon[st] = np.concatenate(Efcon,axis=1)
+         self.etor[st] = np.sum(self.Etor[st],1)
+         self.efcon[st]= np.sum(self.Efcon[st],1)
 
   def get_torsion_angle(self,st,ti,tj,tk,tl):
       ''' compute torsion angle '''
@@ -717,51 +981,51 @@ class ReaxFF_nn:
       vrkl= self.vr[st][:,tk,tl]
 
       vrjl= vrjk + vrkl
-      rjl = jnp.sqrt(jnp.sum(jnp.square(vrjl),2))
+      rjl = np.sqrt(np.sum(np.square(vrjl),2))
 
       vrij= self.vr[st][:,ti,tj]
       vril= vrij + vrjl
-      ril = jnp.sqrt(jnp.sum(jnp.square(vril),2))
+      ril = np.sqrt(np.sum(np.square(vril),2))
 
       vrik= vrij + vrjk
-      rik = jnp.sqrt(jnp.sum(jnp.square(vrik),2))
-      rij2= jnp.square(rij)
-      rjk2= jnp.square(rjk)
-      rkl2= jnp.square(rkl)
-      rjl2= jnp.square(rjl)
-      ril2= jnp.square(ril)
-      rik2= jnp.square(rik)
+      rik = np.sqrt(np.sum(np.square(vrik),2))
+      rij2= np.square(rij)
+      rjk2= np.square(rjk)
+      rkl2= np.square(rkl)
+      rjl2= np.square(rjl)
+      ril2= np.square(ril)
+      rik2= np.square(rik)
       
       c_ijk = (rij2+rjk2-rik2)/(2.0*rij*rjk)
-      c2ijk = jnp.square(c_ijk)
+      c2ijk = np.square(c_ijk)
       # tijk  = tf.acos(c_ijk)
       cijk  =  1.00000001 - c2ijk
-      s_ijk = jnp.sqrt(cijk)
+      s_ijk = np.sqrt(cijk)
 
       c_jkl = (rjk2+rkl2-rjl2)/(2.0*rjk*rkl)
-      c2jkl = jnp.square(c_jkl)
+      c2jkl = np.square(c_jkl)
       cjkl  = 1.00000001  - c2jkl 
-      s_jkl = jnp.sqrt(cjkl)
+      s_jkl = np.sqrt(cjkl)
 
       # c_ijl = (rij2+rjl2-ril2)/(2.0*rij*rjl)
       c_kjl = (rjk2+rjl2-rkl2)/(2.0*rjk*rjl)
 
-      c2kjl = jnp.square(c_kjl)
+      c2kjl = np.square(c_kjl)
       ckjl  = 1.00000001 - c2kjl 
-      s_kjl = jnp.sqrt(ckjl)
+      s_kjl = np.sqrt(ckjl)
 
       fz    = rij2+rjl2-ril2-2.0*rij*rjl*c_ijk*c_kjl
       fm    = rij*rjl*s_ijk*s_kjl
 
-      fm    = jnp.where(jnp.logical_and(fm<=0.000001,fm>=-0.000001),jnp.full_like(fm,1.0),fm)
-      fac   = jnp.where(jnp.logical_and(fm<=0.000001,fm>=-0.000001),jnp.full_like(fm,0.0),
-                                                                        jnp.full_like(fm,1.0))
+      fm    = np.where(np.logical_and(fm<=0.000001,fm>=-0.000001),np.full_like(fm,1.0),fm)
+      fac   = np.where(np.logical_and(fm<=0.000001,fm>=-0.000001),np.full_like(fm,0.0),
+                                                                        np.full_like(fm,1.0))
       cos_w = 0.5*fz*fac/fm
       #cos_w= cos_w*ccijk*ccjkl
-      cos_w = jnp.where(cos_w>0.9999999,jnp.full_like(cos_w,0.999999),cos_w)   
-      cos_w = jnp.where(cos_w<-0.9999999,jnp.full_like(cos_w,-0.999999),cos_w)
-      w= jnp.arccos(cos_w)
-      cos2w = jnp.cos(2.0*w)
+      cos_w = np.where(cos_w>0.9999999,np.full_like(cos_w,0.999999),cos_w)   
+      cos_w = np.where(cos_w<-0.9999999,np.full_like(cos_w,-0.999999),cos_w)
+      w= np.arccos(cos_w)
+      cos2w = np.cos(2.0*w)
       return w,cos_w,cos2w,s_ijk,s_jkl
   
   def get_etorsion(self,tor,boij,bojk,bokl,fij,fjk,fkl,bopjk,delta_j,delta_k,
@@ -770,9 +1034,9 @@ class ReaxFF_nn:
 
       f_10    = self.f10(boij,bojk,bokl)
       f_11    = self.f11(delta_j,delta_k)
-      expv2   = jnp.exp(self.p['tor1_'+tor]*jnp.square(2.0-bopjk-f_11)) 
+      expv2   = np.exp(self.p['tor1_'+tor]*np.square(2.0-bopjk-f_11)) 
 
-      cos3w   = jnp.cos(3.0*w)
+      cos3w   = np.cos(3.0*w)
       v1      = 0.5*self.p['V1_'+tor]*(1.0+cos_w)
       v2      = 0.5*self.p['V2_'+tor]*expv2*(1.0-cos2w)
       v3      = 0.5*self.p['V3_'+tor]*(1.0+cos3w)
@@ -781,51 +1045,53 @@ class ReaxFF_nn:
       return Etor,fijkl
   
   def f10(self,boij,bojk,bokl):
-      exp1 = 1.0 - jnp.exp(-self.p['tor2']*boij)
-      exp2 = 1.0 - jnp.exp(-self.p['tor2']*bojk)
-      exp3 = 1.0 - jnp.exp(-self.p['tor2']*bokl)
+      exp1 = 1.0 - np.exp(-self.p['tor2']*boij)
+      exp2 = 1.0 - np.exp(-self.p['tor2']*bojk)
+      exp3 = 1.0 - np.exp(-self.p['tor2']*bokl)
       return exp1*exp2*exp3
 
   def f11(self,delta_j,delta_k):
       delt = delta_j+delta_k
-      f11exp3  = jnp.exp(-self.p['tor3']*delt)
-      f11exp4  = jnp.exp( self.p['tor4']*delt)
-      f_11 = jnp.divide(2.0+f11exp3,1.0+f11exp3+f11exp4)
+      f11exp3  = np.exp(-self.p['tor3']*delt)
+      f11exp4  = np.exp( self.p['tor4']*delt)
+      f_11 = np.divide(2.0+f11exp3,1.0+f11exp3+f11exp4)
       return f_11
 
   def get_four_conj(self,tor,boij,bojk,bokl,w,s_ijk,s_jkl,fijkl):
-      exptol= jnp.exp(-self.p['cot2']*jnp.square(self.p['acut'] - 1.5))
-      expij = jnp.exp(-self.p['cot2']*jnp.square(boij-1.5))-exptol
-      expjk = jnp.exp(-self.p['cot2']*jnp.square(bojk-1.5))-exptol 
-      expkl = jnp.exp(-self.p['cot2']*jnp.square(bokl-1.5))-exptol
+      exptol= np.exp(-self.p['cot2']*np.square(self.p['acut'] - 1.5))
+      expij = np.exp(-self.p['cot2']*np.square(boij-1.5))-exptol
+      expjk = np.exp(-self.p['cot2']*np.square(bojk-1.5))-exptol 
+      expkl = np.exp(-self.p['cot2']*np.square(bokl-1.5))-exptol
 
       f_12  = expij*expjk*expkl
-      prod  = 1.0+(jnp.square(jnp.cos(w))-1.0)*s_ijk*s_jkl
+      prod  = 1.0+(np.square(np.cos(w))-1.0)*s_ijk*s_jkl
       Efcon = fijkl*f_12*self.p['cot1_'+tor]*prod  
       return Efcon
 
   def f13(self,st,r):
       # print(self.p['vdw1'].device)
-      gammaw = jnp.sqrt(jnp.expand_dims(self.P[st]['gammaw'],1)*jnp.expand_dims(self.P[st]['gammaw'],2))
-      rr = jnp.power(r,self.p['vdw1'])+jnp.power(jnp.divide(1.0,gammaw),self.p['vdw1'])
-      f_13 = jnp.power(rr,jnp.divide(1.0,self.p['vdw1']))  
+      gammaw = np.sqrt(np.expand_dims(self.P[st]['gammaw'],1)*np.expand_dims(self.P[st]['gammaw'],2))
+      rr = np.power(r,self.p['vdw1'])+np.power(np.divide(1.0,gammaw),self.p['vdw1'])
+      f_13 = np.power(rr,np.divide(1.0,self.p['vdw1']))  
       return f_13
 
   def get_tap(self,r):
-      tpc = 1.0+jnp.divide(-35.0,self.vdwcut**4.0)*jnp.power(r,4.0)+ \
-            jnp.divide(84.0,self.vdwcut**5.0)*jnp.power(r,5.0)+ \
-            jnp.divide(-70.0,self.vdwcut**6.0)*jnp.power(r,6.0)+ \
-            jnp.divide(20.0,self.vdwcut**7.0)*jnp.power(r,7.0)
+      tpc = 1.0+np.divide(-35.0,self.vdwcut**4.0)*np.power(r,4.0)+ \
+            np.divide(84.0,self.vdwcut**5.0)*np.power(r,5.0)+ \
+            np.divide(-70.0,self.vdwcut**6.0)*np.power(r,6.0)+ \
+            np.divide(20.0,self.vdwcut**7.0)*np.power(r,7.0)
       return tpc
 
   def get_vdw_energy(self,st):
-      self.Evdw[st]   = jnp.array(0.0)
-      self.Ecoul[st]  = jnp.array(0.0)
+      self.Evdw[st]   = np.array(0.0)
+      self.Ecoul[st]  = np.array(0.0)
       nc = 0
-      cell0,cell1,cell2 = jnp.split(self.cell[st],axis=2)
-      self.cell0[st] = jnp.expand_dims(cell0,1)
-      self.cell1[st] = jnp.expand_dims(cell1,1)
-      self.cell2[st] = jnp.expand_dims(cell2,1)
+      cell0 = self.cell[st][:, :, 0]
+      cell1 = self.cell[st][:, :, 1]
+      cell2 = self.cell[st][:, :, 2]
+      self.cell0[st] = np.expand_dims(cell0,1)
+      self.cell1[st] = np.expand_dims(cell1,1)
+      self.cell2[st] = np.expand_dims(cell2,1)
 
       for key in ['gamma','gammaw']:
           self.P[st][key] =0.0 
@@ -838,37 +1104,37 @@ class ReaxFF_nn:
                  continue
               self.P[st][key] = self.P[st][key] + self.p[key+'_'+bd]*self.pmask[st][bd]
               
-      gamma= jnp.sqrt(jnp.expand_dims(self.P[st]['gamma'],1)*jnp.expand_dims(self.P[st]['gamma'],2))
-      gm3  = jnp.power(jnp.divide(1.0,gamma),3.0)
+      gamma= np.sqrt(np.expand_dims(self.P[st]['gamma'],1)*np.expand_dims(self.P[st]['gamma'],2))
+      gm3  = np.power(np.divide(1.0,gamma),3.0)
 
       for i in range(-1,2):
           for j in range(-1,2):
               for k in range(-1,2):
                   cell = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                   vr_  = self.vr[st] + cell
-                  r    = jnp.sqrt(jnp.sum(jnp.square(vr_),3)+0.00000001)
-                  r3   = jnp.power(r+0.00000001,3.0)
-                  fv_  = jnp.where(jnp.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
+                  r    = np.sqrt(np.sum(np.square(vr_),3)+0.00000001)
+                  r3   = np.power(r+0.00000001,3.0)
+                  fv_  = np.where(np.logical_and(r>0.0000001,r<=self.vdwcut),1.0,0.0)
                   if nc<13:
-                     fv = jnp.triu(fv_, k=0)
+                     fv = np.triu(fv_, k=0)
                   else:
-                     fv = jnp.triu(fv_, k=1)
+                     fv = np.triu(fv_, k=1)
 
                   f_13  = self.f13(st,r)
                   tp    = self.get_tap(r)
 
-                  expvdw1 = jnp.exp(0.5*self.P[st]['alfa']*(1.0-jnp.divide(f_13,2.0*self.P[st]['rvdw'])))
-                  expvdw2 = jnp.square(expvdw1) 
+                  expvdw1 = np.exp(0.5*self.P[st]['alfa']*(1.0-np.divide(f_13,2.0*self.P[st]['rvdw'])))
+                  expvdw2 = np.square(expvdw1) 
                   self.Evdw[st]  = self.Evdw[st] + fv*tp*self.P[st]['Devdw']*(expvdw2-2.0*expvdw1)
-                  rth            = jnp.power(r3+gm3,1.0/3.0)                                      # ecoul
-                  self.Ecoul[st] = self.Ecoul[st] + jnp.divide(fv*tp*self.q[st],rth)
+                  rth            = np.power(r3+gm3,1.0/3.0)                                      # ecoul
+                  self.Ecoul[st] = self.Ecoul[st] + np.divide(fv*tp*self.q[st],rth)
                   nc += 1
-      self.evdw[st]  = jnp.sum(self.Evdw[st],axis=(1, 2))
-      self.ecoul[st] = jnp.sum(self.Ecoul[st],axis=(1, 2))
+      self.evdw[st]  = np.sum(self.Evdw[st],axis=(1, 2))
+      self.ecoul[st] = np.sum(self.Ecoul[st],axis=(1, 2))
   
   def get_hb_energy(self,st):
-      self.ehb[st]  = jnp.array(0.0)
-      self.Ehb[st]  = jnp.array(0.0)
+      self.ehb[st]  = np.array(0.0)
+      self.Ehb[st]  = np.array(0.0)
       Ehb           = []
       for hb in self.hbs:
           if self.nhb[st][hb]==0:
@@ -877,7 +1143,7 @@ class ReaxFF_nn:
           fhb         = self.fhb[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
 
           rij         = self.r[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
-          rij2        = jnp.square(rij)
+          rij2        = np.square(rij)
           vrij        = self.vr[st][:,self.hb_i[st][hb],self.hb_j[st][hb]]
           vrjk_       = self.vr[st][:,self.hb_j[st][hb],self.hb_k[st][hb]]
           ehb         = 0.0
@@ -887,30 +1153,30 @@ class ReaxFF_nn:
                       cell   = self.cell0[st]*i + self.cell1[st]*j + self.cell2[st]*k
                       vrjk   = vrjk_ + cell 
   
-                      rjk2   = jnp.sum(jnp.square(vrjk),axis=3)
-                      rjk    = jnp.sqrt(rjk2+0.00000001)
+                      rjk2   = np.sum(np.square(vrjk),axis=3)
+                      rjk    = np.sqrt(rjk2+0.00000001)
 
                       vrik   = vrij + vrjk
-                      rik2   = jnp.sum(jnp.square(vrik),axis=3)
-                      rik    = jnp.sqrt(rik2+0.00000001)
+                      rik2   = np.sum(np.square(vrik),axis=3)
+                      rik    = np.sqrt(rik2+0.00000001)
 
                       cos_th = (rij2+rjk2-rik2)/(2.0*rij*rjk)
                       hbthe  = 0.5-0.5*cos_th
                       frhb   = rtaper(rik,rmin=self.hbshort,rmax=self.hblong)
 
-                      exphb1 = 1.0-jnp.exp(-self.p['hb1_'+hb]*bo)
-                      hbsum  = jnp.divide(self.p['rohb_'+hb],rjk)+jnp.divide(rjk,self.p['rohb_'+hb])-2.0
-                      exphb2 = jnp.exp(-self.p['hb2_'+hb]*hbsum)
+                      exphb1 = 1.0-np.exp(-self.p['hb1_'+hb]*bo)
+                      hbsum  = np.divide(self.p['rohb_'+hb],rjk)+np.divide(rjk,self.p['rohb_'+hb])-2.0
+                      exphb2 = np.exp(-self.p['hb2_'+hb]*hbsum)
                      
-                      sin4   = jnp.square(hbthe)
+                      sin4   = np.square(hbthe)
                       ehb    = ehb + fhb*frhb*self.p['Dehb_'+hb]*exphb1*exphb2*sin4 
-                      # ehb_   = jnp.squeeze(jnp.sum(ehb,1),1)
+                      # ehb_   = np.squeeze(np.sum(ehb,1),1)
                       #   print('ehb: ',ehb_)  
           Ehb.append(ehb)
 
       if Ehb:
-         self.Ehb[st] = jnp.squeeze(jnp.concatenate(Ehb,axis=1),2)
-         self.ehb[st] = jnp.sum(self.Ehb[st],1)
+         self.Ehb[st] = np.squeeze(np.concatenate(Ehb,axis=1),2)
+         self.ehb[st] = np.sum(self.Ehb[st],1)
 
   def get_rcbo(self):
       self.rc_bo = {}
@@ -919,13 +1185,13 @@ class ReaxFF_nn:
           ofd=bd if b[0]!=b[1] else '{:s}-{:s}'.format(b[0],b[0])
           log_ = np.log((self.botol/(1.0 + self.botol)))
           rr = log_/self.p['bo1_'+bd] 
-          self.rc_bo[bd]=self.p['rosi_'+ofd]*jnp.power(rr,1.0/self.p['bo2_'+bd])
+          self.rc_bo[bd]=self.p['rosi_'+ofd]*np.power(rr,1.0/self.p['bo2_'+bd])
 
   def get_eself(self):
       chi    = np.expand_dims(self.P['chi'],axis=0)
       mu     = np.expand_dims(self.P['mu'],axis=0)
       self.eself = self.q*(chi+self.q*mu)
-      self.Eself = jnp.array(np.sum(self.eself,axis=1))
+      self.Eself = np.array(np.sum(self.eself,axis=1))
 
   def check_hb(self):
       if 'H' in self.spec:
@@ -998,8 +1264,8 @@ class ReaxFF_nn:
       # self.cons.extend(cons)
 
       self.botol        = 0.01*self.p_['cutoff'] 
-      self.log_         = jnp.array(-9.21044036697651)
-      self.hbtol        = self.p_['hbtol'] # jnp.array(self.p_['hbtol']) 
+      self.log_         = np.array(-9.21044036697651)
+      self.hbtol        = self.p_['hbtol'] # np.array(self.p_['hbtol']) 
       self.check_offd()
       # self.check_hb()
       self.check_tors()
@@ -1061,67 +1327,63 @@ class ReaxFF_nn:
       for key in self.p_g:
           unit_ = self.unit if key in self.punit else 1.0
           if key in self.opt:
-             self.pp[key]= jnp.array(self.p_[key]*unit_)
+             self.pp[key]= np.array(self.p_[key]*unit_)
              self.p[key] = self.pp[key]
           else:
-             self.p[key] = jnp.array(self.p_[key]*unit_)
+             self.p[key] = np.array(self.p_[key]*unit_)
 
-      # self.atol         = jnp.clip(self.p['acut'],min=self.p_['acut']*0.96)        # atol
-      self.p['acut'] = jnp.clip(self.p['acut'],min=self.p_['acut']*0.95,max=self.p_['acut']*1.05)
+      # self.atol         = np.clip(self.p['acut'],min=self.p_['acut']*0.96)        # atol
+      self.p['acut'] = np.clip(self.p['acut'],min=self.p_['acut']*0.95,max=self.p_['acut']*1.05)
 
       for key in self.p_spec:
           unit_ = self.unit if key in self.punit else 1.0
           for sp in self.spec:
               key_ = key+'_'+sp
               if (key in self.opt or key_ in self.opt) and sp in sp_opt:
-                 self.pp[key_]= jnp.array(self.p_[key_]*unit_)
+                 self.pp[key_]= np.array(self.p_[key_]*unit_)
                  self.p[key_]  = self.pp[key_]
               else:
-                 self.p[key_] = jnp.array(self.p_[key_]*unit_)
+                 self.p[key_] = np.array(self.p_[key_]*unit_)
       
       for key in self.p_bond:
           unit_ = self.unit if key in self.punit else 1.0
           for bd in self.bonds:
               key_ = key+'_'+bd
               if (key in self.opt or key_ in self.opt) and bd in bd_opt:
-                 self.pp[key_]= jnp.array(self.p_[key+'_'+bd]*unit_), 
-                                                
+                 self.pp[key_]= np.array(self.p_[key+'_'+bd]*unit_)
                  self.p[key_] = self.pp[key_]
               else:
-                 self.p[key_] = jnp.array(self.p_[key+'_'+bd]*unit_)
+                 self.p[key_] = np.array(self.p_[key+'_'+bd]*unit_)
 
       for key in self.p_ang:
           unit_ = self.unit if key in self.punit else 1.0
           for a in self.angs:
               key_ = key + '_' + a
               if (key in self.opt or key_ in self.opt) and a in ang_opt:
-                 self.pp[key_]= jnp.array(self.p_[key_]*unit_),
-                                          
+                 self.pp[key_]= np.array(self.p_[key_]*unit_)
                  self.p[key_] = self.pp[key_]
               else:
-                 self.p[key_] = jnp.array(self.p_[key_]*unit_)
+                 self.p[key_] = np.array(self.p_[key_]*unit_)
 
       for key in self.p_tor:
           unit_ = self.unit if key in self.punit else 1.0
           for t in self.tors:
               key_ = key + '_' + t
               if (key in self.opt or key_ in self.opt) and t in tor_opt:
-                 self.pp[key_] = jnp.array(self.p_[key_]*unit_),
-                                          
+                 self.pp[key_] = np.array(self.p_[key_]*unit_)
                  self.p[key_] = self.pp[key_]
               else:
-                 self.p[key_] = jnp.array(self.p_[key_]*unit_)  
+                 self.p[key_] = np.array(self.p_[key_]*unit_)  
 
       for key in self.p_hb:
           unit_ = self.unit if key in self.punit else 1.0
           for h in self.hbs:
               key_ = key + '_' + h
               if (key in self.opt or key_ in self.opt) and h in hb_opt:
-                 self.pp[key_]= jnp.array(self.p_[key_]*unit_),
-                                          
+                 self.pp[key_]= np.array(self.p_[key_]*unit_)
                  self.p[key_]  = self.pp[key_]
               else:
-                 self.p[key_] = jnp.array(self.p_[key_]*unit_)
+                 self.p[key_] = np.array(self.p_[key_]*unit_)
       # self.get_rcbo()
       if self.nn:
          self.set_m()
@@ -1132,9 +1394,9 @@ class ReaxFF_nn:
           key = k.split('_')[0]
           unit_ = self.unit if key in self.punit else 1.0 
           if k in self.ic.clip:
-             self.pp[k] = jnp.clip(self.pp[k],min=self.ic.clip[k][0]*unit_,max=self.ic.clip[k][1]*unit_)
+             self.pp[k] = np.clip(self.pp[k],min=self.ic.clip[k][0]*unit_,max=self.ic.clip[k][1]*unit_)
           elif key in self.ic.clip:
-             self.pp[k] = jnp.clip(self.pp[k],min=self.ic.clip[key][0]*unit_,max=self.ic.clip[key][1]*unit_)
+             self.pp[k] = np.clip(self.pp[k],min=self.ic.clip[key][0]*unit_,max=self.ic.clip[key][1]*unit_)
 
   def init_bonds(self):
       self.bonds,self.offd,self.angs,self.torp,self.hbs = [],[],[],[],[]
@@ -1220,10 +1482,10 @@ class ReaxFF_nn:
       self.vb_i  = {}
       self.vb_j  = {}
       for st in self.strcs:
-          self.x[st]     = jnp.array(self._data[st].x)
-          self.cell[st]  = jnp.array(np.expand_dims(self._data[st].cell,axis=1))
-          self.rcell[st] = jnp.array(np.expand_dims(self._data[st].rcell,axis=1))
-          self.eye[st]   = jnp.array(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0))
+          self.x[st]     = np.array(self._data[st].x)
+          self.cell[st]  = np.array(np.expand_dims(self._data[st].cell,axis=1))
+          self.rcell[st] = np.array(np.expand_dims(self._data[st].rcell,axis=1))
+          self.eye[st]   = np.array(np.expand_dims(1.0 - np.eye(self.natom[st]),axis=0))
           self.P[st]     = {}
           self.vb_i[st]  = {bd:[] for bd in self.bonds}
           self.vb_j[st]  = {bd:[] for bd in self.bonds}
@@ -1240,14 +1502,14 @@ class ReaxFF_nn:
           for sp in self.spec:
               pmask = np.zeros([1,self.natom[st]])
               pmask[:,self.s[st][sp]] = 1.0
-              self.pmask[st][sp] = jnp.array(pmask)
+              self.pmask[st][sp] = np.array(pmask)
 
           for bd in self.bonds:
              if len(self.vb_i[st][bd])==0:
                 continue
              pmask = np.zeros([1,self.natom[st],self.natom[st]])
              pmask[:,self.vb_i[st][bd],self.vb_j[st][bd]] = 1.0
-             self.pmask[st][bd] = jnp.array(pmask)
+             self.pmask[st][bd] = np.array(pmask)
 
   def get_data(self): 
       self.nframe      = 0
@@ -1261,10 +1523,10 @@ class ReaxFF_nn:
       if self.dataset:
          dataset = self.dataset
       else:
-         dataset = self
+         dataset = self.data
 
       for st in dataset: 
-          if st not in self:
+          if st not in self.data:
              # if st in self.batch_size:
              #    batch_ = self.batch_size[st]
              # else:
@@ -1285,9 +1547,9 @@ class ReaxFF_nn:
                   angs=self.angs,tors=self.tors,
                                   hbs=self.hbs,
                                screen=self.screen)
-             self[st] = data_
+             self.data[st] = data_
           else:
-             data_ = self[st]
+             data_ = self.data[st]
 
           if data_.status:
              self.strcs.append(st)
@@ -1393,25 +1655,24 @@ class ReaxFF_nn:
                                      forces=strucs[s].forces,
                                      q=strucs[s].qij)
 
-          self.dft_energy[s] = jnp.array(self._data[s].dft_energy)
-          self.q[s]          = jnp.array(self._data[s].q)
-          self.eself[s]      = jnp.array(strucs[s].eself)  
+          self.dft_energy[s] = np.array(self._data[s].dft_energy)
+          self.q[s]          = np.array(self._data[s].q)
+          self.eself[s]      = np.array(strucs[s].eself)  
           if self._data[s].forces is None or self.weight_force[s]==0:
              self.dft_forces[s] = None
           else:
-             self.dft_forces[s] = jnp.array(self._data[s].forces)
+             self.dft_forces[s] = np.array(self._data[s].forces)
 
           if s_ in self.estruc:
              self.estruc[s] = self.estruc[s_]
           else:
              if s_ in self.MolEnergy_:
-                self.pp[s_] = jnp.array(self.MolEnergy_[s_]),
-                                               
+                self.pp[s_] = np.array(self.MolEnergy_[s_])
                 self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
              else:
                 est = 0.0 # self.dft_energy[s] - self.E[s]
-                self.pp[s_] = jnp.array(est) 
+                self.pp[s_] = np.array(est) 
                 self.estruc[s_] = self.pp[s_] 
                 if s not in self.estruc: self.estruc[s]  = self.estruc[s_] 
   
@@ -1436,7 +1697,7 @@ class ReaxFF_nn:
 
   def get_penalty(self,st):
       ''' adding some penalty term to pretain the phyical meaning '''
-      penalty = jnp.array(0.0)
+      penalty = np.array(0.0)
       wb_p    = []
       # if self.regularize_be:
       wb_p.append('fe')
@@ -1457,8 +1718,8 @@ class ReaxFF_nn:
       self.penalty_be_cut  = {}
       self.penalty_rcut    = {}
       self.penalty_ang     = {}
-      self.penalty_w       = jnp.array(0.0)
-      self.penalty_b       = jnp.array(0.0)
+      self.penalty_w       = np.array(0.0)
+      self.penalty_b       = np.array(0.0)
       # self.rc_bo         = {}
       for bd in self.bonds: 
           atomi,atomj = bd.split('-') 
@@ -1467,18 +1728,18 @@ class ReaxFF_nn:
           self.penalty_bo_rcut[bd] = 0.0
           self.penalty_bo[bd]      = 0.0
           rr   = self.log_/self.p['bo1_'+bd] 
-          self.rc_bo[bd]=self.p['rosi_'+bd]*jnp.power(rr,1.0/self.p['bo2_'+bd])
+          self.rc_bo[bd]=self.p['rosi_'+bd]*np.power(rr,1.0/self.p['bo2_'+bd])
           
           if self.fixrcbo:
-             rcut_si = jnp.square(self.rc_bo[bd]-self.rcut[bd])
+             rcut_si = np.square(self.rc_bo[bd]-self.rcut[bd])
           else:
-             rcut_si = jax.nn.relu(self.rc_bo[bd]-self.rcut[bd])
+             rcut_si = np.maximum(0, self.rc_bo[bd]-self.rcut[bd])
 
-          rc_bopi = self.p['ropi_'+bd]*jnp.power(self.log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
-          rcut_pi = jax.nn.relu(rc_bopi-self.rcut[bd])
+          rc_bopi = self.p['ropi_'+bd]*np.power(self.log_/self.p['bo3_'+bd],1.0/self.p['bo4_'+bd])
+          rcut_pi = np.maximum(0, rc_bopi-self.rcut[bd])
 
-          rc_bopp = self.p['ropp_'+bd]*jnp.power(self.log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
-          rcut_pp = jax.nn.relu(rc_bopp-self.rcut[bd])
+          rc_bopp = self.p['ropp_'+bd]*np.power(self.log_/self.p['bo5_'+bd],1.0/self.p['bo6_'+bd])
+          rcut_pp = np.maximum(0, rc_bopp-self.rcut[bd])
 
           self.penalty_rcut[bd] = rcut_si + rcut_pi + rcut_pp
           penalty =  penalty + self.penalty_rcut[bd]*self.lambda_bd
@@ -1493,38 +1754,38 @@ class ReaxFF_nn:
 
              rc_bo = self.rc_bo[bd]
 
-             fbo  = jnp.where(jnp.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
+             fbo  = np.where(np.less(self.rbd[st][bd],rc_bo),0.0,1.0)    # bop should be zero if r>rcut_bo
              # print(bd,'bop_',bop_.shape,'rbd',self.rbd[st][bd].shape)
-             self.penalty_bop[bd]  =  self.penalty_bop[bd]  + jnp.sum(bop_*fbo)                              #####  
+             self.penalty_bop[bd]  =  self.penalty_bop[bd]  + np.sum(bop_*fbo)                              #####  
 
              if bd in self.bo_clip:
                 for pbo in self.bo_clip[bd]:
                     r,dil,diu,djl,dju,bo_l,bo_u = pbo
                     dbi = self.Dbi[st][bd] 
                     dbj = self.Dbj[st][bd] 
-                    fe  = jnp.where(jnp.logical_and(jnp.less_equal(self.rbd[st][bd],r),
-                                        jnp.logical_and(jnp.logical_and(jnp.greater_equal(dbi,dil),
-                                                        jnp.greater_equal(dbj,djl)), 
-                                                        jnp.logical_and(jnp.less_equal(dbi,diu),
-                                                        jnp.less_equal(dbj,dju))  ) ),
+                    fe  = np.where(np.logical_and(np.less_equal(self.rbd[st][bd],r),
+                                        np.logical_and(np.logical_and(np.greater_equal(dbi,dil),
+                                                        np.greater_equal(dbj,djl)), 
+                                                        np.logical_and(np.less_equal(dbi,diu),
+                                                        np.less_equal(dbj,dju))  ) ),
                                        1.0,0.0)   ##### r< r_e that bo > bore_
-                    self.penalty_bo[bd] += jnp.sum(jax.nn.relu((bo_l-bo0_)*fe)) 
+                    self.penalty_bo[bd] += np.sum(np.maximum(0, (bo_l-bo0_)*fe)) 
                                                                                     #     self.bo0[bd]
-                    fe   = jnp.where(jnp.logical_and(jnp.greater_equal(self.rbd[st][bd],r),
-                                        jnp.logical_and(jnp.logical_and(jnp.greater_equal(dbi,dil),
-                                                   jnp.greater_equal(dbj,djl)), 
-                                                       jnp.logical_and(jnp.less_equal(dbi,diu),
-                                                            jnp.less_equal(dbj,dju))  ) ),
+                    fe   = np.where(np.logical_and(np.greater_equal(self.rbd[st][bd],r),
+                                        np.logical_and(np.logical_and(np.greater_equal(dbi,dil),
+                                                   np.greater_equal(dbj,djl)), 
+                                                       np.logical_and(np.less_equal(dbi,diu),
+                                                            np.less_equal(dbj,dju))  ) ),
                                                 1.0,0.0)  ##### r> r_e that bo < bore_
-                    self.penalty_bo[bd] += jnp.sum(jax.nn.relu((bo0_-bo_u)*fe))
-             fao  = jnp.where(jnp.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
-             self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + jnp.sum(bo0_*fao)
+                    self.penalty_bo[bd] += np.sum(np.maximum(0, (bo0_-bo_u)*fe))
+             fao  = np.where(np.greater(self.rbd[st][bd],self.rcuta[bd]),1.0,0.0) ##### r> rcuta that bo = 0.0
+             self.penalty_bo_rcut[bd] = self.penalty_bo_rcut[bd] + np.sum(bo0_*fao)
 
-             fesi = jnp.where(jnp.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
-             self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + jnp.sum(jax.nn.relu(self.esi[st][bd]*fesi))
+             fesi = np.where(np.less_equal(bo0_,self.botol),1.0,0.0)              ##### bo <= 0.0 that e = 0.0
+             self.penalty_be_cut[bd]  = self.penalty_be_cut[bd]  + np.sum(np.maximum(0, self.esi[st][bd]*fesi))
              
           if self.lambda_ang>0.000001:
-             self.penalty_ang[st] = jnp.sum(self.thet2[st]*self.fijk[st])
+             self.penalty_ang[st] = np.sum(self.thet2[st]*self.fijk[st])
           
           penalty  = penalty + self.penalty_be_cut[bd]*self.lambda_bd
           penalty  = penalty + self.penalty_bop[bd]*self.lambda_bd      
@@ -1536,27 +1797,27 @@ class ReaxFF_nn:
              for k in wb_p:
                  for k_ in w_n:
                      key     = k + k_ + '_' + bd
-                     self.penalty_w = self.penalty_w + jnp.sum(jnp.square(self.m[key]))
+                     self.penalty_w = self.penalty_w + np.sum(np.square(self.m[key]))
                   
                  for k_ in b_n:
                      key     = k + k_ + '_' + bd
-                     self.penalty_b  = self.penalty_b + jnp.sum(jnp.square(self.m[key]))
+                     self.penalty_b  = self.penalty_b + np.sum(np.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     self.penalty_w = self.penalty_w + jnp.sum(jnp.square(self.m[k+'w_'+bd][l]))
-                     self.penalty_b = self.penalty_b + jnp.sum(jnp.square(self.m[k+'b_'+bd][l]))
+                     self.penalty_w = self.penalty_w + np.sum(np.square(self.m[k+'w_'+bd][l]))
+                     self.penalty_b = self.penalty_b + np.sum(np.square(self.m[k+'b_'+bd][l]))
 
       if self.lambda_reg>0.000001:                # regularize neural network
          for sp in self.spec:
              for k in wb_message:
                  for k_ in w_n:
                      key     = k + k_ + '_' + sp
-                     self.penalty_w = self.penalty_w  + jnp.sum(jnp.square(self.m[key]))
+                     self.penalty_w = self.penalty_w  + np.sum(np.square(self.m[key]))
                  for k_ in b_n:
                      key     = k + k_ + '_' + sp
-                     self.penalty_b = self.penalty_b + jnp.sum(jnp.square(self.m[key]))
+                     self.penalty_b = self.penalty_b + np.sum(np.square(self.m[key]))
                  for l in range(layer[k]):                                               
-                     self.penalty_w = self.penalty_w + jnp.sum(jnp.square(self.m[k+'w_'+sp][l]))
-                     self.penalty_b = self.penalty_b + jnp.sum(jnp.square(self.m[k+'b_'+sp][l]))
+                     self.penalty_w = self.penalty_w + np.sum(np.square(self.m[k+'w_'+sp][l]))
+                     self.penalty_b = self.penalty_b + np.sum(np.square(self.m[k+'b_'+sp][l]))
          penalty = penalty + self.lambda_reg*self.penalty_w
          penalty = penalty + self.lambda_reg*self.penalty_b
       return penalty
@@ -1647,22 +1908,22 @@ class ReaxFF_nn:
       self.ecoul,self.Ecoul             = {},{}
       self.ehb,self.Ehb                 = {},{}
 
-  def run(self, step=1000, lr=0.0001):
-      ''' Run forward computation for all structures over steps.
-          For gradient-based training, use optax manually with jax.grad
-          on a pure function wrapping the forward+loss computation. '''
+  def run(self,step=1000):
+      optimizer = optax.adam(list(self.pp.values()), lr=0.0001 )
       for i in range(step):
-          total_loss = 0.0
-          for st in self.strcs:
-              self.forward(st)
-              total_loss = total_loss + float(self.get_loss(st))
+          self.forward()
+          loss = self.get_loss()
           
-          if i % 10 == 0:
-              print("{:8d} loss: {:10.5f}   energy: {:10.5f}   force: {:10.5f}".format(
-                  i, total_loss, float(self.loss_e), float(self.loss_f)))
-          if i % 1000 == 0:
-              self.save_ffield('ffield_{:d}.json'.format(i))
-      
+        
+          if i%10==0:
+             print( "{:8d} loss: {:10.5f}   energy: {:10.5f}   force: {:10.5f}".format(i,
+                    loss,self.loss_e,self.loss_f))
+          if i%1000==0:
+             self.save_ffield('ffield_{:d}.json'.format(i))
+          
+          
+          
+          
       self.save_ffield('ffield.json')
 
   def save_ffield(self,ffield='ffield.json'):
@@ -1704,9 +1965,16 @@ class ReaxFF_nn:
              if len(k_)>1:
                 if k[0]=='f' and (k[-1]=='w' or k[-1]=='b'):
                     for i,m in enumerate(self.m[key]):
-                        self.m_[key][i] = np.array(m).tolist()
+                        # if isinstance(M, np.ndarray):
+                        if self.device['diff'].type == 'cpu':
+                           self.m_[key][i] = m.tolist()
+                        else:
+                           self.m_[key][i] = m.tolist()
                 else:
-                    self.m_[key] = np.array(self.m[key]).tolist()
+                    if self.device['diff'].type == 'cpu':
+                       self.m_[key] = self.m[key].tolist()  # covert ndarray to list
+                    else:
+                       self.m_[key] = self.m[key].tolist()
          # print(' * save parameters to file ...')
          fj = open(ffield,'w')
          j = {'p':self.p_,'m':self.m_,
