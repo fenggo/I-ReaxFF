@@ -4,6 +4,8 @@ import argparse
 from os.path import isfile
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.stats import gaussian_kde
 from ase.io.trajectory import Trajectory
 from irff.tools.load_individuals import load_density_energy
 from irff.md.gulp import opt
@@ -68,9 +70,9 @@ for i,op in enumerate(O):
         density[op].append(D[i])
         enthalpy[op].append(E[i])
 
-plt.figure()
-plt.ylabel(r'$Enthalpy$ ($eV$)',fontdict={'size':10})
-plt.xlabel(r'$Density$ ($g/cm^3$)',fontdict={'size':10})
+fig, ax = plt.subplots()
+ax.set_ylabel(r'$Enthalpy$ ($eV$)',fontdict={'size':10})
+ax.set_xlabel(r'$Density$ ($g/cm^3$)',fontdict={'size':10})
 
 markers = {'Heredity':'o','keptBest':'s','softmutate':'^',
             'Rotate':'v','Permutate':'8','Random':'p'}
@@ -83,7 +85,7 @@ left  = {'1506':-0.03,'1544':-0.03,'1543':-0.03,'1509':-0.03,
 for op in density:
     #  if op in hide:
     #     continue
-    plt.scatter(density[op],np.array(enthalpy[op]),alpha=0.9,
+    ax.scatter(density[op],np.array(enthalpy[op]),alpha=0.9,
             marker=markers[op],color='none',
             edgecolor=colors[op],s=50,
             label=op)
@@ -101,11 +103,11 @@ for l_,e_,d_ in zip(lab,e,d):
        c = '#2ec0c2'
     else:
        continue
-    plt.scatter(d_,e_,alpha=0.9,
+    ax.scatter(d_,e_,alpha=0.9,
             marker='*',color='none',
             edgecolor=c,s=120,
             label=lb)
-    plt.text(d_+0.045,e_,lb,ha='center',color=c,
+    ax.text(d_+0.045,e_,lb,ha='center',color=c,
              fontweight='bold',fontsize=6)
 
 hide_text= ['1476','1488','1490','1519','1520','1541','1537','1479']
@@ -116,13 +118,56 @@ for i,t in enumerate(I):
     if t in hide or t in hide_text:
        continue
     if t in right:
-       plt.text(d+right[t],e,t,ha='center',fontsize=6)
+       ax.text(d+right[t],e,t,ha='center',fontsize=6)
     elif t in left:
-       plt.text(d+left[t],e,t,ha='center',fontsize=6)
+       ax.text(d+left[t],e,t,ha='center',fontsize=6)
     else:
-       plt.text(d,e+0.05,t,ha='center',fontsize=6)
+       ax.text(d,e+0.05,t,ha='center',fontsize=6)
 
-plt.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
-plt.savefig('individuals.svg',transparent=True) 
+ax.legend(loc='best',edgecolor='yellowgreen') # loc = lower left upper right best
+
+# ---- 边际分布曲线 ----
+# 收集所有个体的密度和焓值
+all_d = []
+all_e = []
+for op in density:
+    all_d.extend(density[op])
+    all_e.extend(enthalpy[op])
+all_d = np.array(all_d)
+all_e = np.array(all_e)
+
+# 创建顶部和右侧的边际坐标轴
+divider = make_axes_locatable(ax)
+ax_top   = divider.append_axes("top",   size="18%", pad=0.08)
+ax_right = divider.append_axes("right", size="18%", pad=0.08)
+
+# 确保主坐标轴范围已确定
+xl = ax.get_xlim()
+yl = ax.get_ylim()
+
+# 顶部：密度的KDE分布曲线
+kde_d = gaussian_kde(all_d)
+xd = np.linspace(xl[0], xl[1], 300)
+yd = kde_d(xd)
+ax_top.plot(xd, yd, color='steelblue', lw=1.5)
+ax_top.fill_between(xd, yd, alpha=0.25, color='steelblue')
+ax_top.set_xlim(xl)
+ax_top.set_xticks([])
+ax_top.set_yticks([])
+for spine in ['top','right','left']:
+    ax_top.spines[spine].set_visible(False)
+
+# 右侧：焓的KDE分布曲线
+kde_e = gaussian_kde(all_e)
+xe = np.linspace(yl[0], yl[1], 300)
+ye = kde_e(xe)
+ax_right.plot(ye, xe, color='coral', lw=1.5)
+ax_right.fill_between(ye, xe, alpha=0.25, color='coral')
+ax_right.set_ylim(yl)
+ax_right.set_xticks([])
+ax_right.set_yticks([])
+for spine in ['top','right','bottom']:
+    ax_right.spines[spine].set_visible(False)
+
+fig.savefig('individuals.svg',transparent=True)
 plt.close() 
-
