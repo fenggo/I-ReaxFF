@@ -16,7 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import gaussian_kde
 
 
-parser = argparse.ArgumentParser(description=help_)
+parser = argparse.ArgumentParser(description='plot the dft results: ./plot_dft.py --res=results11')
 parser.add_argument('--res',default='results22',type=str, help='resultls file prefix')
 args = parser.parse_args(sys.argv[1:])
 res  = args.res
