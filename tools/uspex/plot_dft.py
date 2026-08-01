@@ -5,6 +5,9 @@
 """
 import os
 import glob
+import argh
+import argparse
+import sys
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -12,10 +15,17 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import gaussian_kde
 
+
+parser = argparse.ArgumentParser(description=help_)
+parser.add_argument('--res',default='results22',type=str, help='resultls file prefix')
+args = parser.parse_args(sys.argv[1:])
+res  = args.res
+
+
 base = os.path.dirname(os.path.abspath(__file__))
 
 # ── 收集所有 density.log ──
-folders = sorted(glob.glob(os.path.join(base, 'results44-*')),
+folders = sorted(glob.glob(os.path.join(base, f'{res}-*')),
                  key=lambda x: int(x.split('-')[-1]))
 
 data = {}  # folder_name -> (ids, densities, energies)
