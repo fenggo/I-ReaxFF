@@ -44,9 +44,9 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                     m[pref+'wi_'+bd] = torch.tensor(m_[pref+'wi_'+bd],dtype=torch.double,device=device)
                     m[pref+'bi_'+bd] = torch.tensor(m_[pref+'bi_'+bd],dtype=torch.double,device=device)
             else:
-                m[pref+'wi_'+bd] = nn.Parameter(torch.randn(nin,layer[0],device=device),
+                m[pref+'wi_'+bd] = nn.Parameter(torch.randn(nin,layer[0],device=device,dtype=torch.double),
                                                 requires_grad=True)  
-                m[pref+'bi_'+bd] = nn.Parameter(torch.randn(layer[0],device=device),
+                m[pref+'bi_'+bd] = nn.Parameter(torch.randn(layer[0],device=device,dtype=torch.double),
                                                     requires_grad=True)  
 
             m[pref+'w_'+bd] = nn.ParameterList()                                    # hidden layer
@@ -70,9 +70,9 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                                             device=device)) 
             else:
                 for i in range(layer[1]):   
-                    m[pref+'w_'+bd].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device), 
+                    m[pref+'w_'+bd].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device,dtype=torch.double), 
                                                         requires_grad=True) ) 
-                    m[pref+'b_'+bd].append(nn.Parameter(torch.randn(layer[0]),
+                    m[pref+'b_'+bd].append(nn.Parameter(torch.randn(layer[0],dtype=torch.double),
                                                         requires_grad=True) ) 
             
             if pref+'_'+bd in universal_nn:
@@ -88,9 +88,9 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                     m[pref+'wo_'+bd] = torch.tensor(m_[pref+'wo_'+bd],dtype=torch.double,device=device)
                     m[pref+'bo_'+bd] = torch.tensor(m_[pref+'bo_'+bd],dtype=torch.double,device=device)
             else:
-                m[pref+'wo_'+bd] = nn.Parameter(torch.randn([layer[0],nout],stddev=0.2,device=device), 
+                m[pref+'wo_'+bd] = nn.Parameter(torch.randn([layer[0],nout],dtype=torch.double,device=device)*0.2, 
                                                 requires_grad=True)    
-                m[pref+'bo_'+bd] = nn.Parameter(torch.randn([nout], stddev=0.01,device=device)+bias,
+                m[pref+'bo_'+bd] = nn.Parameter(torch.randn([nout],dtype=torch.double,device=device)*0.01+bias,
                                                     requires_grad=True) 
         return None
 
@@ -135,13 +135,13 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                         m[pref+'b_'+sp].append(torch.tensor(m_[pref+'b_'+sp][i],
                                                dtype=torch.double,device=device ) ) 
             else:
-                m[pref+'wi_'+sp] = nn.Parameter(torch.randn(nin,layer[0],device=device))   
-                m[pref+'bi_'+sp] = nn.Parameter(torch.randn(layer[0],device=device))  
-                m[pref+'wo_'+sp] = nn.Parameter(torch.randn(layer[0],nout,device=device))   
-                m[pref+'bo_'+sp] = nn.Parameter(torch.randn(nout,device=device))  
+                m[pref+'wi_'+sp] = nn.Parameter(torch.randn(nin,layer[0],device=device,dtype=torch.double))   
+                m[pref+'bi_'+sp] = nn.Parameter(torch.randn(layer[0],device=device,dtype=torch.double))  
+                m[pref+'wo_'+sp] = nn.Parameter(torch.randn(layer[0],nout,device=device,dtype=torch.double))   
+                m[pref+'bo_'+sp] = nn.Parameter(torch.randn(nout,device=device,dtype=torch.double))  
                 for i in range(layer[1]):   
-                    m[pref+'w_'+sp].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device ) ))
-                    m[pref+'b_'+sp].append(nn.Parameter(torch.randn([layer[0]],device=device) )) 
+                    m[pref+'w_'+sp].append(nn.Parameter(torch.randn(layer[0],layer[0],device=device ,dtype=torch.double) ))
+                    m[pref+'b_'+sp].append(nn.Parameter(torch.randn([layer[0]],device=device,dtype=torch.double) )) 
         # return m  
 
     def set_universal_wb(m_,pref='f',bd='C-C',reuse_m=True,nin=8,nout=3,
@@ -174,10 +174,10 @@ def set_matrix(m_,spec,bonds,mfopt,beopt,bdopt,messages,
                 m[pref+'b'].append(nn.Parameter(torch.tensor(m_[pref+'b'+bd_][i],
                                                  dtype=torch.double,device=device),requires_grad=True) )
         else:
-            m[pref+'wi'] = nn.Parameter(torch.randn(nin,layer[0],device=device),requires_grad=True)   
-            m[pref+'bi'] = nn.Parameter(torch.randn(layer[0],device=device),requires_grad=True)  
-            m[pref+'wo'] = nn.Parameter(torch.randn(layer[0],nout,device=device),requires_grad=True)   
-            m[pref+'bo'] = nn.Parameter(torch.randn(nout,device=device)+bias,requires_grad=True)
+            m[pref+'wi'] = nn.Parameter(torch.randn(nin,layer[0],device=device,dtype=torch.double),requires_grad=True)   
+            m[pref+'bi'] = nn.Parameter(torch.randn(layer[0],device=device,dtype=torch.double),requires_grad=True)  
+            m[pref+'wo'] = nn.Parameter(torch.randn(layer[0],nout,device=device,dtype=torch.double),requires_grad=True)   
+            m[pref+'bo'] = nn.Parameter(torch.randn(nout,device=device,dtype=torch.double)+bias,requires_grad=True)
             for i in range(layer[1]):   
                 m[pref+'w'].append(nn.Parameter(torch.randn(layer[0],layer[0],
                                         dtype=torch.double,device=device),requires_grad=True)) 

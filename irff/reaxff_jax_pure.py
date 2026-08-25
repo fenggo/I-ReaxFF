@@ -749,7 +749,7 @@ def compute_hb_energy(p, static, bo0, vr, cell, fhb):
 
     ehb = jnp.zeros(nbatch)
 
-    cell0 = jnp.expand_dims(cell[:, :, 0], 1)
+    cell0 = jnp.expand_dims(cell[:, :, 0], 1)  # [nbatch, 1, 3]
     cell1 = jnp.expand_dims(cell[:, :, 1], 1)
     cell2 = jnp.expand_dims(cell[:, :, 2], 1)
 
@@ -767,15 +767,13 @@ def compute_hb_energy(p, static, bo0, vr, cell, fhb):
         rij = jnp.sqrt(jnp.sum(jnp.square(vr[:, hi, hj]), axis=2))
         rij2 = jnp.square(rij)
         vrij = vr[:, hi, hj]
-        vrjk_ = vr[:, hj, hk]
+        vrjk_ = vr[:, hj, hk]  # [nbatch, n_pairs, 3]
 
         ehb_bd = jnp.zeros_like(bo)
         for i in range(-1, 2):
             for j in range(-1, 2):
                 for k in range(-1, 2):
-                    cell_shift = (jnp.expand_dims(cell0[:, hi], 0) * i +
-                                  jnp.expand_dims(cell1[:, hi], 0) * j +
-                                  jnp.expand_dims(cell2[:, hi], 0) * k)
+                    cell_shift = cell0 * i + cell1 * j + cell2 * k  # [nbatch, 1, 3]
                     vrjk = vrjk_ + cell_shift
 
                     rjk2 = jnp.sum(jnp.square(vrjk), axis=3)
@@ -1131,11 +1129,17 @@ class PureReaxFF:
             static['ang_k'] = jnp.array(d.ang_k)
             a_start_end = {}
             for ang in self.angs:
-                a_start_end[ang] = d.A[ang]
+                a_start_end[ang] = d.A.get(ang, (0, 0))
+            # Only keep angles that exist in this structure
+            static['ang_names'] = [ang for ang in self.angs if d.na.get(ang, 0) > 0]
+            static['na'] = d.na
+            static['ang_i'] = jnp.array(d.ang_i)
+            static['ang_j'] = jnp.array(d.ang_j)
+            static['ang_k'] = jnp.array(d.ang_k)
             static['a_start_end'] = a_start_end
 
             # Torsion indices
-            static['tor_names'] = self.tors
+            static['tor_names'] = [tor for tor in self.tors if d.nt.get(tor, 0) > 0]
             static['nt'] = d.nt
             static['tor_i'] = jnp.array(d.tor_i)
             static['tor_j'] = jnp.array(d.tor_j)
@@ -1143,19 +1147,28 @@ class PureReaxFF:
             static['tor_l'] = jnp.array(d.tor_l)
             t_start_end = {}
             for tor in self.tors:
-                t_start_end[tor] = d.T[tor]
+                t_start_end[tor] = d.T.get(tor, (0, 0))
             static['t_start_end'] = t_start_end
 
-            # HB indices
-            static['hb_names'] = self.hbs
-            static['nhb'] = d.nhb
-            static['hb_i'] = jnp.array(d.hb_i)
-            static['hb_j'] = jnp.array(d.hb_j)
-            static['hb_k'] = jnp.array(d.hb_k)
+            # HB indices (flattened from dict to 1D arrays)
+            hb_i_flat = []
+            hb_j_flat = []
+            hb_k_flat = []
             h_start_end = {}
             for hb in self.hbs:
-                h_start_end[hb] = d.H[hb] if hasattr(d, 'H') else (0, 0)
+                h_start = len(hb_i_flat)
+                if hb in d.hb_i:
+                    hb_i_flat.extend([x[0] for x in d.hb_i[hb]])
+                    hb_j_flat.extend([x[0] for x in d.hb_j[hb]])
+                    hb_k_flat.extend([x[0] for x in d.hb_k[hb]])
+                h_end = len(hb_i_flat)
+                h_start_end[hb] = (h_start, h_end)
+            static['hb_i'] = jnp.array(hb_i_flat)
+            static['hb_j'] = jnp.array(hb_j_flat)
+            static['hb_k'] = jnp.array(hb_k_flat)
             static['h_start_end'] = h_start_end
+            static['hb_names'] = [hb for hb in self.hbs if d.nhb.get(hb, 0) > 0]
+            static['nhb'] = d.nhb
 
             # Species → atom index mapping
             s_dict = {}
