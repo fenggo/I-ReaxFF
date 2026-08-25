@@ -278,26 +278,28 @@ class ReaxFF_nn(nn.Module):
       vr          = fvr(self.x[st])
       vrf         = torch.matmul(vr,self.rcell[st])
       vrf         = torch.where(vrf-0.5>0,vrf-1.0,vrf)
-      vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf)
+      vrf         = torch.where(vrf+0.5<0,vrf+1.0,vrf) 
       self.vr[st] = torch.matmul(vrf,self.cell[st])
-      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) + 0.00000001)
-
+      self.r[st]  = torch.sqrt(torch.sum(self.vr[st]*self.vr[st],dim=3) + 0.00000001) # 
+      
       self.get_bondorder_uc(st)
       self.message_passing(st)
       self.get_final_state(st)
-
-      # OPT: accumulate ebond directly without allocating full [batch,natom,natom] ebd matrix
+      
+      self.ebd[st] = torch.zeros_like(self.bosi[st],device=self.device[st])
       self.esi[st] = {}
-      ebond  = torch.zeros(self.batch[st], device=self.device[st])
-      bosi   = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-      bopi   = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
-      bopp   = self.bopp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bosi = self.bosi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bopi = self.bopi[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
+      bopp = self.bopp[st][:,self.bdid[st][:,0],self.bdid[st][:,1]]
 
       for bd in self.bonds:
           nbd_ = self.nbd[st][bd]
           if nbd_==0:
              continue
           b_  = self.b[st][bd]
+          bi   = self.bdid[st][b_[0]:b_[1],0]
+          bj   = self.bdid[st][b_[0]:b_[1],1]
+
           bosi_ = bosi[:,b_[0]:b_[1]]
           bopi_ = bopi[:,b_[0]:b_[1]]
           bopp_ = bopp[:,b_[0]:b_[1]]
@@ -306,16 +308,19 @@ class ReaxFF_nn(nn.Module):
              FBOR = 1.0 - FBO
              powb = torch.pow(bosi_+FBOR,self.p['be2_'+bd])
              expb = torch.exp(torch.mul(self.p['be1_'+bd],1.0-powb))
-             sieng = self.p['Desi_'+bd]*bosi_*expb*FBO
+
+             sieng = self.p['Desi_'+bd]*bosi_*expb*FBO 
              pieng = torch.mul(self.p['Depi_'+bd],bopi_)
-             ppeng = torch.mul(self.p['Depp_'+bd],bopp_)
-             self.esi[st][bd] = sieng + pieng + ppeng
-             ebond = ebond - torch.sum(self.esi[st][bd], dim=1)
+             ppeng = torch.mul(self.p['Depp_'+bd],bopp_) 
+             self.esi[st][bd]  =  sieng + pieng + ppeng
+             self.ebd[st][:,bi,bj] = -self.esi[st][bd]
           else:
             self.esi[st][bd] = fnn('fe',bd,[bosi_,bopi_,bopp_],self.m,layer=self.be_layer[1])
-            ebond = ebond - self.p['Desi_'+bd]*torch.sum(self.esi[st][bd], dim=1)
-
-      self.ebond[st] = ebond
+            self.ebd[st][:,bi,bj] = -self.p['Desi_'+bd]*self.esi[st][bd]
+          # Ebd.append(self.ebd[mol][bd])
+      # self.ebd[st][:,self.bdid[st][:,0],self.bdid[st][:,1]] = torch.cat(ebd,dim=1)
+      self.ebond[st]= torch.sum(self.ebd[st],dim=[1,2],keepdim=False)
+      # self.ebond[st]= torch.squeeze(self.ebond[st],2)
       # OPT: truncate message passing history + release initial bop tensors
       if len(self.H[st]) > 1:
           self.H[st]    = [self.H[st][-1]]
@@ -328,6 +333,7 @@ class ReaxFF_nn(nn.Module):
           self.bop_si[st] = None
           self.bop_pi[st] = None
           self.bop_pp[st] = None
+  
   def get_bondorder_uc(self,st):
       bop_si,bop_pi,bop_pp = [],[],[]
       # print(self.r[st])
@@ -399,16 +405,15 @@ class ReaxFF_nn(nn.Module):
           hpp  = Hpp[:,b_[0]:b_[1]]
           b    = bd.split('-')
 
-          Dbi_ = Dbi[:,b_[0]:b_[1]]
-          Dbj_ = Dbj[:,b_[0]:b_[1]]
-          self.Dbi[st][bd] = Dbi_    # stored for penalty computation
-          self.Dbj[st][bd] = Dbj_
+          self.Dbi[st][bd]  = Dbi[:,b_[0]:b_[1]] 
+          self.Dbj[st][bd]  = Dbj[:,b_[0]:b_[1]]
 
-          Fi   = fmessage(flabel,b[0],[Dbi_,h,Dbj_],self.m,layer=self.mf_layer[1])
-          Fj   = fmessage(flabel,b[1],[Dbj_,h,Dbi_],self.m,layer=self.mf_layer[1])
+          Fi   = fmessage(flabel,b[0],[self.Dbi[st][bd],h,self.Dbj[st][bd]],self.m,layer=self.mf_layer[1])
+          Fj   = fmessage(flabel,b[1],[self.Dbj[st][bd],h,self.Dbi[st][bd]],self.m,layer=self.mf_layer[1])
           F    = Fi*Fj
 
           Fsi,Fpi,Fpp = torch.unbind(F,axis=2)
+
 
           bosi[:,bi,bj] = bosi[:,bj,bi] = hsi*Fsi
           bopi[:,bi,bj] = bopi[:,bj,bi] = hpi*Fpi
@@ -416,6 +421,7 @@ class ReaxFF_nn(nn.Module):
 
       bo   = bosi+bopi+bopp
       return bo,bosi,bopi,bopp
+  
   def message_passing(self,st):
       self.H[st]    = [self.bop[st]]                     #
       self.Hsi[st]  = [self.bop_si[st]]                  #
@@ -466,13 +472,11 @@ class ReaxFF_nn(nn.Module):
           bo0_ = bo0[:,b_[0]:b_[1]]
           bso.append(self.p['ovun1_'+bd]*self.p['Desi_'+bd]*bo0_)
       
-      # OPT: compute SO via scatter_add instead of building full [batch,natom,natom] bso_ matrix
-      bso_cat = torch.cat(bso,1)                     # [batch, total_bonds]
-      SO      = torch.zeros(self.batch[st], self.natom[st], device=self.device[st], dtype=bso_cat.dtype)
-      idx     = torch.as_tensor(self.bdid[st], device=self.device[st])
-      SO.index_add_(1, idx[:,0], bso_cat)  # sum into row i
-      SO.index_add_(1, idx[:,1], bso_cat)  # sum into row j (symmetric)
-      self.SO[st] = SO
+      bso_   = torch.zeros_like(self.bo0[st],device=self.device[st])
+      bso_[:,self.bdid[st][:,0],self.bdid[st][:,1]]  = torch.cat(bso,1)
+      bso_[:,self.bdid[st][:,1],self.bdid[st][:,0]]  = torch.cat(bso,1)
+
+      self.SO[st]      = torch.sum(bso_,2)
       self.Delta_pi[st]= self.bopi[st]+self.bopp[st]
       self.delta_pi[st]= torch.sum(self.Delta_pi[st],2) 
 
