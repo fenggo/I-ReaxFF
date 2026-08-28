@@ -7,7 +7,10 @@ from ase.io import read,write
 from ase.io.trajectory import Trajectory
 from ..irff import IRFF
 from .irmd import IRMD
-from ..plot import view
+try:
+    from ..plot import view
+except ImportError:
+    from ase.visualize import view
 # using LAMMPS MD driver instead of IRFF
 
 
