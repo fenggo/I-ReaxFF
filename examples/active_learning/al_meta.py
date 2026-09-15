@@ -246,10 +246,10 @@ def md_healthy(log):
 # =============================================================
 
 def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
-    """生成 in.meta_chunk.lammps — 单 chunk 的 LAMMPS 输入
+    """生成 in.meta_chunk.lammps — 单 chunk 的 LAMMPS 输入.
     
-    Args:
-        elements: 元素列表, 如 ['C','H','N','O']. None 则回退到默认 C H N O.
+    始终从 restart 文件续跑 (首个 chunk 用 restart.init, 后续用 restart.chunk_N).
+    elements: 元素列表, 如 ['C','H','N','O']. None 则回退到默认 C H N O.
     """
     if elements is None:
         elements = ['C', 'H', 'N', 'O']
@@ -258,20 +258,8 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
     lines = []
     lines.append(f"# Chunk {chunk_id}: {nsteps} steps")
     lines.append("")
-
-    if restart_src is not None:
-        lines.append(f"read_restart    {restart_src}")
-    else:
-        lines.append("units           real")
-        lines.append("atom_style      charge")
-        lines.append("atom_modify     map array")
-        lines.append("")
-        lines.append("read_data       data.lammps")
-        lines.append("")
-        lines.append("# 初始化速度 (每个迭代重新设种子)")
-        lines.append(f"velocity        all create 300 {7789 + chunk_id}")
-        lines.append("")
-
+    lines.append(f"read_restart    {restart_src}")
+    lines.append("")
     lines.append("# ReaxFF-nn")
     lines.append("pair_style      reaxff control nn yes checkqeq yes")
     lines.append(f"pair_coeff      * * ffield {elem_str}")
@@ -469,13 +457,13 @@ def run_dft(label='cb22', ncpu=None):
     if proc.returncode != 0:
         print(f"    ❌ lm.py 失败 (exit {proc.returncode})")
         return False
-    # if not os.path.exists(out):
-    #     print(f"    ⚠️ DFT 未生成 {label}.traj")
-    #     return False
+    if not os.path.exists(out):
+        print(f"    ⚠️ DFT 未生成 {label}.traj")
+        return False
 
     from ase.io import read
     labeled = read(out, index=':')
-    print(f"    ✅ DFT 完成. ")
+    print(f"    ✅ DFT 完成: {len(labeled)} 帧带标签 → {label}.traj")
     return True
 
 
@@ -565,6 +553,10 @@ def main():
     for old_rst in glob.glob(RESTART_PATTERN):
         os.remove(old_rst)
         print(f"    🧹 清理旧 restart: {old_rst}")
+    # 也清理旧的 init restart
+    init_rst = os.path.join(META_DIR, 'restart.init')
+    if os.path.exists(init_rst):
+        os.remove(init_rst)
 
     # 清理旧 chunk 日志和 dump
     for old_log in glob.glob(os.path.join(META_DIR, 'meta_npt_chunk_*.log')):
@@ -572,13 +564,58 @@ def main():
     for old_dump in glob.glob(os.path.join(DUMP_DIR, 'chunk_*.lammpstrj')):
         os.remove(old_dump)
 
+    # ── 生成初始 restart (零步 MD, 只写 restart, 永远不再 read_data) ──
+    print(f"\n    🔧 生成 restart.init (零步 run, 从 data.lammps 初始化)...")
+    init_in = os.path.join(META_DIR, 'in.init.lammps')
+    if elements is None:
+        elements = ['C', 'H', 'N', 'O']
+    elem_str = ' '.join(elements)
+    with open(init_in, 'w') as f:
+        f.write(f"""# Generate restart.init (0-step run)
+units           real
+atom_style      charge
+atom_modify     map array
+read_data       data.lammps
+velocity        all create 300 {7789}
+
+pair_style      reaxff control nn yes checkqeq yes
+pair_coeff      * * ffield {elem_str}
+neighbor        2.5  bin
+neigh_modify    every 1 delay 1 check no page 200000
+fix             1 all npt temp 350.0 350.0 100 iso 0.0 0.0 100
+fix             Q all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff
+thermo          1
+thermo_style    custom step temp epair etotal press vol
+timestep        0.1
+run             0
+write_restart   restart.init
+""")
+    proc = subprocess.run(
+        [MPIRUN, '-np', str(NPROCS), LMP, '-in', init_in],
+        cwd=META_DIR,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, timeout=300)
+    init_rst = os.path.join(META_DIR, 'restart.init')
+    if proc.returncode != 0 or not os.path.exists(init_rst):
+        print(f"    ❌ 生成 restart.init 失败! exit={proc.returncode}")
+        sys.exit(1)
+    print(f"    ✅ restart.init 已生成")
+    # 清理临时文件
+    for tmp in [init_in, os.path.join(META_DIR, 'log.lammps')]:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+    # ── 初始 restart 链条 ──
+    # restart_src:  下一个 chunk 要读的 restart (None→用 restart.init)
+    # last_safe_restart: 上一安全 restart (初始就是 restart.init)
+    restart_src = init_rst         # 第一个 chunk 从这里启动
+    last_safe_restart = init_rst   # 安全的回滚点
+
     # ── 主循环 ──
     al_iteration = 0          # 已完成 DFT+训练 的次数
     chunk_id = 0              # 当前 chunk 编号
     total_md_steps = 0        # 累计 MD 步数
     total_chunks = 0          # 总 chunk 数
-    restart_src = None        # 当前 chunk 的启动 restart (None=从 data.lammps)
-    last_safe_restart = None  # 上一 chunk 的 restart (用于回滚)
 
     print(f"\n{'='*70}")
     print(f"  分块式主动学习")
@@ -631,14 +668,10 @@ def main():
                 print(f"    ✅ 无失稳, 从 {restart_out} 继续")
                 continue
             else:
-                # 崩溃但无失稳帧可提取 → 回滚到安全 restart 继续
-                print(f"    ⚠️  Chunk {chunk_id} 崩溃但无失稳帧, 回滚继续")
-                if last_safe_restart and os.path.exists(last_safe_restart):
-                    restart_src = last_safe_restart
-                    print(f"    🔄 回滚到 {restart_src}")
-                else:
-                    print(f"    ❌ 无安全 restart 可回滚, 结束")
-                    break
+                # 崩溃但无失稳帧 → 回滚到安全 restart 继续
+                restart_src = last_safe_restart
+                print(f"    ⚠️  Chunk {chunk_id} 崩溃但无失稳帧, "
+                      f"回滚到 {restart_src}")
                 continue
 
         # ── ③ 有失稳帧 (成功检测到 or 崩溃提取到): DFT + 训练 ──
@@ -670,30 +703,15 @@ def main():
         sync_ffield()
 
         # ── ④ 回滚: 从失稳 chunk 之前的安全 restart 用新力场继续 ──
+        restart_src = last_safe_restart   # 始终有值 (至少是 restart.init)
         if success:
-            # MD 成功完成的 chunk 检测到失稳: 回滚到上一安全 restart
-            if last_safe_restart and os.path.exists(last_safe_restart):
-                restart_src = last_safe_restart
-                print(f"\n  🔄 回滚到安全 restart: {last_safe_restart}")
-            else:
-                restart_src = None
-                print(f"\n  🔄 无安全 restart, 从 data.lammps 重新开始")
-            # 清理本 chunk 的 restart (已污染)
-            bad_restart = os.path.join(META_DIR, restart_out)
-            if os.path.exists(bad_restart):
-                os.remove(bad_restart)
+            print(f"\n  🔄 回滚到安全 restart: {last_safe_restart}")
         else:
-            # MD 崩溃: restart 可能未写入或已污染, 回滚到上一安全点
-            if last_safe_restart and os.path.exists(last_safe_restart):
-                restart_src = last_safe_restart
-                print(f"\n  🔄 (崩溃) 回滚到安全 restart: {last_safe_restart}")
-            else:
-                restart_src = None
-                print(f"\n  🔄 (崩溃) 无安全 restart, 从 data.lammps 重新开始")
-            # 清理崩溃产生的 restart
-            bad_restart = os.path.join(META_DIR, restart_out)
-            if os.path.exists(bad_restart):
-                os.remove(bad_restart)
+            print(f"\n  🔄 (崩溃) 回滚到安全 restart: {last_safe_restart}")
+        # 清理本 chunk 的 restart (已污染/崩溃产生)
+        bad_restart = os.path.join(META_DIR, restart_out)
+        if os.path.exists(bad_restart):
+            os.remove(bad_restart)
 
         print(f"     (使用新力场, 偏置势状态保持)")
         print(f"\n  ✅ 主动学习轮 {al_iteration} 完成. "
