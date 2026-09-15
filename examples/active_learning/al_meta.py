@@ -3,7 +3,7 @@
 """
 al_meta.py — 主动学习(Active Learning)循环脚本
 ================================================
-针对 TNT4·CL20 共晶 (228 atoms, ct4 体系) 的 ReaxFF-nn 力场主动学习。
+针对分子晶体体系的ReaxFF-nn力场主动学习。
 
 流程 (每一轮迭代):
     1. MetaD MD 模拟  (in.meta_nvt_prod.lammps, NVT + coordNum CV + harmonicWalls)
