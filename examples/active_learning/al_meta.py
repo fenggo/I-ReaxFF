@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 al_meta.py — 主动学习(Active Learning)循环脚本
@@ -47,23 +47,24 @@ _REAL_ENERGY_TO_ASE = (unitconvert.UNITSETS['real']['energy']
 # ============================================================
 # 配置 (按实际环境修改)
 # ============================================================
-META_DIR    = '/home/xuni/meta'            # metaD 工作目录
-TNT_DIR     = '/home/xuni/meta/tnt'        # 训练工作目录
-LMP         = '/home/xuni/.local/bin/lammps'
-MPIRUN      = '/home/xuni/siesta/mathlib/openmpi-gnu/bin/mpirun'
-SIESTA      = '/home/xuni/.local/bin/siesta'
-EXTRACT     = os.path.join(META_DIR, 'extract_critical_frames.py')
-LMD_LM      = os.path.join(TNT_DIR, 'lm.py')
+META_DIR    = '/home/feng/mlff/btf/meta'            # metaD 工作目录
+TNT_DIR     = '/home/feng/mlff/btf'        # 训练工作目录
+LMP         = 'lammps'
+MPIRUN      = 'mpirun'
+SIESTA      = 'siesta'
+
+# EXTRACT     = os.path.join(META_DIR, 'extract_critical_frames.py')
+# LMD_LM      = os.path.join(TNT_DIR, 'lm.py')
 TRAIN       = os.path.join(TNT_DIR, 'train.py')
-GEN         = os.path.join(TNT_DIR, 'ct4.gen')       # 共晶初始结构
+GEN         = os.path.join(TNT_DIR, 'cb22.gen')       # 共晶初始结构
 FFIELD      = os.path.join(TNT_DIR, 'ffield.json')    # 训练出的力场
 NPROCS      = 12
 
 # metaD 输入 (在 META_DIR 下)
-META_IN     = os.path.join(META_DIR, 'in.meta_nvt_prod.lammps')
+META_IN     = os.path.join(META_DIR, 'in.meta_nvt.lammps')
 COLVARS     = os.path.join(META_DIR, 'colvars.meta_nvt')
-DUMP        = os.path.join(META_DIR, 'meta_nvt_prod.lammpstrj')
-LOG_FILE    = os.path.join(META_DIR, 'meta_nvt_prod_run.log')
+DUMP        = os.path.join(META_DIR, 'meta_nvt.lammpstrj')
+LOG_FILE    = os.path.join(META_DIR, 'meta_nvt.log')
 
 
 def run_cmd(cmd, timeout=None, cwd=None, check=True, shell=False):
@@ -491,7 +492,7 @@ def main():
     ap = argparse.ArgumentParser(description='主动学习循环: metaD → 提取 → DFT → 训练')
     ap.add_argument('--iters', type=int, default=1, help='迭代轮数 (默认 1)')
     ap.add_argument('--epochs', type=int, default=300, help='每轮训练 epoch (默认 300)')
-    ap.add_argument('--max-md-steps', type=int, default=1000000,
+    ap.add_argument('--max-md-steps', type=int, default=100000,
                     help='每轮 MD 最大步数 (默认 1e6)')
     ap.add_argument('--md-timeout', type=int, default=6*3600,
                     help='每轮 MD 超时秒数 (默认 6h)')
