@@ -271,7 +271,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
     lines.append("fix             2 all colvars colvars.meta_nvt")
     lines.append("")
     lines.append("# NPT")
-    lines.append("fix             1 all npt temp 350.000000 350.000000 100 iso 0.000000 0.000000 100")
+    lines.append("fix             1 all npt temp 350.0 350.0 100 iso 0.0 0.0 100")
     lines.append("fix             Q all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff")
     lines.append("")
     lines.append("thermo_style    custom step temp epair etotal press vol "
