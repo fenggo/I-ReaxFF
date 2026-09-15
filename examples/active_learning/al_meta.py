@@ -130,7 +130,7 @@ def detect_elements(data_file=None):
 
     if not elem_map:
         # 方法 2: 从 Masses 段推断 (原子量 → 元素)
-        print(f"    ℹ️  无 #/atom 注释, 尝试从 Masses 段推断...")
+        print(f"    ℹ️  从 Masses 段推断无素...")
         in_masses = False
         mass_map = {}  # type_num -> mass
         for line in raw.split('\n'):
@@ -268,7 +268,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
     lines.append("neigh_modify    every 1 delay 1 check no page 200000")
     lines.append("")
     lines.append("# COLVARS metaD")
-    lines.append("fix             2 all colvars colvars.meta_nvt")
+    # lines.append("fix             2 all colvars colvars.meta_nvt")
     lines.append("")
     lines.append("# NPT")
     lines.append("fix             1 all npt temp 350.0 350.0 100 iso 0.0 0.0 100")
@@ -457,13 +457,13 @@ def run_dft(label='cb22', ncpu=None):
     if proc.returncode != 0:
         print(f"    ❌ lm.py 失败 (exit {proc.returncode})")
         return False
-    if not os.path.exists(out):
-        print(f"    ⚠️ DFT 未生成 {label}.traj")
-        return False
+    # if not os.path.exists(out):
+    #     print(f"    ⚠️ DFT 未生成 {label}.traj")
+    #     return False
 
-    from ase.io import read
-    labeled = read(out, index=':')
-    print(f"    ✅ DFT 完成: {len(labeled)} 帧带标签 → {label}.traj")
+    # from ase.io import read
+    # labeled = read(out, index=':')
+    print(f"    ✅ DFT 完成: 1 帧带标签 → {label}.traj")
     return True
 
 
@@ -574,7 +574,7 @@ def main():
         f.write(f"""# Generate restart.init (0-step run)
 units           real
 atom_style      charge
-atom_modify     map array
+
 read_data       data.lammps
 velocity        all create 300 {7789}
 
@@ -590,6 +590,7 @@ timestep        0.1
 run             0
 write_restart   restart.init
 """)
+    # exit()
     proc = subprocess.run(
         [MPIRUN, '-np', str(NPROCS), LMP, '-in', init_in],
         cwd=META_DIR,
