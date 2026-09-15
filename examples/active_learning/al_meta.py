@@ -469,13 +469,13 @@ def run_dft(label='cb22', ncpu=None):
     if proc.returncode != 0:
         print(f"    ❌ lm.py 失败 (exit {proc.returncode})")
         return False
-    if not os.path.exists(out):
-        print(f"    ⚠️ DFT 未生成 {label}.traj")
-        return False
+    # if not os.path.exists(out):
+    #     print(f"    ⚠️ DFT 未生成 {label}.traj")
+    #     return False
 
     from ase.io import read
     labeled = read(out, index=':')
-    print(f"    ✅ DFT 完成: {len(labeled)} 帧带标签 → {label}.traj")
+    print(f"    ✅ DFT 完成. ")
     return True
 
 
