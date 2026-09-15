@@ -503,57 +503,6 @@ def extract_critical_frames(dump_path=None, score_threshold=4.0,
     return samples
 
 
-def register_new_data(label='ct4'):
-    """把 DFT 结果注册为 data/ct4-N.traj 并加入 train.py 的 dataset dict.
-
-    返回新数据的 key (如 'ct4-2') 或 None.
-    """
-    data_dir = os.path.join(TRAIN_DIR, 'data')
-    os.makedirs(data_dir, exist_ok=True)
-
-    # 找下一个编号: data/ct4-0, ct4-1, ... 或 dataset 里已有的最大 N
-    import re
-    existing = set()
-    if os.path.isdir(data_dir):
-        for fn in os.listdir(data_dir):
-            m = re.match(rf'{label}-(\d+)\.traj', fn)
-            if m:
-                existing.add(int(m.group(1)))
-    # 也看 train.py dataset (跳过被注释的行)
-    src = open(TRAIN).read()
-    for line in src.splitlines():
-        stripped = line.strip()
-        if stripped.startswith('#'):
-            continue
-        m = re.match(rf"'{label}-(\d+)'\s*:\s*'data/{label}-\d+\.traj'", stripped)
-        if m:
-            existing.add(int(m.group(1)))
-
-    n = 0
-    while n in existing:
-        n += 1
-    new_key = f"{label}-{n}"
-
-    # DFT 输出 ct4.traj → data/ct4-N.traj
-    dft_out = os.path.join(TRAIN_DIR, f"{label}.traj")
-    if not os.path.exists(dft_out):
-        print(f"    ⚠️  没有 DFT 输出 {dft_out}")
-        return None
-    shutil.copy(dft_out, os.path.join(data_dir, f"{new_key}.traj"))
-    print(f"    📦 {dft_out} → data/{new_key}.traj")
-
-    # 加入 train.py dataset (在 ct4-0 行后插入)
-    if f"'{new_key}'" not in src:
-        anchor = f"'{label}-0'  : 'data/{label}-0.traj',"
-        if anchor in src:
-            new_line = f"\n              '{new_key}' : 'data/{new_key}.traj',"
-            src = src.replace(anchor, anchor + new_line, 1)
-            with open(TRAIN, 'w') as f:
-                f.write(src)
-            print(f"    🔧 train.py dataset 加入 {new_key}")
-    return new_key
-
-
 def run_dft(label='cb22', ncpu=None):
     """siesta DFT 单点: 运行 lm.py 对 samples.traj 每帧算能量/力, 输出 <label>.traj."""
     if ncpu is None:
@@ -654,10 +603,10 @@ def main():
         run_dft(label=LABEL)
 
         # 3.5 注册新数据到 train.py dataset
-        new_key = register_new_data(LABEL)
-        if new_key is None:
-            print("    ⚠️ 没有新 DFT 数据, 结束")
-            break
+        # new_key = register_new_data(LABEL)
+        # if new_key is None:
+        #     print("    ⚠️ 没有新 DFT 数据, 结束")
+        #     break
 
         # 4. 训练
         print("\n[4/4] 训练 ReaxFF-nn...")
