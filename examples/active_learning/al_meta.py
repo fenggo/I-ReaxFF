@@ -245,11 +245,12 @@ def md_healthy(log):
 # 分块 MD
 # =============================================================
 
-def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
+def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None, temp=350.0):
     """生成 in.meta_chunk.lammps — 单 chunk 的 LAMMPS 输入.
     
     始终从 restart 文件续跑 (首个 chunk 用 restart.init, 后续用 restart.chunk_N).
     elements: 元素列表, 如 ['C','H','N','O']. None 则回退到默认 C H N O.
+    temp:    MD 温度 (K), 默认 350.
     """
     if elements is None:
         elements = ['C', 'H', 'N', 'O']
@@ -271,7 +272,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
     # lines.append("fix             2 all colvars colvars.meta_nvt")
     lines.append("")
     lines.append("# NPT")
-    lines.append("fix             1 all npt temp 350.0 350.0 100 iso 0.0 0.0 100")
+    lines.append(f"fix             1 all npt temp {temp} {temp} 100 iso 0.0 0.0 100")
     lines.append("fix             Q all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff")
     lines.append("")
     lines.append("thermo_style    custom step temp epair etotal press vol "
@@ -297,7 +298,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None):
     return META_IN_CHUNK, dump_file, restart_out
 
 
-def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, timeout_s=36000):
+def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, temp=350.0, timeout_s=36000):
     """运行一个 MD chunk.
 
     Args:
@@ -305,13 +306,14 @@ def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, timeout_s=36000):
         restart_src: 上一个 restart 文件路径 (None 表示从 data.lammps 开始)
         nsteps:      本 chunk 步数
         elements:    元素列表, 如 ['C','H','N','O']
+        temp:        MD 温度 (K), 默认 350
         timeout_s:   超时 (秒)
 
     Returns:
         (success: bool, dump_file: str, restart_out: str, log_file: str)
     """
     in_file, dump_file, restart_out = generate_chunk_input(
-        chunk_id, restart_src, nsteps, elements)
+        chunk_id, restart_src, nsteps, elements, temp)
 
     log_file = os.path.join(META_DIR, f"meta_npt_chunk_{chunk_id:04d}.log")
 
@@ -522,6 +524,8 @@ def main():
     ap.add_argument('--elements', type=str, default=None,
                     help='元素列表, 空格分隔, 如 "C H N O". '
                          '默认从 data.lammps 头注释行自动检测')
+    ap.add_argument('--temp', type=float, default=350.0,
+                    help='MD 温度 (K), 默认 350')
     ap.add_argument('--data-file', type=str, default=None,
                     help='data.lammps 路径 (默认 META_DIR/data.lammps)')
     args = ap.parse_args()
@@ -576,13 +580,13 @@ units           real
 atom_style      charge
 
 read_data       data.lammps
-velocity        all create 300 {7789}
+velocity        all create {args.temp} {7789}
 
 pair_style      reaxff control nn yes checkqeq yes
 pair_coeff      * * ffield {elem_str}
 neighbor        2.5  bin
 neigh_modify    every 1 delay 1 check no page 200000
-fix             1 all npt temp 350.0 350.0 100 iso 0.0 0.0 100
+fix             1 all npt temp {args.temp} {args.temp} 100 iso 0.0 0.0 100
 fix             Q all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff
 thermo          1
 thermo_style    custom step temp epair etotal press vol
@@ -646,7 +650,7 @@ write_restart   restart.init
         # ── ① 运行一个 MD chunk ──
         success, dump_file, restart_out, log_file = run_md_chunk(
             chunk_id, restart_src, args.chunk_size, elements=elements,
-            timeout_s=args.md_timeout)
+            temp=args.temp, timeout_s=args.md_timeout)
         total_md_steps += args.chunk_size
 
         # ── ② mlpkit.critical 判断失稳 (成功 or 崩溃都跑) ──
