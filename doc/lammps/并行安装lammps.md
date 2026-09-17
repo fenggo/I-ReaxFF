@@ -30,6 +30,12 @@ make lib-colvars args="-m mpi" ## 或者 make lib-colvars args="-m ubuntu"
 make yes-colvars
 make mpi                      ## 或者 make ubuntu
 ```
+（选装）QUIP模块
+```
+
+make yes-yes-ML-QUIP
+make mpi                      ## 或者 make ubuntu
+```
 
 (选装) DeePMD模块
 ```
