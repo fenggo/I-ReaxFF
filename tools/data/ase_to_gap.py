@@ -29,7 +29,7 @@ import numpy as np
 from ase.io.trajectory import Trajectory
 
 
-def write_extxyz(f, atoms, frame_idx, config_type="unknown"):
+def write_extxyz(f, atoms, frame_idx, config_type="unknown", write_force=True):
     """
     将单个 ASE Atoms 对象写入 extended XYZ 格式。
 
@@ -40,6 +40,8 @@ def write_extxyz(f, atoms, frame_idx, config_type="unknown"):
     frame_idx : int
     config_type : str
         结构类型标签，用于 gap_fit 的 config_type_sigma 分组正则化。
+    write_force : bool
+        是否写入力数据 (默认 True)。设为 False 可生成纯能量训练集。
     """
     natom = len(atoms)
     symbols = atoms.get_chemical_symbols()
@@ -85,7 +87,7 @@ def write_extxyz(f, atoms, frame_idx, config_type="unknown"):
     prop_parts = ["species:S:1", "pos:R:3"]
 
     # 如果有力，加入 force:R:3
-    has_force = forces is not None
+    has_force = forces is not None and write_force
     if has_force:
         prop_parts.append("force:R:3")
 
@@ -108,7 +110,12 @@ def write_extxyz(f, atoms, frame_idx, config_type="unknown"):
     comment_parts = [ct_kv, lattice_kv, pbc_kv, properties]
 
     if energy is not None:
-        comment_parts.insert(1, f"energy={energy:15.8f}")
+        # 注意: 绝不能对 energy 做宽度对齐(如 :15.8f)!
+        # QUIP 的 xyz 解析器要求 '=' 后紧跟数值。负能量值经 :15.8f 宽度对齐后会在
+        # 数值前补空格 → energy=  -934.35, 被 QUIP 拆成空值 energy= + -934.35 两个
+        # token, 直接报 "Missing value for parameter energy" 崩溃。
+        # 必须用无宽度的 .8f(或 str), 保证 energy= 后紧跟数字。
+        comment_parts.insert(1, f"energy={energy:.8f}")
 
     if has_virial and virial_flat is not None:
         virial_str = " ".join(f"{v:15.8f}" for v in virial_flat)
@@ -211,7 +218,8 @@ def main():
                     skipped += 1
                     continue
 
-                write_extxyz(f, atoms, n_frames, config_type=config_type)
+                write_extxyz(f, atoms, n_frames, config_type=config_type,
+                             write_force=not args.no_force)
                 n_frames += 1
 
             print(f"处理: {traj_name} {n_frames} 帧 \r",end="\r", flush=True)
