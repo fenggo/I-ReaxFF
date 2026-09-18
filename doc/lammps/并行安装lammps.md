@@ -32,7 +32,7 @@ make mpi                      ## 或者 make ubuntu
 ```
 （选装）QUIP模块
 ```
-
+export QUIP_ROOT pwd(QUIP路径名)
 make yes-yes-ML-QUIP
 make mpi                      ## 或者 make ubuntu
 ```
