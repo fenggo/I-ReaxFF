@@ -33,6 +33,7 @@ make mpi                      ## 或者 make ubuntu
 （选装）QUIP模块
 ```
 export QUIP_ROOT pwd(QUIP路径名)
+export QUIP_ARCH=linux_x86_64_gfortran
 make yes-yes-ML-QUIP
 make mpi                      ## 或者 make ubuntu
 ```
