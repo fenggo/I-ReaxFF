@@ -511,7 +511,7 @@ print('ffield.json -> ffield OK')
 # =============================================================
 
 def main():
-    ap = argparse.ArgumentParser(description='分块式主动学习循环: chunked MD → critical → DFT → 训练')
+    ap = argparse.ArgumentParser(description='主动学习循环: chunked MD → critical → DFT → 训练')
     ap.add_argument('--iters', type=int, default=1,help='主动学习轮数 (DFT+训练次数, 默认 1)')
     ap.add_argument('--epochs', type=int, default=300,help='每轮训练 epoch (默认 1000)')
     ap.add_argument('--chunk-size', type=int, default=1000,help='每 chunk 的 MD 步数 (默认 1000)')
