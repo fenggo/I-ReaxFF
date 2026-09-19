@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-active_learning.py — 分块式主动学习(Active Learning)循环脚本
+active learning with meta-dynamics — 分块式主动学习(Active Learning)循环脚本
 =============================================================
 针对分子晶体体系的 ReaxFF-nn 力场主动学习。
 
@@ -20,12 +20,12 @@ active_learning.py — 分块式主动学习(Active Learning)循环脚本
        (用新力场, 但偏置势状态继续累积)
 
 用法:
-    python active_learning.py                      # 运行 1 轮
-    python active_learning.py --iters 5            # 运行 5 轮
-    python active_learning.py --epochs 500         # 每轮训练 500 epoch
-    python active_learning.py --chunk-size 2000    # 每 chunk 2000 步 (默认 1000)
-    python active_learning.py --max-chunks 500     # 最大 chunk 数 (默认无限制)
-    python active_learning.py --max-md-steps 1000000  # MD 总步数上限
+    python al_meta.py                      # 运行 1 轮
+    python al_meta.py --iters 5            # 运行 5 轮
+    python al_meta.py --epochs 500         # 每轮训练 500 epoch
+    python al_meta.py --chunk-size 2000    # 每 chunk 2000 步 (默认 1000)
+    python al_meta.py --max-chunks 500     # 最大 chunk 数 (默认无限制)
+    python al_meta.py --max-md-steps 1000000  # MD 总步数上限
 
 依赖:
     - lammps (ReaxFF-nn + COLVARS)
