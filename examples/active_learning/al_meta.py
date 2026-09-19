@@ -20,12 +20,12 @@ active learning with meta-dynamics — 分块式主动学习(Active Learning)循
        (用新力场, 但偏置势状态继续累积)
 
 用法:
-    python al_meta.py                      # 运行 1 轮
-    python al_meta.py --iters 5            # 运行 5 轮
-    python al_meta.py --epochs 500         # 每轮训练 500 epoch
-    python al_meta.py --chunk-size 2000    # 每 chunk 2000 步 (默认 1000)
-    python al_meta.py --max-chunks 500     # 最大 chunk 数 (默认无限制)
-    python al_meta.py --max-md-steps 1000000  # MD 总步数上限
+    python active_learning.py                      # 运行 1 轮
+    python active_learning.py --iters 5            # 运行 5 轮
+    python active_learning.py --epochs 500         # 每轮训练 500 epoch
+    python active_learning.py --chunk-size 2000    # 每 chunk 2000 步 (默认 1000)
+    python active_learning.py --max-chunks 500     # 最大 chunk 数 (默认无限制)
+    python active_learning.py --max-md-steps 1000000  # MD 总步数上限
 
 依赖:
     - lammps (ReaxFF-nn + COLVARS)
@@ -46,13 +46,13 @@ import numpy as np
 # =============================================================
 #                  配置 (按实际环境修改)                        =
 # =============================================================
-META_DIR    = '/home/feng/mlff/tnt/meta'   # metaD 工作目录
-TRAIN_DIR   = '/home/feng/mlff/tnt'        # 训练工作目录
-LABEL       = 'ct4'
+META_DIR    = '/home/feng/mlff/btf/meta'   # metaD 工作目录
+TRAIN_DIR   = '/home/feng/mlff/btf'        # 训练工作目录
+LABEL       = 'cb22'
 NPROCS      = 12
 
 # Python 环境
-ANACONDA_PY = '/home/feng/.local/anaconda/bin/python3'  # mlpkit 所在 Python
+ANACONDA_PY = 'python'  # mlpkit 所在 Python
 LOCAL_PY    = sys.executable                             # 当前 Python
 
 # LAMMPS
@@ -245,7 +245,7 @@ def md_healthy(log):
 # 分块 MD
 # =============================================================
 
-def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None, temp=350.0):
+def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None, temp=350.0,p=0.0001):
     """生成 in.meta_chunk.lammps — 单 chunk 的 LAMMPS 输入.
     
     始终从 restart 文件续跑 (首个 chunk 用 restart.init, 后续用 restart.chunk_N).
@@ -272,7 +272,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None, temp=350.
     # lines.append("fix             2 all colvars colvars.meta_nvt")
     lines.append("")
     lines.append("# NPT")
-    lines.append(f"fix             1 all npt temp {temp} {temp} 100 iso 0.0 0.0 100")
+    lines.append(f"fix             1 all npt temp {temp} {temp} 100 iso {p} {p} 100")
     lines.append("fix             Q all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff")
     lines.append("")
     lines.append("thermo_style    custom step temp epair etotal press vol "
@@ -298,7 +298,7 @@ def generate_chunk_input(chunk_id, restart_src, nsteps, elements=None, temp=350.
     return META_IN_CHUNK, dump_file, restart_out
 
 
-def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, temp=350.0, timeout_s=36000):
+def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, temp=350.0, p=0.0001,timeout_s=36000):
     """运行一个 MD chunk.
 
     Args:
@@ -313,7 +313,7 @@ def run_md_chunk(chunk_id, restart_src, nsteps, elements=None, temp=350.0, timeo
         (success: bool, dump_file: str, restart_out: str, log_file: str)
     """
     in_file, dump_file, restart_out = generate_chunk_input(
-        chunk_id, restart_src, nsteps, elements, temp)
+        chunk_id, restart_src, nsteps, elements, temp,p)
 
     log_file = os.path.join(META_DIR, f"meta_npt_chunk_{chunk_id:04d}.log")
 
@@ -524,10 +524,9 @@ def main():
     ap.add_argument('--elements', type=str, default=None,
                     help='元素列表, 空格分隔, 如 "C H N O". '
                          '默认从 data.lammps 头注释行自动检测')
-    ap.add_argument('--temp', type=float, default=350.0,
-                    help='MD 温度 (K), 默认 350')
-    ap.add_argument('--data-file', type=str, default=None,
-                    help='data.lammps 路径 (默认 META_DIR/data.lammps)')
+    ap.add_argument('--temp', type=float, default=350.0,help='MD 温度 (K), 默认 350')
+    ap.add_argument('--p', type=float, default=0.0001,help='MD 压强 (大气压), 默认 0.0001')
+    ap.add_argument('--data-file', type=str, default=None,help='data.lammps 路径 (默认 META_DIR/data.lammps)')
     args = ap.parse_args()
 
     # ── 元素检测 ──
@@ -541,7 +540,7 @@ def main():
         elems_detected, _ = detect_elements(data_file)
         if elems_detected:
             elements = elems_detected
-        # else: elements 保持 None, generate_chunk_input 回退到 C H N O
+        # else: elements 保持 None, 回退到 C H N O
 
     # ── 初始化 ──
     os.makedirs(DUMP_DIR, exist_ok=True)
@@ -650,7 +649,7 @@ write_restart   restart.init
         # ── ① 运行一个 MD chunk ──
         success, dump_file, restart_out, log_file = run_md_chunk(
             chunk_id, restart_src, args.chunk_size, elements=elements,
-            temp=args.temp, timeout_s=args.md_timeout)
+            temp=args.temp,p=args.p, timeout_s=args.md_timeout)
         total_md_steps += args.chunk_size
 
         # ── ② mlpkit.critical 判断失稳 (成功 or 崩溃都跑) ──
