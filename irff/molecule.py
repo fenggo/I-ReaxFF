@@ -285,6 +285,131 @@ def enlarge(m,cell=None,fac=1.0,supercell=None):
     return m,A
 
 
+def repulse(m, cell, d_safe=2.0, max_iter=100, step=1.0, eps=1e-4):
+    """
+    Iterative soft-core repulsion: move whole molecules apart along
+    their centroid line whenever the closest inter-molecular atom
+    pair (under PBC) is below *d_safe*.
+
+    Parameters
+    ----------
+    m : list of molecule
+        Molecules whose mol_x / center are updated in place.
+    cell : (3,3) array
+        Unit-cell vectors.
+    d_safe : float
+        Minimum acceptable inter-molecular distance (Angstrom).
+    max_iter : int
+        Maximum relaxation iterations.
+    step : float
+        Fraction of the overlap distance to correct per iteration
+        (each molecule receives half).
+    tol : float
+        Stop when the per-iteration maximum displacement is below tol.
+
+    Returns
+    -------
+    m : list of molecule
+    d_min : float
+        Final minimum inter-molecular distance.
+    n_iter : int
+    """
+    cell = np.asarray(cell, dtype=float)
+    inv_cell = np.linalg.inv(cell)
+
+    nmol = len(m)
+    d_min = 0.0
+    prev_d = np.inf
+
+    for it in range(max_iter):
+        # ---- scan every molecule pair ----
+        disps = [np.zeros(3) for _ in range(nmol)]
+
+        for i in range(nmol):
+            xi = m[i].mol_x
+            for j in range(i + 1, nmol):
+                xj = m[j].mol_x
+
+                frac_i = xi @ inv_cell
+                frac_j = xj @ inv_cell
+                df = frac_j[:, None, :] - frac_i[None, :, :]
+                df -= np.round(df)
+                dv = df @ cell
+                d2 = np.sum(dv * dv, axis=-1)
+                k = np.argmin(d2)
+                d = np.sqrt(d2.flat[k])
+                if d < d_safe:
+                    ai, aj = np.unravel_index(k, d2.shape)
+
+                    # Push along the closest atom-pair vector (minimum
+                    # image). This also resolves branched interpenetration
+                    # where centroid directions are misleading.
+                    uvec = dv[ai, aj]
+                    rn = np.linalg.norm(uvec)
+                    if rn < 1e-8:
+                        # coincident atoms – fall back to centroid line
+                        frac_ci = m[i].center @ inv_cell
+                        frac_cj = m[j].center @ inv_cell
+                        uvec = (frac_cj - frac_ci) @ cell
+                        uvec -= np.round(uvec @ inv_cell) @ cell
+                        rn = np.linalg.norm(uvec)
+                        if rn < 1e-8:
+                            uvec = np.array([1.0, 0.0, 0.0])
+                            rn = 1.0
+                    u = uvec / rn
+
+                    push = 0.5 * step * (d_safe - d) * u
+                    disps[i] -= push
+                    disps[j] += push
+
+        for i in range(nmol):
+            if np.any(disps[i] != 0.0):
+                m[i].move(disps[i])
+                m[i].center += disps[i]
+
+        # ---- global closest distance after applying displacements ----
+        d_min = np.inf
+        for i in range(nmol):
+            for j in range(i + 1, nmol):
+                df = (m[j].mol_x @ inv_cell)[:, None, :] \
+                     - (m[i].mol_x @ inv_cell)[None, :, :]
+                df -= np.round(df)
+                dcur = np.sqrt(np.sum((df @ cell) ** 2, axis=-1).min())
+                if dcur < d_min:
+                    d_min = dcur
+
+        if d_min >= d_safe - eps:
+            return m, d_safe, it + 1
+
+        # stagnation guard (floating-point limit cycle)
+        if abs(prev_d - d_min) < 1e-8:
+            return m, d_min, it + 1
+        prev_d = d_min
+
+    return m, d_min, max_iter
+
+
+def reassemble(m, cell, scale=1.2):
+    """
+    Rebuild an ASE Atoms object from (possibly displaced) molecules.
+    Cell is scaled by *scale* to give the displaced packing room;
+    positions are wrapped into the cell.
+    """
+    cell = np.asarray(cell, dtype=float) * scale
+
+    elems, x = [], []
+    for mol in m:
+        elems.extend(mol.atom_name)
+        x.append(mol.mol_x)
+    x = np.vstack(x)
+
+    A = Atoms(elems, x)
+    A.set_cell(cell)
+    A.set_pbc([True, True, True])
+    A.wrap()
+    return A
+
+
 def moltoatoms(mols):
     elems = []
     x = []
